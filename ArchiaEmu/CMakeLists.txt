@@ -21,6 +21,10 @@ add_executable(myps5emu
     src/core/Bus.cpp
     src/core/Bus.hpp
     src/core/Device.hpp
+    src/core/RamDevice.cpp
+    src/core/RamDevice.hpp
+    src/core/RomDevice.cpp
+    src/core/RomDevice.hpp
     src/loader/Elf64Loader.cpp
     src/loader/Elf64Loader.hpp
     src/memory/Memory.cpp
@@ -44,6 +48,8 @@ add_executable(MachineArchitectureTest
     tools/MachineArchitectureTest.cpp
     src/core/Machine.cpp
     src/core/Bus.cpp
+    src/core/RamDevice.cpp
+    src/core/RomDevice.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
     src/cpu/RegisterFile.cpp
