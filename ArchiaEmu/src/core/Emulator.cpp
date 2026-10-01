@@ -1,6 +1,7 @@
 #include "Emulator.hpp"
 
 #include <iostream>
+#include <limits>
 #include <vector>
 
 namespace myps5emu {
@@ -18,10 +19,48 @@ bool Emulator::LoadGame(const std::string& path)
     auto& memory = machine_.GuestMemory();
     auto& cpu = machine_.CPU();
 
+    constexpr std::uint32_t elf_pf_r = 0x4U;
+    constexpr std::uint32_t elf_pf_w = 0x2U;
+    constexpr std::uint32_t elf_pf_x = 0x1U;
+
     for (const auto& segment : loader_.Segments()) {
-        if (!memory.Map(
-                segment.virtual_address,
-                static_cast<std::size_t>(segment.memory_size))) {
+        if (segment.memory_size == 0 ||
+            segment.virtual_address >
+                std::numeric_limits<std::uint64_t>::max() -
+                    segment.memory_size) {
+            std::cerr << "[Memory] Invalid ELF segment range.\n";
+            return false;
+        }
+
+        const std::uint64_t segment_end =
+            segment.virtual_address + segment.memory_size;
+        const std::uint64_t map_base =
+            segment.virtual_address -
+            (segment.virtual_address % Memory::PageSize);
+        if (segment_end >
+            std::numeric_limits<std::uint64_t>::max() -
+                (Memory::PageSize - 1)) {
+            std::cerr << "[Memory] ELF segment alignment overflow.\n";
+            return false;
+        }
+        const std::uint64_t map_end =
+            (segment_end + Memory::PageSize - 1) /
+            Memory::PageSize * Memory::PageSize;
+        const std::size_t map_size =
+            static_cast<std::size_t>(map_end - map_base);
+
+        MemoryPermission permissions = MemoryPermission::None;
+        if ((segment.flags & elf_pf_r) != 0) {
+            permissions = permissions | MemoryPermission::Read;
+        }
+        if ((segment.flags & elf_pf_w) != 0) {
+            permissions = permissions | MemoryPermission::Write;
+        }
+        if ((segment.flags & elf_pf_x) != 0) {
+            permissions = permissions | MemoryPermission::Execute;
+        }
+
+        if (!memory.Map(map_base, map_size, permissions)) {
             std::cerr
                 << "[Memory] Failed to map segment at 0x"
                 << std::hex << segment.virtual_address
@@ -51,7 +90,8 @@ bool Emulator::LoadGame(const std::string& path)
     constexpr std::uint64_t stackBase = 0x7FFF00000000ULL;
     constexpr std::size_t stackSize = 0x10000;
 
-    if (!memory.Map(stackBase, stackSize)) {
+    if (!memory.Map(stackBase, stackSize,
+                    MemoryPermission::Read | MemoryPermission::Write)) {
         std::cerr << "[Memory] Failed to map guest stack.\n";
         return false;
     }
