@@ -1,0 +1,4 @@
+C:/Users/Likounsee/Downloads/PS5 emu/MyPS5Emu-starter/build/CMakeFiles/myps5emu.dir
+C:/Users/Likounsee/Downloads/PS5 emu/MyPS5Emu-starter/build/CMakeFiles/CpuAllFunctionsTest.dir
+C:/Users/Likounsee/Downloads/PS5 emu/MyPS5Emu-starter/build/CMakeFiles/edit_cache.dir
+C:/Users/Likounsee/Downloads/PS5 emu/MyPS5Emu-starter/build/CMakeFiles/rebuild_cache.dir

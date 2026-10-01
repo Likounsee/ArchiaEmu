@@ -1,0 +1,42 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(MyPS5Emu VERSION 0.1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(MSVC)
+    add_compile_options(/W4 /permissive-)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+add_executable(myps5emu
+    src/main.cpp
+
+    src/core/Emulator.cpp
+    src/core/Emulator.hpp
+
+    src/loader/Elf64Loader.cpp
+    src/loader/Elf64Loader.hpp
+
+    src/memory/Memory.cpp
+    src/memory/Memory.hpp
+
+    src/cpu/Cpu.cpp
+    src/cpu/Cpu.hpp
+    src/cpu/RegisterFile.cpp
+    src/cpu/RegisterFile.hpp
+)
+
+target_include_directories(myps5emu PRIVATE src)
+
+add_executable(CpuAllFunctionsTest
+    tools/CpuAllFunctionsTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/RegisterFile.cpp
+)
+
+target_include_directories(CpuAllFunctionsTest PRIVATE src)
