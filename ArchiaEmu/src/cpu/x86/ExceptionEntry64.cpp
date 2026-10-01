@@ -1,4 +1,5 @@
 #include "ExceptionEntry64.hpp"
+#include "ExceptionStateApplier64.hpp"
 
 namespace myps5emu::x86 {
 
