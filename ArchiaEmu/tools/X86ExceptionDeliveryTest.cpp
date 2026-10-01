@@ -48,7 +48,7 @@ int main()
 
     ExceptionDeliveryResolver resolver(idt, gdt, tss);
     const auto delivered = resolver.Resolve(
-        exception, 0x10, 0x202, 3, 0x5);
+        exception, 0x10, 0x202, 3, 0x5, 0x7000, 0x18);
 
     if (delivered.status != ExceptionDeliveryStatus::Delivered ||
         delivered.frame.rip != exception.instruction_pointer ||
@@ -60,7 +60,10 @@ int main()
         delivered.target_cs != gate.selector ||
         delivered.target_rflags != 0x2 ||
         delivered.stack.status != ExceptionStackStatus::StackSelected ||
-        delivered.stack.stack_pointer != 0x9000) {
+        delivered.stack.stack_pointer != 0x9000 ||
+        !delivered.stack_frame.privilege_stack_switch ||
+        delivered.stack_frame.rsp != 0x7000 ||
+        delivered.stack_frame.ss != 0x18) {
         return Fail("Valid exception delivery resolution failed") ? 0 : 1;
     }
 
