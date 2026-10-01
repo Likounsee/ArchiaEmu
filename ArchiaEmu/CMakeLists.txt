@@ -228,3 +228,19 @@ add_executable(X86IretqCpuTest
 )
 target_include_directories(X86IretqCpuTest PRIVATE src)
 add_test(NAME X86IretqCpuTest COMMAND X86IretqCpuTest)
+
+add_executable(MemoryBehaviorTest
+    tools/MemoryBehaviorTest.cpp
+    src/memory/Memory.cpp
+)
+target_include_directories(MemoryBehaviorTest PRIVATE src)
+add_test(NAME MemoryBehaviorTest COMMAND MemoryBehaviorTest)
+
+add_executable(X86SetccTest
+    tools/X86SetccTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/RegisterFile.cpp
+)
+target_include_directories(X86SetccTest PRIVATE src)
+add_test(NAME X86SetccTest COMMAND X86SetccTest)
