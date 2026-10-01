@@ -4,14 +4,17 @@
 #include <cstdint>
 #include <vector>
 
-#include "memory/Memory.hpp"
 #include "core/Device.hpp"
+#include "memory/Memory.hpp"
 
 namespace myps5emu {
 
 class Bus final : public Memory {
 public:
-    bool Map(std::uint64_t virtual_address,\n             std::size_t size) override;\n\n    bool MapDevice(std::uint64_t base,
+    bool Map(std::uint64_t virtual_address,
+             std::size_t size) override;
+
+    bool MapDevice(std::uint64_t base,
                    std::size_t size,
                    Device* device);
 
@@ -25,7 +28,8 @@ public:
                const std::uint8_t* data,
                std::size_t size) override;
 
-    void ClearDevices() noexcept;\n\n    void Clear() override;
+    void ClearDevices() noexcept;
+    void Clear() override;
 
 private:
     struct DeviceMapping {
