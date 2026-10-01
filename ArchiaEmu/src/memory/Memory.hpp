@@ -6,6 +6,16 @@
 
 namespace myps5emu {
 
+enum class MemoryFault : std::uint8_t {
+    None,
+    InvalidRange,
+    Unaligned,
+    Overlap,
+    Unmapped,
+    PermissionDenied,
+    DeviceRejected
+};
+
 enum class MemoryPermission : std::uint8_t {
     None = 0,
     Read = 1U << 0,
@@ -67,7 +77,10 @@ public:
 
     virtual void Clear();
 
+    MemoryFault LastFault() const noexcept;
+
 protected:
+    void SetFault(MemoryFault fault) const noexcept;
     bool HasOverlappingRegion(std::uint64_t virtual_address,
                               std::size_t size) const noexcept;
 
@@ -80,6 +93,7 @@ private:
     };
 
     std::vector<Region> regions_;
+    mutable MemoryFault last_fault_ = MemoryFault::None;
 };
 
 } // namespace myps5emu
