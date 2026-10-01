@@ -134,6 +134,16 @@ int main()
         return Fail("Invalid RFLAGS was accepted") ? 0 : 1;
     }
 
+    // A less privileged CPL3 context must not IRET back into CPL0.
+    userCpu.SetCodeSegment(0x33);
+    WriteQword(memory, 0x7100, 0x505678);
+    WriteQword(memory, 0x7108, 0x28);
+    WriteQword(memory, 0x7110, 0x202);
+    result = ExceptionReturn64::Read(userCpu, memory, gdt);
+    if (result.status != ExceptionReturnStatus::InvalidCodeSegment) {
+        return Fail("IRETQ accepted a return to a more privileged CPL") ? 0 : 1;
+    }
+
     Memory readOnly;
     if (!readOnly.Map(0x7000, 0x1000, MemoryPermission::Write)) {
         return Fail("Failed to map read-only frame") ? 0 : 1;
