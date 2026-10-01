@@ -3527,7 +3527,8 @@ int Cpu::Run()
                 RaiseException({
                     CpuExceptionKind::InvalidOpcode,
                     instruction_address,
-                    MemoryFault::None
+                    MemoryFault::None,
+                    CpuExceptionVector::InvalidOpcode
                 });
                 return 1;
             }
@@ -6787,6 +6788,13 @@ case 0xD0:
                 << static_cast<unsigned>(opcode)
                 << std::dec
                 << '\n';
+
+            RaiseException({
+                CpuExceptionKind::InvalidOpcode,
+                instruction_address,
+                MemoryFault::None,
+                CpuExceptionVector::InvalidOpcode
+            });
 
             return 1;
         }
