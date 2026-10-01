@@ -1,6 +1,7 @@
 #include "core/Bus.hpp"
 #include "core/Device.hpp"
 #include "core/Machine.hpp"
+#include "core/MmioRegisterDevice.hpp"
 #include "core/RamDevice.hpp"
 #include "core/RomDevice.hpp"
 
@@ -87,6 +88,35 @@ int main()
         return Fail("ROM device accepted invalid access") ? 0 : 1;
     }
 
+    MmioRegisterDevice registers(
+        {0x11223344U, 0xAABBCCDDU},
+        {0x0000FFFFU, 0xFFFFFFFFU});
+
+    if (registers.Size() != 8 ||
+        registers.ReadRegister(0) != 0x11223344U) {
+        return Fail("MMIO register initialization failed") ? 0 : 1;
+    }
+
+    std::uint8_t registerBytes[4] = {};
+    if (!registers.Read(0, registerBytes, sizeof(registerBytes)) ||
+        registerBytes[0] != 0x44 || registerBytes[1] != 0x33 ||
+        registerBytes[2] != 0x22 || registerBytes[3] != 0x11) {
+        return Fail("MMIO register little-endian read failed") ? 0 : 1;
+    }
+
+    const std::uint32_t registerWrite = 0xFFEEDDCCU;
+    if (!registers.Write(0, reinterpret_cast<const std::uint8_t*>(&registerWrite),
+                         sizeof(registerWrite)) ||
+        registers.ReadRegister(0) != 0x1122DDCCU) {
+        return Fail("MMIO register write mask failed") ? 0 : 1;
+    }
+
+    if (registers.Read(2, registerBytes, sizeof(registerBytes)) ||
+        registers.Write(1, registerBytes, sizeof(registerBytes)) ||
+        registers.Read(8, registerBytes, sizeof(registerBytes))) {
+        return Fail("MMIO register accepted invalid access") ? 0 : 1;
+    }
+
     if (!bus.MapDevice(0x10000000, 0x20, &ramDevice)) {
         return Fail("Device mapping failed") ? 0 : 1;
     }
@@ -100,6 +130,14 @@ int main()
     if (bus.Read(0x1000001F, deviceRead, 2) ||
         bus.Write(0x1000001F, deviceWrite, 2)) {
         return Fail("Bus accepted access crossing device boundary") ? 0 : 1;
+    }
+
+    if (!bus.MapDevice(0x20000000, registers.Size(), &registers) ||
+        !bus.Write(0x20000000,
+                   reinterpret_cast<const std::uint8_t*>(&registerWrite),
+                   sizeof(registerWrite)) ||
+        registers.ReadRegister(0) != 0x1122DDCCU) {
+        return Fail("Bus MMIO register routing failed") ? 0 : 1;
     }
 
     if (bus.MapDevice(0x10000010, 0x10, &ramDevice) ||
