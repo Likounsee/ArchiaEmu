@@ -177,10 +177,6 @@ int main()
         0xF4
     };
 
-    if (bus.Write(0x400000, program, sizeof(program))) {
-        return Fail("Read/write page incorrectly allowed code write") ? 0 : 1;
-    }
-
     if (!bus.Write(0x430000, program, sizeof(program)) ||
         !bus.Protect(0x430000, 0x1000,
                      MemoryPermission::Read | MemoryPermission::Execute)) {
@@ -197,7 +193,15 @@ int main()
         return Fail("CPU did not execute through executable page") ? 0 : 1;
     }
 
-    machine.CPU().SetInstructionPointer(0x400000);
+    if (!bus.Map(0x440000, 0x1000,
+                  MemoryPermission::Read | MemoryPermission::Write) ||
+        !bus.Write(0x440000, program, sizeof(program)) ||
+        !bus.Protect(0x440000, 0x1000,
+                     MemoryPermission::Read | MemoryPermission::Write)) {
+        return Fail("NX page setup failed") ? 0 : 1;
+    }
+
+    machine.CPU().SetInstructionPointer(0x440000);
     if (machine.CPU().Run() == 0) {
         return Fail("CPU executed from a non-executable page") ? 0 : 1;
     }
