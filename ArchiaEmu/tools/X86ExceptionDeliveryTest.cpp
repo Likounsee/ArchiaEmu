@@ -1,0 +1,76 @@
+#include "cpu/CpuException.hpp"
+#include "cpu/x86/ExceptionDelivery.hpp"
+
+#include <iostream>
+
+using namespace myps5emu;
+using namespace myps5emu::x86;
+
+namespace {
+
+bool Fail(const char* message)
+{
+    std::cerr << message << '\n';
+    return false;
+}
+
+} // namespace
+
+int main()
+{
+    Idt idt;
+    Gdt64 gdt;
+
+    GdtCodeSegment64 code{};
+    code.present = true;
+    code.long_mode = true;
+    code.dpl = 0;
+
+    if (!gdt.SetCodeSegment(5, code)) {
+        return Fail("Failed to install target code segment") ? 0 : 1;
+    }
+
+    IdtGate64 gate{};
+    gate.present = true;
+    gate.selector = 5U << 3;
+    gate.offset = 0xFFFF800000004000ULL;
+    if (!gate.IsValid() || !idt.SetGate(14, gate)) {
+        return Fail("Failed to install page-fault IDT gate") ? 0 : 1;
+    }
+
+    CpuException exception{};
+    exception.kind = CpuExceptionKind::MemoryFault;
+    exception.instruction_pointer = 0x123456789ABCDEF0ULL;
+    exception.vector = CpuExceptionVector::PageFault;
+
+    ExceptionDeliveryResolver resolver(idt, gdt);
+    const auto delivered = resolver.Resolve(
+        exception, 0x10, 0x202, 0, 0x5);
+
+    if (delivered.status != ExceptionDeliveryStatus::Delivered ||
+        delivered.frame.rip != exception.instruction_pointer ||
+        delivered.frame.cs != 0x10 ||
+        delivered.frame.rflags != 0x202 ||
+        !delivered.frame.has_error_code ||
+        delivered.frame.error_code != 0x5 ||
+        delivered.target_rip != gate.offset ||
+        delivered.target_cs != gate.selector) {
+        return Fail("Valid exception delivery resolution failed") ? 0 : 1;
+    }
+
+    idt.ClearGate(14);
+    if (resolver.Resolve(exception, 0x10, 0x202, 0, 0x5).status !=
+        ExceptionDeliveryStatus::NotPresent) {
+        return Fail("Missing IDT gate was not rejected") ? 0 : 1;
+    }
+
+    gate.selector = 0;
+    idt.SetGate(14, gate);
+    if (resolver.Resolve(exception, 0x10, 0x202, 0, 0x5).status !=
+        ExceptionDeliveryStatus::InvalidTarget) {
+        return Fail("Invalid target selector was not rejected") ? 0 : 1;
+    }
+
+    std::cout << "x86-64 exception delivery resolution test: PASS\n";
+    return 0;
+}
