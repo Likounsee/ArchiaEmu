@@ -22,15 +22,23 @@ bool IsCanonical48(std::uint64_t value) noexcept
     return upper == 0 || upper == 0xFFFF;
 }
 
+bool AddOffset(
+    std::uint64_t address,
+    std::uint64_t offset,
+    std::uint64_t& result) noexcept
+{
+    if (address > std::numeric_limits<std::uint64_t>::max() - offset) {
+        return false;
+    }
+    result = address + offset;
+    return true;
+}
+
 bool ReadQword(
     const Memory& memory,
     std::uint64_t address,
     std::uint64_t& value) noexcept
 {
-    if (address > std::numeric_limits<std::uint64_t>::max() - 8) {
-        return false;
-    }
-
     std::array<std::uint8_t, 8> bytes{};
     if (!memory.Read(address, bytes.data(), bytes.size())) {
         return false;
@@ -38,6 +46,13 @@ bool ReadQword(
 
     value = ReadU64(bytes);
     return true;
+}
+
+ExceptionReturnStatus ReadFailureStatus(const Memory& memory) noexcept
+{
+    return memory.LastFault() == MemoryFault::PermissionDenied
+        ? ExceptionReturnStatus::PermissionDenied
+        : ExceptionReturnStatus::Unmapped;
 }
 
 } // namespace
@@ -48,15 +63,24 @@ ExceptionReturnResult ExceptionReturn64::Read(
     const Gdt64& gdt) noexcept
 {
     ExceptionReturnResult result{};
-
     const std::uint64_t old_rsp = cpu.Rsp();
-    if (!ReadQword(memory, old_rsp, result.rip) ||
-        !ReadQword(memory, old_rsp + 8, reinterpret_cast<std::uint64_t&>(result.cs)) ||
-        !ReadQword(memory, old_rsp + 16, result.rflags)) {
-        const auto fault = memory.LastFault();
-        result.status = fault == MemoryFault::PermissionDenied
-            ? ExceptionReturnStatus::PermissionDenied
-            : ExceptionReturnStatus::Unmapped;
+
+    std::uint64_t address = 0;
+    if (!ReadQword(memory, old_rsp, result.rip)) {
+        result.status = ReadFailureStatus(memory);
+        return result;
+    }
+
+    if (!AddOffset(old_rsp, 8, address) ||
+        !ReadQword(memory, address, address)) {
+        result.status = ReadFailureStatus(memory);
+        return result;
+    }
+    result.cs = static_cast<std::uint16_t>(address);
+
+    if (!AddOffset(old_rsp, 16, address) ||
+        !ReadQword(memory, address, result.rflags)) {
+        result.status = ReadFailureStatus(memory);
         return result;
     }
 
@@ -65,7 +89,6 @@ ExceptionReturnResult ExceptionReturn64::Read(
         return result;
     }
 
-    result.cs = static_cast<std::uint16_t>(result.cs);
     GdtCodeSegment64 target{};
     if (!gdt.ResolveCodeSegment(result.cs, target)) {
         result.status = ExceptionReturnStatus::InvalidCodeSegment;
@@ -87,21 +110,22 @@ ExceptionReturnResult ExceptionReturn64::Read(
     const std::uint8_t target_cpl =
         static_cast<std::uint8_t>(result.cs & 3U);
 
-    result.rsp = old_rsp + 24;
+    if (!AddOffset(old_rsp, 24, result.rsp)) {
+        result.status = ExceptionReturnStatus::InvalidStack;
+        return result;
+    }
     result.ss = cpu.StackSegment();
 
     if (target_cpl != current_cpl) {
-        if (!ReadQword(memory, old_rsp + 24, result.rsp) ||
-            !ReadQword(memory, old_rsp + 32,
-                        reinterpret_cast<std::uint64_t&>(result.ss))) {
-            const auto fault = memory.LastFault();
-            result.status = fault == MemoryFault::PermissionDenied
-                ? ExceptionReturnStatus::PermissionDenied
-                : ExceptionReturnStatus::Unmapped;
+        if (!AddOffset(old_rsp, 24, address) ||
+            !ReadQword(memory, address, result.rsp) ||
+            !AddOffset(old_rsp, 32, address) ||
+            !ReadQword(memory, address, address)) {
+            result.status = ReadFailureStatus(memory);
             return result;
         }
 
-        result.ss = static_cast<std::uint16_t>(result.ss);
+        result.ss = static_cast<std::uint16_t>(address);
         if ((result.ss & 3U) != target_cpl || result.ss == 0 ||
             result.rsp == 0 || !IsCanonical48(result.rsp)) {
             result.status = ExceptionReturnStatus::InvalidStack;
