@@ -25,7 +25,7 @@ Memory& Machine::GuestMemory() noexcept
 
 const Memory& Machine::GuestMemory() const noexcept
 {
-    return memory_;
+    return bus_;
 }
 
 } // namespace myps5emu
