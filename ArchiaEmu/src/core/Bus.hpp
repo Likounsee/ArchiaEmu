@@ -38,6 +38,13 @@ public:
                      std::uint8_t* data,
                      std::size_t size) const override;
 
+    bool IsMapped(std::uint64_t virtual_address,
+                  std::size_t size) const override;
+
+    bool HasPermissionAt(std::uint64_t virtual_address,
+                         std::size_t size,
+                         MemoryPermission permission) const override;
+
     void ClearDevices() noexcept;
     void Clear() override;
 
