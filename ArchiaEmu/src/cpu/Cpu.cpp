@@ -213,6 +213,11 @@ bool Cpu::RaiseMemoryFault()
     exception.instruction_pointer = current_instruction_ip_;
     exception.memory_fault = last_memory_fault_;
 
+    if (last_memory_fault_ == MemoryFault::Unmapped ||
+        last_memory_fault_ == MemoryFault::PermissionDenied) {
+        exception.vector = CpuExceptionVector::PageFault;
+    }
+
     return RaiseException(exception);
 }
 
@@ -3431,7 +3436,8 @@ int Cpu::Run()
                 RaiseException({
                     CpuExceptionKind::InvalidOpcode,
                     instruction_address,
-                    MemoryFault::None
+                    MemoryFault::None,
+                    CpuExceptionVector::InvalidOpcode
                 });
                 return 1;
             }
@@ -4308,7 +4314,8 @@ int Cpu::Run()
                         RaiseException({
                             CpuExceptionKind::DivideError,
                             instruction_address,
-                            MemoryFault::None
+                            MemoryFault::None,
+                            CpuExceptionVector::DivideError
                         });
                         return 1;
                     }
