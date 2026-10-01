@@ -14,9 +14,15 @@ public:
     bool Map(std::uint64_t virtual_address,
              std::size_t size) override;
 
+    bool Map(std::uint64_t virtual_address,
+             std::size_t size,
+             MemoryPermission permissions) override;
+
     bool MapDevice(std::uint64_t base,
                    std::size_t size,
-                   Device* device);
+                   Device* device,
+                   MemoryPermission permissions =
+                       MemoryPermission::Read | MemoryPermission::Write);
 
     bool UnmapDevice(Device* device) noexcept;
 
@@ -28,6 +34,10 @@ public:
                const std::uint8_t* data,
                std::size_t size) override;
 
+    bool ExecuteRead(std::uint64_t virtual_address,
+                     std::uint8_t* data,
+                     std::size_t size) const override;
+
     void ClearDevices() noexcept;
     void Clear() override;
 
@@ -36,6 +46,8 @@ private:
         std::uint64_t base = 0;
         std::size_t size = 0;
         Device* device = nullptr;
+        MemoryPermission permissions =
+            MemoryPermission::Read | MemoryPermission::Write;
     };
 
     const DeviceMapping* FindDevice(
