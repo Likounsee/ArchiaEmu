@@ -43,7 +43,10 @@ int main()
     exception.instruction_pointer = 0x123456789ABCDEF0ULL;
     exception.vector = CpuExceptionVector::PageFault;
 
-    ExceptionDeliveryResolver resolver(idt, gdt);
+    Tss64 tss;
+    tss.SetRsp0(0x9000);
+
+    ExceptionDeliveryResolver resolver(idt, gdt, tss);
     const auto delivered = resolver.Resolve(
         exception, 0x10, 0x202, 0, 0x5);
 
@@ -54,7 +57,9 @@ int main()
         !delivered.frame.has_error_code ||
         delivered.frame.error_code != 0x5 ||
         delivered.target_rip != gate.offset ||
-        delivered.target_cs != gate.selector) {
+        delivered.target_cs != gate.selector ||
+        delivered.stack.status != ExceptionStackStatus::StackSelected ||
+        delivered.stack.stack_pointer != 0x9000) {
         return Fail("Valid exception delivery resolution failed") ? 0 : 1;
     }
 
