@@ -304,6 +304,43 @@ int main()
         return Fail("CPU divide-error exception dispatch failed") ? 0 : 1;
     }
 
+
+    // #DE quotient overflow must use the same DivideError exception.
+    if (!bus.Map(0x470000, 0x1000,
+                 MemoryPermission::Read | MemoryPermission::Write)) {
+        return Fail("Divide-overflow page mapping failed") ? 0 : 1;
+    }
+
+    const std::uint8_t divideOverflowProgram[] = {
+        0xB8, 0x00, 0x00, 0x00, 0x00, // MOV EAX,0
+        0xB9, 0x01, 0x00, 0x00, 0x00, // MOV ECX,1
+        0xBA, 0x01, 0x00, 0x00, 0x00, // MOV EDX,1 -> dividend = 2^32
+        0xF7, 0xF1,                   // DIV ECX -> quotient = 2^32, overflow
+        0xF4
+    };
+
+    if (!bus.Write(0x470000, divideOverflowProgram, sizeof(divideOverflowProgram)) ||
+        !bus.Protect(0x470000, 0x1000,
+                     MemoryPermission::Read | MemoryPermission::Execute)) {
+        return Fail("Divide-overflow page setup failed") ? 0 : 1;
+    }
+
+    observedException = CpuExceptionKind::None;
+    observedFault = MemoryFault::None;
+    observedFaultIp = 0;
+    exceptionObserved = false;
+
+    machine.CPU().SetInstructionPointer(0x470000);
+    if (machine.CPU().Run() == 0 ||
+        !exceptionObserved ||
+        observedException != CpuExceptionKind::DivideError ||
+        observedFault != MemoryFault::None ||
+        observedFaultIp != 0x47000F ||
+        machine.CPU().LastException().kind != CpuExceptionKind::DivideError ||
+        machine.CPU().LastException().instruction_pointer != 0x47000F) {
+        return Fail("CPU divide-overflow exception dispatch failed") ? 0 : 1;
+    }
+
     bus.ClearDevices();
     if (!bus.IsMapped(0x400000, 1)) {
         return Fail("ClearDevices unexpectedly cleared RAM") ? 0 : 1;
