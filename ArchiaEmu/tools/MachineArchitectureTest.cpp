@@ -232,7 +232,8 @@ int main()
         observedFault != MemoryFault::PermissionDenied ||
         observedFaultIp != 0x440000 ||
         machine.CPU().LastException().kind != CpuExceptionKind::MemoryFault ||
-        machine.CPU().LastException().instruction_pointer != 0x440000) {
+        machine.CPU().LastException().instruction_pointer != 0x440000 ||
+        machine.CPU().LastException().vector != CpuExceptionVector::PageFault) {
         return Fail("CPU memory exception dispatch failed") ? 0 : 1;
     }
 
@@ -264,7 +265,8 @@ int main()
         observedFault != MemoryFault::None ||
         observedFaultIp != 0x450000 ||
         machine.CPU().LastException().kind != CpuExceptionKind::InvalidOpcode ||
-        machine.CPU().LastException().instruction_pointer != 0x450000) {
+        machine.CPU().LastException().instruction_pointer != 0x450000 ||
+        machine.CPU().LastException().vector != CpuExceptionVector::InvalidOpcode) {
         return Fail("CPU invalid-opcode exception dispatch failed") ? 0 : 1;
     }
 
@@ -300,7 +302,8 @@ int main()
         observedFault != MemoryFault::None ||
         observedFaultIp != 0x46000F ||
         machine.CPU().LastException().kind != CpuExceptionKind::DivideError ||
-        machine.CPU().LastException().instruction_pointer != 0x46000F) {
+        machine.CPU().LastException().instruction_pointer != 0x46000F ||
+        machine.CPU().LastException().vector != CpuExceptionVector::DivideError) {
         return Fail("CPU divide-error exception dispatch failed") ? 0 : 1;
     }
 
@@ -337,7 +340,8 @@ int main()
         observedFault != MemoryFault::None ||
         observedFaultIp != 0x47000F ||
         machine.CPU().LastException().kind != CpuExceptionKind::DivideError ||
-        machine.CPU().LastException().instruction_pointer != 0x47000F) {
+        machine.CPU().LastException().instruction_pointer != 0x47000F ||
+        machine.CPU().LastException().vector != CpuExceptionVector::DivideError) {
         return Fail("CPU divide-overflow exception dispatch failed") ? 0 : 1;
     }
 
