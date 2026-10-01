@@ -40,3 +40,7 @@ add_executable(CpuAllFunctionsTest
 )
 
 target_include_directories(CpuAllFunctionsTest PRIVATE src)
+
+
+enable_testing()
+add_test(NAME CpuAllFunctionsTest COMMAND CpuAllFunctionsTest)
