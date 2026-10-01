@@ -61,7 +61,7 @@ int main()
         delivered.target_rflags != 0x2 ||
         delivered.stack.status != ExceptionStackStatus::StackSelected ||
         delivered.stack.stack_pointer != 0x9000 ||
-        !delivered.stack_frame.privilege_stack_switch ||
+        !delivered.stack_frame.has_saved_stack ||
         delivered.stack_frame.rsp != 0x7000 ||
         delivered.stack_frame.ss != 0x18) {
         return Fail("Valid exception delivery resolution failed") ? 0 : 1;
@@ -90,6 +90,17 @@ int main()
 
     gate.ist = 0;
     idt.SetGate(14, gate);
+
+    const sameCpl = resolver.Resolve(
+        exception, 0x10, 0x202, 0, 0x5, 0xB000, 0x20);
+    if (sameCpl.status != ExceptionDeliveryStatus::Delivered ||
+        sameCpl.stack.status != ExceptionStackStatus::NoStackSwitch ||
+        !sameCpl.stack_frame.has_saved_stack ||
+        sameCpl.stack_frame.rsp != 0xB000 ||
+        sameCpl.stack_frame.ss != 0x20) {
+        return Fail("Same-CPL exception frame did not preserve SS:RSP")
+            ? 0 : 1;
+    }
 
     idt.ClearGate(14);
     if (resolver.Resolve(exception, 0x10, 0x202, 0, 0x5).status !=
