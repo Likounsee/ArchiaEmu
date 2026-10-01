@@ -27,17 +27,30 @@ bool Gdt64::SetCodeSegment(
     return true;
 }
 
+bool Gdt64::SetDataSegment(
+    std::uint16_t index,
+    const GdtDataSegment64& segment) noexcept
+{
+    if (index >= kMaxEntries || !segment.IsValidLongModeStackSegment()) {
+        return false;
+    }
+
+    data_entries_[index] = segment;
+    return true;
+}
+
 void Gdt64::Clear(std::uint16_t index) noexcept
 {
     if (index < kMaxEntries) {
-        entries_[index] = {};
+        code_entries_[index] = {};
+        data_entries_[index] = {};
     }
 }
 
 const GdtCodeSegment64& Gdt64::Entry(std::uint16_t index) const noexcept
 {
     static const GdtCodeSegment64 invalid{};
-    return index < kMaxEntries ? entries_[index] : invalid;
+    return index < kMaxEntries ? code_entries_[index] : invalid;
 }
 
 std::uint16_t Gdt64::Limit() const noexcept
@@ -51,12 +64,11 @@ bool Gdt64::ResolveCodeSegment(
 {
     const std::uint16_t index = static_cast<std::uint16_t>(selector >> 3);
 
-    // TI=1 selects the LDT; this minimal x86-64 model only implements GDT.
     if ((selector & 0x4U) != 0U || index >= kMaxEntries) {
         return false;
     }
 
-    const auto& entry = entries_[index];
+    const auto& entry = code_entries_[index];
     if (!entry.IsValidLongModeTarget()) {
         return false;
     }
@@ -65,30 +77,24 @@ bool Gdt64::ResolveCodeSegment(
     return true;
 }
 
-} // namespace myps5emu::x86
-
-
-bool Gdt64::SetDataSegment(
-    std::uint16_t index,
-    const GdtDataSegment64& segment) noexcept
-{
-    if (index >= kMaxEntries || !segment.IsValidLongModeStackSegment()) {
-        return false;
-    }
-    data_entries_[index] = segment;
-    return true;
-}
-
 bool Gdt64::ResolveDataSegment(
     std::uint16_t selector,
     GdtDataSegment64& segment) const noexcept
 {
     const std::uint16_t index = static_cast<std::uint16_t>(selector >> 3);
-    if ((selector & 0x4U) != 0 || index >= kMaxEntries ||
-        (selector & 0x3U) != data_entries_[index].dpl ||
-        !data_entries_[index].IsValidLongModeStackSegment()) {
+
+    if ((selector & 0x4U) != 0U || index >= kMaxEntries) {
         return false;
     }
-    segment = data_entries_[index];
+
+    const auto& entry = data_entries_[index];
+    if (!entry.IsValidLongModeStackSegment() ||
+        (selector & 0x3U) != entry.dpl) {
+        return false;
+    }
+
+    segment = entry;
     return true;
 }
+
+} // namespace myps5emu::x86
