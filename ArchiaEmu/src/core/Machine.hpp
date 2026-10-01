@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cpu/Cpu.hpp"
-#include "memory/Memory.hpp"
+#include "core/Bus.hpp"
 
 namespace myps5emu {
 
@@ -23,7 +23,7 @@ public:
     const Memory& GuestMemory() const noexcept;
 
 private:
-    myps5emu::Memory memory_;
+    myps5emu::Bus bus_;
     myps5emu::Cpu cpu_;
 };
 
