@@ -104,9 +104,8 @@ int main()
         return Fail("MMIO register little-endian read failed") ? 0 : 1;
     }
 
-    const std::uint32_t registerWrite = 0xFFEEDDCCU;
-    if (!registers.Write(0, reinterpret_cast<const std::uint8_t*>(&registerWrite),
-                         sizeof(registerWrite)) ||
+    const std::uint8_t registerWrite[] = {0xCC, 0xDD, 0xEE, 0xFF};
+    if (!registers.Write(0, registerWrite, sizeof(registerWrite)) ||
         registers.ReadRegister(0) != 0x1122DDCCU) {
         return Fail("MMIO register write mask failed") ? 0 : 1;
     }
@@ -133,9 +132,7 @@ int main()
     }
 
     if (!bus.MapDevice(0x20000000, registers.Size(), &registers) ||
-        !bus.Write(0x20000000,
-                   reinterpret_cast<const std::uint8_t*>(&registerWrite),
-                   sizeof(registerWrite)) ||
+        !bus.Write(0x20000000, registerWrite, sizeof(registerWrite)) ||
         registers.ReadRegister(0) != 0x1122DDCCU) {
         return Fail("Bus MMIO register routing failed") ? 0 : 1;
     }
