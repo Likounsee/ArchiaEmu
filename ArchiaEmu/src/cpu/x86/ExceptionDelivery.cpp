@@ -65,6 +65,11 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
         exception, current_cs, current_rflags, error_code);
     result.target_rip = dispatch.gate.offset;
     result.target_cs = dispatch.gate.selector;
+    constexpr std::uint64_t kRflagsInterruptEnable = 1ULL << 9;
+    result.target_rflags = current_rflags;
+    if (dispatch.gate.type == IdtGateType::Interrupt) {
+        result.target_rflags &= ~kRflagsInterruptEnable;
+    }
     result.target_segment = target.segment;
     result.status = ExceptionDeliveryStatus::Delivered;
     return result;
