@@ -63,6 +63,28 @@ int main()
         return Fail("Valid exception delivery resolution failed") ? 0 : 1;
     }
 
+    gate.ist = 2;
+    tss.SetIst(2, 0xA000);
+    idt.SetGate(14, gate);
+    const auto istDelivered = resolver.Resolve(
+        exception, 0x10, 0x202, 0, 0x5);
+    if (istDelivered.status != ExceptionDeliveryStatus::Delivered ||
+        istDelivered.stack.status != ExceptionStackStatus::StackSelected ||
+        istDelivered.stack.stack_pointer != 0xA000) {
+        return Fail("IST stack selection during delivery failed") ? 0 : 1;
+    }
+
+    gate.ist = 7;
+    tss.SetIst(7, 0);
+    idt.SetGate(14, gate);
+    if (resolver.Resolve(exception, 0x10, 0x202, 0, 0x5).status !=
+        ExceptionDeliveryStatus::StackUnavailable) {
+        return Fail("Unavailable IST stack was not propagated") ? 0 : 1;
+    }
+
+    gate.ist = 0;
+    idt.SetGate(14, gate);
+
     idt.ClearGate(14);
     if (resolver.Resolve(exception, 0x10, 0x202, 0, 0x5).status !=
         ExceptionDeliveryStatus::NotPresent) {
