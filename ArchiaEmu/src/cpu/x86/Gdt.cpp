@@ -19,7 +19,7 @@ bool Gdt64::SetCodeSegment(
     std::uint16_t index,
     const GdtCodeSegment64& segment) noexcept
 {
-    if (index >= kMaxEntries || !segment.IsValidLongModeTarget()) {
+    if (index == 0 || index >= kMaxEntries || !segment.IsValidLongModeTarget()) {
         return false;
     }
 
@@ -31,7 +31,7 @@ bool Gdt64::SetDataSegment(
     std::uint16_t index,
     const GdtDataSegment64& segment) noexcept
 {
-    if (index >= kMaxEntries || !segment.IsValidLongModeStackSegment()) {
+    if (index == 0 || index >= kMaxEntries || !segment.IsValidLongModeStackSegment()) {
         return false;
     }
 
