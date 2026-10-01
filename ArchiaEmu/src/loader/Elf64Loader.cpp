@@ -215,6 +215,12 @@ bool Elf64Loader::Load(const std::string& path)
             std::cerr << "[ELF] PT_LOAD alignment is not a power of two.\n";
             return false;
         }
+        if (program_header.alignment > 1 &&
+            (program_header.virtual_address % program_header.alignment) !=
+                (program_header.offset % program_header.alignment)) {
+            std::cerr << "[ELF] PT_LOAD virtual address and file offset are not congruent.\n";
+            return false;
+        }
 
         if (program_header.memory_size <
             program_header.file_size) {
