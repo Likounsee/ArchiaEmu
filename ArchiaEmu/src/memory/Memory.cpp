@@ -253,6 +253,7 @@ bool Memory::Protect(std::uint64_t virtual_address,
         }
     }
 
+    SetFault(MemoryFault::Unmapped);
     return false;
 }
 
