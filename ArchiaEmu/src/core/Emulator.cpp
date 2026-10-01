@@ -38,6 +38,10 @@ bool Emulator::LoadGame(const std::string& path)
             return false;
         }
         const std::uint64_t mapEnd = ((segmentEnd + Memory::PageSize - 1) / Memory::PageSize) * Memory::PageSize;
+        if (mapEnd <= mapBase) {
+            std::cerr << "[Memory] ELF page range overflow.\n";
+            return false;
+        }
         MemoryPermission permissions = MemoryPermission::None;
         if (segment.flags & 0x4U) permissions = permissions | MemoryPermission::Read;
         if (segment.flags & 0x2U) permissions = permissions | MemoryPermission::Write;
