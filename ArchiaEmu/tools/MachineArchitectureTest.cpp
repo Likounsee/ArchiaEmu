@@ -210,10 +210,25 @@ int main()
         return Fail("NX page setup failed") ? 0 : 1;
     }
 
+    MemoryFault observedFault = MemoryFault::None;
+    std::uint64_t observedFaultIp = 0;
+    bool exceptionObserved = false;
+    machine.CPU().SetExceptionHandler(
+        [&](Cpu&, MemoryFault fault) {
+            observedFault = fault;
+            observedFaultIp = machine.CPU().InstructionPointer();
+            exceptionObserved = true;
+            return false;
+        });
+
     machine.CPU().SetInstructionPointer(0x440000);
     if (machine.CPU().Run() == 0 ||
-        bus.LastFault() != MemoryFault::PermissionDenied) {
-        return Fail("CPU executed from a non-executable page") ? 0 : 1;
+        bus.LastFault() != MemoryFault::PermissionDenied ||
+        machine.CPU().LastMemoryFault() != MemoryFault::PermissionDenied ||
+        !exceptionObserved ||
+        observedFault != MemoryFault::PermissionDenied ||
+        observedFaultIp != 0x440000) {
+        return Fail("CPU memory exception dispatch failed") ? 0 : 1;
     }
 
     bus.ClearDevices();
