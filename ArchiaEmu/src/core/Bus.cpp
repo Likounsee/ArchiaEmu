@@ -7,6 +7,15 @@ namespace myps5emu {
 bool Bus::Map(std::uint64_t virtual_address,
               std::size_t size)
 {
+    return Map(virtual_address, size,
+               MemoryPermission::Read | MemoryPermission::Write |
+               MemoryPermission::Execute);
+}
+
+bool Bus::Map(std::uint64_t virtual_address,
+              std::size_t size,
+              MemoryPermission permissions)
+{
     if (size == 0 || HasOverlappingRegion(virtual_address, size)) {
         return false;
     }
@@ -27,12 +36,13 @@ bool Bus::Map(std::uint64_t virtual_address,
         }
     }
 
-    return Memory::Map(virtual_address, size);
+    return Memory::Map(virtual_address, size, permissions);
 }
 
 bool Bus::MapDevice(std::uint64_t base,
                     std::size_t size,
-                    Device* device)
+                    Device* device,
+                    MemoryPermission permissions)
 {
     if (device == nullptr || size == 0 ||
         HasOverlappingRegion(base, size)) {
@@ -55,7 +65,7 @@ bool Bus::MapDevice(std::uint64_t base,
         }
     }
 
-    devices_.push_back(DeviceMapping{base, size, device});
+    devices_.push_back(DeviceMapping{base, size, device, permissions});
     return true;
 }
 
@@ -111,6 +121,9 @@ bool Bus::Read(std::uint64_t virtual_address,
 {
     if (const auto* mapping = FindDevice(virtual_address, size)) {
         const std::uint64_t offset = virtual_address - mapping->base;
+        if (!HasPermission(mapping->permissions, MemoryPermission::Read)) {
+            return false;
+        }
         return mapping->device->Read(offset, data, size);
     }
 
@@ -123,10 +136,28 @@ bool Bus::Write(std::uint64_t virtual_address,
 {
     if (auto* mapping = FindDevice(virtual_address, size)) {
         const std::uint64_t offset = virtual_address - mapping->base;
+        if (!HasPermission(mapping->permissions, MemoryPermission::Write)) {
+            return false;
+        }
         return mapping->device->Write(offset, data, size);
     }
 
     return Memory::Write(virtual_address, data, size);
+}
+
+bool Bus::ExecuteRead(std::uint64_t virtual_address,
+                      std::uint8_t* data,
+                      std::size_t size) const
+{
+    if (const auto* mapping = FindDevice(virtual_address, size)) {
+        if (!HasPermission(mapping->permissions, MemoryPermission::Execute)) {
+            return false;
+        }
+        const std::uint64_t offset = virtual_address - mapping->base;
+        return mapping->device->Read(offset, data, size);
+    }
+
+    return Memory::ExecuteRead(virtual_address, data, size);
 }
 
 void Bus::ClearDevices() noexcept
