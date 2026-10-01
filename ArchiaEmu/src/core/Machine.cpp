@@ -1,10 +1,11 @@
 #include "Machine.hpp"
+#include "core/Bus.hpp"
 
 namespace myps5emu {
 
 Machine::Machine()
 {
-    cpu_.ConnectMemory(&memory_);
+    cpu_.ConnectMemory(&bus_);
 }
 
 Cpu& Machine::CPU() noexcept
@@ -19,7 +20,7 @@ const Cpu& Machine::CPU() const noexcept
 
 Memory& Machine::GuestMemory() noexcept
 {
-    return memory_;
+    return bus_;
 }
 
 const Memory& Machine::GuestMemory() const noexcept
