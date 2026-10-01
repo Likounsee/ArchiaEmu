@@ -6,66 +6,80 @@
 
 namespace myps5emu {
 
-bool Memory::Map(std::uint64_t virtual_address,
-                 std::size_t size)
+namespace {
+
+bool RangeValid(std::uint64_t address, std::size_t size) noexcept
 {
     if (size == 0) {
         return false;
     }
 
     const auto size64 = static_cast<std::uint64_t>(size);
+    return size64 <= std::numeric_limits<std::uint64_t>::max() - address;
+}
 
-    if (size64 > std::numeric_limits<std::uint64_t>::max() -
-                     virtual_address) {
+} // namespace
+
+bool Memory::Map(std::uint64_t virtual_address, std::size_t size)
+{
+    return Map(virtual_address, size,
+               MemoryPermission::Read | MemoryPermission::Write |
+               MemoryPermission::Execute);
+}
+
+bool Memory::Map(std::uint64_t virtual_address,
+                 std::size_t size,
+                 MemoryPermission permissions)
+{
+    if (!RangeValid(virtual_address, size)) {
         return false;
     }
 
+    const auto size64 = static_cast<std::uint64_t>(size);
     const std::uint64_t end = virtual_address + size64;
 
-    // Refuse les chevauchements pour le moment.
-    for (const auto& region : regions_) {
-        const std::uint64_t region_end =
-            region.base +
-            static_cast<std::uint64_t>(region.data.size());
+    // Mappings are page-based: callers must describe complete pages.
+    if ((virtual_address % PageSize) != 0 || (size % PageSize) != 0) {
+        return false;
+    }
 
-        if (virtual_address < region_end &&
-            end > region.base) {
-            return false;
-        }
+    if (HasOverlappingRegion(virtual_address, size)) {
+        return false;
     }
 
     Region region;
     region.base = virtual_address;
     region.data.resize(size, 0);
-
+    region.permissions = permissions;
     regions_.push_back(std::move(region));
+    (void)end;
     return true;
 }
 
 bool Memory::IsMapped(std::uint64_t virtual_address,
                       std::size_t size) const
 {
-    if (size == 0) {
+    return HasPermissionAt(virtual_address, size, MemoryPermission::None);
+}
+
+bool Memory::HasPermissionAt(std::uint64_t virtual_address,
+                             std::size_t size,
+                             MemoryPermission permission) const
+{
+    if (!RangeValid(virtual_address, size)) {
         return false;
     }
 
     const auto size64 = static_cast<std::uint64_t>(size);
-
-    if (size64 > std::numeric_limits<std::uint64_t>::max() -
-                     virtual_address) {
-        return false;
-    }
-
     const std::uint64_t end = virtual_address + size64;
 
     for (const auto& region : regions_) {
         const std::uint64_t region_end =
-            region.base +
-            static_cast<std::uint64_t>(region.data.size());
+            region.base + static_cast<std::uint64_t>(region.data.size());
 
-        if (virtual_address >= region.base &&
-            end <= region_end) {
-            return true;
+        if (virtual_address >= region.base && end <= region_end) {
+            return permission == MemoryPermission::None ||
+                   HasPermission(region.permissions, permission);
         }
     }
 
@@ -76,29 +90,20 @@ bool Memory::Write(std::uint64_t virtual_address,
                    const std::uint8_t* data,
                    std::size_t size)
 {
-    if (data == nullptr || !IsMapped(virtual_address, size)) {
+    if (data == nullptr ||
+        !HasPermissionAt(virtual_address, size, MemoryPermission::Write)) {
         return false;
     }
 
     for (auto& region : regions_) {
         const std::uint64_t region_end =
-            region.base +
-            static_cast<std::uint64_t>(region.data.size());
+            region.base + static_cast<std::uint64_t>(region.data.size());
 
         if (virtual_address >= region.base &&
-            virtual_address +
-                    static_cast<std::uint64_t>(size) <=
-                region_end) {
-
+            virtual_address + static_cast<std::uint64_t>(size) <= region_end) {
             const std::size_t offset =
-                static_cast<std::size_t>(
-                    virtual_address - region.base);
-
-            std::memcpy(
-                region.data.data() + offset,
-                data,
-                size);
-
+                static_cast<std::size_t>(virtual_address - region.base);
+            std::memcpy(region.data.data() + offset, data, size);
             return true;
         }
     }
@@ -110,29 +115,45 @@ bool Memory::Read(std::uint64_t virtual_address,
                   std::uint8_t* data,
                   std::size_t size) const
 {
-    if (data == nullptr || !IsMapped(virtual_address, size)) {
+    if (data == nullptr ||
+        !HasPermissionAt(virtual_address, size, MemoryPermission::Read)) {
         return false;
     }
 
     for (const auto& region : regions_) {
         const std::uint64_t region_end =
-            region.base +
-            static_cast<std::uint64_t>(region.data.size());
+            region.base + static_cast<std::uint64_t>(region.data.size());
 
         if (virtual_address >= region.base &&
-            virtual_address +
-                    static_cast<std::uint64_t>(size) <=
-                region_end) {
-
+            virtual_address + static_cast<std::uint64_t>(size) <= region_end) {
             const std::size_t offset =
-                static_cast<std::size_t>(
-                    virtual_address - region.base);
+                static_cast<std::size_t>(virtual_address - region.base);
+            std::memcpy(data, region.data.data() + offset, size);
+            return true;
+        }
+    }
 
-            std::memcpy(
-                data,
-                region.data.data() + offset,
-                size);
+    return false;
+}
 
+bool Memory::ExecuteRead(std::uint64_t virtual_address,
+                         std::uint8_t* data,
+                         std::size_t size) const
+{
+    if (data == nullptr ||
+        !HasPermissionAt(virtual_address, size, MemoryPermission::Execute)) {
+        return false;
+    }
+
+    for (const auto& region : regions_) {
+        const std::uint64_t region_end =
+            region.base + static_cast<std::uint64_t>(region.data.size());
+
+        if (virtual_address >= region.base &&
+            virtual_address + static_cast<std::uint64_t>(size) <= region_end) {
+            const std::size_t offset =
+                static_cast<std::size_t>(virtual_address - region.base);
+            std::memcpy(data, region.data.data() + offset, size);
             return true;
         }
     }
@@ -143,15 +164,11 @@ bool Memory::Read(std::uint64_t virtual_address,
 bool Memory::HasOverlappingRegion(std::uint64_t virtual_address,
                                   std::size_t size) const noexcept
 {
-    if (size == 0) {
-        return false;
-    }
-
-    const auto size64 = static_cast<std::uint64_t>(size);
-    if (size64 > std::numeric_limits<std::uint64_t>::max() - virtual_address) {
+    if (!RangeValid(virtual_address, size)) {
         return true;
     }
 
+    const auto size64 = static_cast<std::uint64_t>(size);
     const std::uint64_t end = virtual_address + size64;
 
     for (const auto& region : regions_) {
