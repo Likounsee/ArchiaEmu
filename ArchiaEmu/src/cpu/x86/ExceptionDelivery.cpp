@@ -77,6 +77,13 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
         exception, current_cs, current_rflags, error_code);
     result.target_rip = dispatch.gate.offset;
     result.target_cs = dispatch.gate.selector;
+    // In 64-bit mode a CPL-changing or IST stack switch forces SS to NULL
+    // with the target CPL in its RPL field. Otherwise SS is preserved.
+    if (target.segment.dpl < current_cpl || dispatch.gate.ist != 0) {
+        result.target_ss = target.segment.dpl;
+    } else {
+        result.target_ss = current_ss;
+    }
     constexpr std::uint64_t kRflagsInterruptEnable = 1ULL << 9;
     result.target_rflags = current_rflags;
     if (dispatch.gate.type == IdtGateType::Interrupt) {
