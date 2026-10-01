@@ -78,6 +78,7 @@ add_executable(X86ExceptionDeliveryTest
     src/cpu/x86/Gdt.cpp
     src/cpu/x86/ExceptionTarget.cpp
     src/cpu/x86/ExceptionDelivery.cpp
+    src/cpu/x86/Tss64.cpp
 )
 target_include_directories(X86ExceptionDeliveryTest PRIVATE src)
 
