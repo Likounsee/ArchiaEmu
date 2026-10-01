@@ -80,5 +80,16 @@ int main()
     }
 
     std::cout << "x86-64 GDT exception target test: PASS\n";
+
+    GdtDataSegment64 stack{};
+    stack.present = true;
+    stack.writable = true;
+    stack.dpl = 3;
+    CHECK(gdt.SetDataSegment(7, stack));
+
+    GdtDataSegment64 resolvedStack{};
+    CHECK(gdt.ResolveDataSegment(0x3B, resolvedStack));
+    CHECK(resolvedStack.dpl == 3);
+    CHECK(resolvedStack.writable);
     return 0;
 }
