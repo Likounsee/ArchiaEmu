@@ -4,6 +4,7 @@
 
 #include "cpu/CpuException.hpp"
 #include "ExceptionFrame64.hpp"
+#include "ExceptionStackFrame64.hpp"
 #include "ExceptionTarget.hpp"
 #include "Idt.hpp"
 #include "Tss64.hpp"
@@ -28,6 +29,7 @@ struct ExceptionDeliveryResult {
     std::uint64_t target_rflags = 0;
     GdtCodeSegment64 target_segment{};
     ExceptionStackSelection stack{};
+    ExceptionStackFrame64 stack_frame{};
 };
 
 class ExceptionDeliveryResolver {
