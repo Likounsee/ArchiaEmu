@@ -112,6 +112,20 @@ int main()
         return Fail("Privilege-return IRETQ frame decode failed") ? 0 : 1;
     }
 
+    // At CPL3 with IOPL=0, IRET must preserve the current IOPL and IF.
+    userCpu.SetRflags(0x202);
+    WriteQword(memory, 0x7100, 0x505678);
+    WriteQword(memory, 0x7108, 0x33);
+    WriteQword(memory, 0x7110, 0x3202); // IOPL=3, IF=1 in the stacked flags.
+    WriteQword(memory, 0x7118, 0x800000);
+    WriteQword(memory, 0x7120, 0x3B);
+    result = ExceptionReturn64::Read(userCpu, memory, gdt);
+    if (result.status != ExceptionReturnStatus::Returned ||
+        (result.rflags & (3ULL << 12)) != 0 ||
+        (result.rflags & (1ULL << 9)) == 0) {
+        return Fail("IRETQ incorrectly restored privileged RFLAGS at CPL3") ? 0 : 1;
+    }
+
     const auto beforeRip = userCpu.InstructionPointer();
     WriteQword(memory, 0x7100, 0x0001000000000000ULL);
     result = ExceptionReturn64::Read(userCpu, memory, gdt);
