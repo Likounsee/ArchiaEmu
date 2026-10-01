@@ -1,9 +1,11 @@
 #include "cpu/x86/Idt.hpp"
 #include "cpu/x86/ExceptionDispatcher.hpp"
+#include "cpu/CpuException.hpp"
 
 #include <cstdint>
 #include <iostream>
 
+using namespace myps5emu;
 using namespace myps5emu::x86;
 
 namespace {
