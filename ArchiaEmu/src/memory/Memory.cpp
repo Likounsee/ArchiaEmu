@@ -36,7 +36,6 @@ bool Memory::Map(std::uint64_t virtual_address,
     }
 
     const auto size64 = static_cast<std::uint64_t>(size);
-    const std::uint64_t end = virtual_address + size64;
 
     // Mappings are page-based: callers must describe complete pages.
     if ((virtual_address % PageSize) != 0 || (size % PageSize) != 0) {
@@ -52,7 +51,6 @@ bool Memory::Map(std::uint64_t virtual_address,
     region.data.resize(size, 0);
     region.permissions = permissions;
     regions_.push_back(std::move(region));
-    (void)end;
     return true;
 }
 
