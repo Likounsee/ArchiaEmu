@@ -119,6 +119,22 @@ ExceptionReturnResult ExceptionReturn64::Read(
         return result;
     }
 
+    // IRET only restores IOPL (and VIF/VIP) when returning to CPL0.
+    // IF is restored only when the resulting CPL is at or below IOPL.
+    const std::uint64_t current_rflags = cpu.Rflags();
+    const std::uint64_t current_iopl = current_rflags & (3ULL << 12);
+    if (target_cpl != 0) {
+        result.rflags = (result.rflags & ~(3ULL << 12)) | current_iopl;
+
+        const std::uint8_t current_iopl_level =
+            static_cast<std::uint8_t>((current_rflags >> 12) & 0x3U);
+        if (target_cpl > current_iopl_level) {
+            result.rflags =
+                (result.rflags & ~(1ULL << 9)) |
+                (current_rflags & (1ULL << 9));
+        }
+    }
+
     if (!AddOffset(old_rsp, 24, result.rsp)) {
         result.status = ExceptionReturnStatus::InvalidStack;
         return result;
