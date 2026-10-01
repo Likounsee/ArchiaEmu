@@ -4289,6 +4289,11 @@ int Cpu::Run()
                     if (divisor_bits == 0) {
                         std::cerr
                             << "[CPU] DIV/IDIV64 : division par zero\n";
+                        RaiseException({
+                            CpuExceptionKind::DivideError,
+                            instruction_address,
+                            MemoryFault::None
+                        });
                         return 1;
                     }
 
@@ -4315,6 +4320,11 @@ int Cpu::Run()
                         if (div.quotient_overflow) {
                             std::cerr
                                 << "[CPU] DIV64 : overflow quotient\n";
+                            RaiseException({
+                                CpuExceptionKind::DivideError,
+                                instruction_address,
+                                MemoryFault::None
+                            });
                             return 1;
                         }
 
@@ -4384,6 +4394,11 @@ int Cpu::Run()
                         if (div.quotient_overflow ||            div.quotient_hi != 0) {
                             std::cerr
                                 << "[CPU] IDIV64 : overflow quotient\n";
+                            RaiseException({
+                                CpuExceptionKind::DivideError,
+                                instruction_address,
+                                MemoryFault::None
+                            });
                             return 1;
                         }
 
@@ -4395,6 +4410,11 @@ int Cpu::Run()
 
                                 std::cerr
                                     << "[CPU] IDIV64 : overflow quotient\n";
+                                RaiseException({
+                                    CpuExceptionKind::DivideError,
+                                    instruction_address,
+                                    MemoryFault::None
+                                });
                                 return 1;
                             }
 
@@ -4406,6 +4426,11 @@ int Cpu::Run()
 
                                 std::cerr
                                     << "[CPU] IDIV64 : overflow quotient\n";
+                                RaiseException({
+                                    CpuExceptionKind::DivideError,
+                                    instruction_address,
+                                    MemoryFault::None
+                                });
                                 return 1;
                             }
                         }
@@ -4458,6 +4483,11 @@ int Cpu::Run()
                     if (divisor_bits == 0) {
                         std::cerr
                             << "[CPU] DIV/IDIV32 : division par zero\n";
+                        RaiseException({
+                            CpuExceptionKind::DivideError,
+                            instruction_address,
+                            MemoryFault::None
+                        });
                         return 1;
                     }
 
@@ -4492,6 +4522,11 @@ int Cpu::Run()
                         if (quotient > 0xFFFFFFFFULL) {
                             std::cerr
                                 << "[CPU] DIV32 : overflow quotient\n";
+                            RaiseException({
+                                CpuExceptionKind::DivideError,
+                                instruction_address,
+                                MemoryFault::None
+                            });
                             return 1;
                         }
 
@@ -4535,6 +4570,11 @@ int Cpu::Run()
 
                             std::cerr
                                 << "[CPU] IDIV32 : overflow quotient\n";
+                            RaiseException({
+                                CpuExceptionKind::DivideError,
+                                instruction_address,
+                                MemoryFault::None
+                            });
                             return 1;
                         }
 
@@ -4557,6 +4597,11 @@ int Cpu::Run()
 
                             std::cerr
                                 << "[CPU] IDIV32 : overflow quotient\n";
+                            RaiseException({
+                                CpuExceptionKind::DivideError,
+                                instruction_address,
+                                MemoryFault::None
+                            });
                             return 1;
                         }
 
