@@ -1,5 +1,4 @@
 #include "Machine.hpp"
-#include "core/Bus.hpp"
 
 namespace myps5emu {
 
@@ -24,6 +23,16 @@ Memory& Machine::GuestMemory() noexcept
 }
 
 const Memory& Machine::GuestMemory() const noexcept
+{
+    return bus_;
+}
+
+Bus& Machine::SystemBus() noexcept
+{
+    return bus_;
+}
+
+const Bus& Machine::SystemBus() const noexcept
 {
     return bus_;
 }
