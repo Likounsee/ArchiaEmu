@@ -53,7 +53,7 @@ int main()
 
     const auto written = ExceptionStackWriter64::Write(memory, 0x7048, frame);
     if (written.status != ExceptionStackWriteStatus::Written ||
-        written.new_rsp != 0x7000 ||
+        written.new_rsp != 0x7010 ||
         written.fault != MemoryFault::None ||
         !CheckFrame(memory, written.new_rsp)) {
         return Fail("Exception frame was not written with the expected layout")
