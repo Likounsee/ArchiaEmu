@@ -76,6 +76,14 @@ int main()
         return Fail("64-bit IDT gate decoding failed") ? 0 : 1;
     }
 
+    auto invalidBytes = bytes;
+    invalidBytes[5] = 0x81; // Present, DPL 0, reserved gate type 1.
+    const IdtGate64 invalidDecoded = IdtGate64::Decode(invalidBytes);
+    if (invalidDecoded.IsValid() ||
+        static_cast<std::uint8_t>(invalidDecoded.type) != 0x01U) {
+        return Fail("IDT decode accepted or rewrote an invalid gate type") ? 0 : 1;
+    }
+
     IdtGate64 invalid = gate;
     invalid.dpl = 4;
     if (invalid.IsValid() || idt.SetGate(15, invalid)) {
