@@ -42,8 +42,16 @@ int main()
     }
 
     if (bus.Map(0x410001, 0x1000) ||
-        bus.Map(0x420000, 0x1001)) {
+        bus.LastFault() != MemoryFault::Unaligned ||
+        bus.Map(0x420000, 0x1001) ||
+        bus.LastFault() != MemoryFault::Unaligned) {
         return Fail("Memory accepted non-page-aligned mapping") ? 0 : 1;
+    }
+
+    std::uint8_t faultByte = 0;
+    if (bus.Read(0x600000, &faultByte, 1) ||
+        bus.LastFault() != MemoryFault::Unmapped) {
+        return Fail("Unmapped access did not report a fault") ? 0 : 1;
     }
 
     if (!bus.Map(0x430000, 0x1000,
@@ -183,8 +191,9 @@ int main()
         return Fail("Executable page protection transition failed") ? 0 : 1;
     }
 
-    if (bus.Write(0x430000, program, sizeof(program))) {
-        return Fail("RX page remained writable") ? 0 : 1;
+    if (bus.Write(0x430000, program, sizeof(program)) ||
+        bus.LastFault() != MemoryFault::PermissionDenied) {
+        return Fail("RX write did not report a permission fault") ? 0 : 1;
     }
 
     machine.CPU().SetInstructionPointer(0x430000);
@@ -202,7 +211,8 @@ int main()
     }
 
     machine.CPU().SetInstructionPointer(0x440000);
-    if (machine.CPU().Run() == 0) {
+    if (machine.CPU().Run() == 0 ||
+        bus.LastFault() != MemoryFault::PermissionDenied) {
         return Fail("CPU executed from a non-executable page") ? 0 : 1;
     }
 
