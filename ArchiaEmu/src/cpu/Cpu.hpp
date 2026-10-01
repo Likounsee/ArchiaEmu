@@ -75,6 +75,7 @@ private:
     RegisterFile registers_;
 
     bool Fetch8(std::uint8_t& value);
+    bool RaiseMemoryFault();
     bool Fetch32(std::uint32_t& value);
     bool Fetch64(std::uint64_t& value);
     bool FetchRel8(std::int8_t& value);
