@@ -160,6 +160,24 @@ bool Bus::ExecuteRead(std::uint64_t virtual_address,
     return Memory::ExecuteRead(virtual_address, data, size);
 }
 
+bool Bus::IsMapped(std::uint64_t virtual_address,
+                    std::size_t size) const
+{
+    return HasPermissionAt(virtual_address, size, MemoryPermission::None);
+}
+
+bool Bus::HasPermissionAt(std::uint64_t virtual_address,
+                          std::size_t size,
+                          MemoryPermission permission) const
+{
+    if (const auto* mapping = FindDevice(virtual_address, size)) {
+        return permission == MemoryPermission::None ||
+               HasPermission(mapping->permissions, permission);
+    }
+
+    return Memory::HasPermissionAt(virtual_address, size, permission);
+}
+
 void Bus::ClearDevices() noexcept
 {
     devices_.clear();
