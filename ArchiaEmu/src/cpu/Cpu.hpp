@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "RegisterFile.hpp"
+#include "CpuException.hpp"
 
 namespace myps5emu {
 
@@ -31,12 +32,13 @@ public:
 
     using FrameCallback = std::function<bool()>;
     using SyscallHandler = std::function<bool(Cpu&)>;
-    using ExceptionHandler = std::function<bool(Cpu&, MemoryFault)>;
+    using ExceptionHandler = std::function<bool(Cpu&, const CpuException&)>;
 
     void SetFrameCallback(FrameCallback callback);
     void SetSyscallHandler(SyscallHandler callback);
     void SetExceptionHandler(ExceptionHandler callback);
     MemoryFault LastMemoryFault() const noexcept;
+    const CpuException& LastException() const noexcept;
     void Halt() noexcept;
 
     int Run();
@@ -81,6 +83,7 @@ private:
     RegisterFile registers_;
 
     bool Fetch8(std::uint8_t& value);
+    bool RaiseException(const CpuException& exception);
     bool RaiseMemoryFault();
     bool Fetch32(std::uint32_t& value);
     bool Fetch64(std::uint64_t& value);
