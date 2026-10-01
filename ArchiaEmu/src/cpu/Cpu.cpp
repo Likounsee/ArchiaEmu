@@ -200,6 +200,11 @@ void Cpu::SetExceptionHandler(ExceptionHandler callback)
     exception_handler_ = std::move(callback);
 }
 
+void Cpu::SetExceptionReturnHandler(ExceptionReturnHandler callback)
+{
+    exception_return_handler_ = std::move(callback);
+}
+
 MemoryFault Cpu::LastMemoryFault() const noexcept
 {
     return last_memory_fault_;
@@ -3065,6 +3070,19 @@ int Cpu::Run()
         
         
         
+
+        case 0xCF: {
+            // IRETQ is encoded as REX.W + CF in 64-bit mode.
+            if (!rex.w || !exception_return_handler_) {
+                return 1;
+            }
+
+            if (!exception_return_handler_(*this)) {
+                return 1;
+            }
+
+            break;
+        }
 
         case 0x0F: {
             
