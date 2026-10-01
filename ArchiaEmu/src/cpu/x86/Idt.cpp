@@ -16,9 +16,9 @@ std::uint8_t TypeAttribute(const IdtGate64& gate) noexcept
 
 bool IdtGate64::IsValid() const noexcept
 {
-    const auto type = static_cast<std::uint8_t>(type);
-    return (type == static_cast<std::uint8_t>(IdtGateType::Interrupt) ||
-            type == static_cast<std::uint8_t>(IdtGateType::Trap)) &&
+    const auto gate_type = static_cast<std::uint8_t>(this->type);
+    return (gate_type == static_cast<std::uint8_t>(IdtGateType::Interrupt) ||
+            gate_type == static_cast<std::uint8_t>(IdtGateType::Trap)) &&
            dpl <= 3 &&
            ist <= 7;
 }
