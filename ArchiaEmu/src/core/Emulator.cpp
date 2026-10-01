@@ -28,13 +28,13 @@ bool Emulator::LoadGame(const std::string& path)
     for (const auto& segment : loader_.Segments()) {
         if (segment.memory_size == 0 ||
             segment.virtual_address > std::numeric_limits<std::uint64_t>::max() - segment.memory_size) {
-            std::cerr << "[Memory] Invalid ELF segment range.\\n";
+            std::cerr << "[Memory] Invalid ELF segment range.\n";
             return false;
         }
         const std::uint64_t segmentEnd = segment.virtual_address + segment.memory_size;
         const std::uint64_t mapBase = segment.virtual_address - (segment.virtual_address % Memory::PageSize);
         if (segmentEnd > std::numeric_limits<std::uint64_t>::max() - (Memory::PageSize - 1)) {
-            std::cerr << "[Memory] ELF segment alignment overflow.\\n";
+            std::cerr << "[Memory] ELF segment alignment overflow.\n";
             return false;
         }
         const std::uint64_t mapEnd = ((segmentEnd + Memory::PageSize - 1) / Memory::PageSize) * Memory::PageSize;
@@ -54,23 +54,23 @@ bool Emulator::LoadGame(const std::string& path)
     for (const auto& [page, permissions] : pagePermissions) {
         (void)permissions;
         if (!memory.Map(page, Memory::PageSize, allPermissions)) {
-            std::cerr << "[Memory] Failed to map ELF page at 0x" << std::hex << page << std::dec << '\\n';
+            std::cerr << "[Memory] Failed to map ELF page at 0x" << std::hex << page << std::dec << '\n';
             return false;
         }
     }
 
     for (const auto& segment : loader_.Segments()) {
         if (!segment.data.empty() && !memory.Write(segment.virtual_address, segment.data.data(), segment.data.size())) {
-            std::cerr << "[Memory] Failed to load segment at 0x" << std::hex << segment.virtual_address << std::dec << '\\n';
+            std::cerr << "[Memory] Failed to load segment at 0x" << std::hex << segment.virtual_address << std::dec << '\n';
             return false;
         }
         std::cout << "[Memory] Loaded PT_LOAD at 0x" << std::hex << segment.virtual_address
-                  << " (" << std::dec << segment.memory_size << " bytes)\\n";
+                  << " (" << std::dec << segment.memory_size << " bytes)\n";
     }
 
     for (const auto& [page, permissions] : pagePermissions) {
         if (!memory.Protect(page, Memory::PageSize, permissions)) {
-            std::cerr << "[Memory] Failed to apply ELF page permissions at 0x" << std::hex << page << std::dec << '\\n';
+            std::cerr << "[Memory] Failed to apply ELF page permissions at 0x" << std::hex << page << std::dec << '\n';
             return false;
         }
     }
