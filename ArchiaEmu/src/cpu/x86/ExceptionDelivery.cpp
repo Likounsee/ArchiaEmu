@@ -6,8 +6,9 @@ namespace myps5emu::x86 {
 
 ExceptionDeliveryResolver::ExceptionDeliveryResolver(
     const Idt& idt,
-    const Gdt64& gdt) noexcept
-    : idt_(idt), gdt_(gdt)
+    const Gdt64& gdt,
+    const Tss64& tss) noexcept
+    : idt_(idt), gdt_(gdt), tss_(tss)
 {
 }
 
@@ -46,6 +47,20 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
         return result;
     }
 
+    ExceptionStackResolver stackResolver(tss_);
+    const auto stack = stackResolver.Resolve(
+        dispatch.gate.ist, current_cpl, target.segment.dpl);
+    if (stack.status == ExceptionStackStatus::InvalidIst ||
+        stack.status == ExceptionStackStatus::InvalidPrivilegeLevel) {
+        result.status = ExceptionDeliveryStatus::InvalidStack;
+        return result;
+    }
+    if (stack.status == ExceptionStackStatus::Unavailable) {
+        result.status = ExceptionDeliveryStatus::StackUnavailable;
+        return result;
+    }
+
+    result.stack = stack;
     result.frame = ExceptionFrame64::Build(
         exception, current_cs, current_rflags, error_code);
     result.target_rip = dispatch.gate.offset;
