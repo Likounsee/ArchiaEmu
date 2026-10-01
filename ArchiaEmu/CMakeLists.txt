@@ -37,6 +37,7 @@ add_executable(myps5emu
     src/cpu/RegisterFile.hpp
     src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
 )
 target_include_directories(myps5emu PRIVATE src)
 
@@ -64,6 +65,14 @@ target_include_directories(MachineArchitectureTest PRIVATE src)
 enable_testing()
 add_test(NAME CpuAllFunctionsTest COMMAND CpuAllFunctionsTest)
 add_test(NAME MachineArchitectureTest COMMAND MachineArchitectureTest)
+
+add_executable(X86ExceptionFrameTest
+    tools/X86ExceptionFrameTest.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
+)
+target_include_directories(X86ExceptionFrameTest PRIVATE src)
+
+add_test(NAME X86ExceptionFrameTest COMMAND X86ExceptionFrameTest)
 
 add_executable(X86IdtTest
     tools/X86IdtTest.cpp
