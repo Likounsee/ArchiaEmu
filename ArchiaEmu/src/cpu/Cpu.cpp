@@ -353,6 +353,7 @@ bool Cpu::Fetch8(std::uint8_t& value)
             instruction_pointer_,
             &value,
             sizeof(value))) {
+        RaiseMemoryFault();
         return false;
     }
 
@@ -370,6 +371,7 @@ bool Cpu::Fetch32(std::uint32_t& value)
             instruction_pointer_,
             reinterpret_cast<std::uint8_t*>(&value),
             sizeof(value))) {
+        RaiseMemoryFault();
         return false;
     }
 
