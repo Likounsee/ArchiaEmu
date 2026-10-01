@@ -182,6 +182,35 @@ bool Memory::HasOverlappingRegion(std::uint64_t virtual_address,
     return false;
 }
 
+bool Memory::Protect(std::uint64_t virtual_address,
+                     std::size_t size,
+                     MemoryPermission permissions)
+{
+    if (!RangeValid(virtual_address, size)) {
+        return false;
+    }
+
+    const auto size64 = static_cast<std::uint64_t>(size);
+    const std::uint64_t end = virtual_address + size64;
+
+    if ((virtual_address % PageSize) != 0 ||
+        (size % PageSize) != 0) {
+        return false;
+    }
+
+    for (auto& region : regions_) {
+        const std::uint64_t region_end =
+            region.base + static_cast<std::uint64_t>(region.data.size());
+
+        if (virtual_address >= region.base && end <= region_end) {
+            region.permissions = permissions;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void Memory::Clear()
 {
     regions_.clear();
