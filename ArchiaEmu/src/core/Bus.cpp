@@ -5,22 +5,23 @@
 namespace myps5emu {
 
 bool Bus::Map(std::uint64_t virtual_address,
-             std::size_t size)
+              std::size_t size)
 {
-    if (HasOverlappingRegion(virtual_address, size)) {
+    if (size == 0 || HasOverlappingRegion(virtual_address, size)) {
         return false;
     }
 
     const auto size64 = static_cast<std::uint64_t>(size);
-    if (size == 0 ||
-        size64 > std::numeric_limits<std::uint64_t>::max() - virtual_address) {
+    if (size64 > std::numeric_limits<std::uint64_t>::max() - virtual_address) {
         return false;
     }
 
     const std::uint64_t end = virtual_address + size64;
+
     for (const auto& mapping : devices_) {
         const std::uint64_t mapping_end =
             mapping.base + static_cast<std::uint64_t>(mapping.size);
+
         if (virtual_address < mapping_end && end > mapping.base) {
             return false;
         }
@@ -33,7 +34,8 @@ bool Bus::MapDevice(std::uint64_t base,
                     std::size_t size,
                     Device* device)
 {
-    if (device == nullptr || size == 0) {
+    if (device == nullptr || size == 0 ||
+        HasOverlappingRegion(base, size)) {
         return false;
     }
 
@@ -51,10 +53,6 @@ bool Bus::MapDevice(std::uint64_t base,
         if (base < mapping_end && end > mapping.base) {
             return false;
         }
-    }
-
-    if (IsMapped(base, size)) {
-        return false;
     }
 
     devices_.push_back(DeviceMapping{base, size, device});
@@ -134,6 +132,12 @@ bool Bus::Write(std::uint64_t virtual_address,
 void Bus::ClearDevices() noexcept
 {
     devices_.clear();
+}
+
+void Bus::Clear()
+{
+    devices_.clear();
+    Memory::Clear();
 }
 
 } // namespace myps5emu
