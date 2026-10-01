@@ -8,6 +8,7 @@
 namespace myps5emu {
 
 class Memory;
+enum class MemoryFault : std::uint8_t;
 
 class Cpu {
 public:
@@ -30,9 +31,12 @@ public:
 
     using FrameCallback = std::function<bool()>;
     using SyscallHandler = std::function<bool(Cpu&)>;
+    using ExceptionHandler = std::function<bool(Cpu&, MemoryFault)>;
 
     void SetFrameCallback(FrameCallback callback);
     void SetSyscallHandler(SyscallHandler callback);
+    void SetExceptionHandler(ExceptionHandler callback);
+    MemoryFault LastMemoryFault() const noexcept;
     void Halt() noexcept;
 
     int Run();
@@ -69,6 +73,8 @@ private:
     Memory* memory_ = nullptr;
     FrameCallback frame_callback_;
     SyscallHandler syscall_handler_;
+    ExceptionHandler exception_handler_;
+    MemoryFault last_memory_fault_ = static_cast<MemoryFault>(0);
     bool halted_ = false;
 
     // Register file
