@@ -75,7 +75,7 @@ ExceptionStackSelection ExceptionStackResolver::ResolveIst(
         return {ExceptionStackStatus::Unavailable, 0};
     }
 
-    return {ExceptionStackStatus::NoStackSwitch, stack_pointer};
+    return {ExceptionStackStatus::StackSelected, stack_pointer};
 }
 
 } // namespace myps5emu::x86
