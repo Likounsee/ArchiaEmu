@@ -26,6 +26,10 @@ public:
 
     virtual void Clear();
 
+protected:
+    bool HasOverlappingRegion(std::uint64_t virtual_address,
+                              std::size_t size) const noexcept;
+
 private:
     struct Region {
         std::uint64_t base = 0;
