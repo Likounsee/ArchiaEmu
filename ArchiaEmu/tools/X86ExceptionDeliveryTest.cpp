@@ -58,6 +58,7 @@ int main()
         delivered.frame.error_code != 0x5 ||
         delivered.target_rip != gate.offset ||
         delivered.target_cs != gate.selector ||
+        delivered.target_ss != 0 ||
         delivered.target_rflags != 0x2 ||
         delivered.stack.status != ExceptionStackStatus::StackSelected ||
         delivered.stack.stack_pointer != 0x9000 ||
@@ -73,6 +74,7 @@ int main()
     const auto istDelivered = resolver.Resolve(
         exception, 0x10, 0x202, 0, 0x5);
     if (istDelivered.status != ExceptionDeliveryStatus::Delivered ||
+        istDelivered.target_ss != 0 ||
         istDelivered.target_rflags != 0x202 ||
         istDelivered.stack.status != ExceptionStackStatus::StackSelected ||
         istDelivered.stack.stack_pointer != 0xA000) {
@@ -95,7 +97,8 @@ int main()
     if (sameCpl.status != ExceptionDeliveryStatus::Delivered ||
         sameCpl.stack.status != ExceptionStackStatus::NoStackSwitch ||
         sameCpl.stack_frame.rsp != 0xB000 ||
-        sameCpl.stack_frame.ss != 0x20) {
+        sameCpl.stack_frame.ss != 0x20 ||
+        sameCpl.target_ss != 0x20) {
         return Fail("Same-CPL exception frame did not preserve SS:RSP")
             ? 0 : 1;
     }
