@@ -46,8 +46,13 @@ bool Emulator::LoadGame(const std::string& path)
         const std::uint64_t map_end =
             (segment_end + Memory::PageSize - 1) /
             Memory::PageSize * Memory::PageSize;
+        const std::uint64_t map_size64 = map_end - map_base;
+        if (map_size64 > std::numeric_limits<std::size_t>::max()) {
+            std::cerr << "[Memory] ELF mapping is too large.\n";
+            return false;
+        }
         const std::size_t map_size =
-            static_cast<std::size_t>(map_end - map_base);
+            static_cast<std::size_t>(map_size64);
 
         MemoryPermission permissions = MemoryPermission::None;
         if ((segment.flags & elf_pf_r) != 0) {
