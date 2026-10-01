@@ -26,6 +26,7 @@ struct ExceptionDeliveryResult {
     ExceptionFrame64 frame{};
     std::uint64_t target_rip = 0;
     std::uint16_t target_cs = 0;
+    std::uint16_t target_ss = 0;
     std::uint64_t target_rflags = 0;
     GdtCodeSegment64 target_segment{};
     ExceptionStackSelection stack{};
