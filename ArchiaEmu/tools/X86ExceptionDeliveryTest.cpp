@@ -48,7 +48,7 @@ int main()
 
     ExceptionDeliveryResolver resolver(idt, gdt, tss);
     const auto delivered = resolver.Resolve(
-        exception, 0x10, 0x202, 0, 0x5);
+        exception, 0x10, 0x202, 3, 0x5);
 
     if (delivered.status != ExceptionDeliveryStatus::Delivered ||
         delivered.frame.rip != exception.instruction_pointer ||
