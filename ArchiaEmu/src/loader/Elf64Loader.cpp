@@ -15,6 +15,8 @@ constexpr std::uint8_t ELFCLASS64 = 2;
 
 // ELF file type / machine
 constexpr std::uint16_t EM_X86_64 = 62;
+constexpr std::uint16_t ET_EXEC = 2;
+constexpr std::uint16_t ET_DYN = 3;
 
 // Program header type
 constexpr std::uint32_t PT_LOAD = 1;
@@ -127,6 +129,22 @@ bool Elf64Loader::Load(const std::string& path)
         return false;
     }
 
+    if (header.ident[5] != 1) {
+        std::cerr << "[ELF] Unsupported byte order.\\n";
+        return false;
+    }
+
+    if (header.version != 1) {
+        std::cerr << "[ELF] Unsupported ELF version.\\n";
+        return false;
+    }
+
+    if (header.type != ET_EXEC) {
+        std::cerr << "[ELF] Unsupported ELF type: " << header.type
+                  << " (ET_DYN/PIE relocation is not implemented).\\n";
+        return false;
+    }
+
     if (header.machine != EM_X86_64) {
         std::cerr << "[ELF] Unsupported machine type: "
                   << header.machine << '\n';
@@ -190,6 +208,12 @@ bool Elf64Loader::Load(const std::string& path)
 
         if (program_header.type != PT_LOAD) {
             continue;
+        }
+
+        if (program_header.alignment != 0 &&
+            (program_header.alignment & (program_header.alignment - 1)) != 0) {
+            std::cerr << "[ELF] PT_LOAD alignment is not a power of two.\\n";
+            return false;
         }
 
         if (program_header.memory_size <
@@ -267,6 +291,20 @@ bool Elf64Loader::Load(const std::string& path)
             << '\n';
 
         segments_.push_back(std::move(segment));
+    }
+
+    bool entryExecutable = false;
+    for (const auto& segment : segments_) {
+        if ((segment.flags & PF_X) == 0 || segment.memory_size == 0) continue;
+        if (entry_point_ >= segment.virtual_address &&
+            entry_point_ - segment.virtual_address < segment.memory_size) {
+            entryExecutable = true;
+            break;
+        }
+    }
+    if (!entryExecutable) {
+        std::cerr << "[ELF] Entry point is not inside an executable PT_LOAD.\\n";
+        return false;
     }
 
     if (segments_.empty()) {
