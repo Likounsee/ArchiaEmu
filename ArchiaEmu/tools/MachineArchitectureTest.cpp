@@ -1,103 +1,120 @@
 #include "core/Bus.hpp"
 #include "core/Device.hpp"
 #include "core/Machine.hpp"
+#include "core/RamDevice.hpp"
+#include "core/RomDevice.hpp"
 
 #include <cstdint>
 #include <iostream>
+#include <vector>
 
 using namespace myps5emu;
 
-class TestDevice final : public Device {
-public:
-    bool Read(std::uint64_t address,
-              std::uint8_t* data,
-              std::size_t size) const override
-    {
-        if (data == nullptr || size != 1 || address != 0) {
-            return false;
-        }
-        *data = value_;
-        return true;
-    }
+namespace {
 
-    bool Write(std::uint64_t address,
-               const std::uint8_t* data,
-               std::size_t size) override
-    {
-        if (data == nullptr || size != 1 || address != 0) {
-            return false;
-        }
-        value_ = *data;
-        return true;
-    }
+bool Fail(const char* message)
+{
+    std::cerr << message << '\n';
+    return false;
+}
 
-private:
-    std::uint8_t value_ = 0xA5;
-};
+} // namespace
 
 int main()
 {
     Machine machine;
-
-    if (machine.CPU().InstructionPointer() != 0) {
-        std::cerr << "Machine CPU initialization failed\n";
-        return 1;
-    }
-
-    if (!machine.GuestMemory().Map(0x400000, 0x1000)) {
-        std::cerr << "Machine RAM mapping failed\n";
-        return 1;
-    }
-
-    const std::uint8_t ramWrite = 0x42;
-    if (!machine.GuestMemory().Write(0x400000, &ramWrite, 1)) {
-        std::cerr << "Machine RAM write failed\n";
-        return 1;
-    }
-
-    std::uint8_t ramRead = 0;
-    if (!machine.GuestMemory().Read(0x400000, &ramRead, 1) ||
-        ramRead != ramWrite) {
-        std::cerr << "Machine RAM read failed\n";
-        return 1;
-    }
-
-    TestDevice device;
     Bus& bus = machine.SystemBus();
 
-    if (!bus.MapDevice(0x10000000, 0x100, &device)) {
-        std::cerr << "Device mapping failed\n";
-        return 1;
+    if (machine.CPU().InstructionPointer() != 0) {
+        return Fail("Machine CPU initialization failed") ? 0 : 1;
     }
 
-    std::uint8_t deviceRead = 0;
-    if (!bus.Read(0x10000000, &deviceRead, 1) ||
-        deviceRead != 0xA5) {
-        std::cerr << "Device read routing failed\n";
-        return 1;
+    if (!bus.Map(0x400000, 0x1000)) {
+        return Fail("Machine RAM mapping failed") ? 0 : 1;
     }
 
-    const std::uint8_t deviceWrite = 0x5A;
-    if (!bus.Write(0x10000000, &deviceWrite, 1) ||
-        !bus.Read(0x10000000, &deviceRead, 1) ||
-        deviceRead != deviceWrite) {
-        std::cerr << "Device write/readback failed\n";
-        return 1;
+    const std::uint8_t ramWrite[] = {0x42, 0x43};
+    if (!bus.Write(0x400000, ramWrite, sizeof(ramWrite))) {
+        return Fail("Machine RAM write failed") ? 0 : 1;
     }
 
-    if (bus.MapDevice(0x10000000, 0x10, &device)) {
-        std::cerr << "Overlapping device mapping was accepted\n";
-        return 1;
+    std::uint8_t ramRead[sizeof(ramWrite)] = {};
+    if (!bus.Read(0x400000, ramRead, sizeof(ramRead)) ||
+        ramRead[0] != 0x42 || ramRead[1] != 0x43) {
+        return Fail("Machine RAM read failed") ? 0 : 1;
     }
 
-    if (bus.MapDevice(0x400000, 0x10, &device)) {
-        std::cerr << "Device/RAM overlap was accepted\n";
-        return 1;
+    RamDevice ramDevice(0x20);
+    if (ramDevice.Size() != 0x20) {
+        return Fail("RAM device size failed") ? 0 : 1;
     }
 
-    if (bus.Map(0x10000050, 0x10)) {
-        std::cerr << "RAM/device overlap was accepted\n";
-        return 1;
+    const std::uint8_t deviceWrite[] = {0x10, 0x20, 0x30, 0x40};
+    if (!ramDevice.Write(4, deviceWrite, sizeof(deviceWrite))) {
+        return Fail("RAM device write failed") ? 0 : 1;
+    }
+
+    std::uint8_t deviceRead[sizeof(deviceWrite)] = {};
+    if (!ramDevice.Read(4, deviceRead, sizeof(deviceRead)) ||
+        deviceRead[0] != 0x10 || deviceRead[3] != 0x40) {
+        return Fail("RAM device read failed") ? 0 : 1;
+    }
+
+    if (ramDevice.Read(0x20, deviceRead, 1) ||
+        ramDevice.Write(0x1F, deviceRead, 2)) {
+        return Fail("RAM device accepted out-of-range access") ? 0 : 1;
+    }
+
+    if (ramDevice.Read(0, nullptr, 1) ||
+        ramDevice.Write(0, nullptr, 1)) {
+        return Fail("RAM device accepted null buffer") ? 0 : 1;
+    }
+
+    RomDevice rom({0xAA, 0xBB, 0xCC, 0xDD});
+    if (rom.Size() != 4) {
+        return Fail("ROM device size failed") ? 0 : 1;
+    }
+
+    std::uint8_t romRead[2] = {};
+    if (!rom.Read(1, romRead, sizeof(romRead)) ||
+        romRead[0] != 0xBB || romRead[1] != 0xCC) {
+        return Fail("ROM device read failed") ? 0 : 1;
+    }
+
+    const std::uint8_t romWrite = 0xFF;
+    if (rom.Write(0, &romWrite, 1) ||
+        rom.Read(3, romRead, 2)) {
+        return Fail("ROM device accepted invalid access") ? 0 : 1;
+    }
+
+    if (!bus.MapDevice(0x10000000, 0x20, &ramDevice)) {
+        return Fail("Device mapping failed") ? 0 : 1;
+    }
+
+    if (!bus.Write(0x10000004, deviceWrite, sizeof(deviceWrite)) ||
+        !bus.Read(0x10000004, deviceRead, sizeof(deviceRead)) ||
+        deviceRead[0] != 0x10 || deviceRead[3] != 0x40) {
+        return Fail("Bus device offset routing failed") ? 0 : 1;
+    }
+
+    if (bus.Read(0x1000001F, deviceRead, 2) ||
+        bus.Write(0x1000001F, deviceWrite, 2)) {
+        return Fail("Bus accepted access crossing device boundary") ? 0 : 1;
+    }
+
+    if (bus.MapDevice(0x10000010, 0x10, &ramDevice) ||
+        bus.MapDevice(0x400000, 0x10, &ramDevice) ||
+        bus.Map(0x10000010, 0x10)) {
+        return Fail("Bus accepted overlapping mapping") ? 0 : 1;
+    }
+
+    if (!bus.UnmapDevice(&ramDevice) ||
+        bus.UnmapDevice(&ramDevice)) {
+        return Fail("Device unmapping semantics failed") ? 0 : 1;
+    }
+
+    if (bus.Read(0x10000000, deviceRead, 1)) {
+        return Fail("Unmapped device remained accessible") ? 0 : 1;
     }
 
     const std::uint8_t program[] = {
@@ -106,21 +123,24 @@ int main()
     };
 
     if (!bus.Write(0x400000, program, sizeof(program))) {
-        std::cerr << "CPU program write failed\n";
-        return 1;
+        return Fail("CPU program write failed") ? 0 : 1;
     }
 
     machine.CPU().SetInstructionPointer(0x400000);
     if (machine.CPU().Run() != 0 ||
         machine.CPU().ReadRegister64(0) != 0x12345678ULL) {
-        std::cerr << "CPU did not execute through Bus-backed memory\n";
-        return 1;
+        return Fail("CPU did not execute through Bus-backed memory") ? 0 : 1;
+    }
+
+    bus.ClearDevices();
+    if (!bus.IsMapped(0x400000, 1)) {
+        return Fail("ClearDevices unexpectedly cleared RAM") ? 0 : 1;
     }
 
     bus.Clear();
-    if (bus.IsMapped(0x400000, 1)) {
-        std::cerr << "Bus RAM was not cleared\n";
-        return 1;
+    if (bus.IsMapped(0x400000, 1) ||
+        bus.Read(0x10000000, deviceRead, 1)) {
+        return Fail("Bus Clear did not clear all mappings") ? 0 : 1;
     }
 
     std::cout << "Machine bus/device architecture test: PASS\n";
