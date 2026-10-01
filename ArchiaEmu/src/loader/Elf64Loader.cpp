@@ -130,18 +130,18 @@ bool Elf64Loader::Load(const std::string& path)
     }
 
     if (header.ident[5] != 1) {
-        std::cerr << "[ELF] Unsupported byte order.\\n";
+        std::cerr << "[ELF] Unsupported byte order.\n";
         return false;
     }
 
     if (header.version != 1) {
-        std::cerr << "[ELF] Unsupported ELF version.\\n";
+        std::cerr << "[ELF] Unsupported ELF version.\n";
         return false;
     }
 
     if (header.type != ET_EXEC) {
         std::cerr << "[ELF] Unsupported ELF type: " << header.type
-                  << " (ET_DYN/PIE relocation is not implemented).\\n";
+                  << " (ET_DYN/PIE relocation is not implemented).\n";
         return false;
     }
 
@@ -212,7 +212,7 @@ bool Elf64Loader::Load(const std::string& path)
 
         if (program_header.alignment != 0 &&
             (program_header.alignment & (program_header.alignment - 1)) != 0) {
-            std::cerr << "[ELF] PT_LOAD alignment is not a power of two.\\n";
+            std::cerr << "[ELF] PT_LOAD alignment is not a power of two.\n";
             return false;
         }
 
@@ -303,7 +303,7 @@ bool Elf64Loader::Load(const std::string& path)
         }
     }
     if (!entryExecutable) {
-        std::cerr << "[ELF] Entry point is not inside an executable PT_LOAD.\\n";
+        std::cerr << "[ELF] Entry point is not inside an executable PT_LOAD.\n";
         return false;
     }
 
