@@ -78,9 +78,6 @@ ExceptionStackSelection ExceptionStackResolver::ResolveIst(
     return {ExceptionStackStatus::StackSelected, stack_pointer};
 }
 
-} // namespace myps5emu::x86
-
-
 ExceptionStackSelection ExceptionStackResolver::Resolve(
     std::uint8_t ist,
     std::uint8_t current_cpl,
@@ -119,3 +116,5 @@ ExceptionStackSelection ExceptionStackResolver::Resolve(
 
     return {ExceptionStackStatus::StackSelected, stack_pointer};
 }
+
+} // namespace myps5emu::x86
