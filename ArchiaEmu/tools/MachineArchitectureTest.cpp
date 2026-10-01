@@ -13,27 +13,27 @@ int main()
         machine.CPU().InstructionPointer() == 0;
 
     const bool memory_starts_empty =
-        !machine.Memory().IsMapped(0x400000, 1);
+        !machine.GuestMemory().IsMapped(0x400000, 1);
 
     if (!cpu_connected || !memory_starts_empty) {
         std::cerr << "Machine architecture test failed\n";
         return 1;
     }
 
-    if (!machine.Memory().Map(0x400000, 0x1000)) {
+    if (!machine.GuestMemory().Map(0x400000, 0x1000)) {
         std::cerr << "Machine memory mapping failed\n";
         return 1;
     }
 
     std::uint8_t value = 0x42;
-    if (!machine.Memory().Write(
+    if (!machine.GuestMemory().Write(
             0x400000, &value, sizeof(value))) {
         std::cerr << "Machine memory write failed\n";
         return 1;
     }
 
     std::uint8_t read = 0;
-    if (!machine.Memory().Read(
+    if (!machine.GuestMemory().Read(
             0x400000, &read, sizeof(read)) ||
         read != value) {
         std::cerr << "Machine memory read failed\n";
