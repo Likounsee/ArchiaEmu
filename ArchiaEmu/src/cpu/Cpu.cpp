@@ -384,7 +384,7 @@ bool Cpu::Fetch32(std::uint32_t& value)
         return false;
     }
 
-    if (!memory_->Read(
+    if (!memory_->ExecuteRead(
             instruction_pointer_,
             reinterpret_cast<std::uint8_t*>(&value),
             sizeof(value))) {
@@ -402,10 +402,11 @@ bool Cpu::Fetch64(std::uint64_t& value)
         return false;
     }
 
-    if (!memory_->Read(
+    if (!memory_->ExecuteRead(
             instruction_pointer_,
             reinterpret_cast<std::uint8_t*>(&value),
             sizeof(value))) {
+        RaiseMemoryFault();
         return false;
     }
 
@@ -3006,6 +3007,7 @@ int Cpu::Run()
 
         const std::uint64_t instruction_address =
             instruction_pointer_;
+        current_instruction_ip_ = instruction_address;
 
         std::uint8_t opcode = 0;
 
