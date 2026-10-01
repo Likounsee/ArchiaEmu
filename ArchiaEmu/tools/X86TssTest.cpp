@@ -51,7 +51,7 @@ int main()
     }
 
     selection = resolver.ResolveIst(3);
-    if (selection.status != ExceptionStackStatus::NoStackSwitch ||
+    if (selection.status != ExceptionStackStatus::StackSelected ||
         selection.stack_pointer != tss.Ist(3)) {
         return Fail("IST3 resolution failed") ? 0 : 1;
     }
