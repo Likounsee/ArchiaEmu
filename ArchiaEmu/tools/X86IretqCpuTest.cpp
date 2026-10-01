@@ -115,6 +115,41 @@ int main()
         return Fail("IRETQ without a handler was not rejected") ? 0 : 1;
     }
 
+    WriteQword(memory, 0x7000, 0x2000);
+    WriteQword(memory, 0x7008, 0x33);
+    WriteQword(memory, 0x7010, 0x202);
+    WriteQword(memory, 0x7018, 0x7800);
+    WriteQword(memory, 0x7020, 0x3B);
+
+    Cpu privilegeReturn;
+    privilegeReturn.ConnectMemory(&memory);
+    privilegeReturn.SetInstructionPointer(0x1000);
+    privilegeReturn.SetCodeSegment(0x28);
+    privilegeReturn.SetStackSegment(0x10);
+    privilegeReturn.SetStackPointer(0x7000);
+    privilegeReturn.SetRflags(0x202);
+
+    bool privilegeHandlerCalled = false;
+    privilegeReturn.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
+        privilegeHandlerCalled = true;
+        const auto result =
+            ExceptionReturn64::Read(handlerCpu, memory, gdt);
+        if (result.status != ExceptionReturnStatus::Returned) {
+            return false;
+        }
+        return ExceptionReturn64::Apply(handlerCpu, result).status ==
+               ExceptionReturnStatus::Returned;
+    });
+
+    if (privilegeReturn.Run() != 0 || !privilegeHandlerCalled ||
+        privilegeReturn.InstructionPointer() != 0x2001 ||
+        privilegeReturn.CodeSegment() != 0x33 ||
+        privilegeReturn.Rsp() != 0x7800 ||
+        privilegeReturn.StackSegment() != 0x3B ||
+        privilegeReturn.Rflags() != 0x202) {
+        return Fail("IRETQ privilege return failed") ? 0 : 1;
+    }
+
     WriteQword(memory, 0x7000, 0x0001000000000000ULL);
 
     Cpu invalidFrame;
