@@ -25,6 +25,8 @@ add_executable(myps5emu
     src/core/RamDevice.hpp
     src/core/RomDevice.cpp
     src/core/RomDevice.hpp
+    src/core/MmioRegisterDevice.cpp
+    src/core/MmioRegisterDevice.hpp
     src/loader/Elf64Loader.cpp
     src/loader/Elf64Loader.hpp
     src/memory/Memory.cpp
@@ -50,6 +52,7 @@ add_executable(MachineArchitectureTest
     src/core/Bus.cpp
     src/core/RamDevice.cpp
     src/core/RomDevice.cpp
+    src/core/MmioRegisterDevice.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
     src/cpu/RegisterFile.cpp
