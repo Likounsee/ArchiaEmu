@@ -3704,154 +3704,46 @@ int Cpu::Run()
 
             break;
         }
-        case 0x11: 
-        case 0x13: 
-        case 0x19: 
-        case 0x1B: { 
-
-            std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
+        case 0x11:
+        case 0x13:
+        case 0x19:
+        case 0x1B: {
+            std::uint8_t modrm=0, reg=0, rm=0; std::uint64_t address=0; bool memory=false;
+            if(!Fetch8(modrm) || !DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+            const bool isAdc=(opcode==0x11||opcode==0x13);
+            const bool destRm=(opcode==0x11||opcode==0x19);
+            const bool cfIn=(rflags_&CF_MASK)!=0;
+            if(rex.w){
+                std::uint64_t lhs=destRm?(memory?0:registers_.Read64(rm)):registers_.Read64(reg);
+                std::uint64_t rhs=destRm?registers_.Read64(reg):(memory?0:registers_.Read64(rm));
+                if(destRm && memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&lhs),8)) return 1;}
+                if(!destRm && memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&rhs),8)) return 1;}
+                const std::uint64_t result=isAdc?lhs+rhs+(cfIn?1ULL:0ULL):lhs-rhs-(cfIn?1ULL:0ULL);
+                if(destRm){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&result),8)) return 1;}else registers_.Write64(rm,result);}else registers_.Write64(reg,result);
+                const std::uint64_t sign=0x8000000000000000ULL;
+                const bool cfOut=isAdc?(lhs>std::numeric_limits<std::uint64_t>::max()-rhs || (cfIn&&lhs==std::numeric_limits<std::uint64_t>::max()-rhs)):(lhs<rhs || (cfIn&&lhs==rhs));
+                const bool of=isAdc?((~(lhs^rhs)&(lhs^result)&sign)!=0):(((lhs^rhs)&(lhs^result)&sign)!=0);
+                if(cfOut) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                SetZeroFlag(result==0); SetSignFlag((result&sign)!=0);
+                if(of) rflags_|=OF_MASK; else rflags_&=~OF_MASK;
+                if(((lhs^rhs^result)&0x10ULL)!=0) rflags_|=AF_MASK; else rflags_&=~AF_MASK;
+                if(EvenParity8(static_cast<std::uint8_t>(result))) rflags_|=PF_MASK; else rflags_&=~PF_MASK;
+            }else{
+                std::uint32_t lhs=destRm?(memory?0:registers_.Read32(rm)):registers_.Read32(reg);
+                std::uint32_t rhs=destRm?registers_.Read32(reg):(memory?0:registers_.Read32(rm));
+                if(destRm&&memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&lhs),4)) return 1;}
+                if(!destRm&&memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&rhs),4)) return 1;}
+                const std::uint32_t result=isAdc?lhs+rhs+(cfIn?1U:0U):lhs-rhs-(cfIn?1U:0U);
+                if(destRm){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&result),4)) return 1;}else registers_.Write32(rm,result);}else registers_.Write32(reg,result);
+                const std::uint32_t sign=0x80000000U;
+                const bool cfOut=isAdc?(lhs>std::numeric_limits<std::uint32_t>::max()-rhs || (cfIn&&lhs==std::numeric_limits<std::uint32_t>::max()-rhs)):(lhs<rhs || (cfIn&&lhs==rhs));
+                const bool of=isAdc?((~(lhs^rhs)&(lhs^result)&sign)!=0):(((lhs^rhs)&(lhs^result)&sign)!=0);
+                if(cfOut) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                SetZeroFlag(result==0); SetSignFlag((result&sign)!=0);
+                if(of) rflags_|=OF_MASK; else rflags_&=~OF_MASK;
+                if(((lhs^rhs^result)&0x10U)!=0) rflags_|=AF_MASK; else rflags_&=~AF_MASK;
+                if(EvenParity8(static_cast<std::uint8_t>(result))) rflags_|=PF_MASK; else rflags_&=~PF_MASK;
             }
-
-            const std::uint8_t mod =
-                static_cast<std::uint8_t>((modrm >> 6) & 0x03);
-
-            
-            if (mod != 0x03) {
-                return 1;
-            }
-
-            const std::uint8_t reg =
-                static_cast<std::uint8_t>(
-                    ((modrm >> 3) & 0x07) |
-                    (rex.r ? 8 : 0));
-
-            const std::uint8_t rm =
-                static_cast<std::uint8_t>(
-                    (modrm & 0x07) |
-                    (rex.b ? 8 : 0));
-
-            const bool is_adc =
-                (opcode == 0x11 || opcode == 0x13);
-
-            
-            
-            
-            
-            
-            const bool destination_is_rm =
-                (opcode == 0x11 || opcode == 0x19);
-
-            const std::uint8_t dst =
-                destination_is_rm ? rm : reg;
-
-            const std::uint8_t src =
-                destination_is_rm ? reg : rm;
-
-            const bool cf_in =
-                (rflags_ & CF_MASK) != 0;
-
-            if (rex.w) {
-
-                const std::uint64_t lhs =
-                    registers_.Read64(dst);
-
-                const std::uint64_t rhs =
-                    registers_.Read64(src);
-
-                const std::uint64_t result =
-                    is_adc
-                        ? lhs + rhs + (cf_in ? 1ULL : 0ULL)
-                        : lhs - rhs - (cf_in ? 1ULL : 0ULL);
-
-                registers_.Write64(dst, result);
-
-                const bool cf_out =
-                    is_adc
-                        ? (result < lhs ||
-                           (cf_in && result == lhs))
-                        : (lhs < rhs ||
-                           (cf_in && lhs == rhs));
-
-                const std::uint64_t sign =
-                    0x8000000000000000ULL;
-
-                const bool overflow =
-                    is_adc
-                        ? ((~(lhs ^ rhs) &
-                            (lhs ^ result) &
-                            sign) != 0)
-                        : (((lhs ^ rhs) &
-                            (lhs ^ result) &
-                            sign) != 0);
-
-                if (cf_out) {
-                    rflags_ |= CF_MASK;
-                } else {
-                    rflags_ &= ~CF_MASK;
-                }
-
-                SetZeroFlag(result == 0);
-                SetSignFlag((result & sign) != 0);
-
-                if (overflow) {
-                    rflags_ |= OF_MASK;
-                } else {
-                    rflags_ &= ~OF_MASK;
-                }
-
-            } else {
-
-                const std::uint32_t lhs =
-                    registers_.Read32(dst);
-
-                const std::uint32_t rhs =
-                    registers_.Read32(src);
-
-                const std::uint32_t result =
-                    is_adc
-                        ? lhs + rhs + (cf_in ? 1U : 0U)
-                        : lhs - rhs - (cf_in ? 1U : 0U);
-
-                registers_.Write32(dst, result);
-
-                const bool cf_out =
-                    is_adc
-                        ? (result < lhs ||
-                           (cf_in && result == lhs))
-                        : (lhs < rhs ||
-                           (cf_in && lhs == rhs));
-
-                const std::uint32_t sign =
-                    0x80000000U;
-
-                const bool overflow =
-                    is_adc
-                        ? ((~(lhs ^ rhs) &
-                            (lhs ^ result) &
-                            sign) != 0)
-                        : (((lhs ^ rhs) &
-                            (lhs ^ result) &
-                            sign) != 0);
-
-                if (cf_out) {
-                    rflags_ |= CF_MASK;
-                } else {
-                    rflags_ &= ~CF_MASK;
-                }
-
-                SetZeroFlag(result == 0);
-                SetSignFlag((result & sign) != 0);
-
-                if (overflow) {
-                    rflags_ |= OF_MASK;
-                } else {
-                    rflags_ &= ~OF_MASK;
-                }
-            }
-
             break;
         }
         case 0xFF: { 
