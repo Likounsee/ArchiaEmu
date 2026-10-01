@@ -9,8 +9,6 @@
 namespace myps5emu {
 
 class Memory;
-enum class MemoryFault : std::uint8_t;
-
 class Cpu {
 public:
     void ConnectMemory(Memory* memory) noexcept;
@@ -77,6 +75,8 @@ private:
     SyscallHandler syscall_handler_;
     ExceptionHandler exception_handler_;
     MemoryFault last_memory_fault_ = static_cast<MemoryFault>(0);
+    CpuException last_exception_{};
+    std::uint64_t current_instruction_ip_ = 0;
     bool halted_ = false;
 
     // Register file
