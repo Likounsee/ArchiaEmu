@@ -36,6 +36,7 @@ add_executable(myps5emu
     src/cpu/RegisterFile.cpp
     src/cpu/RegisterFile.hpp
     src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
 )
 target_include_directories(myps5emu PRIVATE src)
 
@@ -67,6 +68,7 @@ add_test(NAME MachineArchitectureTest COMMAND MachineArchitectureTest)
 add_executable(X86IdtTest
     tools/X86IdtTest.cpp
     src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
 )
 target_include_directories(X86IdtTest PRIVATE src)
 
