@@ -38,10 +38,12 @@ public:
 using FrameCallback = std::function<bool()>;
     using SyscallHandler = std::function<bool(Cpu&)>;
     using ExceptionHandler = std::function<bool(Cpu&, const CpuException&)>;
+    using ExceptionReturnHandler = std::function<bool(Cpu&)>;
 
     void SetFrameCallback(FrameCallback callback);
     void SetSyscallHandler(SyscallHandler callback);
     void SetExceptionHandler(ExceptionHandler callback);
+    void SetExceptionReturnHandler(ExceptionReturnHandler callback);
     MemoryFault LastMemoryFault() const noexcept;
     const CpuException& LastException() const noexcept;
     void Halt() noexcept;
@@ -83,6 +85,7 @@ Memory* memory_ = nullptr;
     FrameCallback frame_callback_;
     SyscallHandler syscall_handler_;
     ExceptionHandler exception_handler_;
+    ExceptionReturnHandler exception_return_handler_;
     MemoryFault last_memory_fault_ = static_cast<MemoryFault>(0);
     CpuException last_exception_{};
     std::uint64_t current_instruction_ip_ = 0;
