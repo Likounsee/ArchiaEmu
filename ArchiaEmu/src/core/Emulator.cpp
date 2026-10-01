@@ -18,6 +18,9 @@ bool Emulator::LoadGame(const std::string& path)
     }
 
     auto& memory = machine_.GuestMemory();
+    // A successful new load starts from a clean guest address space so
+    // repeated LoadGame() calls cannot inherit mappings from a prior game.
+    memory.Clear();
     auto& cpu = machine_.CPU();
 
     constexpr std::uint32_t elf_pf_r = 0x4U;
