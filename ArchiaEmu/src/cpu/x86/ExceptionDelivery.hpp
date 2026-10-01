@@ -44,7 +44,9 @@ public:
         std::uint16_t current_cs,
         std::uint64_t current_rflags,
         std::uint8_t current_cpl,
-        std::uint64_t error_code = 0) const noexcept;
+        std::uint64_t error_code = 0,
+        std::uint64_t current_rsp = 0,
+        std::uint64_t current_ss = 0) const noexcept;
 
 private:
     const Idt& idt_;
