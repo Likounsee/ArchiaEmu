@@ -120,6 +120,19 @@ bool EvenParity8(std::uint8_t value) noexcept
     return (value & 1U) == 0;
 }
 
+bool ConditionHolds(std::uint8_t cc, std::uint64_t rflags) noexcept
+{
+    const bool cf=(rflags&CF_MASK)!=0, pf=(rflags&PF_MASK)!=0, zf=(rflags&ZF_MASK)!=0;
+    const bool sf=(rflags&SF_MASK)!=0, of=(rflags&OF_MASK)!=0;
+    switch(cc){
+    case 0x0: return of; case 0x1: return !of; case 0x2: return cf; case 0x3: return !cf;
+    case 0x4: return zf; case 0x5: return !zf; case 0x6: return cf||zf; case 0x7: return !cf&&!zf;
+    case 0x8: return sf; case 0x9: return !sf; case 0xA: return pf; case 0xB: return !pf;
+    case 0xC: return sf!=of; case 0xD: return sf==of; case 0xE: return zf||(sf!=of); case 0xF: return !zf&&(sf==of);
+    default: return false;
+    }
+}
+
 } 
 
 void Cpu::ConnectMemory(Memory* memory) noexcept
@@ -3272,6 +3285,12 @@ int Cpu::Run()
                                 instruction_pointer_) + rel);
                 }
 
+                break;
+            }
+            if (opcode2 == 0x80 || opcode2 == 0x81) {
+                std::int32_t rel=0; if(!FetchRel32(rel)) return 1;
+                const std::uint8_t cc=static_cast<std::uint8_t>(opcode2-0x80);
+                if(ConditionHolds(cc,rflags_)) instruction_pointer_=static_cast<std::uint64_t>(static_cast<std::int64_t>(instruction_pointer_)+rel);
                 break;
             }
             if (opcode2 == 0x82) {
