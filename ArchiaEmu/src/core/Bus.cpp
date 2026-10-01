@@ -4,6 +4,31 @@
 
 namespace myps5emu {
 
+bool Bus::Map(std::uint64_t virtual_address,
+             std::size_t size)
+{
+    if (HasOverlappingRegion(virtual_address, size)) {
+        return false;
+    }
+
+    const auto size64 = static_cast<std::uint64_t>(size);
+    if (size == 0 ||
+        size64 > std::numeric_limits<std::uint64_t>::max() - virtual_address) {
+        return false;
+    }
+
+    const std::uint64_t end = virtual_address + size64;
+    for (const auto& mapping : devices_) {
+        const std::uint64_t mapping_end =
+            mapping.base + static_cast<std::uint64_t>(mapping.size);
+        if (virtual_address < mapping_end && end > mapping.base) {
+            return false;
+        }
+    }
+
+    return Memory::Map(virtual_address, size);
+}
+
 bool Bus::MapDevice(std::uint64_t base,
                     std::size_t size,
                     Device* device)
