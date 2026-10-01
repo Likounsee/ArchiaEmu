@@ -160,6 +160,31 @@ std::uint64_t Cpu::Rflags() const noexcept
     return rflags_;
 }
 
+void Cpu::SetRflags(std::uint64_t value) noexcept
+{
+    rflags_ = value;
+}
+
+void Cpu::SetCodeSegment(std::uint16_t value) noexcept
+{
+    code_segment_ = value;
+}
+
+std::uint16_t Cpu::CodeSegment() const noexcept
+{
+    return code_segment_;
+}
+
+void Cpu::SetStackSegment(std::uint16_t value) noexcept
+{
+    stack_segment_ = value;
+}
+
+std::uint16_t Cpu::StackSegment() const noexcept
+{
+    return stack_segment_;
+}
+
 void Cpu::SetFrameCallback(FrameCallback callback)
 {
     frame_callback_ = std::move(callback);
