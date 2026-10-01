@@ -24,7 +24,8 @@ bool RomDevice::Read(std::uint64_t address,
         return false;
     }
 
-    if (address >= data_.size() ||
+    if (address > std::numeric_limits<std::size_t>::max() ||
+        address >= data_.size() ||
         size > data_.size() - static_cast<std::size_t>(address)) {
         return false;
     }
