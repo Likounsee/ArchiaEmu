@@ -30,6 +30,7 @@ private:
 
 enum class ExceptionStackStatus : std::uint8_t {
     NoStackSwitch = 0,
+    StackSelected,
     InvalidIst,
     Unavailable
 };
