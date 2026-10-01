@@ -43,6 +43,7 @@ add_executable(myps5emu
     src/cpu/x86/ExceptionDelivery.cpp
     src/cpu/x86/Tss64.cpp
     src/cpu/x86/ExceptionStackFrame64.cpp
+    src/cpu/x86/ExceptionStackWriter64.cpp
 )
 target_include_directories(myps5emu PRIVATE src)
 
@@ -126,3 +127,13 @@ add_executable(X86ExceptionStackFrameTest
 )
 target_include_directories(X86ExceptionStackFrameTest PRIVATE src)
 add_test(NAME X86ExceptionStackFrameTest COMMAND X86ExceptionStackFrameTest)
+
+
+add_executable(X86ExceptionStackWriterTest
+    tools/X86ExceptionStackWriterTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/x86/ExceptionStackFrame64.cpp
+    src/cpu/x86/ExceptionStackWriter64.cpp
+)
+target_include_directories(X86ExceptionStackWriterTest PRIVATE src)
+add_test(NAME X86ExceptionStackWriterTest COMMAND X86ExceptionStackWriterTest)
