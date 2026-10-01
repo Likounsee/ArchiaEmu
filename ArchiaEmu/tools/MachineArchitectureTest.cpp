@@ -211,12 +211,14 @@ int main()
     }
 
     MemoryFault observedFault = MemoryFault::None;
+    CpuExceptionKind observedException = CpuExceptionKind::None;
     std::uint64_t observedFaultIp = 0;
     bool exceptionObserved = false;
     machine.CPU().SetExceptionHandler(
-        [&](Cpu&, MemoryFault fault) {
-            observedFault = fault;
-            observedFaultIp = machine.CPU().InstructionPointer();
+        [&](Cpu&, const CpuException& exception) {
+            observedException = exception.kind;
+            observedFault = exception.memory_fault;
+            observedFaultIp = exception.instruction_pointer;
             exceptionObserved = true;
             return false;
         });
@@ -226,9 +228,80 @@ int main()
         bus.LastFault() != MemoryFault::PermissionDenied ||
         machine.CPU().LastMemoryFault() != MemoryFault::PermissionDenied ||
         !exceptionObserved ||
+        observedException != CpuExceptionKind::MemoryFault ||
         observedFault != MemoryFault::PermissionDenied ||
-        observedFaultIp != 0x440000) {
+        observedFaultIp != 0x440000 ||
+        machine.CPU().LastException().kind != CpuExceptionKind::MemoryFault ||
+        machine.CPU().LastException().instruction_pointer != 0x440000) {
         return Fail("CPU memory exception dispatch failed") ? 0 : 1;
+    }
+
+
+
+    // #UD / UD2: invalid opcode must be reported at the start of the
+    // faulting instruction, without advancing the saved exception IP.
+    if (!bus.Map(0x450000, 0x1000,
+                 MemoryPermission::Read | MemoryPermission::Write)) {
+        return Fail("Invalid-opcode page mapping failed") ? 0 : 1;
+    }
+
+    const std::uint8_t ud2Program[] = {0x0F, 0x0B, 0xF4};
+    if (!bus.Write(0x450000, ud2Program, sizeof(ud2Program)) ||
+        !bus.Protect(0x450000, 0x1000,
+                     MemoryPermission::Read | MemoryPermission::Execute)) {
+        return Fail("Invalid-opcode page setup failed") ? 0 : 1;
+    }
+
+    observedException = CpuExceptionKind::None;
+    observedFault = MemoryFault::None;
+    observedFaultIp = 0;
+    exceptionObserved = false;
+
+    machine.CPU().SetInstructionPointer(0x450000);
+    if (machine.CPU().Run() == 0 ||
+        !exceptionObserved ||
+        observedException != CpuExceptionKind::InvalidOpcode ||
+        observedFault != MemoryFault::None ||
+        observedFaultIp != 0x450000 ||
+        machine.CPU().LastException().kind != CpuExceptionKind::InvalidOpcode ||
+        machine.CPU().LastException().instruction_pointer != 0x450000) {
+        return Fail("CPU invalid-opcode exception dispatch failed") ? 0 : 1;
+    }
+
+    // #DE: DIV by zero must report DivideError and preserve the faulting IP.
+    if (!bus.Map(0x460000, 0x1000,
+                 MemoryPermission::Read | MemoryPermission::Write)) {
+        return Fail("Divide-error page mapping failed") ? 0 : 1;
+    }
+
+    const std::uint8_t divideProgram[] = {
+        0xB8, 0x01, 0x00, 0x00, 0x00, // MOV EAX,1
+        0xB9, 0x00, 0x00, 0x00, 0x00, // MOV ECX,0
+        0xBA, 0x00, 0x00, 0x00, 0x00, // MOV EDX,0
+        0xF7, 0xF1,                   // DIV ECX
+        0xF4
+    };
+
+    if (!bus.Write(0x460000, divideProgram, sizeof(divideProgram)) ||
+        !bus.Protect(0x460000, 0x1000,
+                     MemoryPermission::Read | MemoryPermission::Execute)) {
+        return Fail("Divide-error page setup failed") ? 0 : 1;
+    }
+
+    observedException = CpuExceptionKind::None;
+    observedFault = MemoryFault::None;
+    observedFaultIp = 0;
+    exceptionObserved = false;
+
+    machine.CPU().SetInstructionPointer(0x460000);
+    if (machine.CPU().Run() == 0 ||
+        !exceptionObserved ||
+        observedException != CpuExceptionKind::DivideError ||
+        observedFault != MemoryFault::None ||
+        observedFaultIp != 0x46000F ||
+        machine.CPU().LastException().kind != CpuExceptionKind::DivideError ||
+        machine.CPU().LastException().instruction_pointer != 0x46000F) {
+        return Fail("CPU divide-error exception dispatch failed") ? 0 : 1;
     }
 
     bus.ClearDevices();
