@@ -1,14 +1,14 @@
 # ArchiaEmu
 
-ArchiaEmu is an experimental C++20 emulator project initially focused on the **PlayStation 5**.
+ArchiaEmu is an experimental C++20 **general-purpose emulation project**.
 
-The long-term goal is to build a clean and reusable emulation architecture that can evolve beyond a single console. Support for additional consoles is a future direction, not a claim of current compatibility.
+The long-term goal is to build a reusable emulation framework that can host different CPU architectures, machines, operating systems and hardware devices. Specific consoles and platforms are targets built on top of that framework; they are not assumed to be compatible merely because a shared CPU architecture is supported.
 
-> **Current status:** early research and development. ArchiaEmu is **not a working PS5 emulator yet**.
+> **Current status:** early research and development. ArchiaEmu is not a complete console emulator.
 
-## Current project
+## Current foundation
 
-The repository currently contains the foundations of an x86-64 guest execution environment:
+The repository currently contains a tested x86-64 guest execution foundation:
 
 - x86-64 CPU state and instruction execution
 - General-purpose register file
@@ -22,33 +22,42 @@ The repository currently contains the foundations of an x86-64 guest execution e
 - ELF64 validation and PT_LOAD loading
 - Guest memory mapping
 - Basic Linux-style syscall handling for `write` and `exit`
-- A dedicated CPU regression/function test program
+- Dedicated CPU regression/function tests
+- A first `Machine` runtime boundary owning CPU and guest memory
 
-The CPU implementation and tests are being developed incrementally with an emphasis on architectural correctness and regression coverage.
+The CPU implementation and tests are developed incrementally with an emphasis on architectural correctness and regression coverage.
 
-## Architecture
+## Architecture direction
 
-The current source tree is organized around several responsibilities:
+The project is being evolved toward a layered, reusable design:
 
 ```text
-ArchiaEmu/
-├── src/
-│   ├── core/       Emulator orchestration
-│   ├── cpu/        x86-64 CPU and register state
-│   ├── loader/     ELF64 loading
-│   ├── memory/     Guest memory management
-│   └── main.cpp    Program entry point
-├── tools/
-│   ├── CpuAllFunctionsTest.cpp
-│   └── build_cpu_test.bat
-└── CMakeLists.txt
+ArchiaEmu
+├── Core
+│   ├── Emulator
+│   └── Machine
+├── CPU
+│   └── x86-64 (current implementation)
+├── Memory
+├── Loaders
+│   └── ELF64 (current implementation)
+├── Bus / Devices (future)
+├── Operating-system interfaces (future)
+└── Platforms / Machines (future)
+    ├── PC
+    ├── PlayStation
+    ├── Xbox
+    ├── Nintendo
+    └── other systems
 ```
 
-The separation is intentional: CPU execution, guest memory, executable loading and emulator orchestration should remain independently testable as the project grows.
+The important separation is between **CPU architecture** and **machine/platform**. For example, two machines may use related CPU technology while having completely different memory maps, devices, firmware and operating systems.
+
+The current `Machine` layer owns the concrete guest CPU and memory. This is an incremental architectural boundary; it does not claim that other CPU architectures or consoles are already implemented.
 
 ## Build
 
-ArchiaEmu currently uses **CMake 3.20+** and **C++20**.
+ArchiaEmu uses **CMake 3.20+** and **C++20**.
 
 From the repository root on Windows:
 
@@ -64,11 +73,11 @@ cmake -S ArchiaEmu -B ArchiaEmu/build
 cmake --build ArchiaEmu/build --config Debug
 ```
 
-## CPU tests
+## Tests
 
-The project includes a dedicated CPU test executable covering a large set of instruction and regression cases.
+The project currently contains a dedicated CPU regression/function test executable plus a machine architecture test.
 
-The current test source contains **56 test functions and 172 `CHECK(...)` assertions**.
+The CPU test source currently contains **56 test functions and 172 `CHECK(...)` assertions**.
 
 Coverage includes:
 
@@ -88,13 +97,11 @@ Coverage includes:
 - `DIV`
 - `IDIV`
 - syscall dispatch
-- regression tests for instruction-byte consumption order
+- instruction-byte consumption order regressions
 
-After building, run the generated `CpuAllFunctionsTest` executable and verify its final PASS/FAIL/TOTAL result.
+CMake/CTest is the source of truth for the runnable test suite.
 
-The test program is intentionally kept explicit and close to the instruction semantics so that CPU regressions can be reproduced and diagnosed.
-
-## Running the emulator
+## Running the current emulator
 
 The current executable accepts an ELF64 file:
 
@@ -104,37 +111,38 @@ The current executable accepts an ELF64 file:
 
 At the current stage, the loader accepts ELF64 x86-64 executables and maps their loadable segments into guest memory.
 
-This does **not** mean that arbitrary PS5 executables are currently supported.
+This does **not** mean that arbitrary console executables or arbitrary x86-64 software are currently supported.
 
-## Development philosophy
+## Development strategy
 
-ArchiaEmu is being developed incrementally:
+ArchiaEmu is being developed in layers:
 
 1. Establish a correct and testable CPU foundation.
-2. Implement guest memory and executable loading correctly.
-3. Add instruction coverage with regression tests.
-4. Build the system and execution layers around the verified CPU core.
-5. Progressively investigate PS5-specific operating-system, hardware and runtime requirements.
-6. Keep the architecture reusable enough to support other console targets where their hardware and software models make that practical.
+2. Keep guest memory and executable loading independently testable.
+3. Introduce reusable machine/core boundaries without changing verified CPU behavior.
+4. Add a bus and device model when the first machine targets require them.
+5. Add additional CPU architectures only when the common interfaces are stable enough to support them cleanly.
+6. Build real platform models from documented hardware/software behavior.
+7. Add optimization such as JIT/recompilation only after correctness and regression coverage are strong.
 
 **Correctness and reproducible tests take priority over performance and premature abstraction.**
 
 ## Roadmap
 
-The roadmap is intentionally progressive. Planned areas include:
+Planned areas include:
 
-- broader x86-64 instruction coverage
-- more complete ELF64 loading and memory semantics
-- virtual-memory and protection semantics
+- broader x86-64 instruction coverage and architectural audits
+- more complete memory and virtual-memory semantics
+- bus and device abstractions
 - syscall and operating-system interfaces
-- threading and synchronization primitives
-- JIT/recompiler work
-- GPU command processing
-- graphics API translation
-- input, audio and filesystem services
+- threading and synchronization
+- additional CPU architectures such as AArch64, MIPS and PowerPC
+- loaders for additional executable/ROM formats
+- GPU, audio, input and storage devices
 - debugging and compatibility tooling
-- PS5-specific platform work
-- investigation of reusable platform abstractions for additional consoles
+- concrete PC and console platform models
+- PS5-specific research as one platform target among others
+- JIT/recompiler work after the interpreter foundation is sufficiently verified
 
 None of these future items should be interpreted as existing compatibility.
 
@@ -142,6 +150,6 @@ None of these future items should be interpreted as existing compatibility.
 
 ArchiaEmu is an educational/research project under active development.
 
-The repository should always be treated as the source of truth for what is actually implemented and tested.
+The repository is the source of truth for what is actually implemented and tested.
 
 Features are considered complete only after they have been implemented and positively verified by tests.
