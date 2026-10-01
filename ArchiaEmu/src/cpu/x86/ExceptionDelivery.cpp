@@ -85,7 +85,12 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
         result.target_ss = current_ss;
     }
     constexpr std::uint64_t kRflagsInterruptEnable = 1ULL << 9;
-    result.target_rflags = current_rflags;
+    constexpr std::uint64_t kRflagsTrap = 1ULL << 8;
+    constexpr std::uint64_t kRflagsNestedTask = 1ULL << 14;
+    constexpr std::uint64_t kRflagsResume = 1ULL << 16;
+    constexpr std::uint64_t kRflagsVirtual8086 = 1ULL << 17;
+    result.target_rflags = current_rflags &
+        ~(kRflagsTrap | kRflagsNestedTask | kRflagsResume | kRflagsVirtual8086);
     if (dispatch.gate.type == IdtGateType::Interrupt) {
         result.target_rflags &= ~kRflagsInterruptEnable;
     }
