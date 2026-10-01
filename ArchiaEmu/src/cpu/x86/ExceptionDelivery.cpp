@@ -61,6 +61,17 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
     }
 
     result.stack = stack;
+    result.stack_frame.rip = exception.instruction_pointer;
+    result.stack_frame.cs = current_cs;
+    result.stack_frame.rflags = current_rflags;
+    result.stack_frame.has_error_code =
+        ExceptionFrame64::HasHardwareErrorCode(exception.vector);
+    result.stack_frame.error_code = error_code;
+    result.stack_frame.privilege_stack_switch =
+        target.segment.dpl < current_cpl;
+    if (result.stack_frame.privilege_stack_switch) {
+        result.stack_frame.rsp = stack.stack_pointer;
+    }
     result.frame = ExceptionFrame64::Build(
         exception, current_cs, current_rflags, error_code);
     result.target_rip = dispatch.gate.offset;
