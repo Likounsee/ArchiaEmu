@@ -63,26 +63,26 @@ int main()
     }
 
     TestDevice device;
-    auto* bus = dynamic_cast<Bus*>(&machine.GuestMemory());
-    if (bus == nullptr) {
+    Bus& bus = machine.SystemBus();
+    if (false) {
         std::cerr << "Machine is not backed by a Bus\n";
         return 1;
     }
 
-    if (!bus->MapDevice(0x10000000, 0x100, &device)) {
+    if (!bus.MapDevice(0x10000000, 0x100, &device)) {
         std::cerr << "Device mapping failed\n";
         return 1;
     }
 
     std::uint8_t deviceRead = 0;
-    if (!bus->Read(0x10000000, &deviceRead, 1) ||
+    if (!bus.Read(0x10000000, &deviceRead, 1) ||
         deviceRead != 0xA5) {
         std::cerr << "Device read routing failed\n";
         return 1;
     }
 
     const std::uint8_t deviceWrite = 0x5A;
-    if (!bus->Write(0x10000000, &deviceWrite, 1)) {
+    if (!bus.Write(0x10000000, &deviceWrite, 1)) {
         std::cerr << "Device write routing failed\n";
         return 1;
     }
@@ -93,12 +93,12 @@ int main()
         return 1;
     }
 
-    if (bus->MapDevice(0x10000000, 0x10, &device)) {
+    if (bus.MapDevice(0x10000000, 0x10, &device)) {
         std::cerr << "Overlapping device mapping was accepted\n";
         return 1;
     }
 
-    if (bus->MapDevice(0x400000, 0x10, &device)) {
+    if (bus.MapDevice(0x400000, 0x10, &device)) {
         std::cerr << "Device/RAM overlap was accepted\n";
         return 1;
     }
