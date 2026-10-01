@@ -1,4 +1,5 @@
 #include "cpu/x86/Idt.hpp"
+#include "cpu/x86/ExceptionDispatcher.hpp"
 
 #include <cstdint>
 #include <iostream>
@@ -101,6 +102,45 @@ int main()
     if (invalid.IsValid() || idt.SetGate(15, invalid)) {
         return Fail("Invalid IDT gate type was accepted") ? 0 : 1;
     }
+
+    IdtGate64 divideGate = gate;
+    divideGate.offset = 0x0000000012345678ULL;
+    divideGate.type = IdtGateType::Interrupt;
+    divideGate.dpl = 0;
+    if (!idt.SetGate(
+            static_cast<std::uint8_t>(CpuExceptionVector::DivideError),
+            divideGate)) {
+        return Fail("Failed to install #DE gate") ? 0 : 1;
+    }
+
+    ExceptionDispatcher dispatcher(idt);
+
+    CpuException divideException{};
+    divideException.kind = CpuExceptionKind::DivideError;
+    divideException.vector = CpuExceptionVector::DivideError;
+
+    const auto resolved = dispatcher.Resolve(divideException);
+    if (resolved.status != IdtDispatchStatus::Delivered ||
+        resolved.vector != 0 ||
+        resolved.gate.offset != divideGate.offset) {
+        return Fail("#DE was not resolved through the IDT") ? 0 : 1;
+    }
+
+    CpuException noVector{};
+    noVector.kind = CpuExceptionKind::None;
+    noVector.vector = CpuExceptionVector::None;
+    if (dispatcher.Resolve(noVector).status != IdtDispatchStatus::NoVector) {
+        return Fail("No-vector exception was incorrectly dispatched") ? 0 : 1;
+    }
+
+    CpuException missing{};
+    missing.kind = CpuExceptionKind::InvalidOpcode;
+    missing.vector = CpuExceptionVector::InvalidOpcode;
+    if (dispatcher.Resolve(missing).status != IdtDispatchStatus::NotPresent) {
+        return Fail("Missing #UD gate was not detected") ? 0 : 1;
+    }
+
+    idt.ClearGate(0);
 
     idt.ClearGate(14);
     if (idt.IsPresent(14) ||
