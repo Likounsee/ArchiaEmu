@@ -17,7 +17,9 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
     std::uint16_t current_cs,
     std::uint64_t current_rflags,
     std::uint8_t current_cpl,
-    std::uint64_t error_code) const noexcept
+    std::uint64_t error_code,
+    std::uint64_t current_rsp,
+    std::uint64_t current_ss) const noexcept
 {
     ExceptionDeliveryResult result{};
 
@@ -70,7 +72,8 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
     result.stack_frame.privilege_stack_switch =
         target.segment.dpl < current_cpl;
     if (result.stack_frame.privilege_stack_switch) {
-        result.stack_frame.rsp = stack.stack_pointer;
+        result.stack_frame.rsp = current_rsp;
+        result.stack_frame.ss = current_ss;
     }
     result.frame = ExceptionFrame64::Build(
         exception, current_cs, current_rflags, error_code);
