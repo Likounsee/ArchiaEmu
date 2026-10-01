@@ -100,7 +100,9 @@ ExceptionReturnResult ExceptionReturn64::Read(
         return result;
     }
 
-    if ((result.rflags & 0x2U) == 0) {
+    if ((result.rflags & 0x2U) == 0 ||
+        (result.rflags & ((1ULL << 3) | (1ULL << 5) |
+                          (1ULL << 15) | (1ULL << 22))) != 0) {
         result.status = ExceptionReturnStatus::InvalidRflags;
         return result;
     }
