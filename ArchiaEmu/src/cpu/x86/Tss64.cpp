@@ -80,6 +80,8 @@ ExceptionStackSelection ExceptionStackResolver::ResolveIst(
 
 } // namespace myps5emu::x86
 
+} // namespace myps5emu::x86
+
 
 ExceptionStackSelection ExceptionStackResolver::Resolve(
     std::uint8_t ist,
