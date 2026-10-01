@@ -97,6 +97,8 @@ Memory* memory_ = nullptr;
     bool Fetch8(std::uint8_t& value);
     bool RaiseException(const CpuException& exception);
     bool RaiseMemoryFault();
+    bool ReadMemory(std::uint64_t address, std::uint8_t* data, std::size_t size);
+    bool WriteMemory(std::uint64_t address, const std::uint8_t* data, std::size_t size);
     bool Fetch32(std::uint32_t& value);
     bool Fetch64(std::uint64_t& value);
     bool FetchRel8(std::int8_t& value);
