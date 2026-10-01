@@ -137,7 +137,10 @@ int main()
         return Fail("Device mapping failed") ? 0 : 1;
     }
 
-    if (!bus.Write(0x10000004, deviceWrite, sizeof(deviceWrite)) ||
+    if (!bus.IsMapped(0x10000000, 1) ||
+        !bus.HasPermissionAt(0x10000000, 1, MemoryPermission::Read) ||
+        bus.HasPermissionAt(0x10000000, 1, MemoryPermission::Execute) ||
+        !bus.Write(0x10000004, deviceWrite, sizeof(deviceWrite)) ||
         !bus.Read(0x10000004, deviceRead, sizeof(deviceRead)) ||
         deviceRead[0] != 0x10 || deviceRead[3] != 0x40) {
         return Fail("Bus device offset routing failed") ? 0 : 1;
