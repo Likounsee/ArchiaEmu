@@ -251,6 +251,30 @@ bool Cpu::RaiseMemoryFault()
     return RaiseException(exception);
 }
 
+
+bool Cpu::ReadMemory(std::uint64_t address, std::uint8_t* data, std::size_t size)
+{
+    if (memory_ == nullptr) {
+        return false;
+    }
+    if (!memory_->Read(address, data, size)) {
+        RaiseMemoryFault();
+        return false;
+    }
+    return true;
+}
+
+bool Cpu::WriteMemory(std::uint64_t address, const std::uint8_t* data, std::size_t size)
+{
+    if (memory_ == nullptr) {
+        return false;
+    }
+    if (!memory_->Write(address, data, size)) {
+        RaiseMemoryFault();
+        return false;
+    }
+    return true;
+}
 void Cpu::Halt() noexcept
 {
     halted_ = true;
@@ -485,7 +509,7 @@ bool Cpu::Push64(std::uint64_t value)
 
     const std::uint64_t newRsp = rsp - size;
 
-    if (!memory_->Write(
+    if (!WriteMemory(
             newRsp,
             reinterpret_cast<const std::uint8_t*>(&value),
             sizeof(value))) {
@@ -500,7 +524,7 @@ bool Cpu::Pop64(std::uint64_t& value)
 {
     const std::uint64_t rsp = Rsp();
 
-    if (!memory_->Read(
+    if (!ReadMemory(
             rsp,
             reinterpret_cast<std::uint8_t*>(&value),
             sizeof(value))) {
@@ -989,7 +1013,7 @@ bool Cpu::DecodeAdd32(
     std::uint32_t rhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&rhs),
                 sizeof(rhs))) {
@@ -1040,7 +1064,7 @@ bool Cpu::DecodeSub32(
     std::uint32_t rhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&rhs),
                 sizeof(rhs))) {
@@ -1089,7 +1113,7 @@ bool Cpu::DecodeCmp32(
     std::uint32_t lhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&lhs),
                 sizeof(lhs))) {
@@ -1156,7 +1180,7 @@ bool Cpu::DecodeLogic32(
 
     if (memory) {
         if (rmDestination) {
-            if (!memory_->Read(
+            if (!ReadMemory(
                     address,
                     reinterpret_cast<std::uint8_t*>(&lhs),
                     sizeof(lhs))) {
@@ -1168,7 +1192,7 @@ bool Cpu::DecodeLogic32(
         else {
             lhs = registers_.Read32(reg);
 
-            if (!memory_->Read(
+            if (!ReadMemory(
                     address,
                     reinterpret_cast<std::uint8_t*>(&rhs),
                     sizeof(rhs))) {
@@ -1211,7 +1235,7 @@ bool Cpu::DecodeLogic32(
 
     if (rmDestination) {
         if (memory) {
-            if (!memory_->Write(
+            if (!WriteMemory(
                     address,
                     reinterpret_cast<const std::uint8_t*>(&result),
                     sizeof(result))) {
@@ -1255,7 +1279,7 @@ bool Cpu::DecodeTest32(
     std::uint32_t rhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&rhs),
                 sizeof(rhs))) {
@@ -1292,7 +1316,7 @@ bool Cpu::DecodeMov32Load(
     std::uint32_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&value),
                 sizeof(value))) {
@@ -1329,7 +1353,7 @@ bool Cpu::DecodeMov32Store(
         registers_.Read32(reg);
 
     if (memory) {
-        return memory_->Write(
+        return WriteMemory(
             address,
             reinterpret_cast<const std::uint8_t*>(&value),
             sizeof(value));
@@ -1364,7 +1388,7 @@ bool Cpu::DecodeAdd32Store(
     std::uint32_t lhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&lhs),
                 sizeof(lhs))) {
@@ -1373,7 +1397,7 @@ bool Cpu::DecodeAdd32Store(
 
         const std::uint32_t result = lhs + rhs;
 
-        if (!memory_->Write(
+        if (!WriteMemory(
                 address,
                 reinterpret_cast<const std::uint8_t*>(&result),
                 sizeof(result))) {
@@ -1419,7 +1443,7 @@ bool Cpu::DecodeSub32Store(
     std::uint32_t lhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&lhs),
                 sizeof(lhs))) {
@@ -1428,7 +1452,7 @@ bool Cpu::DecodeSub32Store(
 
         const std::uint32_t result = lhs - rhs;
 
-        if (!memory_->Write(
+        if (!WriteMemory(
                 address,
                 reinterpret_cast<const std::uint8_t*>(&result),
                 sizeof(result))) {
@@ -1472,7 +1496,7 @@ bool Cpu::DecodeMov64Load(
     std::uint64_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&value),
                 sizeof(value))) {
@@ -1510,7 +1534,7 @@ bool Cpu::DecodeMov64Store(
         registers_.Read64(reg);
 
     if (memory) {
-        return memory_->Write(
+        return WriteMemory(
             address,
             reinterpret_cast<const std::uint8_t*>(&value),
             sizeof(value));
@@ -1549,7 +1573,7 @@ bool Cpu::DecodeAdd64(
     std::uint64_t rhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&rhs),
                 sizeof(rhs))) {
@@ -1598,7 +1622,7 @@ bool Cpu::DecodeSub64(
     std::uint64_t rhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&rhs),
                 sizeof(rhs))) {
@@ -1650,7 +1674,7 @@ bool Cpu::DecodeCmp64(
     std::uint64_t rhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&rhs),
                 sizeof(rhs))) {
@@ -1744,7 +1768,7 @@ bool Cpu::DecodeLogic64(
 
         if (memory) {
 
-            if (!memory_->Read(
+            if (!ReadMemory(
                     address,
                     reinterpret_cast<
                         std::uint8_t*>(&lhs),
@@ -1782,7 +1806,7 @@ bool Cpu::DecodeLogic64(
 
         if (memory) {
 
-            if (!memory_->Write(
+            if (!WriteMemory(
                     address,
                     reinterpret_cast<
                         const std::uint8_t*>(&result),
@@ -1812,7 +1836,7 @@ bool Cpu::DecodeLogic64(
 
     if (memory) {
 
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<
                     std::uint8_t*>(&rhs),
@@ -1888,7 +1912,7 @@ bool Cpu::DecodeTest64(
     std::uint64_t rhs = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&rhs),
                 sizeof(rhs))) {
@@ -2006,7 +2030,7 @@ bool Cpu::DecodeShiftLeft64Imm(
     std::uint64_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&value),
                 sizeof(value))) {
@@ -2047,7 +2071,7 @@ bool Cpu::DecodeShiftLeft64Imm(
     }
 
     if (memory) {
-        if (!memory_->Write(
+        if (!WriteMemory(
                 address,
                 reinterpret_cast<const std::uint8_t*>(&result),
                 sizeof(result))) {
@@ -2141,7 +2165,7 @@ bool Cpu::DecodeShiftLeft32Imm(
     std::uint32_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&value),
                 sizeof(value))) {
@@ -2159,7 +2183,7 @@ bool Cpu::DecodeShiftLeft32Imm(
         value << shift;
 
     if (memory) {
-        if (!memory_->Write(
+        if (!WriteMemory(
                 address,
                 reinterpret_cast<const std::uint8_t*>(&result),
                 sizeof(result))) {
@@ -2239,7 +2263,7 @@ bool Cpu::DecodeShiftRight32Imm(
     std::uint32_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&value),
                 sizeof(value))) {
@@ -2257,7 +2281,7 @@ bool Cpu::DecodeShiftRight32Imm(
         value >> shift;
 
     if (memory) {
-        if (!memory_->Write(
+        if (!WriteMemory(
                 address,
                 reinterpret_cast<const std::uint8_t*>(&result),
                 sizeof(result))) {
@@ -2336,7 +2360,7 @@ bool Cpu::DecodeShiftArithmetic32Imm(
     std::uint32_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&value),
                 sizeof(value))) {
@@ -2358,7 +2382,7 @@ bool Cpu::DecodeShiftArithmetic32Imm(
             signedValue >> shift);
 
     if (memory) {
-        if (!memory_->Write(
+        if (!WriteMemory(
                 address,
                 reinterpret_cast<const std::uint8_t*>(&result),
                 sizeof(result))) {
@@ -2431,7 +2455,7 @@ bool Cpu::DecodeRotate64Imm(
     std::uint64_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&value),
                 sizeof(value))) {
@@ -2463,7 +2487,7 @@ bool Cpu::DecodeRotate64Imm(
     }
 
     if (memory) {
-        if (!memory_->Write(
+        if (!WriteMemory(
                 address,
                 reinterpret_cast<const std::uint8_t*>(&result),
                 sizeof(result))) {
@@ -2556,7 +2580,7 @@ bool Cpu::DecodeRotate32Imm(
     std::uint32_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&value),
                 sizeof(value))) {
@@ -2588,7 +2612,7 @@ bool Cpu::DecodeRotate32Imm(
     }
 
     if (memory) {
-        if (!memory_->Write(
+        if (!WriteMemory(
                 address,
                 reinterpret_cast<const std::uint8_t*>(&result),
                 sizeof(result))) {
@@ -2661,14 +2685,14 @@ bool Cpu::DecodeXchg(
         std::uint64_t otherValue = 0;
 
         if (memory) {
-            if (!memory_->Read(
+            if (!ReadMemory(
                     address,
                     reinterpret_cast<std::uint8_t*>(&otherValue),
                     sizeof(otherValue))) {
                 return false;
             }
 
-            if (!memory_->Write(
+            if (!WriteMemory(
                     address,
                     reinterpret_cast<const std::uint8_t*>(&regValue),
                     sizeof(regValue))) {
@@ -2690,14 +2714,14 @@ bool Cpu::DecodeXchg(
         std::uint32_t otherValue = 0;
 
         if (memory) {
-            if (!memory_->Read(
+            if (!ReadMemory(
                     address,
                     reinterpret_cast<std::uint8_t*>(&otherValue),
                     sizeof(otherValue))) {
                 return false;
             }
 
-            if (!memory_->Write(
+            if (!WriteMemory(
                     address,
                     reinterpret_cast<const std::uint8_t*>(&regValue),
                     sizeof(regValue))) {
@@ -2860,14 +2884,14 @@ bool Cpu::DecodeXchg8(
 
     if (memory) {
 
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 &otherValue,
                 sizeof(otherValue))) {
             return false;
         }
 
-        if (!memory_->Write(
+        if (!WriteMemory(
                 address,
                 &regValue,
                 sizeof(regValue))) {
@@ -2926,7 +2950,7 @@ bool Cpu::DecodeTest8(
     std::uint8_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 &value,
                 sizeof(value))) {
@@ -3524,7 +3548,7 @@ int Cpu::Run()
                 std::uint64_t rhs_bits = 0;
 
                 if (memory) {
-                    if (!memory_->Read(
+                    if (!ReadMemory(
                             address,
                             reinterpret_cast<std::uint8_t*>(&rhs_bits),
                             sizeof(rhs_bits))) {
@@ -3590,7 +3614,7 @@ int Cpu::Run()
                 std::uint32_t rhs_bits = 0;
 
                 if (memory) {
-                    if (!memory_->Read(
+                    if (!ReadMemory(
                             address,
                             reinterpret_cast<std::uint8_t*>(&rhs_bits),
                             sizeof(rhs_bits))) {
@@ -3947,7 +3971,7 @@ int Cpu::Run()
                     std::uint64_t value = 0;
 
                     if (memory) {
-                        if (!memory_->Read(
+                        if (!ReadMemory(
                                 address,
                                 reinterpret_cast<std::uint8_t*>(&value),
                                 sizeof(value))) {
@@ -3970,7 +3994,7 @@ int Cpu::Run()
                     std::uint32_t value = 0;
 
                     if (memory) {
-                        if (!memory_->Read(
+                        if (!ReadMemory(
                                 address,
                                 reinterpret_cast<std::uint8_t*>(&value),
                                 sizeof(value))) {
@@ -4002,7 +4026,7 @@ int Cpu::Run()
                     std::uint64_t value = 0;
 
                     if (memory) {
-                        if (!memory_->Read(
+                        if (!ReadMemory(
                                 address,
                                 reinterpret_cast<std::uint8_t*>(&value),
                                 sizeof(value))) {
@@ -4015,7 +4039,7 @@ int Cpu::Run()
                     const std::uint64_t result = ~value;
 
                     if (memory) {
-                        if (!memory_->Write(
+                        if (!WriteMemory(
                                 address,
                                 reinterpret_cast<const std::uint8_t*>(&result),
                                 sizeof(result))) {
@@ -4030,7 +4054,7 @@ int Cpu::Run()
                     std::uint32_t value = 0;
 
                     if (memory) {
-                        if (!memory_->Read(
+                        if (!ReadMemory(
                                 address,
                                 reinterpret_cast<std::uint8_t*>(&value),
                                 sizeof(value))) {
@@ -4043,7 +4067,7 @@ int Cpu::Run()
                     const std::uint32_t result = ~value;
 
                     if (memory) {
-                        if (!memory_->Write(
+                        if (!WriteMemory(
                                 address,
                                 reinterpret_cast<const std::uint8_t*>(&result),
                                 sizeof(result))) {
@@ -4064,7 +4088,7 @@ int Cpu::Run()
                     std::uint64_t value = 0;
 
                     if (memory) {
-                        if (!memory_->Read(
+                        if (!ReadMemory(
                                 address,
                                 reinterpret_cast<std::uint8_t*>(&value),
                                 sizeof(value))) {
@@ -4078,7 +4102,7 @@ int Cpu::Run()
                         0ULL - value;
 
                     if (memory) {
-                        if (!memory_->Write(
+                        if (!WriteMemory(
                                 address,
                                 reinterpret_cast<const std::uint8_t*>(&result),
                                 sizeof(result))) {
@@ -4112,7 +4136,7 @@ int Cpu::Run()
                     std::uint32_t value = 0;
 
                     if (memory) {
-                        if (!memory_->Read(
+                        if (!ReadMemory(
                                 address,
                                 reinterpret_cast<std::uint8_t*>(&value),
                                 sizeof(value))) {
@@ -4126,7 +4150,7 @@ int Cpu::Run()
                         0U - value;
 
                     if (memory) {
-                        if (!memory_->Write(
+                        if (!WriteMemory(
                                 address,
                                 reinterpret_cast<const std::uint8_t*>(&result),
                                 sizeof(result))) {
@@ -4175,7 +4199,7 @@ int Cpu::Run()
                 std::uint64_t rhs = 0;
 
                 if (memory) {
-                    if (!memory_->Read(
+                    if (!ReadMemory(
                             address,
                             reinterpret_cast<std::uint8_t*>(&rhs),
                             sizeof(rhs))) {
@@ -4264,7 +4288,7 @@ int Cpu::Run()
                     std::uint32_t rhs32 = 0;
 
                     if (memory) {
-                        if (!memory_->Read(
+                        if (!ReadMemory(
                                 address,
                                 reinterpret_cast<std::uint8_t*>(&rhs32),
                                 sizeof(rhs32))) {
@@ -4341,7 +4365,7 @@ int Cpu::Run()
                     std::uint64_t divisor_bits = 0;
 
                     if (memory) {
-                        if (!memory_->Read(
+                        if (!ReadMemory(
                                 address,
                                 reinterpret_cast<std::uint8_t*>(&divisor_bits),
                                 sizeof(divisor_bits))) {
@@ -4540,7 +4564,7 @@ int Cpu::Run()
                     std::uint32_t divisor_bits = 0;
 
                     if (memory) {
-                        if (!memory_->Read(
+                        if (!ReadMemory(
                                 address,
                                 reinterpret_cast<std::uint8_t*>(&divisor_bits),
                                 sizeof(divisor_bits))) {
@@ -5142,7 +5166,7 @@ case 0xD0:
                             static_cast<std::int32_t>(immediate)));
 
                 if (memory) {
-                    if (!memory_->Write(
+                    if (!WriteMemory(
                             address,
                             reinterpret_cast<const std::uint8_t*>(&value),
                             sizeof(value))) {
@@ -5154,7 +5178,7 @@ case 0xD0:
                 }
             }
             else if (memory) {
-                if (!memory_->Write(
+                if (!WriteMemory(
                         address,
                         reinterpret_cast<const std::uint8_t*>(&immediate),
                         sizeof(immediate))) {
@@ -5212,7 +5236,7 @@ case 0xD0:
                     : registers_.Read32(rm);
 
                 if (memory) {
-                    if (!memory_->Read(
+                    if (!ReadMemory(
                             address,
                             reinterpret_cast<std::uint8_t*>(&lhs32),
                             sizeof(lhs32))) {
@@ -5291,7 +5315,7 @@ case 0xD0:
 
                 if (group != 7) {
                     if (memory) {
-                        if (!memory_->Write(
+                        if (!WriteMemory(
                                 address,
                                 reinterpret_cast<const std::uint8_t*>(&result32),
                                 sizeof(result32))) {
@@ -5367,7 +5391,7 @@ case 0xD0:
 
             if (memory) {
 
-                if (!memory_->Read(
+                if (!ReadMemory(
                         address,
                         reinterpret_cast<
                             std::uint8_t*>(&lhs),
@@ -5401,7 +5425,7 @@ case 0xD0:
 
                 if (memory) {
 
-                    if (!memory_->Write(
+                    if (!WriteMemory(
                             address,
                             reinterpret_cast<
                                 const std::uint8_t*>(&result),
@@ -5439,7 +5463,7 @@ case 0xD0:
 
                 if (memory) {
 
-                    if (!memory_->Write(
+                    if (!WriteMemory(
                             address,
                             reinterpret_cast<
                                 const std::uint8_t*>(&result),
@@ -5474,7 +5498,7 @@ case 0xD0:
 
                 if (memory) {
 
-                    if (!memory_->Write(
+                    if (!WriteMemory(
                             address,
                             reinterpret_cast<
                                 const std::uint8_t*>(&result),
@@ -5509,7 +5533,7 @@ case 0xD0:
 
                 if (memory) {
 
-                    if (!memory_->Write(
+                    if (!WriteMemory(
                             address,
                             reinterpret_cast<
                                 const std::uint8_t*>(&result),
@@ -5547,7 +5571,7 @@ case 0xD0:
 
                 if (memory) {
 
-                    if (!memory_->Write(
+                    if (!WriteMemory(
                             address,
                             reinterpret_cast<
                                 const std::uint8_t*>(&result),
@@ -6045,7 +6069,7 @@ case 0xD0:
 
                     std::uint64_t lhs = 0;
 
-                    if (!memory_->Read(
+                    if (!ReadMemory(
                             address,
                             reinterpret_cast<std::uint8_t*>(&lhs),
                             sizeof(lhs))) {
@@ -6055,7 +6079,7 @@ case 0xD0:
                     const std::uint64_t result =
                         lhs + rhs;
 
-                    if (!memory_->Write(
+                    if (!WriteMemory(
                             address,
                             reinterpret_cast<const std::uint8_t*>(&result),
                             sizeof(result))) {
@@ -6156,7 +6180,7 @@ case 0xD0:
 
                     std::uint64_t lhs = 0;
 
-                    if (!memory_->Read(
+                    if (!ReadMemory(
                             address,
                             reinterpret_cast<std::uint8_t*>(&lhs),
                             sizeof(lhs))) {
@@ -6166,7 +6190,7 @@ case 0xD0:
                     const std::uint64_t result =
                         lhs - rhs;
 
-                    if (!memory_->Write(
+                    if (!WriteMemory(
                             address,
                             reinterpret_cast<const std::uint8_t*>(&result),
                             sizeof(result))) {
@@ -6273,7 +6297,7 @@ case 0xD0:
 
                 if (memory) {
 
-                    if (!memory_->Read(
+                    if (!ReadMemory(
                             address,
                             reinterpret_cast<std::uint8_t*>(&lhs),
                             sizeof(lhs))) {
@@ -6802,7 +6826,7 @@ bool Cpu::DecodeMovzx32Reg32(std::uint8_t modrm, const RexPrefix& rex)
     if (memory) {
         
         std::uint8_t value = 0;
-        if (!memory_->Read(address, &value, sizeof(value))) {
+        if (!ReadMemory(address, &value, sizeof(value))) {
             return false;
         }
         
@@ -6832,7 +6856,7 @@ bool Cpu::DecodeMovzx64Reg32(std::uint8_t modrm, const RexPrefix& rex)
 
     if (memory) {
         std::uint32_t value = 0;
-        if (!memory_->Read(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
             return false;
         }
         
@@ -6863,7 +6887,7 @@ bool Cpu::DecodeMovsx32Reg8(std::uint8_t modrm, const RexPrefix& rex)
     if (memory) {
         std::uint8_t raw = 0;
 
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 &raw,
                 sizeof(raw))) {
@@ -6907,7 +6931,7 @@ bool Cpu::DecodeMovzx32Reg16(std::uint8_t modrm, const RexPrefix& rex)
     std::uint16_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&value),
                 sizeof(value))) {
@@ -6948,7 +6972,7 @@ bool Cpu::DecodeMovsx32Reg16(std::uint8_t modrm, const RexPrefix& rex)
     if (memory) {
         std::uint16_t raw = 0;
 
-        if (!memory_->Read(
+        if (!ReadMemory(
                 address,
                 reinterpret_cast<std::uint8_t*>(&raw),
                 sizeof(raw))) {
@@ -6991,7 +7015,7 @@ bool Cpu::DecodeMovsx64Reg16(std::uint8_t modrm, const RexPrefix& rex)
 
     if (memory) {
         std::uint16_t value = 0;
-        if (!memory_->Read(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
             return false;
         }
         
@@ -7043,7 +7067,7 @@ bool Cpu::DecodeShift8Memory(
 
     std::uint8_t value = 0;
 
-    if (!memory_->Read(
+    if (!ReadMemory(
             address,
             &value,
             sizeof(value))) {
@@ -7102,7 +7126,7 @@ bool Cpu::DecodeShift8Memory(
                 signedValue >> maskedCount);
     }
 
-    if (!memory_->Write(
+    if (!WriteMemory(
             address,
             &result,
             sizeof(result))) {
@@ -7425,7 +7449,7 @@ bool Cpu::DecodeShiftLeft64CL(std::uint8_t modrm, const RexPrefix& rex)
     std::uint64_t value = 0;
 
     if (memory) {
-        if (!memory_->Read(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
             return false;
         }
     } else {
@@ -7453,7 +7477,7 @@ bool Cpu::DecodeShiftLeft64CL(std::uint8_t modrm, const RexPrefix& rex)
     }
 
     if (memory) {
-        if (!memory_->Write(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) {
+        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) {
             return false;
         }
     } else {
