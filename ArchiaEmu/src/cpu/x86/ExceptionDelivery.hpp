@@ -6,6 +6,7 @@
 #include "ExceptionFrame64.hpp"
 #include "ExceptionTarget.hpp"
 #include "Idt.hpp"
+#include "Tss64.hpp"
 
 namespace myps5emu::x86 {
 
@@ -14,7 +15,9 @@ enum class ExceptionDeliveryStatus : std::uint8_t {
     NoVector,
     NotPresent,
     InvalidGate,
-    InvalidTarget
+    InvalidTarget,
+    StackUnavailable,
+    InvalidStack
 };
 
 struct ExceptionDeliveryResult {
@@ -23,13 +26,15 @@ struct ExceptionDeliveryResult {
     std::uint64_t target_rip = 0;
     std::uint16_t target_cs = 0;
     GdtCodeSegment64 target_segment{};
+    ExceptionStackSelection stack{};
 };
 
 class ExceptionDeliveryResolver {
 public:
     ExceptionDeliveryResolver(
         const Idt& idt,
-        const Gdt64& gdt) noexcept;
+        const Gdt64& gdt,
+        const Tss64& tss) noexcept;
 
     ExceptionDeliveryResult Resolve(
         const CpuException& exception,
@@ -41,6 +46,7 @@ public:
 private:
     const Idt& idt_;
     const Gdt64& gdt_;
+    const Tss64& tss_;
 };
 
 } // namespace myps5emu::x86
