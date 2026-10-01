@@ -109,6 +109,8 @@ constexpr std::uint64_t CF_MASK = 1ULL << 0;
 constexpr std::uint64_t ZF_MASK = 1ULL << 6;
 constexpr std::uint64_t SF_MASK = 1ULL << 7;
 constexpr std::uint64_t OF_MASK = 1ULL << 11;
+constexpr std::uint64_t PF_MASK = 1ULL << 2;
+constexpr std::uint64_t AF_MASK = 1ULL << 4;
 
 } 
 
@@ -3096,8 +3098,8 @@ int Cpu::Run()
         
 
         case 0xCF: {
-            // In 64-bit mode, CF is the IRETQ opcode; REX.W is not required.
-            if (!exception_return_handler_) {
+            // In 64-bit mode, IRETQ requires a 64-bit operand size (REX.W).
+            if (!rex.w || !exception_return_handler_) {
                 return 1;
             }
 
@@ -3402,101 +3404,82 @@ int Cpu::Run()
                 break;
             }
             if (
-                opcode2 == 0x92 ||
-                opcode2 == 0x93 ||
-                opcode2 == 0x94 ||
-                opcode2 == 0x95 ||
-                opcode2 == 0x96 ||
-                opcode2 == 0x97 ||
-                opcode2 == 0x9C ||
-                opcode2 == 0x9D ||
-                opcode2 == 0x9E ||
-                opcode2 == 0x9F
-            ) {
+                opcode2 == 0x90 || opcode2 == 0x91 ||
+                opcode2 == 0x92 || opcode2 == 0x93 ||
+                opcode2 == 0x94 || opcode2 == 0x95 ||
+                opcode2 == 0x96 || opcode2 == 0x97 ||
+                opcode2 == 0x98 || opcode2 == 0x99 ||
+                opcode2 == 0x9A || opcode2 == 0x9B ||
+                opcode2 == 0x9C || opcode2 == 0x9D ||
+                opcode2 == 0x9E || opcode2 == 0x9F) {
                 std::uint8_t modrmSetcc = 0;
-
-                if (!Fetch8(modrmSetcc)) {
-                    return 1;
+                if (!Fetch8(modrmSetcc)) return 1;
+                const std::uint8_t mod = static_cast<std::uint8_t>((modrmSetcc >> 6) & 0x03);
+                if (mod == 0x03) {
+                    const std::uint8_t rawRm = static_cast<std::uint8_t>(modrmSetcc & 0x07);
+                    std::uint8_t rm = static_cast<std::uint8_t>(rawRm | (rex.b ? 8 : 0));
+                    const bool highByte = !rex.present && rawRm >= 4;
+                    if (highByte) rm = static_cast<std::uint8_t>(rawRm - 4);
+                    const bool cf = (rflags_ & CF_MASK) != 0;
+                    const bool zf = ZeroFlag();
+                    const bool sf = SignFlag();
+                    const bool of = (rflags_ & OF_MASK) != 0;
+                    const bool pf = (rflags_ & PF_MASK) != 0;
+                    bool condition = false;
+                    switch (opcode2) {
+                    case 0x90: condition = of; break;
+                    case 0x91: condition = !of; break;
+                    case 0x92: condition = cf; break;
+                    case 0x93: condition = !cf; break;
+                    case 0x94: condition = zf; break;
+                    case 0x95: condition = !zf; break;
+                    case 0x96: condition = cf || zf; break;
+                    case 0x97: condition = !cf && !zf; break;
+                    case 0x98: condition = sf; break;
+                    case 0x99: condition = !sf; break;
+                    case 0x9A: condition = pf; break;
+                    case 0x9B: condition = !pf; break;
+                    case 0x9C: condition = sf != of; break;
+                    case 0x9D: condition = sf == of; break;
+                    case 0x9E: condition = zf || (sf != of); break;
+                    case 0x9F: condition = !zf && (sf == of); break;
+                    }
+                    const std::uint8_t value = condition ? 1U : 0U;
+                    if (highByte) {
+                        std::uint64_t oldValue = registers_.Read64(rm);
+                        oldValue = (oldValue & ~(0xFFULL << 8)) |
+                                   (static_cast<std::uint64_t>(value) << 8);
+                        registers_.Write64(rm, oldValue);
+                    } else {
+                        std::uint64_t oldValue = registers_.Read64(rm);
+                        oldValue = (oldValue & ~0xFFULL) | value;
+                        registers_.Write64(rm, oldValue);
+                    }
+                    break;
                 }
-
-                const std::uint8_t mod =
-                    static_cast<std::uint8_t>(
-                        (modrmSetcc >> 6) & 0x03);
-
-                if (mod != 0x03) {
-                    return 1;
-                }
-
-                const std::uint8_t rm =
-                    static_cast<std::uint8_t>(
-                        (modrmSetcc & 0x07) |
-                        (rex.b ? 8 : 0));
-
-                const bool cf =
-                    (rflags_ & CF_MASK) != 0;
-
-                const bool zf =
-                    ZeroFlag();
-
-                const bool sf =
-                    SignFlag();
-
-                const bool of =
-                    (rflags_ & OF_MASK) != 0;
-
+                std::uint8_t reg = 0;
+                std::uint8_t rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+                if (!DecodeMemoryOrRegister32(modrmSetcc, rex, reg, rm, address, memory) || !memory) return 1;
+                const bool cf = (rflags_ & CF_MASK) != 0;
+                const bool zf = ZeroFlag();
+                const bool sf = SignFlag();
+                const bool of = (rflags_ & OF_MASK) != 0;
+                const bool pf = (rflags_ & PF_MASK) != 0;
                 bool condition = false;
-
                 switch (opcode2) {
-                case 0x92:
-                    condition = cf;
-                    break;
-
-                case 0x93:
-                    condition = !cf;
-                    break;
-
-                case 0x94:
-                    condition = zf;
-                    break;
-
-                case 0x95:
-                    condition = !zf;
-                    break;
-
-                case 0x96:
-                    condition = cf || zf;
-                    break;
-
-                case 0x97:
-                    condition = !cf && !zf;
-                    break;
-
-                case 0x9C:
-                    condition = sf != of;
-                    break;
-
-                case 0x9D:
-                    condition = sf == of;
-                    break;
-
-                case 0x9E:
-                    condition = zf || (sf != of);
-                    break;
-
-                case 0x9F:
-                    condition = !zf && (sf == of);
-                    break;
+                case 0x90: condition = of; break; case 0x91: condition = !of; break;
+                case 0x92: condition = cf; break; case 0x93: condition = !cf; break;
+                case 0x94: condition = zf; break; case 0x95: condition = !zf; break;
+                case 0x96: condition = cf || zf; break; case 0x97: condition = !cf && !zf; break;
+                case 0x98: condition = sf; break; case 0x99: condition = !sf; break;
+                case 0x9A: condition = pf; break; case 0x9B: condition = !pf; break;
+                case 0x9C: condition = sf != of; break; case 0x9D: condition = sf == of; break;
+                case 0x9E: condition = zf || (sf != of); break; case 0x9F: condition = !zf && (sf == of); break;
                 }
-
-                const std::uint64_t oldValue =
-                    registers_.Read64(rm);
-
-                const std::uint64_t newValue =
-                    (oldValue & ~0xFFULL) |
-                    (condition ? 1ULL : 0ULL);
-
-                registers_.Write64(rm, newValue);
-
+                const std::uint8_t value = condition ? 1U : 0U;
+                if (!WriteMemory(address, &value, sizeof(value))) return 1;
                 break;
             }
             if (opcode2 == 0x0B) {
