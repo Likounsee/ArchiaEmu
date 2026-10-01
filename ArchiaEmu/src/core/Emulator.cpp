@@ -15,7 +15,7 @@ bool Emulator::LoadGame(const std::string& path)
         return false;
     }
 
-    auto& memory = machine_.Memory();
+    auto& memory = machine_.GuestMemory();
     auto& cpu = machine_.CPU();
 
     for (const auto& segment : loader_.Segments()) {
@@ -107,7 +107,7 @@ bool Emulator::HandleSyscall(Cpu& cpu)
         static_cast<std::size_t>(byte_count));
 
     if (byte_count != 0 &&
-        !machine_.Memory().Read(
+        !machine_.GuestMemory().Read(
             buffer_address, buffer.data(), buffer.size())) {
         std::cerr << "[Syscall] Write buffer is not mapped.\n";
         return false;
