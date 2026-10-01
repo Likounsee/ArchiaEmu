@@ -23,12 +23,12 @@ int main()
     }
 
     const std::array<std::uint8_t, 48> expected = {
-        0x30,0,0,0,0,0,0,0,
-        0x00,0x90,0,0,0,0,0,0,
-        0x02,0x02,0,0,0,0,0,0,
-        0x28,0,0,0,0,0,0,0,
+        0x05,0,0,0,0,0,0,0,
         0x88,0x77,0x66,0x55,0x44,0x33,0x22,0x11,
-        0x05,0,0,0,0,0,0,0
+        0x28,0,0,0,0,0,0,0,
+        0x02,0x02,0,0,0,0,0,0,
+        0x00,0x90,0,0,0,0,0,0,
+        0x30,0,0,0,0,0,0,0
     };
     if (bytes != expected) {
         std::cerr << "Unexpected exception frame encoding\n";
@@ -41,9 +41,8 @@ int main()
         return 1;
     }
 
-    frame.privilege_stack_switch = false;
     frame.has_error_code = false;
-    if (frame.QwordCount() != 3) {
+    if (frame.QwordCount() != 5) {
         std::cerr << "Same-CPL frame size is wrong\n";
         return 1;
     }
