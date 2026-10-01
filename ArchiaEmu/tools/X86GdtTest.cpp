@@ -85,11 +85,11 @@ int main()
     stack.present = true;
     stack.writable = true;
     stack.dpl = 3;
-    CHECK(gdt.SetDataSegment(7, stack));
+    if (!gdt.SetDataSegment(7, stack)) return 1;
 
     GdtDataSegment64 resolvedStack{};
-    CHECK(gdt.ResolveDataSegment(0x3B, resolvedStack));
-    CHECK(resolvedStack.dpl == 3);
-    CHECK(resolvedStack.writable);
+    if (!gdt.ResolveDataSegment(0x3B, resolvedStack)) return 1;
+    if (resolvedStack.dpl != 3) return 1;
+    if (!resolvedStack.writable) return 1;
     return 0;
 }
