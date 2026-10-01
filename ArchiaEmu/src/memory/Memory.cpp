@@ -140,6 +140,31 @@ bool Memory::Read(std::uint64_t virtual_address,
     return false;
 }
 
+bool Memory::HasOverlappingRegion(std::uint64_t virtual_address,
+                                  std::size_t size) const noexcept
+{
+    if (size == 0) {
+        return false;
+    }
+
+    const auto size64 = static_cast<std::uint64_t>(size);
+    if (size64 > std::numeric_limits<std::uint64_t>::max() - virtual_address) {
+        return true;
+    }
+
+    const std::uint64_t end = virtual_address + size64;
+
+    for (const auto& region : regions_) {
+        const std::uint64_t region_end =
+            region.base + static_cast<std::uint64_t>(region.data.size());
+        if (virtual_address < region_end && end > region.base) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void Memory::Clear()
 {
     regions_.clear();
