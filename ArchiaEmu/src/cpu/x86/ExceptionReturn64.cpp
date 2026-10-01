@@ -112,6 +112,13 @@ ExceptionReturnResult ExceptionReturn64::Read(
     const std::uint8_t target_cpl =
         static_cast<std::uint8_t>(result.cs & 3U);
 
+    // IRET may return to the same CPL or to a less privileged level
+    // (numerically greater CPL), but never to a more privileged level.
+    if (target_cpl < current_cpl) {
+        result.status = ExceptionReturnStatus::InvalidCodeSegment;
+        return result;
+    }
+
     if (!AddOffset(old_rsp, 24, result.rsp)) {
         result.status = ExceptionReturnStatus::InvalidStack;
         return result;
