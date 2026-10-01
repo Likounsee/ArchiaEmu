@@ -170,6 +170,35 @@ void Cpu::SetSyscallHandler(SyscallHandler callback)
     syscall_handler_ = std::move(callback);
 }
 
+void Cpu::SetExceptionHandler(ExceptionHandler callback)
+{
+    exception_handler_ = std::move(callback);
+}
+
+MemoryFault Cpu::LastMemoryFault() const noexcept
+{
+    return last_memory_fault_;
+}
+
+bool Cpu::RaiseMemoryFault()
+{
+    if (memory_ == nullptr) {
+        return false;
+    }
+
+    last_memory_fault_ = memory_->LastFault();
+
+    if (last_memory_fault_ == MemoryFault::None) {
+        return false;
+    }
+
+    if (exception_handler_) {
+        return exception_handler_(*this, last_memory_fault_);
+    }
+
+    return false;
+}
+
 void Cpu::Halt() noexcept
 {
     halted_ = true;
