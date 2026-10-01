@@ -60,7 +60,8 @@ int main()
     Memory memory;
     if (!memory.Map(0x1000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
         !memory.Map(0x2000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
-        !memory.Map(0x7000, 0x1000, MemoryPermission::Read | MemoryPermission::Write)) {
+        !memory.Map(0x7000, 0x1000, MemoryPermission::Read | MemoryPermission::Write) ||
+        !memory.Map(0x3000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute)) {
         return Fail("Failed to map IRETQ test memory") ? 0 : 1;
     }
 
