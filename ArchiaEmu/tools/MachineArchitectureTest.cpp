@@ -30,8 +30,25 @@ int main()
         return Fail("Machine CPU initialization failed") ? 0 : 1;
     }
 
-    if (!bus.Map(0x400000, 0x1000)) {
+    if (!bus.Map(0x400000, 0x1000,
+                  MemoryPermission::Read | MemoryPermission::Write)) {
         return Fail("Machine RAM mapping failed") ? 0 : 1;
+    }
+
+    if (bus.HasPermissionAt(0x400000, 1, MemoryPermission::Execute) ||
+        !bus.HasPermissionAt(0x400000, 1, MemoryPermission::Read) ||
+        !bus.HasPermissionAt(0x400000, 1, MemoryPermission::Write)) {
+        return Fail("RAM permissions were not applied") ? 0 : 1;
+    }
+
+    if (bus.Map(0x410001, 0x1000) ||
+        bus.Map(0x420000, 0x1001)) {
+        return Fail("Memory accepted non-page-aligned mapping") ? 0 : 1;
+    }
+
+    if (!bus.Map(0x430000, 0x1000, MemoryPermission::Read |
+                 MemoryPermission::Execute)) {
+        return Fail("Executable page mapping failed") ? 0 : 1;
     }
 
     const std::uint8_t ramWrite[] = {0x42, 0x43};
@@ -157,14 +174,23 @@ int main()
         0xF4
     };
 
-    if (!bus.Write(0x400000, program, sizeof(program))) {
-        return Fail("CPU program write failed") ? 0 : 1;
+    if (bus.Write(0x400000, program, sizeof(program))) {
+        return Fail("Read/write page incorrectly allowed code write") ? 0 : 1;
+    }
+
+    if (!bus.Write(0x430000, program, sizeof(program))) {
+        return Fail("Executable page was not writable for test setup") ? 0 : 1;
+    }
+
+    machine.CPU().SetInstructionPointer(0x430000);
+    if (machine.CPU().Run() != 0 ||
+        machine.CPU().ReadRegister64(0) != 0x12345678ULL) {
+        return Fail("CPU did not execute through executable page") ? 0 : 1;
     }
 
     machine.CPU().SetInstructionPointer(0x400000);
-    if (machine.CPU().Run() != 0 ||
-        machine.CPU().ReadRegister64(0) != 0x12345678ULL) {
-        return Fail("CPU did not execute through Bus-backed memory") ? 0 : 1;
+    if (machine.CPU().Run() == 0) {
+        return Fail("CPU executed from a non-executable page") ? 0 : 1;
     }
 
     bus.ClearDevices();
