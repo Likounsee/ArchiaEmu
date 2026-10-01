@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(MyPS5Emu VERSION 0.1.0 LANGUAGES CXX)
+project(ArchiaEmu VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,6 +17,8 @@ add_executable(myps5emu
 
     src/core/Emulator.cpp
     src/core/Emulator.hpp
+    src/core/Machine.cpp
+    src/core/Machine.hpp
 
     src/loader/Elf64Loader.cpp
     src/loader/Elf64Loader.hpp
@@ -41,6 +43,16 @@ add_executable(CpuAllFunctionsTest
 
 target_include_directories(CpuAllFunctionsTest PRIVATE src)
 
+add_executable(MachineArchitectureTest
+    tools/MachineArchitectureTest.cpp
+    src/core/Machine.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/RegisterFile.cpp
+)
+
+target_include_directories(MachineArchitectureTest PRIVATE src)
 
 enable_testing()
 add_test(NAME CpuAllFunctionsTest COMMAND CpuAllFunctionsTest)
+add_test(NAME MachineArchitectureTest COMMAND MachineArchitectureTest)
