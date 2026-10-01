@@ -40,6 +40,7 @@ add_executable(myps5emu
     src/cpu/x86/ExceptionFrame64.cpp
     src/cpu/x86/Gdt.cpp
     src/cpu/x86/ExceptionTarget.cpp
+    src/cpu/x86/ExceptionDelivery.cpp
 )
 target_include_directories(myps5emu PRIVATE src)
 
@@ -67,6 +68,19 @@ target_include_directories(MachineArchitectureTest PRIVATE src)
 enable_testing()
 add_test(NAME CpuAllFunctionsTest COMMAND CpuAllFunctionsTest)
 add_test(NAME MachineArchitectureTest COMMAND MachineArchitectureTest)
+
+add_executable(X86ExceptionDeliveryTest
+    tools/X86ExceptionDeliveryTest.cpp
+    src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
+    src/cpu/x86/ExceptionTarget.cpp
+    src/cpu/x86/ExceptionDelivery.cpp
+)
+target_include_directories(X86ExceptionDeliveryTest PRIVATE src)
+
+add_test(NAME X86ExceptionDeliveryTest COMMAND X86ExceptionDeliveryTest)
 
 add_executable(X86GdtTest
     tools/X86GdtTest.cpp
