@@ -20,7 +20,7 @@ public:
     const Cpu& CPU() const noexcept;
 
     Memory& GuestMemory() noexcept;
-    const Memory& GuestMemory() const noexcept;
+    const Memory& GuestMemory() const noexcept;\n\n    Bus& SystemBus() noexcept;\n    const Bus& SystemBus() const noexcept;
 
 private:
     myps5emu::Bus bus_;
