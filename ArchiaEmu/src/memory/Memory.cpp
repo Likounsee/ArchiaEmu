@@ -35,8 +35,6 @@ bool Memory::Map(std::uint64_t virtual_address,
         return false;
     }
 
-    const auto size64 = static_cast<std::uint64_t>(size);
-
     // Mappings are page-based: callers must describe complete pages.
     if ((virtual_address % PageSize) != 0 || (size % PageSize) != 0) {
         return false;
