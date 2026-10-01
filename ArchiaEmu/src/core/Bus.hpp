@@ -11,7 +11,7 @@ namespace myps5emu {
 
 class Bus final : public Memory {
 public:
-    bool MapDevice(std::uint64_t base,
+    bool Map(std::uint64_t virtual_address,\n             std::size_t size) override;\n\n    bool MapDevice(std::uint64_t base,
                    std::size_t size,
                    Device* device);
 
@@ -25,7 +25,7 @@ public:
                const std::uint8_t* data,
                std::size_t size) override;
 
-    void ClearDevices() noexcept;
+    void ClearDevices() noexcept;\n\n    void Clear() override;
 
 private:
     struct DeviceMapping {
