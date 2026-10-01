@@ -43,6 +43,7 @@ add_executable(CpuAllFunctionsTest
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
     src/cpu/RegisterFile.cpp
+    src/cpu/x86/Idt.cpp
 )
 target_include_directories(CpuAllFunctionsTest PRIVATE src)
 
@@ -62,3 +63,11 @@ target_include_directories(MachineArchitectureTest PRIVATE src)
 enable_testing()
 add_test(NAME CpuAllFunctionsTest COMMAND CpuAllFunctionsTest)
 add_test(NAME MachineArchitectureTest COMMAND MachineArchitectureTest)
+
+add_executable(X86IdtTest
+    tools/X86IdtTest.cpp
+    src/cpu/x86/Idt.cpp
+)
+target_include_directories(X86IdtTest PRIVATE src)
+
+add_test(NAME X86IdtTest COMMAND X86IdtTest)
