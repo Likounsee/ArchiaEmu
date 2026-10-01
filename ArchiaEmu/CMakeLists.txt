@@ -14,24 +14,22 @@ endif()
 
 add_executable(myps5emu
     src/main.cpp
-
     src/core/Emulator.cpp
     src/core/Emulator.hpp
     src/core/Machine.cpp
     src/core/Machine.hpp
-
+    src/core/Bus.cpp
+    src/core/Bus.hpp
+    src/core/Device.hpp
     src/loader/Elf64Loader.cpp
     src/loader/Elf64Loader.hpp
-
     src/memory/Memory.cpp
     src/memory/Memory.hpp
-
     src/cpu/Cpu.cpp
     src/cpu/Cpu.hpp
     src/cpu/RegisterFile.cpp
     src/cpu/RegisterFile.hpp
 )
-
 target_include_directories(myps5emu PRIVATE src)
 
 add_executable(CpuAllFunctionsTest
@@ -40,17 +38,16 @@ add_executable(CpuAllFunctionsTest
     src/cpu/Cpu.cpp
     src/cpu/RegisterFile.cpp
 )
-
 target_include_directories(CpuAllFunctionsTest PRIVATE src)
 
 add_executable(MachineArchitectureTest
     tools/MachineArchitectureTest.cpp
     src/core/Machine.cpp
+    src/core/Bus.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
     src/cpu/RegisterFile.cpp
 )
-
 target_include_directories(MachineArchitectureTest PRIVATE src)
 
 enable_testing()
