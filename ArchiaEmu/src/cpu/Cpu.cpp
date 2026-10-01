@@ -180,6 +180,22 @@ MemoryFault Cpu::LastMemoryFault() const noexcept
     return last_memory_fault_;
 }
 
+const CpuException& Cpu::LastException() const noexcept
+{
+    return last_exception_;
+}
+
+bool Cpu::RaiseException(const CpuException& exception)
+{
+    last_exception_ = exception;
+
+    if (exception_handler_) {
+        return exception_handler_(*this, last_exception_);
+    }
+
+    return false;
+}
+
 bool Cpu::RaiseMemoryFault()
 {
     if (memory_ == nullptr) {
@@ -192,11 +208,12 @@ bool Cpu::RaiseMemoryFault()
         return false;
     }
 
-    if (exception_handler_) {
-        return exception_handler_(*this, last_memory_fault_);
-    }
+    CpuException exception{};
+    exception.kind = CpuExceptionKind::MemoryFault;
+    exception.instruction_pointer = current_instruction_ip_;
+    exception.memory_fault = last_memory_fault_;
 
-    return false;
+    return RaiseException(exception);
 }
 
 void Cpu::Halt() noexcept
