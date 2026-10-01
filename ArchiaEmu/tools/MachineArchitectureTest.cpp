@@ -49,7 +49,7 @@ int main()
         return 1;
     }
 
-    std::uint8_t ramWrite = 0x42;
+    const std::uint8_t ramWrite = 0x42;
     if (!machine.GuestMemory().Write(0x400000, &ramWrite, 1)) {
         std::cerr << "Machine RAM write failed\n";
         return 1;
@@ -64,10 +64,6 @@ int main()
 
     TestDevice device;
     Bus& bus = machine.SystemBus();
-    if (false) {
-        std::cerr << "Machine is not backed by a Bus\n";
-        return 1;
-    }
 
     if (!bus.MapDevice(0x10000000, 0x100, &device)) {
         std::cerr << "Device mapping failed\n";
@@ -82,12 +78,8 @@ int main()
     }
 
     const std::uint8_t deviceWrite = 0x5A;
-    if (!bus.Write(0x10000000, &deviceWrite, 1)) {
-        std::cerr << "Device write routing failed\n";
-        return 1;
-    }
-
-    if (!bus->Read(0x10000000, &deviceRead, 1) ||
+    if (!bus.Write(0x10000000, &deviceWrite, 1) ||
+        !bus.Read(0x10000000, &deviceRead, 1) ||
         deviceRead != deviceWrite) {
         std::cerr << "Device write/readback failed\n";
         return 1;
@@ -100,6 +92,34 @@ int main()
 
     if (bus.MapDevice(0x400000, 0x10, &device)) {
         std::cerr << "Device/RAM overlap was accepted\n";
+        return 1;
+    }
+
+    if (bus.Map(0x10000050, 0x10)) {
+        std::cerr << "RAM/device overlap was accepted\n";
+        return 1;
+    }
+
+    const std::uint8_t program[] = {
+        0xB8, 0x78, 0x56, 0x34, 0x12,
+        0xF4
+    };
+
+    if (!bus.Write(0x400000, program, sizeof(program))) {
+        std::cerr << "CPU program write failed\n";
+        return 1;
+    }
+
+    machine.CPU().SetInstructionPointer(0x400000);
+    if (machine.CPU().Run() != 0 ||
+        machine.CPU().ReadRegister64(0) != 0x12345678ULL) {
+        std::cerr << "CPU did not execute through Bus-backed memory\n";
+        return 1;
+    }
+
+    bus.Clear();
+    if (bus.IsMapped(0x400000, 1)) {
+        std::cerr << "Bus RAM was not cleared\n";
         return 1;
     }
 
