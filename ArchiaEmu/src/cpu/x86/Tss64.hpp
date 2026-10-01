@@ -32,7 +32,8 @@ enum class ExceptionStackStatus : std::uint8_t {
     NoStackSwitch = 0,
     StackSelected,
     InvalidIst,
-    Unavailable
+    Unavailable,
+    InvalidPrivilegeLevel
 };
 
 struct ExceptionStackSelection {
@@ -45,6 +46,11 @@ public:
     explicit ExceptionStackResolver(const Tss64& tss) noexcept;
 
     ExceptionStackSelection ResolveIst(std::uint8_t ist) const noexcept;
+
+    ExceptionStackSelection Resolve(
+        std::uint8_t ist,
+        std::uint8_t current_cpl,
+        std::uint8_t target_cpl) const noexcept;
 
 private:
     const Tss64& tss_;
