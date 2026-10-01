@@ -58,8 +58,8 @@ bool Fail(const char* message)
 int main()
 {
     Memory memory;
-    if (!memory.Map(0x1000, 0x1000, MemoryPermission::Read | MemoryPermission::Execute) ||
-        !memory.Map(0x2000, 0x1000, MemoryPermission::Read | MemoryPermission::Execute) ||
+    if (!memory.Map(0x1000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
+        !memory.Map(0x2000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
         !memory.Map(0x7000, 0x1000, MemoryPermission::Read | MemoryPermission::Write)) {
         return Fail("Failed to map IRETQ test memory") ? 0 : 1;
     }
