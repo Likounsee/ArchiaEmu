@@ -68,6 +68,47 @@ int main()
         return Fail("Unavailable IST stack was not rejected") ? 0 : 1;
     }
 
+    tss.SetIst(5, 0xB000);
+    selection = resolver.Resolve(5, 3, 0);
+    if (selection.status != ExceptionStackStatus::StackSelected ||
+        selection.stack_pointer != 0xB000) {
+        return Fail("IST stack did not override privilege stack") ? 0 : 1;
+    }
+
+    selection = resolver.Resolve(0, 3, 0);
+    if (selection.status != ExceptionStackStatus::StackSelected ||
+        selection.stack_pointer != 0x1000) {
+        return Fail("RSP0 privilege transition failed") ? 0 : 1;
+    }
+
+    selection = resolver.Resolve(0, 3, 1);
+    if (selection.status != ExceptionStackStatus::StackSelected ||
+        selection.stack_pointer != 0x2000) {
+        return Fail("RSP1 privilege transition failed") ? 0 : 1;
+    }
+
+    selection = resolver.Resolve(0, 3, 2);
+    if (selection.status != ExceptionStackStatus::StackSelected ||
+        selection.stack_pointer != 0x3000) {
+        return Fail("RSP2 privilege transition failed") ? 0 : 1;
+    }
+
+    selection = resolver.Resolve(0, 0, 0);
+    if (selection.status != ExceptionStackStatus::NoStackSwitch) {
+        return Fail("Same-CPL exception incorrectly switched stacks") ? 0 : 1;
+    }
+
+    selection = resolver.Resolve(0, 4, 0);
+    if (selection.status != ExceptionStackStatus::InvalidPrivilegeLevel) {
+        return Fail("Invalid current CPL was accepted") ? 0 : 1;
+    }
+
+    tss.SetRsp0(0);
+    selection = resolver.Resolve(0, 3, 0);
+    if (selection.status != ExceptionStackStatus::Unavailable) {
+        return Fail("Unavailable RSP0 was not rejected") ? 0 : 1;
+    }
+
     std::cout << "x86-64 TSS/IST stack selection test: PASS\n";
     return 0;
 }
