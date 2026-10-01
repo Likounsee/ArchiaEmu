@@ -10,7 +10,6 @@ int main()
     frame.rip = 0x1122334455667788ULL;
     frame.cs = 0x28;
     frame.rflags = 0x202;
-    frame.privilege_stack_switch = true;
     frame.rsp = 0x9000;
     frame.ss = 0x30;
     frame.has_error_code = true;
