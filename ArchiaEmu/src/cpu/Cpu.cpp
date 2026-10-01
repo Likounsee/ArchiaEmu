@@ -4346,7 +4346,8 @@ int Cpu::Run()
                             RaiseException({
                                 CpuExceptionKind::DivideError,
                                 instruction_address,
-                                MemoryFault::None
+                                MemoryFault::None,
+                                CpuExceptionVector::DivideError
                             });
                             return 1;
                         }
@@ -4420,7 +4421,8 @@ int Cpu::Run()
                             RaiseException({
                                 CpuExceptionKind::DivideError,
                                 instruction_address,
-                                MemoryFault::None
+                                MemoryFault::None,
+                                CpuExceptionVector::DivideError
                             });
                             return 1;
                         }
@@ -4436,7 +4438,8 @@ int Cpu::Run()
                                 RaiseException({
                                     CpuExceptionKind::DivideError,
                                     instruction_address,
-                                    MemoryFault::None
+                                    MemoryFault::None,
+                                CpuExceptionVector::DivideError
                                 });
                                 return 1;
                             }
@@ -4452,7 +4455,8 @@ int Cpu::Run()
                                 RaiseException({
                                     CpuExceptionKind::DivideError,
                                     instruction_address,
-                                    MemoryFault::None
+                                    MemoryFault::None,
+                                CpuExceptionVector::DivideError
                                 });
                                 return 1;
                             }
@@ -4509,7 +4513,8 @@ int Cpu::Run()
                         RaiseException({
                             CpuExceptionKind::DivideError,
                             instruction_address,
-                            MemoryFault::None
+                            MemoryFault::None,
+                                CpuExceptionVector::DivideError
                         });
                         return 1;
                     }
@@ -4548,7 +4553,8 @@ int Cpu::Run()
                             RaiseException({
                                 CpuExceptionKind::DivideError,
                                 instruction_address,
-                                MemoryFault::None
+                                MemoryFault::None,
+                                CpuExceptionVector::DivideError
                             });
                             return 1;
                         }
@@ -4596,7 +4602,8 @@ int Cpu::Run()
                             RaiseException({
                                 CpuExceptionKind::DivideError,
                                 instruction_address,
-                                MemoryFault::None
+                                MemoryFault::None,
+                                CpuExceptionVector::DivideError
                             });
                             return 1;
                         }
@@ -4623,7 +4630,8 @@ int Cpu::Run()
                             RaiseException({
                                 CpuExceptionKind::DivideError,
                                 instruction_address,
-                                MemoryFault::None
+                                MemoryFault::None,
+                                CpuExceptionVector::DivideError
                             });
                             return 1;
                         }
