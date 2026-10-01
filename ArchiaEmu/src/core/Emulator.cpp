@@ -1,101 +1,72 @@
-﻿#include "Emulator.hpp"
+#include "Emulator.hpp"
 
 #include <iostream>
 #include <vector>
 
 namespace myps5emu {
 
-bool Emulator::LoadGame(
-    const std::string& path)
+bool Emulator::LoadGame(const std::string& path)
 {
     guest_exited_ = false;
     guest_exit_code_ = 0;
 
     if (!loader_.Load(path)) {
-
-        std::cerr
-            << "[Emulator] Failed to load ELF.\n";
-
+        std::cerr << "[Emulator] Failed to load ELF.\n";
         return false;
     }
 
-    for (const auto& segment :
-         loader_.Segments()) {
+    auto& memory = machine_.Memory();
+    auto& cpu = machine_.CPU();
 
-        if (!memory_.Map(
+    for (const auto& segment : loader_.Segments()) {
+        if (!memory.Map(
                 segment.virtual_address,
-                static_cast<std::size_t>(
-                    segment.memory_size))) {
-
+                static_cast<std::size_t>(segment.memory_size))) {
             std::cerr
                 << "[Memory] Failed to map segment at 0x"
-                << std::hex
-                << segment.virtual_address
-                << std::dec
-                << '\n';
-
+                << std::hex << segment.virtual_address
+                << std::dec << '\n';
             return false;
         }
 
         if (!segment.data.empty() &&
-            !memory_.Write(
+            !memory.Write(
                 segment.virtual_address,
                 segment.data.data(),
                 segment.data.size())) {
-
             std::cerr
                 << "[Memory] Failed to load segment at 0x"
-                << std::hex
-                << segment.virtual_address
-                << std::dec
-                << '\n';
-
+                << std::hex << segment.virtual_address
+                << std::dec << '\n';
             return false;
         }
 
         std::cout
             << "[Memory] Loaded PT_LOAD at 0x"
-            << std::hex
-            << segment.virtual_address
-            << " ("
-            << std::dec
-            << segment.memory_size
-            << " bytes)"
-            << '\n';
+            << std::hex << segment.virtual_address
+            << " (" << std::dec << segment.memory_size
+            << " bytes)\n";
     }
 
-    constexpr std::uint64_t stackBase =
-        0x7FFF00000000ULL;
+    constexpr std::uint64_t stackBase = 0x7FFF00000000ULL;
+    constexpr std::size_t stackSize = 0x10000;
 
-    constexpr std::size_t stackSize =
-        0x10000;
-
-    if (!memory_.Map(
-            stackBase,
-            stackSize)) {
-
-        std::cerr
-            << "[Memory] Failed to map guest stack.\n";
-
+    if (!memory.Map(stackBase, stackSize)) {
+        std::cerr << "[Memory] Failed to map guest stack.\n";
         return false;
     }
 
-    cpu_.ConnectMemory(
-        &memory_);
-    cpu_.SetSyscallHandler(
-        [this](Cpu& cpu) {
-            return HandleSyscall(cpu);
+    cpu.SetSyscallHandler(
+        [this](Cpu& syscallCpu) {
+            return HandleSyscall(syscallCpu);
         });
 
-    cpu_.SetStackPointer(
-        stackBase + stackSize);
+    cpu.SetStackPointer(stackBase + stackSize);
 
     std::cout
         << "[Emulator] Entry point: 0x"
-        << std::hex
-        << loader_.EntryPoint()
-        << std::dec
-        << '\n';
+        << std::hex << loader_.EntryPoint()
+        << std::dec << '\n';
 
     return true;
 }
@@ -136,7 +107,8 @@ bool Emulator::HandleSyscall(Cpu& cpu)
         static_cast<std::size_t>(byte_count));
 
     if (byte_count != 0 &&
-        !memory_.Read(buffer_address, buffer.data(), buffer.size())) {
+        !machine_.Memory().Read(
+            buffer_address, buffer.data(), buffer.size())) {
         std::cerr << "[Syscall] Write buffer is not mapped.\n";
         return false;
     }
@@ -147,23 +119,23 @@ bool Emulator::HandleSyscall(Cpu& cpu)
         reinterpret_cast<const char*>(buffer.data()),
         static_cast<std::streamsize>(buffer.size()));
     output.flush();
+
     cpu.WriteRegister64(0, byte_count);
     return true;
 }
 
 int Emulator::Run()
 {
-    cpu_.SetInstructionPointer(
-        loader_.EntryPoint());
+    auto& cpu = machine_.CPU();
+
+    cpu.SetInstructionPointer(loader_.EntryPoint());
 
     std::cout
         << "[CPU] Starting at 0x"
-        << std::hex
-        << cpu_.InstructionPointer()
-        << std::dec
-        << '\n';
+        << std::hex << cpu.InstructionPointer()
+        << std::dec << '\n';
 
-    const int result = cpu_.Run();
+    const int result = cpu.Run();
 
     if (result != 0) {
         return result;
