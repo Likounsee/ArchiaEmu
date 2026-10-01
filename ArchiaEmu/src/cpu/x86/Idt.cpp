@@ -85,11 +85,7 @@ IdtGate64 IdtGate64::Decode(
     gate.dpl = static_cast<std::uint8_t>((attributes >> 5U) & 0x03U);
 
     const std::uint8_t type = attributes & 0x0FU;
-    if (type == static_cast<std::uint8_t>(IdtGateType::Trap)) {
-        gate.type = IdtGateType::Trap;
-    } else {
-        gate.type = IdtGateType::Interrupt;
-    }
+    gate.type = static_cast<IdtGateType>(type);
 
     return gate;
 }
