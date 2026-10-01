@@ -69,9 +69,8 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
     result.stack_frame.has_error_code =
         ExceptionFrame64::HasHardwareErrorCode(exception.vector);
     result.stack_frame.error_code = error_code;
-    // In 64-bit mode the interrupted SS:RSP are part of the saved
-    // exception frame regardless of whether a privilege switch occurred.
-    result.stack_frame.has_saved_stack = true;
+    // In 64-bit mode the interrupted SS:RSP are always part of the saved
+    // exception frame, including same-CPL delivery.
     result.stack_frame.rsp = current_rsp;
     result.stack_frame.ss = current_ss;
     result.frame = ExceptionFrame64::Build(
