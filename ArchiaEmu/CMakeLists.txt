@@ -35,6 +35,7 @@ add_executable(myps5emu
     src/cpu/Cpu.hpp
     src/cpu/RegisterFile.cpp
     src/cpu/RegisterFile.hpp
+    src/cpu/x86/Idt.cpp
 )
 target_include_directories(myps5emu PRIVATE src)
 
@@ -43,7 +44,6 @@ add_executable(CpuAllFunctionsTest
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
     src/cpu/RegisterFile.cpp
-    src/cpu/x86/Idt.cpp
 )
 target_include_directories(CpuAllFunctionsTest PRIVATE src)
 
