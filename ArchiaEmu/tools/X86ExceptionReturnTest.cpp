@@ -38,6 +38,12 @@ Gdt64 MakeGdt()
     user.long_mode = true;
     user.dpl = 3;
     gdt.SetCodeSegment(6, user);
+
+    GdtDataSegment64 userStack{};
+    userStack.present = true;
+    userStack.writable = true;
+    userStack.dpl = 3;
+    gdt.SetDataSegment(7, userStack);
     return gdt;
 }
 
