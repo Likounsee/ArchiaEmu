@@ -1,17 +1,10 @@
 #pragma once
 
-#include "cpu/Cpu.hpp"
 #include "core/Bus.hpp"
+#include "cpu/Cpu.hpp"
 
 namespace myps5emu {
 
-/**
- * Runtime state for an emulated machine.
- *
- * A machine owns the guest CPU and guest memory so that platform-specific
- * orchestration can be built around a stable hardware boundary. The concrete
- * CPU and memory implementations remain replaceable as the emulator grows.
- */
 class Machine {
 public:
     Machine();
@@ -20,11 +13,14 @@ public:
     const Cpu& CPU() const noexcept;
 
     Memory& GuestMemory() noexcept;
-    const Memory& GuestMemory() const noexcept;\n\n    Bus& SystemBus() noexcept;\n    const Bus& SystemBus() const noexcept;
+    const Memory& GuestMemory() const noexcept;
+
+    Bus& SystemBus() noexcept;
+    const Bus& SystemBus() const noexcept;
 
 private:
-    myps5emu::Bus bus_;
-    myps5emu::Cpu cpu_;
+    Bus bus_;
+    Cpu cpu_;
 };
 
 } // namespace myps5emu
