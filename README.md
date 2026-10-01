@@ -153,3 +153,5 @@ ArchiaEmu is an educational/research project under active development.
 The repository is the source of truth for what is actually implemented and tested.
 
 Features are considered complete only after they have been implemented and positively verified by tests.
+
+<!-- Temporary memory faults CI validation -->
