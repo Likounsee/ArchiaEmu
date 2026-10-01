@@ -2,6 +2,11 @@
 
 namespace myps5emu::x86 {
 
+bool GdtDataSegment64::IsValidLongModeStackSegment() const noexcept
+{
+    return present && writable && dpl <= 3;
+}
+
 bool GdtCodeSegment64::IsValidLongModeTarget() const noexcept
 {
     return present && !conforming && long_mode &&
@@ -18,7 +23,7 @@ bool Gdt64::SetCodeSegment(
         return false;
     }
 
-    entries_[index] = segment;
+    code_entries_[index] = segment;
     return true;
 }
 
@@ -61,3 +66,29 @@ bool Gdt64::ResolveCodeSegment(
 }
 
 } // namespace myps5emu::x86
+
+
+bool Gdt64::SetDataSegment(
+    std::uint16_t index,
+    const GdtDataSegment64& segment) noexcept
+{
+    if (index >= kMaxEntries || !segment.IsValidLongModeStackSegment()) {
+        return false;
+    }
+    data_entries_[index] = segment;
+    return true;
+}
+
+bool Gdt64::ResolveDataSegment(
+    std::uint16_t selector,
+    GdtDataSegment64& segment) const noexcept
+{
+    const std::uint16_t index = static_cast<std::uint16_t>(selector >> 3);
+    if ((selector & 0x4U) != 0 || index >= kMaxEntries ||
+        (selector & 0x3U) != data_entries_[index].dpl ||
+        !data_entries_[index].IsValidLongModeStackSegment()) {
+        return false;
+    }
+    segment = data_entries_[index];
+    return true;
+}
