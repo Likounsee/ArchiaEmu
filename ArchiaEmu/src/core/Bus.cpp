@@ -122,9 +122,12 @@ bool Bus::Read(std::uint64_t virtual_address,
     if (const auto* mapping = FindDevice(virtual_address, size)) {
         const std::uint64_t offset = virtual_address - mapping->base;
         if (!HasPermission(mapping->permissions, MemoryPermission::Read)) {
+            SetFault(MemoryFault::PermissionDenied);
             return false;
         }
-        return mapping->device->Read(offset, data, size);
+        const bool success = mapping->device->Read(offset, data, size);
+        SetFault(success ? MemoryFault::None : MemoryFault::DeviceRejected);
+        return success;
     }
 
     return Memory::Read(virtual_address, data, size);
@@ -137,9 +140,12 @@ bool Bus::Write(std::uint64_t virtual_address,
     if (auto* mapping = FindDevice(virtual_address, size)) {
         const std::uint64_t offset = virtual_address - mapping->base;
         if (!HasPermission(mapping->permissions, MemoryPermission::Write)) {
+            SetFault(MemoryFault::PermissionDenied);
             return false;
         }
-        return mapping->device->Write(offset, data, size);
+        const bool success = mapping->device->Write(offset, data, size);
+        SetFault(success ? MemoryFault::None : MemoryFault::DeviceRejected);
+        return success;
     }
 
     return Memory::Write(virtual_address, data, size);
@@ -151,10 +157,13 @@ bool Bus::ExecuteRead(std::uint64_t virtual_address,
 {
     if (const auto* mapping = FindDevice(virtual_address, size)) {
         if (!HasPermission(mapping->permissions, MemoryPermission::Execute)) {
+            SetFault(MemoryFault::PermissionDenied);
             return false;
         }
         const std::uint64_t offset = virtual_address - mapping->base;
-        return mapping->device->Read(offset, data, size);
+        const bool success = mapping->device->Read(offset, data, size);
+        SetFault(success ? MemoryFault::None : MemoryFault::DeviceRejected);
+        return success;
     }
 
     return Memory::ExecuteRead(virtual_address, data, size);
