@@ -69,12 +69,11 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
     result.stack_frame.has_error_code =
         ExceptionFrame64::HasHardwareErrorCode(exception.vector);
     result.stack_frame.error_code = error_code;
-    result.stack_frame.privilege_stack_switch =
-        target.segment.dpl < current_cpl;
-    if (result.stack_frame.privilege_stack_switch) {
-        result.stack_frame.rsp = current_rsp;
-        result.stack_frame.ss = current_ss;
-    }
+    // In 64-bit mode the interrupted SS:RSP are part of the saved
+    // exception frame regardless of whether a privilege switch occurred.
+    result.stack_frame.has_saved_stack = true;
+    result.stack_frame.rsp = current_rsp;
+    result.stack_frame.ss = current_ss;
     result.frame = ExceptionFrame64::Build(
         exception, current_cs, current_rflags, error_code);
     result.target_rip = dispatch.gate.offset;
