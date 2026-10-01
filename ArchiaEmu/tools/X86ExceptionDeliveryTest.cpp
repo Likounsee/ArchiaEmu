@@ -58,17 +58,20 @@ int main()
         delivered.frame.error_code != 0x5 ||
         delivered.target_rip != gate.offset ||
         delivered.target_cs != gate.selector ||
+        delivered.target_rflags != 0x2 ||
         delivered.stack.status != ExceptionStackStatus::StackSelected ||
         delivered.stack.stack_pointer != 0x9000) {
         return Fail("Valid exception delivery resolution failed") ? 0 : 1;
     }
 
+    gate.type = IdtGateType::Trap;
     gate.ist = 2;
     tss.SetIst(2, 0xA000);
     idt.SetGate(14, gate);
     const auto istDelivered = resolver.Resolve(
         exception, 0x10, 0x202, 0, 0x5);
     if (istDelivered.status != ExceptionDeliveryStatus::Delivered ||
+        istDelivered.target_rflags != 0x202 ||
         istDelivered.stack.status != ExceptionStackStatus::StackSelected ||
         istDelivered.stack.stack_pointer != 0xA000) {
         return Fail("IST stack selection during delivery failed") ? 0 : 1;
