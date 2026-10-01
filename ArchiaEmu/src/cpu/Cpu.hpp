@@ -28,7 +28,14 @@ public:
 
     std::uint64_t Rflags() const noexcept;
 
-    using FrameCallback = std::function<bool()>;
+        void SetRflags(std::uint64_t value) noexcept;
+
+    void SetCodeSegment(std::uint16_t value) noexcept;
+    std::uint16_t CodeSegment() const noexcept;
+
+    void SetStackSegment(std::uint16_t value) noexcept;
+    std::uint16_t StackSegment() const noexcept;
+using FrameCallback = std::function<bool()>;
     using SyscallHandler = std::function<bool(Cpu&)>;
     using ExceptionHandler = std::function<bool(Cpu&, const CpuException&)>;
 
@@ -70,7 +77,9 @@ private:
     std::uint64_t ps5_interrupts_handled_ = 0;
     std::uint64_t instruction_pointer_ = 0;
     std::uint64_t rflags_ = 0;
-    Memory* memory_ = nullptr;
+        std::uint16_t code_segment_ = 0;
+    std::uint16_t stack_segment_ = 0;
+Memory* memory_ = nullptr;
     FrameCallback frame_callback_;
     SyscallHandler syscall_handler_;
     ExceptionHandler exception_handler_;
