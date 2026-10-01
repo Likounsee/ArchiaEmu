@@ -46,8 +46,8 @@ int main()
         return Fail("Memory accepted non-page-aligned mapping") ? 0 : 1;
     }
 
-    if (!bus.Map(0x430000, 0x1000, MemoryPermission::Read |
-                 MemoryPermission::Execute)) {
+    if (!bus.Map(0x430000, 0x1000,
+                  MemoryPermission::Read | MemoryPermission::Write)) {
         return Fail("Executable page mapping failed") ? 0 : 1;
     }
 
@@ -178,8 +178,14 @@ int main()
         return Fail("Read/write page incorrectly allowed code write") ? 0 : 1;
     }
 
-    if (!bus.Write(0x430000, program, sizeof(program))) {
-        return Fail("Executable page was not writable for test setup") ? 0 : 1;
+    if (!bus.Write(0x430000, program, sizeof(program)) ||
+        !bus.Protect(0x430000, 0x1000,
+                     MemoryPermission::Read | MemoryPermission::Execute)) {
+        return Fail("Executable page protection transition failed") ? 0 : 1;
+    }
+
+    if (bus.Write(0x430000, program, sizeof(program))) {
+        return Fail("RX page remained writable") ? 0 : 1;
     }
 
     machine.CPU().SetInstructionPointer(0x430000);
