@@ -90,7 +90,7 @@ int main()
     gate.ist = 0;
     idt.SetGate(14, gate);
 
-    const sameCpl = resolver.Resolve(
+    const auto sameCpl = resolver.Resolve(
         exception, 0x10, 0x202, 0, 0x5, 0xB000, 0x20);
     if (sameCpl.status != ExceptionDeliveryStatus::Delivered ||
         sameCpl.stack.status != ExceptionStackStatus::NoStackSwitch ||
