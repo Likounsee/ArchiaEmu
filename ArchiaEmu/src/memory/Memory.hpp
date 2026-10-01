@@ -61,6 +61,10 @@ public:
                                  std::size_t size,
                                  MemoryPermission permission) const;
 
+    virtual bool Protect(std::uint64_t virtual_address,
+                         std::size_t size,
+                         MemoryPermission permissions);
+
     virtual void Clear();
 
 protected:
