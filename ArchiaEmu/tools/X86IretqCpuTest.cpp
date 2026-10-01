@@ -64,7 +64,7 @@ int main()
         return Fail("Failed to map IRETQ test memory") ? 0 : 1;
     }
 
-    const std::uint8_t iretq[] = {0xCF};
+    const std::uint8_t iretq[] = {0x48, 0xCF};
     const std::uint8_t hlt[] = {0xF4};
     if (!memory.Write(0x1000, iretq, sizeof(iretq)) ||
         !memory.Write(0x2000, hlt, sizeof(hlt))) {
