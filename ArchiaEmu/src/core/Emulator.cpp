@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <limits>
+#include <map>
 #include <vector>
 
 namespace myps5emu {
@@ -23,73 +24,55 @@ bool Emulator::LoadGame(const std::string& path)
     constexpr std::uint32_t elf_pf_w = 0x2U;
     constexpr std::uint32_t elf_pf_x = 0x1U;
 
+    std::map<std::uint64_t, MemoryPermission> pagePermissions;
     for (const auto& segment : loader_.Segments()) {
         if (segment.memory_size == 0 ||
-            segment.virtual_address >
-                std::numeric_limits<std::uint64_t>::max() -
-                    segment.memory_size) {
-            std::cerr << "[Memory] Invalid ELF segment range.\n";
+            segment.virtual_address > std::numeric_limits<std::uint64_t>::max() - segment.memory_size) {
+            std::cerr << "[Memory] Invalid ELF segment range.\\n";
             return false;
         }
-
-        const std::uint64_t segment_end =
-            segment.virtual_address + segment.memory_size;
-        const std::uint64_t map_base =
-            segment.virtual_address -
-            (segment.virtual_address % Memory::PageSize);
-        if (segment_end >
-            std::numeric_limits<std::uint64_t>::max() -
-                (Memory::PageSize - 1)) {
-            std::cerr << "[Memory] ELF segment alignment overflow.\n";
+        const std::uint64_t segmentEnd = segment.virtual_address + segment.memory_size;
+        const std::uint64_t mapBase = segment.virtual_address - (segment.virtual_address % Memory::PageSize);
+        if (segmentEnd > std::numeric_limits<std::uint64_t>::max() - (Memory::PageSize - 1)) {
+            std::cerr << "[Memory] ELF segment alignment overflow.\\n";
             return false;
         }
-        const std::uint64_t map_end =
-            (segment_end + Memory::PageSize - 1) /
-            Memory::PageSize * Memory::PageSize;
-        const std::uint64_t map_size64 = map_end - map_base;
-        if (map_size64 > std::numeric_limits<std::size_t>::max()) {
-            std::cerr << "[Memory] ELF mapping is too large.\n";
-            return false;
-        }
-        const std::size_t map_size =
-            static_cast<std::size_t>(map_size64);
-
+        const std::uint64_t mapEnd = ((segmentEnd + Memory::PageSize - 1) / Memory::PageSize) * Memory::PageSize;
         MemoryPermission permissions = MemoryPermission::None;
-        if ((segment.flags & elf_pf_r) != 0) {
-            permissions = permissions | MemoryPermission::Read;
+        if (segment.flags & 0x4U) permissions = permissions | MemoryPermission::Read;
+        if (segment.flags & 0x2U) permissions = permissions | MemoryPermission::Write;
+        if (segment.flags & 0x1U) permissions = permissions | MemoryPermission::Execute;
+        for (std::uint64_t page = mapBase; page < mapEnd; page += Memory::PageSize) {
+            auto it = pagePermissions.find(page);
+            if (it == pagePermissions.end()) pagePermissions.emplace(page, permissions);
+            else it->second = it->second | permissions;
+            if (page > std::numeric_limits<std::uint64_t>::max() - Memory::PageSize) break;
         }
-        if ((segment.flags & elf_pf_w) != 0) {
-            permissions = permissions | MemoryPermission::Write;
-        }
-        if ((segment.flags & elf_pf_x) != 0) {
-            permissions = permissions | MemoryPermission::Execute;
-        }
+    }
 
-        if (!memory.Map(map_base, map_size, permissions)) {
-            std::cerr
-                << "[Memory] Failed to map segment at 0x"
-                << std::hex << segment.virtual_address
-                << std::dec << '\n';
+    const auto allPermissions = MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute;
+    for (const auto& [page, permissions] : pagePermissions) {
+        (void)permissions;
+        if (!memory.Map(page, Memory::PageSize, allPermissions)) {
+            std::cerr << "[Memory] Failed to map ELF page at 0x" << std::hex << page << std::dec << '\\n';
             return false;
         }
+    }
 
-        if (!segment.data.empty() &&
-            !memory.Write(
-                segment.virtual_address,
-                segment.data.data(),
-                segment.data.size())) {
-            std::cerr
-                << "[Memory] Failed to load segment at 0x"
-                << std::hex << segment.virtual_address
-                << std::dec << '\n';
+    for (const auto& segment : loader_.Segments()) {
+        if (!segment.data.empty() && !memory.Write(segment.virtual_address, segment.data.data(), segment.data.size())) {
+            std::cerr << "[Memory] Failed to load segment at 0x" << std::hex << segment.virtual_address << std::dec << '\\n';
             return false;
         }
+        std::cout << "[Memory] Loaded PT_LOAD at 0x" << std::hex << segment.virtual_address
+                  << " (" << std::dec << segment.memory_size << " bytes)\\n";
+    }
 
-        std::cout
-            << "[Memory] Loaded PT_LOAD at 0x"
-            << std::hex << segment.virtual_address
-            << " (" << std::dec << segment.memory_size
-            << " bytes)\n";
+    for (const auto& [page, permissions] : pagePermissions) {
+        if (!memory.Protect(page, Memory::PageSize, permissions)) {
+            std::cerr << "[Memory] Failed to apply ELF page permissions at 0x" << std::hex << page << std::dec << '\\n';
+            return false;
+        }
     }
 
     constexpr std::uint64_t stackBase = 0x7FFF00000000ULL;
