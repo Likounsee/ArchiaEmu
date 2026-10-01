@@ -320,7 +320,7 @@ bool Cpu::Fetch8(std::uint8_t& value)
         return false;
     }
 
-    if (!memory_->Read(
+    if (!memory_->ExecuteRead(
             instruction_pointer_,
             &value,
             sizeof(value))) {
