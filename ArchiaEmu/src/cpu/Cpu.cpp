@@ -3072,8 +3072,8 @@ int Cpu::Run()
         
 
         case 0xCF: {
-            // IRETQ is encoded as REX.W + CF in 64-bit mode.
-            if (!rex.w || !exception_return_handler_) {
+            // In 64-bit mode, CF is the IRETQ opcode; REX.W is not required.
+            if (!exception_return_handler_) {
                 return 1;
             }
 
