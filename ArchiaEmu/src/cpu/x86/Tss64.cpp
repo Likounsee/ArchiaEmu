@@ -79,3 +79,43 @@ ExceptionStackSelection ExceptionStackResolver::ResolveIst(
 }
 
 } // namespace myps5emu::x86
+
+
+ExceptionStackSelection ExceptionStackResolver::Resolve(
+    std::uint8_t ist,
+    std::uint8_t current_cpl,
+    std::uint8_t target_cpl) const noexcept
+{
+    if (current_cpl > 3 || target_cpl > 3) {
+        return {ExceptionStackStatus::InvalidPrivilegeLevel, 0};
+    }
+
+    if (ist != 0) {
+        return ResolveIst(ist);
+    }
+
+    if (target_cpl >= current_cpl) {
+        return {ExceptionStackStatus::NoStackSwitch, 0};
+    }
+
+    std::uint64_t stack_pointer = 0;
+    switch (target_cpl) {
+    case 0:
+        stack_pointer = tss_.Rsp0();
+        break;
+    case 1:
+        stack_pointer = tss_.Rsp1();
+        break;
+    case 2:
+        stack_pointer = tss_.Rsp2();
+        break;
+    default:
+        return {ExceptionStackStatus::InvalidPrivilegeLevel, 0};
+    }
+
+    if (stack_pointer == 0) {
+        return {ExceptionStackStatus::Unavailable, 0};
+    }
+
+    return {ExceptionStackStatus::StackSelected, stack_pointer};
+}
