@@ -98,7 +98,7 @@ int main()
     });
 
     if (cpu.Run() != 0 || !handlerCalled ||
-        cpu.InstructionPointer() != 0x2000 ||
+        cpu.InstructionPointer() != 0x2001 ||
         cpu.CodeSegment() != 0x28 ||
         cpu.Rsp() != 0x7018 ||
         cpu.StackSegment() != 0x10 ||
