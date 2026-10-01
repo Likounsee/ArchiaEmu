@@ -1,10 +1,10 @@
-﻿#pragma once
+#pragma once
 
 #include <string>
 
 #include "cpu/Cpu.hpp"
+#include "core/Machine.hpp"
 #include "loader/Elf64Loader.hpp"
-#include "memory/Memory.hpp"
 
 namespace myps5emu {
 
@@ -17,8 +17,7 @@ private:
     bool HandleSyscall(Cpu& cpu);
 
     Elf64Loader loader_;
-    Memory memory_;
-    Cpu cpu_;
+    Machine machine_;
     bool guest_exited_ = false;
     int guest_exit_code_ = 0;
 };
