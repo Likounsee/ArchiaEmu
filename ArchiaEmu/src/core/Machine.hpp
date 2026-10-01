@@ -19,8 +19,8 @@ public:
     Cpu& CPU() noexcept;
     const Cpu& CPU() const noexcept;
 
-    Memory& Memory() noexcept;
-    const Memory& Memory() const noexcept;
+    Memory& GuestMemory() noexcept;
+    const Memory& GuestMemory() const noexcept;
 
 private:
     myps5emu::Memory memory_;
