@@ -1,8 +1,6 @@
 #include "ExceptionStackWriter64.hpp"
 
 #include <array>
-#include <limits>
-
 namespace myps5emu::x86 {
 
 ExceptionStackWriteResult ExceptionStackWriter64::Write(
