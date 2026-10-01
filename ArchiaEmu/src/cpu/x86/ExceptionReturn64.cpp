@@ -128,7 +128,10 @@ ExceptionReturnResult ExceptionReturn64::Read(
         }
 
         result.ss = static_cast<std::uint16_t>(address);
-        if ((result.ss & 3U) != target_cpl || result.ss == 0 ||
+        GdtDataSegment64 stack_segment{};
+        if (!gdt.ResolveDataSegment(result.ss, stack_segment) ||
+            stack_segment.dpl != target_cpl ||
+            (result.ss & 3U) != target_cpl || result.ss == 0 ||
             result.rsp == 0 || !IsCanonical48(result.rsp)) {
             result.status = ExceptionReturnStatus::InvalidStack;
             return result;
