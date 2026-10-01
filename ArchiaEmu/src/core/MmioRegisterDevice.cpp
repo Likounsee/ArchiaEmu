@@ -1,6 +1,5 @@
 #include "MmioRegisterDevice.hpp"
 
-#include <cstring>
 #include <utility>
 
 namespace myps5emu {
@@ -35,7 +34,10 @@ bool MmioRegisterDevice::Read(std::uint64_t address,
     }
 
     const std::uint32_t value = values_[static_cast<std::size_t>(index)];
-    std::memcpy(data, &value, sizeof(value));
+    data[0] = static_cast<std::uint8_t>(value);
+    data[1] = static_cast<std::uint8_t>(value >> 8);
+    data[2] = static_cast<std::uint8_t>(value >> 16);
+    data[3] = static_cast<std::uint8_t>(value >> 24);
     return true;
 }
 
@@ -53,8 +55,11 @@ bool MmioRegisterDevice::Write(std::uint64_t address,
         return false;
     }
 
-    std::uint32_t incoming = 0;
-    std::memcpy(&incoming, data, sizeof(incoming));
+    const std::uint32_t incoming =
+        static_cast<std::uint32_t>(data[0]) |
+        (static_cast<std::uint32_t>(data[1]) << 8) |
+        (static_cast<std::uint32_t>(data[2]) << 16) |
+        (static_cast<std::uint32_t>(data[3]) << 24);
 
     const auto register_index = static_cast<std::size_t>(index);
     const std::uint32_t mask = write_masks_[register_index];
