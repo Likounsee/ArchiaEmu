@@ -112,6 +112,14 @@ constexpr std::uint64_t OF_MASK = 1ULL << 11;
 constexpr std::uint64_t PF_MASK = 1ULL << 2;
 constexpr std::uint64_t AF_MASK = 1ULL << 4;
 
+bool EvenParity8(std::uint8_t value) noexcept
+{
+    value ^= static_cast<std::uint8_t>(value >> 4);
+    value ^= static_cast<std::uint8_t>(value >> 2);
+    value ^= static_cast<std::uint8_t>(value >> 1);
+    return (value & 1U) == 0;
+}
+
 } 
 
 void Cpu::ConnectMemory(Memory* memory) noexcept
@@ -577,6 +585,9 @@ void Cpu::SetLogicFlags32(std::uint32_t result) noexcept
 
     rflags_ &= ~CF_MASK;
     rflags_ &= ~OF_MASK;
+    rflags_ &= ~AF_MASK;
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+    else rflags_ &= ~PF_MASK;
 }
 
 void Cpu::SetLogicFlags64(std::uint64_t result) noexcept
@@ -586,6 +597,9 @@ void Cpu::SetLogicFlags64(std::uint64_t result) noexcept
 
     rflags_ &= ~CF_MASK;
     rflags_ &= ~OF_MASK;
+    rflags_ &= ~AF_MASK;
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+    else rflags_ &= ~PF_MASK;
 }
 
 void Cpu::SetAddFlags32(
@@ -597,7 +611,7 @@ void Cpu::SetAddFlags32(
     SetSignFlag((result & 0x80000000U) != 0);
 
     const bool carry =
-        result < lhs;
+        result < lhs || rhs > std::numeric_limits<std::uint32_t>::max() - lhs;
 
     if (carry) {
         rflags_ |= CF_MASK;
@@ -607,6 +621,9 @@ void Cpu::SetAddFlags32(
 
     const bool overflow =
         ((~(lhs ^ rhs) & (lhs ^ result)) & 0x80000000U) != 0;
+    const bool auxiliary = ((lhs ^ rhs ^ result) & 0x10U) != 0;
+    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
 
     if (overflow) {
         rflags_ |= OF_MASK;
@@ -623,8 +640,7 @@ void Cpu::SetSubFlags32(
     SetZeroFlag(result == 0);
     SetSignFlag((result & 0x80000000U) != 0);
 
-    const bool borrow =
-        lhs < rhs;
+    const bool borrow = lhs < rhs;
 
     if (borrow) {
         rflags_ |= CF_MASK;
@@ -634,6 +650,9 @@ void Cpu::SetSubFlags32(
 
     const bool overflow =
         (((lhs ^ rhs) & (lhs ^ result)) & 0x80000000U) != 0;
+    const bool auxiliary = ((lhs ^ rhs ^ result) & 0x10U) != 0;
+    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
 
     if (overflow) {
         rflags_ |= OF_MASK;
@@ -652,7 +671,7 @@ void Cpu::SetAddFlags64(
         (result & 0x8000000000000000ULL) != 0);
 
     const bool carry =
-        result < lhs;
+        result < lhs || rhs > std::numeric_limits<std::uint64_t>::max() - lhs;
 
     if (carry) {
         rflags_ |= CF_MASK;
@@ -664,6 +683,9 @@ void Cpu::SetAddFlags64(
         ((~(lhs ^ rhs) &
           (lhs ^ result)) &
          0x8000000000000000ULL) != 0;
+    const bool auxiliary = ((lhs ^ rhs ^ result) & 0x10ULL) != 0;
+    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
 
     if (overflow) {
         rflags_ |= OF_MASK;
@@ -694,6 +716,9 @@ void Cpu::SetSubFlags64(
         (((lhs ^ rhs) &
           (lhs ^ result)) &
          0x8000000000000000ULL) != 0;
+    const bool auxiliary = ((lhs ^ rhs ^ result) & 0x10ULL) != 0;
+    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
 
     if (overflow) {
         rflags_ |= OF_MASK;
