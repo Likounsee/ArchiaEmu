@@ -3427,7 +3427,21 @@ int Cpu::Run()
 
                 break;
             }
+            if (opcode2 == 0x0B) {
+                RaiseException({
+                    CpuExceptionKind::InvalidOpcode,
+                    instruction_address,
+                    MemoryFault::None
+                });
+                return 1;
+            }
+
             if (opcode2 != 0xAF) {
+                RaiseException({
+                    CpuExceptionKind::InvalidOpcode,
+                    instruction_address,
+                    MemoryFault::None
+                });
                 return 1;
             }
 
