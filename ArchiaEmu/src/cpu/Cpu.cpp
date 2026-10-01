@@ -509,6 +509,9 @@ bool Cpu::FetchRel32(std::int32_t& value)
 
 bool Cpu::Push64(std::uint64_t value)
 {
+    if (memory_ == nullptr) {
+        return false;
+    }
     constexpr std::uint64_t size = 8;
 
     const std::uint64_t rsp = Rsp();
@@ -532,6 +535,9 @@ bool Cpu::Push64(std::uint64_t value)
 
 bool Cpu::Pop64(std::uint64_t& value)
 {
+    if (memory_ == nullptr) {
+        return false;
+    }
     const std::uint64_t rsp = Rsp();
 
     if (!ReadMemory(
