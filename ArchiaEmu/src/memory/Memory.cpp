@@ -32,15 +32,18 @@ bool Memory::Map(std::uint64_t virtual_address,
                  MemoryPermission permissions)
 {
     if (!RangeValid(virtual_address, size)) {
+        SetFault(MemoryFault::InvalidRange);
         return false;
     }
 
     // Mappings are page-based: callers must describe complete pages.
     if ((virtual_address % PageSize) != 0 || (size % PageSize) != 0) {
+        SetFault(MemoryFault::Unaligned);
         return false;
     }
 
     if (HasOverlappingRegion(virtual_address, size)) {
+        SetFault(MemoryFault::Overlap);
         return false;
     }
 
@@ -49,6 +52,7 @@ bool Memory::Map(std::uint64_t virtual_address,
     region.data.resize(size, 0);
     region.permissions = permissions;
     regions_.push_back(std::move(region));
+    SetFault(MemoryFault::None);
     return true;
 }
 
@@ -86,8 +90,18 @@ bool Memory::Write(std::uint64_t virtual_address,
                    const std::uint8_t* data,
                    std::size_t size)
 {
-    if (data == nullptr ||
-        !HasPermissionAt(virtual_address, size, MemoryPermission::Write)) {
+    if (data == nullptr || !RangeValid(virtual_address, size)) {
+        SetFault(MemoryFault::InvalidRange);
+        return false;
+    }
+
+    if (!HasPermissionAt(virtual_address, size, MemoryPermission::None)) {
+        SetFault(MemoryFault::Unmapped);
+        return false;
+    }
+
+    if (!HasPermissionAt(virtual_address, size, MemoryPermission::Write)) {
+        SetFault(MemoryFault::PermissionDenied);
         return false;
     }
 
@@ -100,6 +114,7 @@ bool Memory::Write(std::uint64_t virtual_address,
             const std::size_t offset =
                 static_cast<std::size_t>(virtual_address - region.base);
             std::memcpy(region.data.data() + offset, data, size);
+            SetFault(MemoryFault::None);
             return true;
         }
     }
@@ -111,8 +126,18 @@ bool Memory::Read(std::uint64_t virtual_address,
                   std::uint8_t* data,
                   std::size_t size) const
 {
-    if (data == nullptr ||
-        !HasPermissionAt(virtual_address, size, MemoryPermission::Read)) {
+    if (data == nullptr || !RangeValid(virtual_address, size)) {
+        SetFault(MemoryFault::InvalidRange);
+        return false;
+    }
+
+    if (!HasPermissionAt(virtual_address, size, MemoryPermission::None)) {
+        SetFault(MemoryFault::Unmapped);
+        return false;
+    }
+
+    if (!HasPermissionAt(virtual_address, size, MemoryPermission::Read)) {
+        SetFault(MemoryFault::PermissionDenied);
         return false;
     }
 
@@ -125,6 +150,7 @@ bool Memory::Read(std::uint64_t virtual_address,
             const std::size_t offset =
                 static_cast<std::size_t>(virtual_address - region.base);
             std::memcpy(data, region.data.data() + offset, size);
+            SetFault(MemoryFault::None);
             return true;
         }
     }
@@ -136,8 +162,18 @@ bool Memory::ExecuteRead(std::uint64_t virtual_address,
                          std::uint8_t* data,
                          std::size_t size) const
 {
-    if (data == nullptr ||
-        !HasPermissionAt(virtual_address, size, MemoryPermission::Execute)) {
+    if (data == nullptr || !RangeValid(virtual_address, size)) {
+        SetFault(MemoryFault::InvalidRange);
+        return false;
+    }
+
+    if (!HasPermissionAt(virtual_address, size, MemoryPermission::None)) {
+        SetFault(MemoryFault::Unmapped);
+        return false;
+    }
+
+    if (!HasPermissionAt(virtual_address, size, MemoryPermission::Execute)) {
+        SetFault(MemoryFault::PermissionDenied);
         return false;
     }
 
@@ -150,11 +186,22 @@ bool Memory::ExecuteRead(std::uint64_t virtual_address,
             const std::size_t offset =
                 static_cast<std::size_t>(virtual_address - region.base);
             std::memcpy(data, region.data.data() + offset, size);
+            SetFault(MemoryFault::None);
             return true;
         }
     }
 
     return false;
+}
+
+MemoryFault Memory::LastFault() const noexcept
+{
+    return last_fault_;
+}
+
+void Memory::SetFault(MemoryFault fault) const noexcept
+{
+    last_fault_ = fault;
 }
 
 bool Memory::HasOverlappingRegion(std::uint64_t virtual_address,
@@ -191,6 +238,7 @@ bool Memory::Protect(std::uint64_t virtual_address,
 
     if ((virtual_address % PageSize) != 0 ||
         (size % PageSize) != 0) {
+        SetFault(MemoryFault::Unaligned);
         return false;
     }
 
@@ -200,6 +248,7 @@ bool Memory::Protect(std::uint64_t virtual_address,
 
         if (virtual_address >= region.base && end <= region_end) {
             region.permissions = permissions;
+            SetFault(MemoryFault::None);
             return true;
         }
     }
@@ -210,6 +259,7 @@ bool Memory::Protect(std::uint64_t virtual_address,
 void Memory::Clear()
 {
     regions_.clear();
+    SetFault(MemoryFault::None);
 }
 
 } // namespace myps5emu
