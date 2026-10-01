@@ -129,7 +129,7 @@ int main()
     }
 
     Memory readOnly;
-    if (!readOnly.Map(0x7000, 0x1000, MemoryPermission::Read)) {
+    if (!readOnly.Map(0x7000, 0x1000, MemoryPermission::Write)) {
         return Fail("Failed to map read-only frame") ? 0 : 1;
     }
     WriteQword(readOnly, 0x7000, 0x401234);
