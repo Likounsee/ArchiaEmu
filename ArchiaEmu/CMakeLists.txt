@@ -205,3 +205,16 @@ add_executable(X86ExceptionEntryTest
 )
 target_include_directories(X86ExceptionEntryTest PRIVATE src)
 add_test(NAME X86ExceptionEntryTest COMMAND X86ExceptionEntryTest)
+
+
+add_executable(X86ExceptionReturnTest
+    tools/X86ExceptionReturnTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/RegisterFile.cpp
+    src/cpu/x86/Gdt.cpp
+    src/cpu/x86/ExceptionReturn64.cpp
+)
+target_include_directories(X86ExceptionReturnTest PRIVATE src)
+add_test(NAME X86ExceptionReturnTest COMMAND X86ExceptionReturnTest)
+
