@@ -17,12 +17,12 @@ const Cpu& Machine::CPU() const noexcept
     return cpu_;
 }
 
-Memory& Machine::Memory() noexcept
+Memory& Machine::GuestMemory() noexcept
 {
     return memory_;
 }
 
-const Memory& Machine::Memory() const noexcept
+const Memory& Machine::GuestMemory() const noexcept
 {
     return memory_;
 }
