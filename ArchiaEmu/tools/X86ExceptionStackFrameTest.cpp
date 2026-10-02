@@ -16,6 +16,7 @@ int main()
     frame.error_code = 0x5;
 
     std::array<std::uint8_t, 48> bytes{};
+    frame.has_stack_switch = true;
     if (frame.QwordCount() != 6 || !frame.Encode(bytes.data(), bytes.size())) {
         std::cerr << "Frame encoding failed\n";
         return 1;
@@ -42,7 +43,21 @@ int main()
 
     frame.has_error_code = false;
     if (frame.QwordCount() != 5) {
+        std::cerr << "Stack-switch frame size is wrong\n";
+        return 1;
+    }
+
+    frame.has_stack_switch = false;
+    if (frame.QwordCount() != 3) {
         std::cerr << "Same-CPL frame size is wrong\n";
+        return 1;
+    }
+
+    std::array<std::uint8_t, 24> sameCplBytes{};
+    if (!frame.Encode(sameCplBytes.data(), sameCplBytes.size()) ||
+        sameCplBytes[0] != 0x88 || sameCplBytes[8] != 0x28 ||
+        sameCplBytes[16] != 0x02 || sameCplBytes[17] != 0x02) {
+        std::cerr << "Same-CPL frame encoding is wrong\n";
         return 1;
     }
 
