@@ -89,6 +89,13 @@ int main()
         sameBytes[8] != 0xF0 || sameBytes[9] != 0xDE ||
         sameBytes[16] != 0x10 || sameBytes[24] != 0x02 ||
         sameBytes[25] != 0x02) {
+        std::cerr << "same-CPL bytes: "
+                  << std::hex
+                  << static_cast<unsigned>(sameBytes[0]) << " "
+                  << static_cast<unsigned>(sameBytes[8]) << " "
+                  << static_cast<unsigned>(sameBytes[16]) << " "
+                  << static_cast<unsigned>(sameBytes[24])
+                  << std::dec << '\\n';
         return Fail("Same-CPL exception frame layout is wrong") ? 0 : 1;
     }
 
