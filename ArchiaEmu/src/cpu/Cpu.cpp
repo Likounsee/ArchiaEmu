@@ -6192,38 +6192,22 @@ case 0xD0:
             if (rex.w) {
 
                 std::uint64_t value = 0;
-
-                if (!Fetch64(value)) {
-                    return 1;
-                }
-
+                if (!Fetch64(value)) return 1;
                 registers_.Write64(reg, value);
-
-                std::cout
-                    << "[CPU] MOV r64["
-                    << static_cast<unsigned>(reg)
-                    << "] = 0x"
-                    << std::hex
-                    << value
-                    << std::dec
-                    << '\n';
+            }
+            else if (operand_size_override_) {
+                std::uint8_t lo = 0;
+                std::uint8_t hi = 0;
+                if (!Fetch8(lo) || !Fetch8(hi)) return 1;
+                const std::uint16_t value =
+                    static_cast<std::uint16_t>(lo) |
+                    static_cast<std::uint16_t>(hi) << 8U;
+                registers_.Write16(reg, value);
             }
             else {
-
                 std::uint32_t value = 0;
-
-                if (!Fetch32(value)) {
-                    return 1;
-                }
-
+                if (!Fetch32(value)) return 1;
                 registers_.Write32(reg, value);
-
-                std::cout
-                    << "[CPU] MOV r32["
-                    << static_cast<unsigned>(reg)
-                    << "] = "
-                    << value
-                    << '\n';
             }
 
             break;
