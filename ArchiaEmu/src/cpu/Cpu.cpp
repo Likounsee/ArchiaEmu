@@ -2166,6 +2166,93 @@ bool Cpu::DecodeLea64(
 
     return true;
 }
+bool Cpu::DecodeShiftRotate16Imm(
+    std::uint8_t modrm,
+    const RexPrefix& rex,
+    std::uint8_t count,
+    bool fetchCountAfterAddress)
+{
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return false;
+    if (fetchCountAfterAddress && !Fetch8(count)) return false;
+
+    const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+    const std::uint8_t shift = static_cast<std::uint8_t>(count & 0x1F);
+    if (shift == 0) return true;
+
+    std::uint16_t value = 0;
+    if (memory) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return false;
+    } else {
+        value = registers_.Read16(rm);
+    }
+
+    std::uint16_t result = value;
+    bool carry = false;
+    if (group == 0 || group == 1) {
+        const std::uint8_t n = static_cast<std::uint8_t>(shift & 0x0F);
+        if (n == 0) return true;
+        if (group == 0) {
+            result = static_cast<std::uint16_t>((value << n) | (value >> (16 - n)));
+            carry = (result & 1U) != 0;
+            if (n == 1) {
+                const bool overflow = ((result & 0x8000U) != 0) ^ carry;
+                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+            }
+        } else {
+            result = static_cast<std::uint16_t>((value >> n) | (value << (16 - n)));
+            carry = ((value >> (n - 1)) & 1U) != 0;
+            if (n == 1) {
+                const bool overflow = ((result & 0x8000U) != 0) ^ ((result & 0x4000U) != 0);
+                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+            }
+        }
+        rflags_ = (rflags_ & ~CF_MASK) | (carry ? CF_MASK : 0);
+    }
+    else if (group == 4 || group == 5 || group == 7) {
+        if (shift >= 16) {
+            if (group == 7) result = (value & 0x8000U) ? 0xFFFFU : 0;
+            else result = 0;
+            carry = false;
+            rflags_ &= ~OF_MASK;
+        } else if (group == 4) {
+            carry = ((value >> (16 - shift)) & 1U) != 0;
+            result = static_cast<std::uint16_t>(value << shift);
+            if (shift == 1) {
+                const bool overflow = ((result & 0x8000U) != 0) ^ carry;
+                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+            } else rflags_ &= ~OF_MASK;
+        } else if (group == 5) {
+            carry = ((value >> (shift - 1)) & 1U) != 0;
+            result = static_cast<std::uint16_t>(value >> shift);
+            if (shift == 1) {
+                if ((value & 0x8000U) != 0) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+            } else rflags_ &= ~OF_MASK;
+        } else {
+            carry = ((value >> (shift - 1)) & 1U) != 0;
+            result = static_cast<std::uint16_t>(static_cast<std::int16_t>(value) >> shift);
+            rflags_ &= ~OF_MASK;
+        }
+        SetZeroFlag(result == 0);
+        SetSignFlag((result & 0x8000U) != 0);
+        if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+        else rflags_ &= ~PF_MASK;
+        rflags_ = (rflags_ & ~CF_MASK) | (carry ? CF_MASK : 0);
+    }
+    else {
+        return false;
+    }
+
+    if (memory) {
+        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return false;
+    } else {
+        registers_.Write16(rm, result);
+    }
+    return true;
+}
+
 bool Cpu::DecodeShiftLeft64Imm(
     std::uint8_t modrm,
     const RexPrefix& rex,
