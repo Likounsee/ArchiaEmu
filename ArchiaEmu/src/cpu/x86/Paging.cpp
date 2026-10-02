@@ -104,18 +104,11 @@ PagingResult Paging::Translate(
             return Fault(PagingFault::NotPresent, write, user, instruction);
         }
 
-        if ((entry & 0x0000000000000FE0ULL) != 0) {
-            return Fault(PagingFault::Reserved, write, user, instruction);
-        }
-
         effective_write = effective_write && (entry & kWrite) != 0;
         effective_user = effective_user && (entry & kUser) != 0;
         nx = nx || (entry & kNx) != 0;
 
         if (level == 1 && (entry & kLarge) != 0) {
-            if ((entry & 0x00000000001FE000ULL) != 0) {
-                return Fault(PagingFault::Reserved, write, user, instruction);
-            }
             if (instruction && nx && (efer_ & kEferNxe) != 0) {
                 return Fault(PagingFault::Instruction, write, user, instruction);
             }
@@ -131,9 +124,6 @@ PagingResult Paging::Translate(
         }
 
         if (level == 2 && (entry & kLarge) != 0) {
-            if ((entry & 0x0000000000001FE0ULL) != 0) {
-                return Fault(PagingFault::Reserved, write, user, instruction);
-            }
             if (instruction && nx && (efer_ & kEferNxe) != 0) {
                 return Fault(PagingFault::Instruction, write, user, instruction);
             }
