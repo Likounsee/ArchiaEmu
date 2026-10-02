@@ -802,24 +802,20 @@ bool Cpu::DecodeSIBAddress(
 {
     const std::uint8_t scaleBits =
         static_cast<std::uint8_t>((sib >> 6) & 0x03);
-
     const std::uint8_t indexBits =
         static_cast<std::uint8_t>((sib >> 3) & 0x07);
-
     const std::uint8_t baseBits =
         static_cast<std::uint8_t>(sib & 0x07);
 
-    const std::uint64_t scale =
-        1ULL << scaleBits;
+    const std::uint32_t scale =
+        static_cast<std::uint32_t>(1U << scaleBits);
 
     const bool hasIndex =
         !(indexBits == 4 && !rex.x);
 
     std::uint8_t index = indexBits;
-
     if (rex.x) {
-        index =
-            static_cast<std::uint8_t>(index + 8);
+        index = static_cast<std::uint8_t>(index + 8);
     }
 
     const bool noBase =
@@ -828,55 +824,50 @@ bool Cpu::DecodeSIBAddress(
         !rex.b;
 
     std::uint8_t base = baseBits;
-
     if (rex.b) {
-        base =
-            static_cast<std::uint8_t>(base + 8);
+        base = static_cast<std::uint8_t>(base + 8);
     }
 
     std::int64_t displacement = 0;
-
     if (mod == 0x01) {
-
         std::int8_t disp8 = 0;
-
-        if (!FetchRel8(disp8)) {
-            return false;
-        }
-
-        displacement =
-            static_cast<std::int64_t>(disp8);
-    }
-    else if (mod == 0x02 || noBase) {
-
+        if (!FetchRel8(disp8)) return false;
+        displacement = static_cast<std::int64_t>(disp8);
+    } else if (mod == 0x02 || noBase) {
         std::int32_t disp32 = 0;
+        if (!FetchRel32(disp32)) return false;
+        displacement = static_cast<std::int64_t>(disp32);
+    }
 
-        if (!FetchRel32(disp32)) {
-            return false;
+    if (address_size_override_) {
+        std::uint32_t result = 0;
+        if (!noBase) {
+            result = static_cast<std::uint32_t>(
+                registers_.Read32(base));
         }
-
-        displacement =
-            static_cast<std::int64_t>(disp32);
+        if (hasIndex) {
+            result = static_cast<std::uint32_t>(
+                result + static_cast<std::uint32_t>(
+                    registers_.Read32(index) * scale));
+        }
+        result = static_cast<std::uint32_t>(
+            result + static_cast<std::uint32_t>(displacement));
+        address = result;
+        return true;
     }
 
     std::uint64_t result = 0;
-
     if (!noBase) {
         result += registers_.Read64(base);
     }
-
     if (hasIndex) {
-        result +=
-            registers_.Read64(index) * scale;
+        result += registers_.Read64(index) * scale;
     }
-
-    result +=
-        static_cast<std::uint64_t>(displacement);
-
+    result += static_cast<std::uint64_t>(displacement);
     address = result;
-
     return true;
 }
+
 bool Cpu::DecodeMemoryOrRegister32(
     std::uint8_t modrm,
     const RexPrefix& rex,
@@ -887,149 +878,91 @@ bool Cpu::DecodeMemoryOrRegister32(
 {
     const std::uint8_t mod =
         static_cast<std::uint8_t>((modrm >> 6) & 0x03);
-
-    reg =
-        static_cast<std::uint8_t>((modrm >> 3) & 0x07);
-
-    rm =
-        static_cast<std::uint8_t>(modrm & 0x07);
+    reg = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+    rm = static_cast<std::uint8_t>(modrm & 0x07);
 
     if (rex.r) {
-        reg =
-            static_cast<std::uint8_t>(reg + 8);
+        reg = static_cast<std::uint8_t>(reg + 8);
     }
-
-    
-    
-    
 
     if (mod == 0x03) {
-
         if (rex.b) {
-            rm =
-                static_cast<std::uint8_t>(rm + 8);
+            rm = static_cast<std::uint8_t>(rm + 8);
         }
-
         memory = false;
         address = 0;
-
         return true;
     }
-
-    
-    
-    
 
     memory = true;
 
-    
-    
-    
-
     if (rm == 4) {
-
         std::uint8_t sib = 0;
-
-        if (!Fetch8(sib)) {
-            return false;
-        }
-
-        return DecodeSIBAddress(
-            mod,
-            sib,
-            rex,
-            address);
+        if (!Fetch8(sib)) return false;
+        return DecodeSIBAddress(mod, sib, rex, address);
     }
 
-    
-    
-    
-
-    if (mod == 0x00 &&
-        rm == 0x05 &&
-        !rex.b) {
-
+    if (mod == 0x00 && rm == 0x05 && !rex.b) {
         std::int32_t displacement = 0;
+        if (!FetchRel32(displacement)) return false;
 
-        if (!FetchRel32(displacement)) {
-            return false;
+        if (address_size_override_) {
+            address = static_cast<std::uint32_t>(displacement);
+        } else {
+            address = static_cast<std::uint64_t>(
+                static_cast<std::int64_t>(instruction_pointer_) +
+                static_cast<std::int64_t>(displacement));
         }
-
-        address =
-            static_cast<std::uint64_t>(
-                static_cast<std::int64_t>(
-                    instruction_pointer_) +
-                static_cast<std::int64_t>(
-                    displacement));
-
         return true;
     }
-
-    
-    
-    
 
     if (rex.b) {
-        rm =
-            static_cast<std::uint8_t>(rm + 8);
+        rm = static_cast<std::uint8_t>(rm + 8);
     }
 
-    const std::uint64_t base =
-        registers_.Read64(rm);
+    if (address_size_override_) {
+        const std::uint32_t base =
+            static_cast<std::uint32_t>(registers_.Read32(rm));
+        if (mod == 0x00) {
+            address = base;
+            return true;
+        }
+        if (mod == 0x01) {
+            std::int8_t displacement = 0;
+            if (!FetchRel8(displacement)) return false;
+            address = static_cast<std::uint32_t>(
+                base + static_cast<std::uint32_t>(displacement));
+            return true;
+        }
+        if (mod == 0x02) {
+            std::int32_t displacement = 0;
+            if (!FetchRel32(displacement)) return false;
+            address = static_cast<std::uint32_t>(
+                base + static_cast<std::uint32_t>(displacement));
+            return true;
+        }
+        return false;
+    }
 
-    
-    
-    
-
+    const std::uint64_t base = registers_.Read64(rm);
     if (mod == 0x00) {
-
         address = base;
-
         return true;
     }
-
-    
-    
-    
-
     if (mod == 0x01) {
-
         std::int8_t displacement = 0;
-
-        if (!FetchRel8(displacement)) {
-            return false;
-        }
-
-        address =
-            base +
-            static_cast<std::uint64_t>(
-                static_cast<std::int64_t>(
-                    displacement));
-
+        if (!FetchRel8(displacement)) return false;
+        address = base + static_cast<std::uint64_t>(
+            static_cast<std::int64_t>(displacement));
         return true;
     }
-
-    
-    
-    
-
     if (mod == 0x02) {
-
         std::int32_t displacement = 0;
-
-        if (!FetchRel32(displacement)) {
-            return false;
-        }
-
-        address =
-            base +
-            static_cast<std::uint64_t>(
-                static_cast<std::int64_t>(
-                    displacement));
-
+        if (!FetchRel32(displacement)) return false;
+        address = base + static_cast<std::uint64_t>(
+            static_cast<std::int64_t>(displacement));
         return true;
     }
-
     return false;
 }
 bool Cpu::DecodeAdd32(
