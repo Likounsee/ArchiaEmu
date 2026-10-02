@@ -4534,6 +4534,21 @@ void TestOperandSizeOverride()
         stageMem.Map(DATA, 0x2000);
         stageMem.Map(STACK, 0x2000);
         Cpu stageCpu = MakeCpu(stageMem);
+        auto stageCode = MovR64(0, DATA);
+        stageCode.insert(stageCode.end(), {0x66, 0x8D, 0x40, 0x20});
+        stageCode = Finish(stageCode);
+        CHECK(
+            "66h LEA writes a 16-bit destination",
+            RunCode(stageCpu, stageMem, stageCode) &&
+            stageCpu.Rax() == 0x0000000000500020ULL);
+    }
+
+    {
+        Memory stageMem;
+        stageMem.Map(CODE, 0x2000);
+        stageMem.Map(DATA, 0x2000);
+        stageMem.Map(STACK, 0x2000);
+        Cpu stageCpu = MakeCpu(stageMem);
         Write64(stageMem, DATA, 0x112233445566ABCDULL);
         auto stageCode = MovR64(2, DATA);
         stageCode.insert(stageCode.end(), {0x66, 0x8B, 0x0A});
