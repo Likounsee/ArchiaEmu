@@ -169,13 +169,24 @@ ExceptionReturnResult ExceptionReturn64::Read(
     }
 
     result.ss = static_cast<std::uint16_t>(address);
-    GdtDataSegment64 stack_segment{};
-    if (!gdt.ResolveDataSegment(result.ss, stack_segment) ||
-        stack_segment.dpl != target_cpl ||
-        (result.ss & 3U) != target_cpl || result.ss == 0 ||
-        !IsCanonical48(result.rsp)) {
-        result.status = ExceptionReturnStatus::InvalidStack;
-        return result;
+
+    // A 64-bit IRET may restore a NULL SS when returning to CPL0.
+    // For non-CPL3 returns, the NULL selector's RPL must still match
+    // the target CPL; selector 0 therefore only qualifies for CPL0.
+    if (result.ss == 0) {
+        if (target_cpl != 0 || !IsCanonical48(result.rsp)) {
+            result.status = ExceptionReturnStatus::InvalidStack;
+            return result;
+        }
+    } else {
+        GdtDataSegment64 stack_segment{};
+        if (!gdt.ResolveDataSegment(result.ss, stack_segment) ||
+            stack_segment.dpl != target_cpl ||
+            (result.ss & 3U) != target_cpl ||
+            !IsCanonical48(result.rsp)) {
+            result.status = ExceptionReturnStatus::InvalidStack;
+            return result;
+        }
     }
 
     result.status = ExceptionReturnStatus::Returned;
