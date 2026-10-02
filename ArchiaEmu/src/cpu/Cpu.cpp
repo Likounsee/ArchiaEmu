@@ -176,6 +176,12 @@ void Cpu::SetEfer(std::uint64_t value) noexcept
     if (paging_ != nullptr) paging_->SetEfer(value);
 }
 std::uint64_t Cpu::Efer() const noexcept { return efer_; }
+void Cpu::SetMsrStar(std::uint64_t value) noexcept { msr_star_ = value; }
+std::uint64_t Cpu::MsrStar() const noexcept { return msr_star_; }
+void Cpu::SetMsrLstar(std::uint64_t value) noexcept { msr_lstar_ = value; }
+std::uint64_t Cpu::MsrLstar() const noexcept { return msr_lstar_; }
+void Cpu::SetMsrFmask(std::uint64_t value) noexcept { msr_fmask_ = value; }
+std::uint64_t Cpu::MsrFmask() const noexcept { return msr_fmask_; }
 
 void Cpu::SetInstructionPointer(std::uint64_t value) noexcept
 {
