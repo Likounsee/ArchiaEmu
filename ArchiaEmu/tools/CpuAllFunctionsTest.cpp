@@ -66,6 +66,13 @@ std::uint64_t Read64(Memory& mem, std::uint64_t addr)
     return value;
 }
 
+std::uint16_t Read16(Memory& mem, std::uint64_t addr)
+{
+    std::uint16_t value = 0;
+    mem.Read(addr, reinterpret_cast<std::uint8_t*>(&value), sizeof(value));
+    return value;
+}
+
 std::uint32_t Read32(Memory& mem, std::uint64_t addr)
 {
     std::uint32_t value = 0;
