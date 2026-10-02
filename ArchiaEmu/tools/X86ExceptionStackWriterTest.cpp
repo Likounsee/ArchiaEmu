@@ -48,6 +48,7 @@ int main()
     frame.rflags = 0x202;
     frame.rsp = 0x7000;
     frame.ss = 0x18;
+    frame.has_stack_switch = true;
     frame.has_error_code = true;
     frame.error_code = 0x5;
 
