@@ -6655,7 +6655,24 @@ case 0xD0:
                 return 1;
             }
 
-            if (!DecodeXchg(modrm, rex)) {
+            if (operand_size_override_) {
+                std::uint8_t reg = 0, rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+                if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
+                std::uint16_t value = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return 1;
+                    const std::uint16_t regValue = registers_.Read16(reg);
+                    if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&regValue), sizeof(regValue))) return 1;
+                    registers_.Write16(reg, value);
+                } else {
+                    value = registers_.Read16(rm);
+                    registers_.Write16(rm, registers_.Read16(reg));
+                    registers_.Write16(reg, value);
+                }
+            }
+            else if (!DecodeXchg(modrm, rex)) {
                 return 1;
             }
 
