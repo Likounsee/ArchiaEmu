@@ -7944,6 +7944,102 @@ case 0xD0:
             break;
         }
 
+        case 0x9C: {
+            const std::uint64_t flags = rflags_ | 0x2ULL;
+            if (operand_size_override_ && !rex.w) {
+                if (!Push16(static_cast<std::uint16_t>(flags))) return 1;
+            } else {
+                if (!Push64(flags)) return 1;
+            }
+            break;
+        }
+
+        case 0x9D: {
+            if (operand_size_override_ && !rex.w) {
+                std::uint16_t value = 0;
+                if (!Pop16(value)) return 1;
+                rflags_ = (rflags_ & 0xFFFFFFFFFFFF0000ULL) | value;
+            } else {
+                std::uint64_t value = 0;
+                if (!Pop64(value)) return 1;
+                rflags_ = value | 0x2ULL;
+            }
+            break;
+        }
+
+        case 0x9E: {
+            const std::uint8_t ah = static_cast<std::uint8_t>((registers_.Read64(0) >> 8U) & 0xFFU);
+            rflags_ &= ~(SF_MASK | ZF_MASK | AF_MASK | PF_MASK | CF_MASK);
+            if (ah & 0x80U) rflags_ |= SF_MASK;
+            if (ah & 0x40U) rflags_ |= ZF_MASK;
+            if (ah & 0x10U) rflags_ |= AF_MASK;
+            if (ah & 0x04U) rflags_ |= PF_MASK;
+            if (ah & 0x01U) rflags_ |= CF_MASK;
+            break;
+        }
+
+        case 0x9F: {
+            std::uint8_t ah = 0x02U;
+            if (rflags_ & SF_MASK) ah |= 0x80U;
+            if (rflags_ & ZF_MASK) ah |= 0x40U;
+            if (rflags_ & AF_MASK) ah |= 0x10U;
+            if (rflags_ & PF_MASK) ah |= 0x04U;
+            if (rflags_ & CF_MASK) ah |= 0x01U;
+            WriteReg8(0, true, ah);
+            break;
+        }
+
+        case 0xE0:
+        case 0xE1:
+        case 0xE2:
+        case 0xE3: {
+            std::int8_t displacement = 0;
+            if (!FetchRel8(displacement)) return 1;
+            if (opcode == 0xE3) {
+                const std::uint64_t count = registers_.Read64(1);
+                if (count == 0) {
+                    instruction_pointer_ = static_cast<std::uint64_t>(
+                        static_cast<std::int64_t>(instruction_pointer_) + displacement);
+                }
+                break;
+            }
+            const bool address32 = address_size_override_;
+            const std::uint64_t count = address32
+                ? static_cast<std::uint64_t>(registers_.Read32(1))
+                : registers_.Read64(1);
+            const std::uint64_t nextCount = count - 1U;
+            if (address32) registers_.Write32(1, static_cast<std::uint32_t>(nextCount));
+            else registers_.Write64(1, nextCount);
+            bool take = nextCount != 0;
+            if (opcode == 0xE0) take = take && !ZeroFlag();
+            if (opcode == 0xE1) take = take && ZeroFlag();
+            if (take) {
+                instruction_pointer_ = static_cast<std::uint64_t>(
+                    static_cast<std::int64_t>(instruction_pointer_) + displacement);
+            }
+            break;
+        }
+
+        case 0xF5:
+            rflags_ ^= CF_MASK;
+            break;
+
+        case 0xF8:
+            rflags_ &= ~CF_MASK;
+            break;
+
+        case 0xF9:
+            rflags_ |= CF_MASK;
+            break;
+
+        case 0xFC:
+            rflags_ &= ~(1ULL << 10);
+            break;
+
+        case 0xFD:
+            rflags_ |= (1ULL << 10);
+            break;
+
         case 0xF4: { // HLT
             const auto result = x86::Privileged::Hlt(
                 static_cast<std::uint8_t>(code_segment_ & 0x3U));
