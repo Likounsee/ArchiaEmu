@@ -8620,6 +8620,36 @@ case 0xD0:
             std::uint8_t value=0;if(!ReadMemory(address,&value,1))return 1;WriteReg8(0,false,value);break;
         }
 
+        case 0xE4:
+        case 0xE5:
+        case 0xE6:
+        case 0xE7:
+        case 0xEC:
+        case 0xED:
+        case 0xEE:
+        case 0xEF: {
+            const bool input = (opcode == 0xE4 || opcode == 0xE5 || opcode == 0xEC || opcode == 0xED);
+            const bool immediatePort = (opcode == 0xE4 || opcode == 0xE5 || opcode == 0xE6 || opcode == 0xE7);
+            std::uint16_t port = 0;
+            if (immediatePort) {
+                std::uint8_t p=0;if(!Fetch8(p))return 1;port=p;
+            } else {
+                port=static_cast<std::uint16_t>(registers_.Read32(2)&0xFFFFU);
+            }
+            std::uint8_t width=1;
+            if(opcode==0xE5||opcode==0xE7||opcode==0xED||opcode==0xEF) width=operand_size_override_?2:4;
+            if(input){
+                const std::uint32_t value=io_read_handler_?io_read_handler_(*this,port,width):0;
+                if(width==1)WriteReg8(0,false,static_cast<std::uint8_t>(value));
+                else if(width==2)registers_.Write16(0,static_cast<std::uint16_t>(value));
+                else registers_.Write32(0,value);
+            }else{
+                std::uint32_t value=width==1?ReadReg8(0,false):(width==2?registers_.Read16(0):registers_.Read32(0));
+                if(io_write_handler_&&!io_write_handler_(*this,port,value,width))return 1;
+            }
+            break;
+        }
+
         case 0xE0:
         case 0xE1:
         case 0xE2:
