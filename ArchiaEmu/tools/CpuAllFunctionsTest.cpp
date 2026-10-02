@@ -1607,7 +1607,7 @@ void TestAdcSbb()
         Cpu cpu=MakeCpu(mem); std::uint8_t v=0x80; mem.Write(DATA,&v,1);
         auto code=MovR64(0,0); Append(code,MovR64(3,1)); Append(code,{0x48,0x39,0xD8});
         Append(code,MovR64(0,DATA)); Append(code,MovR64(3,0)); Append(code,{0x18,0x18}); code=Finish(code);
-        CHECK("SBB8_mem",sbb8Ok&&(Read64(mem,DATA)&0xFF)==0x7F&&
+        CHECK("SBB8_mem",RunCode(cpu,mem,code)&&(Read64(mem,DATA)&0xFF)==0x7F&&
               (cpu.Rflags()&(1ULL<<11))&&(cpu.Rflags()&(1ULL<<4))&&
               !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&(cpu.Rflags()&(1ULL<<2))&&!(cpu.Rflags()&1ULL));
     }
@@ -1616,18 +1616,18 @@ void TestAdcSbb()
         Cpu cpu=MakeCpu(mem); std::uint32_t v=0x80000000U; mem.Write(DATA,reinterpret_cast<std::uint8_t*>(&v),4);
         auto code=MovR64(0,0); Append(code,MovR64(3,1)); Append(code,{0x48,0x39,0xD8});
         Append(code,MovR64(0,DATA)); Append(code,MovR64(3,0)); Append(code,{0x19,0x18}); code=Finish(code);
-        CHECK("SBB32_mem",sbb32Ok&&Read32(mem,DATA)==0x7FFFFFFFU&&
+        CHECK("SBB32_mem",RunCode(cpu,mem,code)&&Read32(mem,DATA)==0x7FFFFFFFU&&
               (cpu.Rflags()&(1ULL<<11))&&(cpu.Rflags()&(1ULL<<4))&&
-              !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&(cpu.Rflags()&(1ULL<<2))&&(cpu.Rflags()&1ULL));
+              !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&!(cpu.Rflags()&(1ULL<<2))&&!(cpu.Rflags()&1ULL));
     }
     {
         Memory mem; mem.Map(CODE,0x2000); mem.Map(DATA,0x1000); mem.Map(STACK,0x2000);
         Cpu cpu=MakeCpu(mem); std::uint64_t v=0x8000000000000000ULL; mem.Write(DATA,reinterpret_cast<std::uint8_t*>(&v),8);
         auto code=MovR64(0,0); Append(code,MovR64(3,1)); Append(code,{0x48,0x39,0xD8});
         Append(code,MovR64(0,DATA)); Append(code,MovR64(3,0)); Append(code,{0x48,0x19,0x18}); code=Finish(code);
-        CHECK("SBB64_mem",sbb64Ok&&Read64(mem,DATA)==0x7FFFFFFFFFFFFFFFULL&&
+        CHECK("SBB64_mem",RunCode(cpu,mem,code)&&Read64(mem,DATA)==0x7FFFFFFFFFFFFFFFULL&&
               (cpu.Rflags()&(1ULL<<11))&&(cpu.Rflags()&(1ULL<<4))&&
-              !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&(cpu.Rflags()&(1ULL<<2))&&(cpu.Rflags()&1ULL));
+              !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&(cpu.Rflags()&(1ULL<<2))&&!(cpu.Rflags()&1ULL));
     }
 
     // Group-1 immediate ADC/SBB carry/borrow must not lose the carry
