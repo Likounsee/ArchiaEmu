@@ -162,6 +162,14 @@ static bool TestByteAlu() {
     return Run(memory,cpu,code) && (cpu.ReadRegister64(0)&0xFFU)==0x10U;
 }
 
+static bool TestXlat() {
+    Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory);
+    const std::uint8_t table[256] = {0}; std::uint8_t value=0xA7;
+    if(!memory.Write(0x2000+0x12,&value,1))return false;
+    cpu.WriteRegister64(3,0x2000); cpu.WriteRegister64(0,0x12);
+    return Run(memory,cpu,{0xD7}) && (cpu.ReadRegister64(0)&0xFFU)==0xA7U;
+}
+
 static bool TestIncDecByte() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     cpu.SetRflags(cpu.Rflags()|1ULL);
@@ -362,6 +370,7 @@ int main() {
     if (!TestBitModify()) { std::cerr << "bit modify failed\n"; return 6; }
     if (!TestBitScan()) { std::cerr << "bit scan failed\n"; return 6; }
     if (!TestByteAlu()) { std::cerr << "byte ALU failed\n"; return 6; }
+    if (!TestXlat()) { std::cerr << "XLAT failed\n"; return 6; }
     if (!TestIncDecByte()) { std::cerr << "byte INC/DEC failed\n"; return 6; }
     if (!TestMovByteImmediate()) { std::cerr << "byte immediate MOV failed\n"; return 6; }
     if (!TestByteMov()) { std::cerr << "byte MOV failed\n"; return 6; }
