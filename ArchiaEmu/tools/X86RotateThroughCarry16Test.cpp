@@ -2,17 +2,16 @@
 #include "memory/Memory.hpp"
 #include <cstdint>
 #include <iostream>
+#include <vector>
 
 using namespace myps5emu;
 
 static bool Run(Memory& memory, Cpu& cpu, const std::uint8_t* code, std::size_t size) {
-    if (!memory.Write(0x1000, code, size)) return false;
+    std::vector<std::uint8_t> program(code, code + size);
+    program.push_back(0xC3);
+    if (!memory.Write(0x1000, program.data(), program.size())) return false;
     cpu.SetInstructionPointer(0x1000);
-    for (int i = 0; i < 8; ++i) {
-        if (cpu.Step() != 0) return false;
-        if (cpu.Rip() >= 0x1000 + size) return true;
-    }
-    return false;
+    return cpu.Run() == 0;
 }
 
 int main() {
@@ -20,8 +19,7 @@ int main() {
     memory.Map(0x1000, 0x1000);
 
     {
-        // 66 C1 /2, count=1: RCL AX,1 with CF=1.
-        const std::uint8_t code[] = {0x66, 0xC1, 0xD0, 0x01, 0xF4};
+        const std::uint8_t code[] = {0x66, 0xC1, 0xD0, 0x01};
         Cpu cpu;
         cpu.WriteRegister64(0, 0x1122334455668000ULL);
         cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
@@ -34,8 +32,7 @@ int main() {
     }
 
     {
-        // 66 C1 /3, count=1: RCR AX,1 with CF=1.
-        const std::uint8_t code[] = {0x66, 0xC1, 0xD8, 0x01, 0xF4};
+        const std::uint8_t code[] = {0x66, 0xC1, 0xD8, 0x01};
         Cpu cpu;
         cpu.WriteRegister64(0, 0x1122334455660001ULL);
         cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
