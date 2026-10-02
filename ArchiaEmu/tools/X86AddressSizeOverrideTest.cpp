@@ -172,6 +172,23 @@ int main()
         return 16;
     }
 
+    // LEA without REX.W still has a 32-bit destination, and 67h must
+    // keep the effective address calculation at 32 bits.
+    const std::uint8_t lea32Code[] = {
+        0x67, 0x8D, 0x44, 0x88, 0x04, // LEA EAX, [EAX + ECX*4 + 4]
+        0xF4
+    };
+    if (!memory.Write(0x1000, lea32Code, sizeof(lea32Code))) {
+        return 17;
+    }
+    Cpu lea32Cpu;
+    lea32Cpu.WriteRegister64(0, 0x0000000100002000ULL);
+    lea32Cpu.WriteRegister64(1, 0x0000000100000003ULL);
+    if (!Run(memory, lea32Cpu) || lea32Cpu.Rax() != 0x0000000000002010ULL) {
+        std::cerr << "32-bit LEA + address-size override failed\n";
+        return 18;
+    }
+
     std::cout << "x86 address-size override test: PASS\n";
     return 0;
 }
