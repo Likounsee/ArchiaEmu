@@ -378,6 +378,14 @@ add_executable(X86PagingTest
 target_include_directories(X86PagingTest PRIVATE src)
 add_test(NAME X86PagingTest COMMAND X86PagingTest)
 
+add_executable(X86LargePageTest
+    tools/X86LargePageTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/x86/Paging.cpp
+)
+target_include_directories(X86LargePageTest PRIVATE src)
+add_test(NAME X86LargePageTest COMMAND X86LargePageTest)
+
 add_executable(X86ExceptionReturnTest
     tools/X86ExceptionReturnTest.cpp
     src/memory/Memory.cpp
