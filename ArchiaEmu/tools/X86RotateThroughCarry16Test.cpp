@@ -102,6 +102,63 @@ int main() {
         }
     }
 
+    {
+        const std::uint8_t code[] = {0xC0, 0xD0, 0x01};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x1122334455660080ULL);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x1122334455660001ULL ||
+            (cpu.Rflags() & (1ULL << 0)) == 0) {
+            std::cerr << "8-bit RCL failed\n";
+            return 7;
+        }
+    }
+
+    {
+        const std::uint8_t code[] = {0xC0, 0xD8, 0x01};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x1122334455660001ULL);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x1122334455660080ULL ||
+            (cpu.Rflags() & (1ULL << 0)) == 0) {
+            std::cerr << "8-bit RCR failed\n";
+            return 8;
+        }
+    }
+
+    {
+        const std::uint8_t code[] = {0xD2, 0xD0};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x1122334455660080ULL);
+        cpu.WriteRegister64(1, 1);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x1122334455660001ULL) {
+            std::cerr << "8-bit RCL CL failed\n";
+            return 9;
+        }
+    }
+
+    {
+        const std::uint8_t code[] = {0x48, 0xD3, 0xD0};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x8000000000000000ULL);
+        cpu.WriteRegister64(1, 1);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x0000000000000001ULL ||
+            (cpu.Rflags() & (1ULL << 0)) == 0) {
+            std::cerr << "64-bit RCL CL failed\n";
+            return 10;
+        }
+    }
+
     std::cout << "x86 rotate-through-carry test: PASS\n";
     return 0;
 }
