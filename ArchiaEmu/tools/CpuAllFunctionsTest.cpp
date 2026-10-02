@@ -1726,6 +1726,8 @@ void TestAdcSbb()
         CHECK("SBB32_64_imm", RunCode(cpu, mem, code) && cpu.Rax() == 0);
     }
 
+}
+
 void TestImul()
 {
     // =========================================================
@@ -1856,8 +1858,6 @@ void TestImul()
             (cpu.Rflags() & 1ULL) == 0 &&
             (cpu.Rflags() & 0x800ULL) == 0);
     }
-}
-
 }
 
 void TestDivIdiv128()
