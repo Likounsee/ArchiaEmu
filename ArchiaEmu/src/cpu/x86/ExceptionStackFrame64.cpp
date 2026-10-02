@@ -13,7 +13,8 @@ void Store64(std::uint8_t* out, std::uint64_t value) noexcept
 
 std::size_t ExceptionStackFrame64::QwordCount() const noexcept
 {
-    return 5 + (has_error_code ? 1 : 0);
+    return (3 + (has_stack_switch ? 2 : 0)) +
+           (has_error_code ? 1 : 0);
 }
 
 bool ExceptionStackFrame64::Encode(
@@ -31,8 +32,10 @@ bool ExceptionStackFrame64::Encode(
     Store64(out + offset, rip); offset += 8;
     Store64(out + offset, cs); offset += 8;
     Store64(out + offset, rflags); offset += 8;
-    Store64(out + offset, rsp); offset += 8;
-    Store64(out + offset, ss);
+    if (has_stack_switch) {
+        Store64(out + offset, rsp); offset += 8;
+        Store64(out + offset, ss);
+    }
     return true;
 }
 
