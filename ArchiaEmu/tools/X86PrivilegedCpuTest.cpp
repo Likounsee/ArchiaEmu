@@ -24,6 +24,12 @@ int main() {
     Cpu cr; cr.SetCodeSegment(0x8); cr.WriteRegister64(0, 0x4000);
     if(!Run(m,cr,{0x0F,0x22,0xD8,0x0F,0x20,0xC3,0xF4})) return 7;
     if(cr.Cr3()!=0x4000 || cr.ReadRegister64(0)!=0x4000) return 8;
+    Cpu invlpg; invlpg.SetCodeSegment(0x8); invlpg.WriteRegister64(0, 0x1000);
+    if(!Run(m,invlpg,{0x0F,0x01,0x38,0xF4})) return 9;
+    Cpu userInvlpg; userInvlpg.SetCodeSegment(0x1B);
+    gp=false; userInvlpg.SetExceptionHandler([&](Cpu&,const CpuException& e){gp=e.vector==CpuExceptionVector::GeneralProtection; return false;});
+    if(Run(m,userInvlpg,{0x0F,0x01,0x38})) return 10;
+    if(!gp) return 11;
     std::cout<<"x86 privileged CPU instruction test: PASS\n";
     return 0;
 }
