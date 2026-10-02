@@ -67,7 +67,7 @@ int main() {
         cpu.WriteRegister64(0, 0x1122334400000001ULL);
         cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
         if (!Run(memory, cpu, code, sizeof(code)) ||
-            cpu.ReadRegister64(0) != 0x1122334480000000ULL ||
+            cpu.ReadRegister64(0) != 0x0000000080000000ULL ||
             (cpu.Rflags() & (1ULL << 0)) == 0) {
             std::cerr << "32-bit RCR failed\n";
             return 4;
