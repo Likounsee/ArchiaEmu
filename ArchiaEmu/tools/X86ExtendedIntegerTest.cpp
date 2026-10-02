@@ -99,7 +99,17 @@ static bool TestCmpxchg8b() {
     if(!Run(memory,cpu,code))return false;
     std::uint64_t out=0;if(!memory.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8))return false;
     if(out!=0xAABBCCDDEEFF0011ULL || (cpu.Rflags()&(1ULL<<6))==0) return false;
-    return true;
+    const std::uint64_t oldLo=0x1122334455667788ULL, oldHi=0x99AABBCCDDEEFF00ULL;
+    if(!memory.Write(0x1900,reinterpret_cast<const std::uint8_t*>(&oldLo),8)||!memory.Write(0x1908,reinterpret_cast<const std::uint8_t*>(&oldHi),8))return false;
+    Cpu c2; c2.ConnectMemory(&memory);
+    std::vector<std::uint8_t> c={0x48,0xB8,0x88,0x77,0x66,0x55,0x44,0x33,0x22,0x11,
+        0x48,0xBA,0x00,0xFF,0xEE,0xDD,0xCC,0xBB,0xAA,0x99,
+        0x48,0xBB,0x11,0x00,0xFF,0xEE,0xDD,0xCC,0xBB,0xAA,
+        0x48,0xB9,0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,
+        0x48,0x0F,0xC7,0x0C,0x25,0x00,0x19,0x00,0x00};
+    if(!Run(memory,c2,c))return false;
+    std::uint64_t newLo=0,newHi=0;if(!memory.Read(0x1900,reinterpret_cast<std::uint8_t*>(&newLo),8)||!memory.Read(0x1908,reinterpret_cast<std::uint8_t*>(&newHi),8))return false;
+    return newLo==0xAABBCCDDEEFF0011ULL && newHi==0x7766554433221100ULL && (c2.Rflags()&(1ULL<<6))!=0;
 }
 
 static bool TestSystemIntegerOps() {
