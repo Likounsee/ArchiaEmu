@@ -273,6 +273,27 @@ add_executable(X86SyscallCpuTest
 target_include_directories(X86SyscallCpuTest PRIVATE src)
 add_test(NAME X86SyscallCpuTest COMMAND X86SyscallCpuTest)
 
+add_executable(X86ExceptionCpuIntegrationTest
+    tools/X86ExceptionCpuIntegrationTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
+    src/cpu/RegisterFile.cpp
+    src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
+    src/cpu/x86/ExceptionTarget.cpp
+    src/cpu/x86/ExceptionDelivery.cpp
+    src/cpu/x86/Tss64.cpp
+    src/cpu/x86/ExceptionStackFrame64.cpp
+    src/cpu/x86/ExceptionStackWriter64.cpp
+    src/cpu/x86/ExceptionStateApplier64.cpp
+    src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(X86ExceptionCpuIntegrationTest PRIVATE src)
+add_test(NAME X86ExceptionCpuIntegrationTest COMMAND X86ExceptionCpuIntegrationTest)
+
 add_executable(X86PrivilegeTransitionTest
     tools/X86PrivilegeTransitionTest.cpp
     src/cpu/x86/PrivilegeTransition.cpp
