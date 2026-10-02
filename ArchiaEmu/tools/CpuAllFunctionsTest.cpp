@@ -4702,6 +4702,16 @@ void TestOperandSizeOverrideArithmetic()
     }
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660001ULL); code.insert(code.end(), {0x66, 0xF7, 0xD8}); code = Finish(code);
+        CHECK("66h F7 NEG r/m16 preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x112233445566FFFFULL && (cpu.Rflags() & 1ULL) != 0);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x11223344556600F0ULL); code.insert(code.end(), {0x66, 0xF7, 0xD0}); code = Finish(code);
+        CHECK("66h F7 NOT r/m16 preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x112233445566FF0FULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
         auto code = MovR64(0, 0x1122334455660001ULL); code.insert(code.end(), {0x66, 0x81, 0xC0, 0x34, 0x12}); code = Finish(code);
         CHECK("66h Group1 ADD r/m16,imm16", RunCode(cpu, mem, code) && cpu.Rax() == 0x1122334455661235ULL);
     }
