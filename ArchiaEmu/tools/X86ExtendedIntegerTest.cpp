@@ -162,6 +162,14 @@ static bool TestByteAlu() {
     return Run(memory,cpu,code) && (cpu.ReadRegister64(0)&0xFFU)==0x10U;
 }
 
+static bool TestIncDecByte() {
+    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
+    cpu.SetRflags(cpu.Rflags()|1ULL);
+    std::vector<std::uint8_t> code={0xB0,0x7F,0xFE,0xC0,0xFE,0xC8};
+    if(!Run(memory,cpu,code))return false;
+    return (cpu.ReadRegister64(0)&0xFFU)==0x7FU && (cpu.Rflags()&1ULL)!=0;
+}
+
 static bool TestMovByteImmediate() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code={0xB0,0x5A,0xC6,0xC3,0x7E,0xF4};
@@ -354,6 +362,7 @@ int main() {
     if (!TestBitModify()) { std::cerr << "bit modify failed\n"; return 6; }
     if (!TestBitScan()) { std::cerr << "bit scan failed\n"; return 6; }
     if (!TestByteAlu()) { std::cerr << "byte ALU failed\n"; return 6; }
+    if (!TestIncDecByte()) { std::cerr << "byte INC/DEC failed\n"; return 6; }
     if (!TestMovByteImmediate()) { std::cerr << "byte immediate MOV failed\n"; return 6; }
     if (!TestByteMov()) { std::cerr << "byte MOV failed\n"; return 6; }
     if (!TestAccumulatorXchg()) { std::cerr << "accumulator XCHG failed\n"; return 6; }
