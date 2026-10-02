@@ -94,7 +94,7 @@ int main() {
         return Fail("1GiB page accepted reserved address bits") ? 0 : 1;
     }
 
-    // NX is reserved when EFER.NXE is disabled.
+    // Restore the 4KiB walk before testing NX semantics.\n    Q(mem, 0x2000, 0x3000 | 0x7);\n    Q(mem, 0x3000, 0x4000 | 0x7);\n\n    // NX is reserved when EFER.NXE is disabled.
     paging.SetEfer(0);
     Q(mem, 0x4000, 0x8000 | 0x7 | (1ULL << 63));
     r = paging.Translate(0x123, false, false, false);
