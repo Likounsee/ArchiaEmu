@@ -132,6 +132,8 @@ Memory* memory_ = nullptr;
 
     bool Push64(std::uint64_t value);
     bool Pop64(std::uint64_t& value);
+    bool Push16(std::uint16_t value);
+    bool Pop16(std::uint16_t& value);
 
     RexPrefix DecodeRex(std::uint8_t byte) const noexcept;
 
