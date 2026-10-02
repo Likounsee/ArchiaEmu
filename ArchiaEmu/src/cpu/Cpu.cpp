@@ -4377,6 +4377,19 @@ int Cpu::Run()
                 if(group!=1U)return 1;
                 std::uint8_t reg=0,rm=0;std::uint64_t address=0;bool memory=false;
                 if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)||!memory)return 1;
+                if(rex.w){
+                    std::uint64_t currentLo=0,currentHi=0;
+                    if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&currentLo),8)||!ReadMemory(address+8,reinterpret_cast<std::uint8_t*>(&currentHi),8))return 1;
+                    const std::uint64_t expectedLo=registers_.Read64(0),expectedHi=registers_.Read64(2);
+                    if(currentLo==expectedLo&&currentHi==expectedHi){
+                        const std::uint64_t replacementLo=registers_.Read64(3),replacementHi=registers_.Read64(1);
+                        if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&replacementLo),8)||!WriteMemory(address+8,reinterpret_cast<const std::uint8_t*>(&replacementHi),8))return 1;
+                        rflags_|=ZF_MASK;
+                    }else{
+                        registers_.Write64(0,currentLo);registers_.Write64(2,currentHi);rflags_&=~ZF_MASK;
+                    }
+                    break;
+                }
                 std::uint64_t current=0;if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&current),8))return 1;
                 const std::uint64_t expected=(static_cast<std::uint64_t>(registers_.Read32(2))<<32)|registers_.Read32(0);
                 if(current==expected){
