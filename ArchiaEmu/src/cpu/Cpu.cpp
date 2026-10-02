@@ -6758,391 +6758,139 @@ case 0xD0:
         case ADD_RM32_R32:
         {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
+            if (!Fetch8(modrm)) return 1;
             if (operand_size_override_) {
-                if (!DecodeAdd16Store(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeAdd16Store(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
-
-                std::uint8_t reg = 0;
-                std::uint8_t rm = 0;
+                std::uint8_t reg = 0, rm = 0;
                 std::uint64_t address = 0;
                 bool memory = false;
-
-                if (!DecodeMemoryOrRegister32(
-                        modrm,
-                        rex,
-                        reg,
-                        rm,
-                        address,
-                        memory)) {
-                    return 1;
-                }
-
-                const std::uint64_t rhs =
-                    registers_.Read64(reg);
-
+                if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
+                const std::uint64_t rhs = registers_.Read64(reg);
                 if (memory) {
-
                     std::uint64_t lhs = 0;
-
-                    if (!ReadMemory(
-                            address,
-                            reinterpret_cast<std::uint8_t*>(&lhs),
-                            sizeof(lhs))) {
-                        return 1;
-                    }
-
-                    const std::uint64_t result =
-                        lhs + rhs;
-
-                    if (!WriteMemory(
-                            address,
-                            reinterpret_cast<const std::uint8_t*>(&result),
-                            sizeof(result))) {
-                        return 1;
-                    }
-
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&lhs), sizeof(lhs))) return 1;
+                    const std::uint64_t result = lhs + rhs;
+                    if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return 1;
                     SetAddFlags64(lhs, rhs, result);
-                }
-                else {
-
-                    const std::uint64_t lhs =
-                        registers_.Read64(rm);
-
-                    const std::uint64_t result =
-                        lhs + rhs;
-
+                } else {
+                    const std::uint64_t lhs = registers_.Read64(rm);
+                    const std::uint64_t result = lhs + rhs;
                     registers_.Write64(rm, result);
-
                     SetAddFlags64(lhs, rhs, result);
-
-                    std::cout
-                        << "[CPU] ADD64 r64["
-                        << static_cast<unsigned>(rm)
-                        << "] += r64["
-                        << static_cast<unsigned>(reg)
-                        << "] -> 0x"
-                        << std::hex
-                        << result
-                        << std::dec
-                        << '\n';
                 }
             }
             else {
-
-                if (!DecodeAdd32Store(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeAdd32Store(modrm, rex)) return 1;
             }
-
             break;
         }
 
         case ADD_R32_RM32:
         {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
+            if (!Fetch8(modrm)) return 1;
             if (operand_size_override_) {
-                if (!DecodeAdd16(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeAdd16(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
-                if (!DecodeAdd64(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeAdd64(modrm, rex)) return 1;
             }
             else {
-                if (!DecodeAdd32(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeAdd32(modrm, rex)) return 1;
             }
-
             break;
         }
-
-        
-        
-        
 
         case SUB_RM32_R32:
         {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
+            if (!Fetch8(modrm)) return 1;
             if (operand_size_override_) {
-                if (!DecodeSub16Store(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeSub16Store(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
-
-                std::uint8_t reg = 0;
-                std::uint8_t rm = 0;
+                std::uint8_t reg = 0, rm = 0;
                 std::uint64_t address = 0;
                 bool memory = false;
-
-                if (!DecodeMemoryOrRegister32(
-                        modrm,
-                        rex,
-                        reg,
-                        rm,
-                        address,
-                        memory)) {
-                    return 1;
-                }
-
-                const std::uint64_t rhs =
-                    registers_.Read64(reg);
-
+                if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
+                const std::uint64_t rhs = registers_.Read64(reg);
                 if (memory) {
-
                     std::uint64_t lhs = 0;
-
-                    if (!ReadMemory(
-                            address,
-                            reinterpret_cast<std::uint8_t*>(&lhs),
-                            sizeof(lhs))) {
-                        return 1;
-                    }
-
-                    const std::uint64_t result =
-                        lhs - rhs;
-
-                    if (!WriteMemory(
-                            address,
-                            reinterpret_cast<const std::uint8_t*>(&result),
-                            sizeof(result))) {
-                        return 1;
-                    }
-
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&lhs), sizeof(lhs))) return 1;
+                    const std::uint64_t result = lhs - rhs;
+                    if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return 1;
                     SetSubFlags64(lhs, rhs, result);
-                }
-                else {
-
-                    const std::uint64_t lhs =
-                        registers_.Read64(rm);
-
-                    const std::uint64_t result =
-                        lhs - rhs;
-
+                } else {
+                    const std::uint64_t lhs = registers_.Read64(rm);
+                    const std::uint64_t result = lhs - rhs;
                     registers_.Write64(rm, result);
-
                     SetSubFlags64(lhs, rhs, result);
-
-                    std::cout
-                        << "[CPU] SUB64 r64["
-                        << static_cast<unsigned>(rm)
-                        << "] -= r64["
-                        << static_cast<unsigned>(reg)
-                        << "] -> 0x"
-                        << std::hex
-                        << result
-                        << std::dec
-                        << '\n';
                 }
             }
             else {
-
-                if (!DecodeSub32Store(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeSub32Store(modrm, rex)) return 1;
             }
-
             break;
         }
 
         case SUB_R32_RM32:
         {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
+            if (!Fetch8(modrm)) return 1;
             if (operand_size_override_) {
-                if (!DecodeSub16(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeSub16(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
-                if (!DecodeSub64(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeSub64(modrm, rex)) return 1;
             }
             else {
-                if (!DecodeSub32(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeSub32(modrm, rex)) return 1;
             }
-
             break;
         }
-
-        
-        
-        
 
         case CMP_RM32_R32:
         {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
-            
-            
-            
-            
-            
-
+            if (!Fetch8(modrm)) return 1;
             if (operand_size_override_) {
-                if (!DecodeCmp16(opcode, modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeCmp16(0x39, modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
-
-                std::uint8_t reg = 0;
-                std::uint8_t rm = 0;
-
+                std::uint8_t reg = 0, rm = 0;
                 std::uint64_t address = 0;
                 bool memory = false;
-
-                if (!DecodeMemoryOrRegister32(
-                        modrm,
-                        rex,
-                        reg,
-                        rm,
-                        address,
-                        memory)) {
-
-                    return 1;
-                }
-
+                if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
                 std::uint64_t lhs = 0;
-                std::uint64_t rhs = 0;
-
                 if (memory) {
-
-                    if (!ReadMemory(
-                            address,
-                            reinterpret_cast<std::uint8_t*>(&lhs),
-                            sizeof(lhs))) {
-
-                        std::cerr
-                            << "[CPU] CMP64 memory read failed at 0x"
-                            << std::hex
-                            << address
-                            << std::dec
-                            << '\n';
-
-                        return 1;
-                    }
-
-                }
-                else {
-
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&lhs), sizeof(lhs))) return 1;
+                } else {
                     lhs = registers_.Read64(rm);
                 }
-
-                rhs = registers_.Read64(reg);
-
-                const std::uint64_t result =
-                    lhs - rhs;
-
-                SetSubFlags64(
-                    lhs,
-                    rhs,
-                    result);
-
-                std::cout
-                    << "[CPU] CMP64 r/m64,r64 lhs=0x"
-                    << std::hex
-                    << lhs
-                    << " rhs=0x"
-                    << rhs
-                    << " result=0x"
-                    << result
-                    << " ZF="
-                    << (ZeroFlag() ? 1 : 0)
-                    << " SF="
-                    << (SignFlag() ? 1 : 0)
-                    << std::dec
-                    << '\n';
-
-                break;
+                const std::uint64_t rhs = registers_.Read64(reg);
+                SetSubFlags64(lhs, rhs, lhs - rhs);
             }
-
-            
-            
-            
-
-            if (!DecodeCmp32(
-                    opcode,
-                    modrm,
-                    rex)) {
-
-                return 1;
+            else {
+                if (!DecodeCmp32(0x39, modrm, rex)) return 1;
             }
-
             break;
         }
+
         case CMP_R32_RM32:
         {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
+            if (!Fetch8(modrm)) return 1;
             if (operand_size_override_) {
-                if (!DecodeCmp16(opcode, modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeCmp16(0x3B, modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
-                if (!DecodeCmp64(modrm, rex)) {
-                    return 1;
-                }
-            }
-            else if (operand_size_override_) {
-                if (!DecodeCmp16(0x39, modrm, rex)) {
-                    return 1;
-                }
-            }
-            else if (operand_size_override_) {
-                if (!DecodeCmp16(0x3B, modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeCmp64(modrm, rex)) return 1;
             }
             else {
-                if (!DecodeCmp32(0x3B, modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeCmp32(0x3B, modrm, rex)) return 1;
             }
-
             break;
         }
 
