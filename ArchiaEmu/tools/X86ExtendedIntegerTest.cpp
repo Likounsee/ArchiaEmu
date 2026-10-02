@@ -83,6 +83,20 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestMoffs() {
+    Memory memory; memory.Map(0x1000,0x5000);
+    Cpu cpu; cpu.ConnectMemory(&memory);
+    const std::uint64_t value=0x1122334455667788ULL;
+    if(!memory.Write(0x3000,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+    std::vector<std::uint8_t> load={0x48,0xA1,0x00,0x30,0x00,0x00,0x00,0x00,0x00,0x00,0xF4};
+    if(!Run(memory,cpu,load) || cpu.Rax()!=value) return false;
+    Cpu cpu2; cpu2.ConnectMemory(&memory); cpu2.WriteRegister64(0,0xA5);
+    std::vector<std::uint8_t> store={0xA2,0x08,0x30,0x00,0x00,0x00,0x00,0x00,0x00,0xF4};
+    if(!Run(memory,cpu2,store)) return false;
+    std::uint8_t out=0; if(!memory.Read(0x3008,&out,1)) return false;
+    return out==0xA5;
+}
+
 static bool TestEnterLeave() {
     Memory memory; memory.Map(0x1000,0x3000);
     Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetStackPointer(0x3000); cpu.WriteRegister64(5,0x123456789ABCDEF0ULL);
@@ -216,6 +230,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestMoffs()) { std::cerr << "moffs failed\n"; return 6; }
     if (!TestEnterLeave()) { std::cerr << "ENTER failed\n"; return 6; }
     if (!TestControlTransferGroups()) { std::cerr << "control transfer groups failed\n"; return 6; }
     if (!TestSoftwareInterrupts()) { std::cerr << "software interrupts failed\n"; return 6; }
