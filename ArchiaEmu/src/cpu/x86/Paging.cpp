@@ -115,7 +115,8 @@ PagingResult Paging::Translate(
             if (user && !effective_user) {
                 return Fault(PagingFault::User, write, user, instruction);
             }
-            if (write && !effective_write) {
+            if (write && !effective_write &&
+                (user || (cr0_ & (1ULL << 16)) != 0)) {
                 return Fault(PagingFault::Write, write, user, instruction);
             }
             return {true, (entry & 0x000FFFFFC0000000ULL) |
@@ -130,7 +131,8 @@ PagingResult Paging::Translate(
             if (user && !effective_user) {
                 return Fault(PagingFault::User, write, user, instruction);
             }
-            if (write && !effective_write) {
+            if (write && !effective_write &&
+                (user || (cr0_ & (1ULL << 16)) != 0)) {
                 return Fault(PagingFault::Write, write, user, instruction);
             }
             return {true, (entry & 0x000FFFFFFFE00000ULL) |
@@ -145,7 +147,8 @@ PagingResult Paging::Translate(
             if (user && !effective_user) {
                 return Fault(PagingFault::User, write, user, instruction);
             }
-            if (write && !effective_write) {
+            if (write && !effective_write &&
+                (user || (cr0_ & (1ULL << 16)) != 0)) {
                 return Fault(PagingFault::Write, write, user, instruction);
             }
             return {true, (entry & 0x000FFFFFFFFFF000ULL) |
@@ -158,6 +161,9 @@ PagingResult Paging::Translate(
 
     return Fault(PagingFault::Malformed, write, user, instruction);
 }
+
+void Paging::SetCr0(std::uint64_t value) noexcept { cr0_ = value; }
+std::uint64_t Paging::Cr0() const noexcept { return cr0_; }
 
 void Paging::SetCr3(std::uint64_t value) noexcept { cr3_ = value; }
 std::uint64_t Paging::Cr3() const noexcept { return cr3_; }
