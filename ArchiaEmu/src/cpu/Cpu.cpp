@@ -292,6 +292,11 @@ const CpuException& Cpu::LastException() const noexcept
     return last_exception_;
 }
 
+bool Cpu::DeliverException(const CpuException& exception)
+{
+    return RaiseException(exception);
+}
+
 bool Cpu::RaiseException(const CpuException& exception)
 {
     last_exception_ = exception;
