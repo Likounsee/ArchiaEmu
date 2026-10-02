@@ -20,14 +20,14 @@ bool Bus::Map(std::uint64_t virtual_address,
         SetFault(MemoryFault::InvalidRange);
         return false;
     }
-    if (HasOverlappingRegion(virtual_address, size)) {
-        SetFault(MemoryFault::Overlap);
-        return false;
-    }
-
     const auto size64 = static_cast<std::uint64_t>(size);
     if (size64 > std::numeric_limits<std::uint64_t>::max() - virtual_address) {
         SetFault(MemoryFault::InvalidRange);
+        return false;
+    }
+
+    if (HasOverlappingRegion(virtual_address, size)) {
+        SetFault(MemoryFault::Overlap);
         return false;
     }
 
@@ -55,14 +55,14 @@ bool Bus::MapDevice(std::uint64_t base,
         SetFault(MemoryFault::InvalidRange);
         return false;
     }
-    if (HasOverlappingRegion(base, size)) {
-        SetFault(MemoryFault::Overlap);
-        return false;
-    }
-
     const auto size64 = static_cast<std::uint64_t>(size);
     if (size64 > std::numeric_limits<std::uint64_t>::max() - base) {
         SetFault(MemoryFault::InvalidRange);
+        return false;
+    }
+
+    if (HasOverlappingRegion(base, size)) {
+        SetFault(MemoryFault::Overlap);
         return false;
     }
 
