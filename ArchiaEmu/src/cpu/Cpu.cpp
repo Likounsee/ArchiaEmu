@@ -4719,94 +4719,66 @@ int Cpu::Run()
             }
             break;
         }
-        case 0xFF: { 
+        case 0xFF: {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
-            const std::uint8_t group = (modrm >> 3) & 0x7;
-            const std::uint8_t mod = (modrm >> 6) & 0x3;
-
-            
-            if (mod != 0x3) {
-                return 1;
-            }
-
-            const std::uint8_t rm =
-                (modrm & 0x7) | (rex.b ? 8 : 0);
-
-            
-            
-            if (group != 0 && group != 1) {
-                return 1;
-            }
-
-            const bool old_cf = (rflags_ & CF_MASK) != 0;
-
-            if (operand_size_override_ && !rex.w) {
-                const std::uint16_t value = registers_.Read16(rm);
-                const std::uint16_t result = (group == 0) ? static_cast<std::uint16_t>(value + 1U) : static_cast<std::uint16_t>(value - 1U);
-                registers_.Write16(rm, result);
-                SetZeroFlag(result == 0);
-                SetSignFlag((result & 0x8000U) != 0);
-                const bool overflow = (group == 0) ? (value == 0x7FFFU) : (value == 0x8000U);
-                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
-                if (old_cf) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+            if (!Fetch8(modrm)) return 1;
+            const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+            if (group == 0 || group == 1) {
+                const std::uint8_t mod = static_cast<std::uint8_t>((modrm >> 6) & 0x03);
+                if (mod != 3) return 1;
+                const std::uint8_t rm = static_cast<std::uint8_t>((modrm & 7) | (rex.b ? 8 : 0));
+                const bool old_cf = (rflags_ & CF_MASK) != 0;
+                if (operand_size_override_ && !rex.w) {
+                    const std::uint16_t value=registers_.Read16(rm), result=group==0?static_cast<std::uint16_t>(value+1):static_cast<std::uint16_t>(value-1);
+                    registers_.Write16(rm,result); SetZeroFlag(result==0); SetSignFlag((result&0x8000U)!=0);
+                    if (group==0 ? value==0x7FFFU : value==0x8000U) rflags_|=OF_MASK; else rflags_&=~OF_MASK;
+                } else if (rex.w) {
+                    const std::uint64_t value=registers_.Read64(rm), result=group==0?value+1:value-1;
+                    registers_.Write64(rm,result); SetZeroFlag(result==0); SetSignFlag((result>>63)!=0);
+                    if (group==0 ? value==0x7FFFFFFFFFFFFFFFULL : value==0x8000000000000000ULL) rflags_|=OF_MASK; else rflags_&=~OF_MASK;
+                } else {
+                    const std::uint32_t value=registers_.Read32(rm), result=group==0?value+1U:value-1U;
+                    registers_.Write32(rm,result); SetZeroFlag(result==0); SetSignFlag((result>>31)!=0);
+                    if (group==0 ? value==0x7FFFFFFFU : value==0x80000000U) rflags_|=OF_MASK; else rflags_&=~OF_MASK;
+                }
+                if (old_cf) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
                 break;
             }
 
-            if (rex.w) {
-                const std::uint64_t value = registers_.Read64(rm);
-                const std::uint64_t result =
-                    (group == 0) ? value + 1 : value - 1;
-
-                registers_.Write64(rm, result);
-
-                SetZeroFlag(result == 0);
-                SetSignFlag((result & 0x8000000000000000ULL) != 0);
-
-                const bool overflow =
-                    (group == 0)
-                        ? (value == 0x7FFFFFFFFFFFFFFFULL)
-                        : (value == 0x8000000000000000ULL);
-
-                if (overflow) {
-                    rflags_ |= OF_MASK;
-                } else {
-                    rflags_ &= ~OF_MASK;
-                }
+            std::uint8_t reg = 0, rm = 0;
+            std::uint64_t address = 0;
+            bool memory = false;
+            if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
+            const bool word = operand_size_override_ && !rex.w;
+            const bool wide = rex.w;
+            std::uint64_t target = 0;
+            if (word) {
+                std::uint16_t value=0;
+                if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),2))return 1;}else value=registers_.Read16(rm);
+                target=value;
+            } else if (wide) {
+                if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&target),8))return 1;}else target=registers_.Read64(rm);
             } else {
-                const std::uint32_t value = registers_.Read32(rm);
-                const std::uint32_t result =
-                    (group == 0) ? value + 1U : value - 1U;
-
-                registers_.Write32(rm, result);
-
-                SetZeroFlag(result == 0);
-                SetSignFlag((result & 0x80000000U) != 0);
-
-                const bool overflow =
-                    (group == 0)
-                        ? (value == 0x7FFFFFFFU)
-                        : (value == 0x80000000U);
-
-                if (overflow) {
-                    rflags_ |= OF_MASK;
-                } else {
-                    rflags_ &= ~OF_MASK;
-                }
+                std::uint32_t value=0;
+                if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),4))return 1;}else value=registers_.Read32(rm);
+                target=value;
             }
 
-            
-            if (old_cf) {
-                rflags_ |= CF_MASK;
-            } else {
-                rflags_ &= ~CF_MASK;
+            if (group == 2 || group == 4) {
+                if (!Push64(instruction_pointer_)) return 1;
+                instruction_pointer_ = target;
+                if (group == 2) ++call_depth;
+                break;
             }
-
-            break;
+            if (group == 6) {
+                if (word) { if(!Push16(static_cast<std::uint16_t>(target))) return 1; }
+                else { if(!Push64(target)) return 1; }
+                break;
+            }
+            if (group == 3 || group == 5) {
+                return 1;
+            }
+            return 1;
         }
 
         case 0xF6: {
