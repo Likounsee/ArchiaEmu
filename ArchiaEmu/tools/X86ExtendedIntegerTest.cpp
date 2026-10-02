@@ -83,6 +83,35 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestFlagsAndLoops() {
+    Memory memory; memory.Map(0x1000, 0x2000);
+    Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 0, 0x000000000000D500ULL);
+    code.insert(code.end(), {0x9E, 0x9F});
+    if (!Run(memory, cpu, code) || ((cpu.Rax() >> 8) & 0xFFU) != 0xD7U) return false;
+
+    Memory memory2; memory2.Map(0x1000, 0x2000);
+    Cpu cpu2; cpu2.ConnectMemory(&memory2);
+    std::vector<std::uint8_t> flagsCode = {0xF8, 0xF9, 0xF5, 0xFC, 0xFD};
+    if (!Run(memory2, cpu2, flagsCode)) return false;
+    if ((cpu2.Rflags() & 1ULL) == 0 || (cpu2.Rflags() & (1ULL << 10)) == 0) return false;
+
+    Memory memory3; memory3.Map(0x1000, 0x2000);
+    Cpu cpu3; cpu3.ConnectMemory(&memory3);
+    std::vector<std::uint8_t> loopCode;
+    AppendMovR64(loopCode, 1, 2);
+    loopCode.insert(loopCode.end(), {0xE2, 0xFE, 0xF4});
+    if (!Run(memory3, cpu3, loopCode) || cpu3.ReadRegister64(1) != 0) return false;
+
+    Memory memory4; memory4.Map(0x1000, 0x2000);
+    Cpu cpu4; cpu4.ConnectMemory(&memory4);
+    std::vector<std::uint8_t> jrcxzCode;
+    AppendMovR64(jrcxzCode, 1, 0);
+    jrcxzCode.insert(jrcxzCode.end(), {0xE3, 0x01, 0x90, 0xF4});
+    return Run(memory4, cpu4, jrcxzCode);
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -100,7 +129,8 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
-    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 6; }
+    if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 6; }
+    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 7; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
 }
