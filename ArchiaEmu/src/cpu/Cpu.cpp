@@ -3162,7 +3162,52 @@ int Cpu::Run()
 
             if (!Fetch8(opcode2)) {
                 return 1;
-            }            if (opcode2 == 0x20 || opcode2 == 0x22) {
+            }            if (opcode2 == 0x01) {
+                std::uint8_t modrmInvlpg = 0;
+                if (!Fetch8(modrmInvlpg)) return 1;
+                const std::uint8_t regField =
+                    static_cast<std::uint8_t>((modrmInvlpg >> 3) & 0x07U);
+                const std::uint8_t mod =
+                    static_cast<std::uint8_t>((modrmInvlpg >> 6) & 0x03U);
+                if (regField != 7U || mod == 0x03U) {
+                    if (!RaiseException({
+                        CpuExceptionKind::InvalidOpcode,
+                        instruction_address,
+                        MemoryFault::None,
+                        CpuExceptionVector::InvalidOpcode
+                    })) return 1;
+                    break;
+                }
+                std::uint8_t reg = 0;
+                std::uint8_t rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+                if (!DecodeMemoryOrRegister32(
+                        modrmInvlpg, rex, reg, rm, address, memory) ||
+                    !memory) {
+                    if (!RaiseException({
+                        CpuExceptionKind::InvalidOpcode,
+                        instruction_address,
+                        MemoryFault::None,
+                        CpuExceptionVector::InvalidOpcode
+                    })) return 1;
+                    break;
+                }
+                const auto result = x86::Privileged::Invlpg(
+                    static_cast<std::uint8_t>(code_segment_ & 0x3U));
+                if (result.status != x86::PrivilegedStatus::Success) {
+                    if (!RaiseException({
+                        CpuExceptionKind::GeneralProtection,
+                        instruction_address,
+                        MemoryFault::None,
+                        CpuExceptionVector::GeneralProtection
+                    })) return 1;
+                    break;
+                }
+                break;
+            }
+
+            if (opcode2 == 0x20 || opcode2 == 0x22) {
                 std::uint8_t modrmCr = 0;
                 if (!Fetch8(modrmCr)) return 1;
                 const std::uint8_t mod =
