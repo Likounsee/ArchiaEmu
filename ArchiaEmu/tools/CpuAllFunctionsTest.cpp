@@ -4356,6 +4356,7 @@ void TestOperandSizeOverride()
     // 66 BB ABCDh = MOV BX,ABCDh; 66 89 02 = MOV [RDX],AX;
     // 66 8B 0A = MOV CX,[RDX].
     code.insert(code.end(), {0x66, 0xBB, 0xCD, 0xAB});
+    code.insert(code.end(), {0x66, 0x89, 0xD8});
     Append(code, MovR64(2, DATA));
     code.insert(code.end(), {0x66, 0x89, 0x02});
     code.insert(code.end(), {0x66, 0x8B, 0x0A});
