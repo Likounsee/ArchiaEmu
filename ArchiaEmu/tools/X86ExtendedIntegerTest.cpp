@@ -83,6 +83,23 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestStringInstructions() {
+    Memory memory; memory.Map(0x1000, 0x4000);
+    Cpu cpu; cpu.ConnectMemory(&memory);
+    const std::uint8_t source[] = {1,2,3,4};
+    if (!memory.Write(0x2000, source, sizeof(source))) return false;
+    cpu.WriteRegister64(6, 0x2000);
+    cpu.WriteRegister64(7, 0x2010);
+    cpu.WriteRegister64(1, 4);
+    std::vector<std::uint8_t> code = {0xF3, 0xA4};
+    if (!Run(memory, cpu, code)) return false;
+    std::uint8_t copied[4]{};
+    if (!memory.Read(0x2010, copied, sizeof(copied))) return false;
+    return copied[0] == 1 && copied[1] == 2 && copied[2] == 3 && copied[3] == 4 &&
+           cpu.ReadRegister64(6) == 0x2004 && cpu.ReadRegister64(7) == 0x2014 &&
+           cpu.ReadRegister64(1) == 0;
+}
+
 static bool TestFlagsAndLoops() {
     Memory memory; memory.Map(0x1000, 0x2000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -129,8 +146,9 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
-    if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 6; }
-    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 7; }
+    if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
+    if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
+    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
 }
