@@ -66,7 +66,8 @@ PagingResult Paging::Fault(
         0,
         reason,
         ErrorBits(write, user, instruction) |
-            (reason != PagingFault::NotPresent ? 1U : 0U)
+            (reason != PagingFault::NotPresent ? 1U : 0U) |
+            (reason == PagingFault::Reserved ? kPfReserved : 0U)
     };
 }
 
