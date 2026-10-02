@@ -100,9 +100,10 @@ ExceptionReturnResult ExceptionReturn64::Read(
         return result;
     }
 
+    // In IA-32e mode RFLAGS bits 63:22 are reserved and must be zero;
+    // bit 21 (ID) is the highest architecturally defined bit.
     if ((result.rflags & 0x2U) == 0 ||
-        (result.rflags & ((1ULL << 3) | (1ULL << 5) |
-                          (1ULL << 15) | (1ULL << 22))) != 0) {
+        (result.rflags & 0xFFFFFFFFFFC00000ULL) != 0) {
         result.status = ExceptionReturnStatus::InvalidRflags;
         return result;
     }
