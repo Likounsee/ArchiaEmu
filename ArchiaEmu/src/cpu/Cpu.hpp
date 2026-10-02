@@ -12,6 +12,17 @@ class Memory;
 class Paging;
 class Cpu {
 public:
+    void SetPaging(Paging* paging) noexcept;
+    void SetCr0(std::uint64_t value) noexcept;
+    std::uint64_t Cr0() const noexcept;
+    void SetCr2(std::uint64_t value) noexcept;
+    std::uint64_t Cr2() const noexcept;
+    void SetCr3(std::uint64_t value) noexcept;
+    std::uint64_t Cr3() const noexcept;
+    void SetCr4(std::uint64_t value) noexcept;
+    std::uint64_t Cr4() const noexcept;
+    void SetEfer(std::uint64_t value) noexcept;
+    std::uint64_t Efer() const noexcept;
     void ConnectMemory(Memory* memory) noexcept;
 
     void SetInstructionPointer(std::uint64_t value) noexcept;
@@ -83,6 +94,12 @@ private:
         std::uint16_t code_segment_ = 0;
     std::uint16_t stack_segment_ = 0;
 Memory* memory_ = nullptr;
+    Paging* paging_ = nullptr;
+    std::uint64_t cr0_ = 0;
+    std::uint64_t cr2_ = 0;
+    std::uint64_t cr3_ = 0;
+    std::uint64_t cr4_ = 0;
+    std::uint64_t efer_ = 0;
     FrameCallback frame_callback_;
     SyscallHandler syscall_handler_;
     ExceptionHandler exception_handler_;
