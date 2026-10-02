@@ -35,6 +35,9 @@ public:
         bool user,
         bool instruction) const;
 
+    void SetCr0(std::uint64_t value) noexcept;
+    std::uint64_t Cr0() const noexcept;
+
     void SetCr3(std::uint64_t value) noexcept;
     std::uint64_t Cr3() const noexcept;
 
@@ -55,6 +58,7 @@ private:
         bool instruction) noexcept;
 
     Memory& memory_;
+    std::uint64_t cr0_ = 0;
     std::uint64_t cr3_ = 0;
     std::uint64_t cr4_ = 0;
     std::uint64_t efer_ = 0;
