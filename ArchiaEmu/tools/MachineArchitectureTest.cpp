@@ -171,6 +171,21 @@ int main()
         return Fail("Bus accepted overlapping mapping") ? 0 : 1;
     }
 
+    if (bus.MapDevice(0x30000000, 0, &ramDevice) ||
+        bus.LastFault() != MemoryFault::InvalidRange) {
+        return Fail("Bus did not report invalid device mapping range") ? 0 : 1;
+    }
+
+    if (bus.MapDevice(0x20000000, 0x10, &ramDevice) ||
+        bus.LastFault() != MemoryFault::Overlap) {
+        return Fail("Bus did not report overlapping device mapping") ? 0 : 1;
+    }
+
+    if (bus.Map(0x400000, 0x1000) ||
+        bus.LastFault() != MemoryFault::Overlap) {
+        return Fail("Bus did not report overlapping RAM mapping") ? 0 : 1;
+    }
+
     if (!bus.UnmapDevice(&ramDevice) ||
         bus.UnmapDevice(&ramDevice)) {
         return Fail("Device unmapping semantics failed") ? 0 : 1;
