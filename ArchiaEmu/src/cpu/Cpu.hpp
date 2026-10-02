@@ -169,11 +169,17 @@ Memory* memory_ = nullptr;
     bool DecodeAdd16(
         std::uint8_t modrm,
         const RexPrefix& rex);
+    bool DecodeAdd16Store(
+        std::uint8_t modrm,
+        const RexPrefix& rex);
 
     bool DecodeSub32(
         std::uint8_t modrm,
         const RexPrefix& rex);
     bool DecodeSub16(
+        std::uint8_t modrm,
+        const RexPrefix& rex);
+    bool DecodeSub16Store(
         std::uint8_t modrm,
         const RexPrefix& rex);
 
