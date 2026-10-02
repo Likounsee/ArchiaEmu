@@ -4001,7 +4001,21 @@ int Cpu::Run()
                 return 1;
             }
 
-            if (rex.w) {
+            if (operand_size_override_ && !rex.w) {
+                const std::int16_t lhs = static_cast<std::int16_t>(registers_.Read16(rm));
+                std::int16_t rhs = 0;
+                if (memory) {
+                    std::uint16_t raw = 0;
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&raw), sizeof(raw))) return 1;
+                    rhs = static_cast<std::int16_t>(raw);
+                } else rhs = static_cast<std::int16_t>(registers_.Read16(rm));
+                const std::int32_t product = static_cast<std::int32_t>(lhs) * static_cast<std::int32_t>(rhs);
+                const std::uint16_t result = static_cast<std::uint16_t>(product);
+                registers_.Write16(reg, result);
+                const bool overflow = product < std::numeric_limits<std::int16_t>::min() || product > std::numeric_limits<std::int16_t>::max();
+                if (overflow) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
+            }
+            else if (rex.w) {
 
                 const std::int64_t lhs =
                     static_cast<std::int64_t>(
