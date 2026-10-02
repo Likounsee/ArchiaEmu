@@ -50,6 +50,34 @@ add_executable(myps5emu
 )
 target_include_directories(myps5emu PRIVATE src)
 
+add_executable(EmulatorLoadGameTest
+    tools/EmulatorLoadGameTest.cpp
+    src/core/Emulator.cpp
+    src/core/Machine.cpp
+    src/core/Bus.cpp
+    src/core/RamDevice.cpp
+    src/core/RomDevice.cpp
+    src/core/MmioRegisterDevice.cpp
+    src/loader/Elf64Loader.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/RegisterFile.cpp
+    src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
+    src/cpu/x86/ExceptionTarget.cpp
+    src/cpu/x86/ExceptionDelivery.cpp
+    src/cpu/x86/Tss64.cpp
+    src/cpu/x86/ExceptionStackFrame64.cpp
+    src/cpu/x86/ExceptionStackWriter64.cpp
+    src/cpu/x86/ExceptionEntryWriter64.cpp
+    src/cpu/x86/ExceptionStateApplier64.cpp
+    src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(EmulatorLoadGameTest PRIVATE src)
+add_test(NAME EmulatorLoadGameTest COMMAND EmulatorLoadGameTest)
+
 add_executable(CpuAllFunctionsTest
     tools/CpuAllFunctionsTest.cpp
     src/memory/Memory.cpp
