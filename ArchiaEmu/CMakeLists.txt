@@ -424,6 +424,28 @@ add_executable(X86IretqCpuTest
 target_include_directories(X86IretqCpuTest PRIVATE src)
 add_test(NAME X86IretqCpuTest COMMAND X86IretqCpuTest)
 
+add_executable(X86InvalidOpcodeResumeTest
+    tools/X86InvalidOpcodeResumeTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
+    src/cpu/RegisterFile.cpp
+    src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
+    src/cpu/x86/ExceptionTarget.cpp
+    src/cpu/x86/ExceptionDelivery.cpp
+    src/cpu/x86/Tss64.cpp
+    src/cpu/x86/ExceptionStackFrame64.cpp
+    src/cpu/x86/ExceptionStackWriter64.cpp
+    src/cpu/x86/ExceptionEntryWriter64.cpp
+    src/cpu/x86/ExceptionStateApplier64.cpp
+    src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(X86InvalidOpcodeResumeTest PRIVATE src)
+add_test(NAME X86InvalidOpcodeResumeTest COMMAND X86InvalidOpcodeResumeTest)
+
 add_executable(MemoryBehaviorTest
     tools/MemoryBehaviorTest.cpp
     src/memory/Memory.cpp
