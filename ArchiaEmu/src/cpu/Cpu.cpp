@@ -3135,44 +3135,6 @@ int Cpu::Run()
         }
 
         switch (opcode) {
-
-        case 0xF4: { // HLT
-            const result = x86::Privileged::Hlt(
-                static_cast<std::uint8_t>(code_segment_ & 0x3U));
-            if (result.status != x86::PrivilegedStatus::Success) {
-                if (!RaiseException({
-                    CpuExceptionKind::GeneralProtection,
-                    instruction_address,
-                    MemoryFault::None,
-                    CpuExceptionVector::GeneralProtection
-                })) return 1;
-                break;
-            }
-            halted_ = true;
-            break;
-        }
-
-        case 0xFA: // CLI
-        case 0xFB: { // STI
-            const std::uint8_t cpl =
-                static_cast<std::uint8_t>(code_segment_ & 0x3U);
-            const std::uint64_t iopl = (rflags_ >> 12U) & 0x3U;
-            const auto result = opcode == 0xFA
-                ? x86::Privileged::Cli(cpl, rflags_, iopl)
-                : x86::Privileged::Sti(cpl, rflags_, iopl);
-            if (result.status != x86::PrivilegedStatus::Success) {
-                if (!RaiseException({
-                    CpuExceptionKind::GeneralProtection,
-                    instruction_address,
-                    MemoryFault::None,
-                    CpuExceptionVector::GeneralProtection
-                })) return 1;
-                break;
-            }
-            rflags_ = result.value;
-            break;
-        }
-
         
         
         
@@ -3199,7 +3161,8 @@ int Cpu::Run()
             std::uint8_t opcode2 = 0;
 
             if (!Fetch8(opcode2)) {
-            if (opcode2 == 0x20 || opcode2 == 0x22) {
+                return 1;
+            }            if (opcode2 == 0x20 || opcode2 == 0x22) {
                 std::uint8_t modrmCr = 0;
                 if (!Fetch8(modrmCr)) return 1;
                 const std::uint8_t mod =
@@ -3213,20 +3176,18 @@ int Cpu::Run()
                     })) return 1;
                     break;
                 }
-
                 std::uint8_t cr =
                     static_cast<std::uint8_t>((modrmCr >> 3) & 0x07U);
                 std::uint8_t reg =
                     static_cast<std::uint8_t>(modrmCr & 0x07U);
                 if (rex.r) cr = static_cast<std::uint8_t>(cr + 8U);
                 if (rex.b) reg = static_cast<std::uint8_t>(reg + 8U);
-
                 const std::uint8_t cpl =
                     static_cast<std::uint8_t>(code_segment_ & 0x3U);
+
                 if (opcode2 == 0x22) {
                     const std::uint64_t value = registers_.Read64(reg);
-                    const auto result =
-                        x86::Privileged::MovCrTo(cpl, cr, value);
+                    const auto result = x86::Privileged::MovCrTo(cpl, cr, value);
                     if (result.status != x86::PrivilegedStatus::Success) {
                         if (!RaiseException({
                             CpuExceptionKind::GeneralProtection,
@@ -3252,8 +3213,7 @@ int Cpu::Run()
                     case 4: value = Cr4(); break;
                     default: break;
                     }
-                    const auto result =
-                        x86::Privileged::MovCrFrom(cpl, cr, value);
+                    const auto result = x86::Privileged::MovCrFrom(cpl, cr, value);
                     if (result.status != x86::PrivilegedStatus::Success) {
                         if (!RaiseException({
                             CpuExceptionKind::GeneralProtection,
@@ -3269,8 +3229,6 @@ int Cpu::Run()
             }
 
 
-                return 1;
-            }
             if (opcode2 == 0x05) {
                 const std::uint64_t returnRip = instruction_pointer_;
                 registers_.Write64(1, returnRip);
@@ -7062,9 +7020,40 @@ case 0xD0:
             break;
         }
 
-        case 0xF4: {
-            // HLT : arret propre du CPU
-            Halt();
+        case 0xF4: { // HLT
+            const auto result = x86::Privileged::Hlt(
+                static_cast<std::uint8_t>(code_segment_ & 0x3U));
+            if (result.status != x86::PrivilegedStatus::Success) {
+                if (!RaiseException({
+                    CpuExceptionKind::GeneralProtection,
+                    instruction_address,
+                    MemoryFault::None,
+                    CpuExceptionVector::GeneralProtection
+                })) return 1;
+                break;
+            }
+            halted_ = true;
+            break;
+        }
+
+        case 0xFA: // CLI
+        case 0xFB: { // STI
+            const std::uint8_t cpl =
+                static_cast<std::uint8_t>(code_segment_ & 0x3U);
+            const std::uint64_t iopl = (rflags_ >> 12U) & 0x3U;
+            const auto result = opcode == 0xFA
+                ? x86::Privileged::Cli(cpl, rflags_, iopl)
+                : x86::Privileged::Sti(cpl, rflags_, iopl);
+            if (result.status != x86::PrivilegedStatus::Success) {
+                if (!RaiseException({
+                    CpuExceptionKind::GeneralProtection,
+                    instruction_address,
+                    MemoryFault::None,
+                    CpuExceptionVector::GeneralProtection
+                })) return 1;
+                break;
+            }
+            rflags_ = result.value;
             break;
         }
 
