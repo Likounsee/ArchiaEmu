@@ -95,6 +95,19 @@ add_executable(X86PrivilegedCpuTest
     src/cpu/x86/Privileged.cpp
     src/cpu/RegisterFile.cpp
     src/memory/Memory.cpp
+    src/cpu/x86/Paging.cpp
+    src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
+    src/cpu/x86/ExceptionTarget.cpp
+    src/cpu/x86/ExceptionDelivery.cpp
+    src/cpu/x86/Tss64.cpp
+    src/cpu/x86/ExceptionStackFrame64.cpp
+    src/cpu/x86/ExceptionStackWriter64.cpp
+    src/cpu/x86/ExceptionEntryWriter64.cpp
+    src/cpu/x86/ExceptionStateApplier64.cpp
+    src/cpu/x86/ExceptionEntry64.cpp
 )
 target_include_directories(X86PrivilegedCpuTest PRIVATE src)
 add_test(NAME X86PrivilegedCpuTest COMMAND X86PrivilegedCpuTest)
@@ -369,6 +382,7 @@ add_test(NAME X86PrivilegeTransitionTest COMMAND X86PrivilegeTransitionTest)
 
 add_executable(X86PrivilegedTest
     tools/X86PrivilegedTest.cpp
+    src/cpu/x86/Privileged.cpp
 )
 target_include_directories(X86PrivilegedTest PRIVATE src)
 add_test(NAME X86PrivilegedTest COMMAND X86PrivilegedTest)
