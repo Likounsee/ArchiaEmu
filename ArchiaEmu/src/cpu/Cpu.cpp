@@ -146,13 +146,14 @@ void Cpu::SetPaging(Paging* paging) noexcept
 {
     paging_ = paging;
     if (paging_ != nullptr) {
+        paging_->SetCr0(cr0_);
         paging_->SetCr3(cr3_);
         paging_->SetCr4(cr4_);
         paging_->SetEfer(efer_);
     }
 }
 
-void Cpu::SetCr0(std::uint64_t value) noexcept { cr0_ = value; }
+void Cpu::SetCr0(std::uint64_t value) noexcept { cr0_ = value; if (paging_ != nullptr) paging_->SetCr0(value); }
 std::uint64_t Cpu::Cr0() const noexcept { return cr0_; }
 void Cpu::SetCr2(std::uint64_t value) noexcept { cr2_ = value; }
 std::uint64_t Cpu::Cr2() const noexcept { return cr2_; }
