@@ -5743,14 +5743,32 @@ case 0xD0:
                     break;
                 case 2: {
                     result = static_cast<std::uint16_t>(lhs + immediate + carry);
-                    const std::uint16_t rhsWithCarry = static_cast<std::uint16_t>(immediate + carry);
-                    SetAddFlags16(lhs, rhsWithCarry, result);
+                    const std::uint32_t sum = static_cast<std::uint32_t>(lhs) +
+                                              static_cast<std::uint32_t>(immediate) +
+                                              carry;
+                    if (sum > 0xFFFFU) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                    SetZeroFlag(result == 0);
+                    SetSignFlag((result & 0x8000U) != 0);
+                    const bool overflow = ((~(lhs ^ immediate) & (lhs ^ result)) & 0x8000U) != 0;
+                    const bool auxiliary = ((lhs ^ immediate ^ result) & 0x10U) != 0;
+                    if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+                    else rflags_ &= ~PF_MASK;
                     break;
                 }
                 case 3: {
                     result = static_cast<std::uint16_t>(lhs - immediate - carry);
-                    const std::uint16_t rhsWithBorrow = static_cast<std::uint16_t>(immediate + carry);
-                    SetSubFlags16(lhs, rhsWithBorrow, result);
+                    const bool borrow = lhs < immediate || (carry != 0 && lhs == immediate);
+                    if (borrow) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                    SetZeroFlag(result == 0);
+                    SetSignFlag((result & 0x8000U) != 0);
+                    const bool overflow = (((lhs ^ immediate) & (lhs ^ result)) & 0x8000U) != 0;
+                    const bool auxiliary = ((lhs ^ immediate ^ result) & 0x10U) != 0;
+                    if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+                    else rflags_ &= ~PF_MASK;
                     break;
                 }
                 case 4:
