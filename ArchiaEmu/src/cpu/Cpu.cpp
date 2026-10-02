@@ -7996,6 +7996,18 @@ case 0xD0:
         
         
 
+        case 0xC2: {
+            std::uint16_t adjustment = 0;
+            if (!Fetch16(adjustment)) return 1;
+            std::uint64_t returnAddress = 0;
+            if (!Pop64(returnAddress)) return 1;
+            instruction_pointer_ = returnAddress;
+            registers_.SetRsp(registers_.Rsp() + adjustment);
+            if (call_depth > 0) --call_depth;
+            else running = false;
+            break;
+        }
+
         case RET:
         {
             if (call_depth == 0) {
