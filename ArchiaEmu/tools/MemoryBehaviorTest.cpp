@@ -19,6 +19,32 @@ int main()
     if (!memory.Write(0x2000, input.data(), input.size())) return 6;
     if (!memory.Protect(0x1000, 0x1000, MemoryPermission::Read | MemoryPermission::Write)) return 7;
     if (!memory.Write(0x1000, input.data(), input.size())) return 8;
+    // Large console RAM must be virtual/sparse: mapping 16 GiB must not
+    // allocate 16 GiB of host memory before the guest touches a page.
+    Memory largeMemory;
+    constexpr std::uint64_t consoleRamSize = 16ULL * 1024ULL * 1024ULL * 1024ULL;
+    if (!largeMemory.Map(0, consoleRamSize,
+                         MemoryPermission::Read | MemoryPermission::Write)) {
+        return 9;
+    }
+
+    const std::uint8_t markerByte = 0x5A;
+    constexpr std::uint64_t highAddress = 8ULL * 1024ULL * 1024ULL * 1024ULL;
+    if (!largeMemory.Write(highAddress, &markerByte, 1)) {
+        return 10;
+    }
+
+    std::uint8_t highRead = 0;
+    if (!largeMemory.Read(highAddress, &highRead, 1) ||
+        highRead != markerByte) {
+        return 11;
+    }
+
+    const std::uint8_t untouched = 0xFF;
+    if (!largeMemory.Read(highAddress + 1, const_cast<std::uint8_t*>(&untouched), 0)) {
+        return 12;
+    }
+
     std::cout << "Memory cross-region/protect test: PASS\n";
     return 0;
 }
