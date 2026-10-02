@@ -10,14 +10,16 @@ enum class CpuExceptionKind : std::uint8_t {
     None = 0,
     MemoryFault,
     InvalidOpcode,
-    DivideError
+    DivideError,
+    GeneralProtection
 };
 
 enum class CpuExceptionVector : std::uint8_t {
     None = 0xFF,
     DivideError = 0,
     InvalidOpcode = 6,
-    PageFault = 14
+    PageFault = 14,
+    GeneralProtection = 13
 };
 
 struct CpuException {
