@@ -454,6 +454,17 @@ add_executable(X86InvalidOpcodeResumeTest
 target_include_directories(X86InvalidOpcodeResumeTest PRIVATE src)
 add_test(NAME X86InvalidOpcodeResumeTest COMMAND X86InvalidOpcodeResumeTest)
 
+add_executable(BusBehaviorTest
+    tools/BusBehaviorTest.cpp
+    src/core/Bus.cpp
+    src/core/RamDevice.cpp
+    src/core/RomDevice.cpp
+    src/core/MmioRegisterDevice.cpp
+    src/memory/Memory.cpp
+)
+target_include_directories(BusBehaviorTest PRIVATE src)
+add_test(NAME BusBehaviorTest COMMAND BusBehaviorTest)
+
 add_executable(MemoryBehaviorTest
     tools/MemoryBehaviorTest.cpp
     src/memory/Memory.cpp
