@@ -4999,12 +4999,8 @@ int Cpu::Run()
                 std::uint16_t value=0;
                 if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),2))return 1;}else value=registers_.Read16(rm);
                 target=value;
-            } else if (wide) {
-                if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&target),8))return 1;}else target=registers_.Read64(rm);
             } else {
-                std::uint32_t value=0;
-                if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),4))return 1;}else value=registers_.Read32(rm);
-                target=value;
+                if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&target),8))return 1;}else target=registers_.Read64(rm);
             }
 
             if (group == 2 || group == 4) {
