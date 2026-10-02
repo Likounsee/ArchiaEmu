@@ -4390,13 +4390,13 @@ void TestOperandSizeOverride()
         stageMem.Map(DATA, 0x2000);
         stageMem.Map(STACK, 0x2000);
         Cpu stageCpu = MakeCpu(stageMem);
-        auto stageCode = MovR64(1, 0x1122334455667788ULL);
+        auto stageCode = MovR64(3, 0x1122334455667788ULL);
         stageCode.insert(stageCode.end(), {0x66, 0xBB, 0xCD, 0xAB});
         stageCode = Finish(stageCode);
         CHECK(
-            "66h MOV r16,imm16 selects low 16 bits",
+            "66h MOV BX,imm16 preserves upper register bits",
             RunCode(stageCpu, stageMem, stageCode) &&
-            stageCpu.ReadRegister64(1) == 0x112233445566ABCDULL);
+            stageCpu.ReadRegister64(3) == 0x112233445566ABCDULL);
     }
 
     {
