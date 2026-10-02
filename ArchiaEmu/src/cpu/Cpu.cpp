@@ -3463,11 +3463,7 @@ int Cpu::Run()
                     return 1;
                 }
 
-                if (operand_size_override_) {
-                if (!DecodeLogic16(opcode, modrm, rex)) return 1;
-            }
-            else if (rex.w) {
-            if (rex.w) {
+                if (rex.w) {
                     if (!DecodeMovzx64Reg32(modrmMovzx, rex)) {
                         return 1;
                     }
