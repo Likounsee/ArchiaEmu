@@ -4723,6 +4723,12 @@ void TestOperandSizeOverrideArithmetic()
     }
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x112233445566FFFFULL); code.insert(code.end(), {0x66, 0xFF, 0xC0}); code = Finish(code);
+        CHECK("66h FF /0 INC AX", RunCode(cpu, mem, code) && cpu.Rax() == 0x1122334455660000ULL);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
         auto code = MovR64(0, 0x1122334455660001ULL); code.insert(code.end(), {0x66, 0xF7, 0xD8}); code = Finish(code);
         CHECK("66h F7 NEG r/m16 preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x112233445566FFFFULL && (cpu.Rflags() & 1ULL) != 0);
     }
