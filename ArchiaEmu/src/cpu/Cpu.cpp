@@ -134,8 +134,6 @@ bool ConditionHolds(std::uint8_t cc, std::uint64_t rflags) noexcept
     case 0xC: return sf!=of; case 0xD: return sf==of; case 0xE: return zf||(sf!=of); case 0xF: return !zf&&(sf==of);
     default: return false;
     }
-}
-
 } 
 
 void Cpu::ConnectMemory(Memory* memory) noexcept
