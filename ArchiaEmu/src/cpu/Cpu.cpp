@@ -4054,6 +4054,52 @@ int Cpu::Run()
                 break;
             }
 
+            if (opcode2 == 0x30 || opcode2 == 0x32 || opcode2 == 0x31) {
+                const std::uint8_t cpl = static_cast<std::uint8_t>(code_segment_ & 0x3U);
+                if (opcode2 == 0x31) {
+                    const std::uint64_t tsc = instruction_counter;
+                    registers_.Write32(0, static_cast<std::uint32_t>(tsc));
+                    registers_.Write32(2, static_cast<std::uint32_t>(tsc >> 32U));
+                    break;
+                }
+                if (cpl != 0U) {
+                    if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
+                    break;
+                }
+                const std::uint32_t msr = static_cast<std::uint32_t>(registers_.Read32(1));
+                auto readMsr = [&](std::uint64_t& value) -> bool {
+                    switch (msr) {
+                    case 0xC0000080U: value = efer_; break;
+                    case 0xC0000081U: value = msr_star_; break;
+                    case 0xC0000082U: value = msr_lstar_; break;
+                    case 0xC0000084U: value = msr_fmask_; break;
+                    default: return false;
+                    }
+                    return true;
+                };
+                if (opcode2 == 0x32) {
+                    std::uint64_t value = 0;
+                    if (!readMsr(value)) {
+                        if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
+                        break;
+                    }
+                    registers_.Write32(0, static_cast<std::uint32_t>(value));
+                    registers_.Write32(2, static_cast<std::uint32_t>(value >> 32U));
+                } else {
+                    const std::uint64_t value = (registers_.Read32(2) << 32U) | registers_.Read32(0);
+                    switch (msr) {
+                    case 0xC0000080U: SetEfer(value); break;
+                    case 0xC0000081U: SetMsrStar(value); break;
+                    case 0xC0000082U: SetMsrLstar(value); break;
+                    case 0xC0000084U: SetMsrFmask(value); break;
+                    default:
+                        if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
+                        break;
+                    }
+                }
+                break;
+            }
+
             if (opcode2 == 0x63) {
                 std::uint8_t modrm = 0;
                 if (!Fetch8(modrm)) return 1;
