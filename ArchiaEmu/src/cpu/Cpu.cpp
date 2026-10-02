@@ -301,6 +301,37 @@ bool Cpu::RaiseException(const CpuException& exception)
 {
     last_exception_ = exception;
 
+    if (exception_idt_ != nullptr &&
+        exception_gdt_ != nullptr &&
+        exception_tss_ != nullptr &&
+        memory_ != nullptr) {
+        x86::ExceptionDeliveryResolver resolver(
+            *exception_idt_,
+            *exception_gdt_,
+            *exception_tss_);
+
+        const std::uint8_t current_cpl =
+            static_cast<std::uint8_t>(code_segment_ & 0x3U);
+
+        const auto delivery = resolver.Resolve(
+            last_exception_,
+            code_segment_,
+            rflags_,
+            current_cpl,
+            last_exception_.page_fault_error,
+            registers_.Read64(4),
+            stack_segment_);
+
+        const auto entry =
+            x86::ExceptionEntry64::Deliver(*this, *memory_, delivery);
+
+        if (entry.status == x86::ExceptionEntryStatus::Delivered) {
+            return true;
+        }
+
+        return false;
+    }
+
     if (exception_handler_) {
         return exception_handler_(*this, last_exception_);
     }
