@@ -5501,23 +5501,10 @@ case 0xD0:
                         result);
                 }
 
-                SetZeroFlag(result == 0);
-                SetSignFlag((result & 0x8000000000000000ULL) != 0);
-                const std::uint64_t addMax = std::numeric_limits<std::uint64_t>::max();
-                const bool carryOut =
-                    lhs > addMax - immediate ||
-                    (cfIn && lhs == addMax - immediate);
-                if (carryOut) rflags_ |= CF_MASK;
-                else rflags_ &= ~CF_MASK;
-                const bool overflow =
-                    ((~(lhs ^ immediate) &
-                      (lhs ^ result)) & 0x8000000000000000ULL) != 0;
-                const bool auxiliary =
-                    ((lhs ^ immediate ^ result) & 0x10ULL) != 0;
-                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
-                if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
-                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
-                else rflags_ &= ~PF_MASK;
+                SetAddFlags64(
+                    lhs,
+                    immediate,
+                    result);
 
                 std::cout
                     << "[CPU] ADD64 IMM -> 0x"
@@ -5529,6 +5516,67 @@ case 0xD0:
                 break;
 
             
+            case 2:
+            {
+                const bool carryIn = (rflags_ & CF_MASK) != 0;
+                result = lhs + immediate + (carryIn ? 1ULL : 0ULL);
+
+                if (memory) {
+                    if (!WriteMemory(address,
+                                     reinterpret_cast<const std::uint8_t*>(&result),
+                                     sizeof(result))) return 1;
+                } else {
+                    registers_.Write64(rm, result);
+                }
+
+                SetZeroFlag(result == 0);
+                SetSignFlag((result & 0x8000000000000000ULL) != 0);
+                const std::uint64_t max = std::numeric_limits<std::uint64_t>::max();
+                const bool carryOut =
+                    lhs > max - immediate ||
+                    (carryIn && lhs == max - immediate);
+                if (carryOut) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                const bool overflow =
+                    ((~(lhs ^ immediate) & (lhs ^ result)) & 0x8000000000000000ULL) != 0;
+                const bool auxiliary =
+                    ((lhs ^ immediate ^ result) & 0x10ULL) != 0;
+                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+                else rflags_ &= ~PF_MASK;
+                break;
+            }
+
+            case 3:
+            {
+                const bool borrowIn = (rflags_ & CF_MASK) != 0;
+                result = lhs - immediate - (borrowIn ? 1ULL : 0ULL);
+
+                if (memory) {
+                    if (!WriteMemory(address,
+                                     reinterpret_cast<const std::uint8_t*>(&result),
+                                     sizeof(result))) return 1;
+                } else {
+                    registers_.Write64(rm, result);
+                }
+
+                SetZeroFlag(result == 0);
+                SetSignFlag((result & 0x8000000000000000ULL) != 0);
+                const bool borrowOut =
+                    lhs < immediate ||
+                    (borrowIn && lhs == immediate);
+                if (borrowOut) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                const bool overflow =
+                    (((lhs ^ immediate) & (lhs ^ result)) & 0x8000000000000000ULL) != 0;
+                const bool auxiliary =
+                    ((lhs ^ immediate ^ result) & 0x10ULL) != 0;
+                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+                else rflags_ &= ~PF_MASK;
+                break;
+            }
+
             case 1:
                 result =
                     lhs | immediate;
@@ -5622,22 +5670,10 @@ case 0xD0:
                         result);
                 }
 
-                SetZeroFlag(result == 0);
-                SetSignFlag((result & 0x8000000000000000ULL) != 0);
-                const bool borrowOut =
-                    lhs < immediate ||
-                    (cfIn && lhs == immediate);
-                if (borrowOut) rflags_ |= CF_MASK;
-                else rflags_ &= ~CF_MASK;
-                const overflow =
-                    (((lhs ^ immediate) &
-                      (lhs ^ result)) & 0x8000000000000000ULL) != 0;
-                const bool auxiliary =
-                    ((lhs ^ immediate ^ result) & 0x10ULL) != 0;
-                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
-                if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
-                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
-                else rflags_ &= ~PF_MASK;
+                SetSubFlags64(
+                    lhs,
+                    immediate,
+                    result);
 
                 std::cout
                     << "[CPU] SUB64 IMM -> 0x"
