@@ -8606,6 +8606,12 @@ case 0xD0:
             break;
         }
 
+        case 0xD7: {
+            const std::uint64_t base=address_size_override_?static_cast<std::uint64_t>(registers_.Read32(3)):registers_.Read64(3);
+            const std::uint64_t address=address_size_override_?static_cast<std::uint64_t>(static_cast<std::uint32_t>(base+ReadReg8(0,false))):base+ReadReg8(0,false);
+            std::uint8_t value=0;if(!ReadMemory(address,&value,1))return 1;WriteReg8(0,false,value);break;
+        }
+
         case 0xE0:
         case 0xE1:
         case 0xE2:
