@@ -4962,6 +4962,18 @@ int Cpu::Run()
             }
             break;
         }
+        case 0xFE: {
+            std::uint8_t modrm=0,reg=0,rm=0;bool regHigh=false,rmHigh=false;std::uint64_t address=0;bool memory=false;
+            if(!Fetch8(modrm)||!DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory))return 1;
+            const std::uint8_t group=static_cast<std::uint8_t>((modrm>>3)&7U);if(group>1U)return 1;
+            const bool oldCf=(rflags_&CF_MASK)!=0;std::uint8_t value=memory?([&](){std::uint8_t v=0;if(!ReadMemory(address,&v,1))return std::uint8_t(0);return v;})():ReadReg8(rm,rmHigh);
+            const std::uint8_t result=group==0?static_cast<std::uint8_t>(value+1):static_cast<std::uint8_t>(value-1);
+            if(group==0)SetAddFlags8(value,1,result);else SetSubFlags8(value,1,result);
+            if(oldCf)rflags_|=CF_MASK;else rflags_&=~CF_MASK;
+            if(memory){if(!WriteMemory(address,&result,1))return 1;}else WriteReg8(rm,rmHigh,result);
+            break;
+        }
+
         case 0xFF: {
             std::uint8_t modrm = 0;
             if (!Fetch8(modrm)) return 1;
