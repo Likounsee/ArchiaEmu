@@ -7906,6 +7906,25 @@ case 0xD0:
         
         
 
+        case 0xC8: {
+            std::uint16_t allocation = 0;
+            std::uint8_t nesting = 0;
+            if (!Fetch16(allocation) || !Fetch8(nesting)) return 1;
+            if (operand_size_override_ && !rex.w) {
+                const std::uint16_t oldBp = registers_.Read16(5);
+                if (!Push16(oldBp)) return 1;
+                registers_.Write16(5, static_cast<std::uint16_t>(registers_.Read16(4)));
+                registers_.Write16(4, static_cast<std::uint16_t>(registers_.Read16(4) - allocation));
+            } else {
+                const std::uint64_t oldBp = registers_.Read64(5);
+                if (!Push64(oldBp)) return 1;
+                registers_.Write64(5, registers_.Rsp());
+                registers_.SetRsp(registers_.Rsp() - allocation);
+            }
+            (void)nesting;
+            break;
+        }
+
         case 0xC9:
         {
             
