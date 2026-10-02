@@ -9,6 +9,7 @@ public:
  static PrivilegedResult Cli(std::uint8_t cpl,std::uint64_t rflags,std::uint64_t iopl) noexcept;
  static PrivilegedResult Sti(std::uint8_t cpl,std::uint64_t rflags,std::uint64_t iopl) noexcept;
  static PrivilegedResult Hlt(std::uint8_t cpl) noexcept;
+ static PrivilegedResult Invlpg(std::uint8_t cpl) noexcept;
  static PrivilegedResult MovCrTo(std::uint8_t cpl,std::uint8_t cr,std::uint64_t value) noexcept;
  static PrivilegedResult MovCrFrom(std::uint8_t cpl,std::uint8_t cr,std::uint64_t value) noexcept;
 };
