@@ -133,9 +133,10 @@ ExceptionReturnResult ExceptionReturn64::Read(
         return result;
     }
 
-    // IRET restores IOPL only when returning to CPL0.
-    // IF is restored only when the resulting CPL is at or below IOPL.
-    // VIF/VIP are not modeled by the current CPU state.
+    // IRET restores IOPL and VIF/VIP only when returning at CPL0.
+    // IF is restored when the privilege level performing IRET is at or
+    // below IOPL; a CPL0 handler therefore restores the interrupted IF
+    // when returning to a less privileged context.
     const std::uint64_t current_rflags = cpu.Rflags();
     const std::uint64_t current_iopl = current_rflags & (3ULL << 12);
     if (target_cpl != 0) {
