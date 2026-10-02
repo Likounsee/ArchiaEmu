@@ -3198,6 +3198,7 @@ int Cpu::Run()
 
             std::uint8_t opcode2 = 0;
 
+            if (!Fetch8(opcode2)) {
             if (opcode2 == 0x20 || opcode2 == 0x22) {
                 std::uint8_t modrmCr = 0;
                 if (!Fetch8(modrmCr)) return 1;
@@ -3268,7 +3269,6 @@ int Cpu::Run()
             }
 
 
-            if (!Fetch8(opcode2)) {
                 return 1;
             }
             if (opcode2 == 0x05) {
