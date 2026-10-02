@@ -201,7 +201,7 @@ void TestCanonicalAddressFault()
 
     CHECK(
         "Non-canonical 64-bit memory address raises #GP",
-        RunCode(cpu, mem, code) && generalProtection);
+        !RunCode(cpu, mem, code) && generalProtection);
 }
 
 void TestMemory()
