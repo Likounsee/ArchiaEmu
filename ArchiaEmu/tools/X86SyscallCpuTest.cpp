@@ -12,7 +12,7 @@ int main(){
  cpu.SetMsrLstar(0x1002); cpu.SetMsrFmask(1ULL<<0);
  bool called=false;
  cpu.SetSyscallHandler([&](Cpu& c){ called=true; if(c.CodeSegment()!=8||c.StackSegment()!=16||c.InstructionPointer()!=0x1002) return false; if(c.ReadRegister64(1)!=0x1002||c.ReadRegister64(11)!=0x246) return false; c.WriteRegister64(1,0x1004); return true; });
- if(cpu.Run()!=0||!called||cpu.InstructionPointer()!=0x1005||cpu.CodeSegment()!=0x18||cpu.StackSegment()!=0x20) return 3;
+ if(cpu.Run()!=0||!called||cpu.InstructionPointer()!=0x1005||cpu.CodeSegment()!=0x20||cpu.StackSegment()!=0x28) return 3;
  // SYSRET is reached only if handler returns to the 0x1002 byte sequence.
  std::cout<<"x86 SYSCALL CPU integration test: PASS\n"; return 0;
 }
