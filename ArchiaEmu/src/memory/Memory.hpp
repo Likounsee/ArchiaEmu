@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <array>
+#include <unordered_map>
 #include <vector>
 
 namespace myps5emu {
@@ -87,12 +89,13 @@ protected:
 private:
     struct Region {
         std::uint64_t base = 0;
-        std::vector<std::uint8_t> data;
+        std::size_t size = 0;
         MemoryPermission permissions =
             MemoryPermission::Read | MemoryPermission::Write;
     };
 
     std::vector<Region> regions_;
+    std::unordered_map<std::uint64_t, std::array<std::uint8_t, PageSize>> pages_;
     mutable MemoryFault last_fault_ = MemoryFault::None;
 };
 
