@@ -43,10 +43,12 @@ int main()
         return Fail("Valid 64-bit exception target was rejected") ? 0 : 1;
     }
 
-    gate.selector = 0;
-    if (resolver.Resolve(gate, 0).status !=
-        ExceptionTargetStatus::NullSelector) {
-        return Fail("Null selector was not rejected") ? 0 : 1;
+    for (const std::uint16_t nullSelector : {0x0000U, 0x0001U, 0x0002U, 0x0003U, 0x0007U}) {
+        gate.selector = nullSelector;
+        if (resolver.Resolve(gate, 0).status !=
+            ExceptionTargetStatus::NullSelector) {
+            return Fail("Null selector with index 0 was not classified correctly") ? 0 : 1;
+        }
     }
 
     gate.selector = static_cast<std::uint16_t>((5U << 3) | 0x4U);
