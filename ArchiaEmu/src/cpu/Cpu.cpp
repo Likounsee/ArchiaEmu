@@ -3872,6 +3872,14 @@ int Cpu::Run()
             if (EvenParity8(result)) rflags_ |= PF_MASK;
             else rflags_ &= ~PF_MASK;
 
+            if (opcode == 0x18) {
+                std::cerr << "[SBB8 engine] lhs=0x" << std::hex
+                          << static_cast<unsigned>(lhs) << " rhs=0x"
+                          << static_cast<unsigned>(rhs) << " cf=" << carryIn
+                          << " result=0x" << static_cast<unsigned>(result)
+                          << " flags=0x" << rflags_ << std::dec << '\\n';
+            }
+
             break;
         }
         case 0x11:
