@@ -6897,44 +6897,29 @@ case 0xD0:
         
         
         
-        case 0x09: 
-        case 0x0B: 
-        case 0x21: 
-        case 0x23: 
-        case 0x31: 
-        case 0x33: 
+        case 0x09:
+        case 0x0B:
+        case 0x21:
+        case 0x23:
+        case 0x31:
+        case 0x33:
         {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
+            if (!Fetch8(modrm)) return 1;
+            if (operand_size_override_) {
+                if (!DecodeLogic16(opcode, modrm, rex)) return 1;
             }
-
-            if (rex.w) {
-                if (!DecodeLogic64(
-                        opcode,
-                        modrm,
-                        rex)) {
-                    return 1;
-                }
+            else if (rex.w) {
+                if (!DecodeLogic64(opcode, modrm, rex)) return 1;
             }
             else {
-                if (!DecodeLogic32(
-                        opcode,
-                        modrm,
-                        rex)) {
-                    return 1;
-                }
+                if (!DecodeLogic32(opcode, modrm, rex)) return 1;
             }
-
             break;
         }
 
         
         
-        
-
-
         case 0x8D:
         {
             std::uint8_t modrm = 0;
@@ -6996,263 +6981,21 @@ case 0xD0:
         case TEST_RM32_R32:
         {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
+            if (!Fetch8(modrm)) return 1;
             if (operand_size_override_) {
-                if (!DecodeTest16(modrm, rex)) {
-                    return 1;
-                }
+                if (!DecodeTest16(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
-
-                if (!DecodeTest64(
-                        modrm,
-                        rex)) {
-                    return 1;
-                }
+                if (!DecodeTest64(modrm, rex)) return 1;
             }
             else {
-
-                if (!DecodeTest32(
-                        modrm,
-                        rex)) {
-                    return 1;
-                }
+                if (!DecodeTest32(modrm, rex)) return 1;
             }
-
             break;
         }
 
         
         
-        
-
-        
-        
-        
-
-        case 0x50:
-        case 0x51:
-        case 0x52:
-        case 0x53:
-        case 0x54:
-        case 0x55:
-        case 0x56:
-        case 0x57:
-        {
-            std::uint8_t reg =
-                static_cast<std::uint8_t>(
-                    opcode - PUSH_R64_BASE);
-
-            if (rex.b) {
-                reg =
-                    static_cast<std::uint8_t>(reg + 8);
-            }
-
-            if (!Push64(registers_.Read64(reg))) {
-                return 1;
-            }
-
-            break;
-        }
-
-        
-        
-        
-
-        case 0x58:
-        case 0x59:
-        case 0x5A:
-        case 0x5B:
-        case 0x5C:
-        case 0x5D:
-        case 0x5E:
-        case 0x5F:
-        {
-            std::uint8_t reg =
-                static_cast<std::uint8_t>(
-                    opcode - POP_R64_BASE);
-
-            if (rex.b) {
-                reg =
-                    static_cast<std::uint8_t>(reg + 8);
-            }
-
-            std::uint64_t value = 0;
-
-            if (!Pop64(value)) {
-                return 1;
-            }
-
-            registers_.Write64(reg, value);
-            break;
-        }
-
-        
-        
-        
-        
-
-        case 0xC9:
-        {
-            
-            
-            
-
-            const std::uint64_t rbp =
-                registers_.Read64(5);
-
-            registers_.SetRsp(rbp);
-
-            std::uint64_t value = 0;
-
-            if (!Pop64(value)) {
-                return 1;
-            }
-
-            registers_.Write64(5, value);
-
-            break;
-        }
-
-        
-        
-        
-
-        case 0x6A:
-        {
-            std::uint8_t immediate = 0;
-
-            if (!Fetch8(immediate)) {
-                return 1;
-            }
-
-            const auto value =
-                static_cast<std::int64_t>(
-                    static_cast<std::int8_t>(immediate));
-
-            if (!Push64(
-                    static_cast<std::uint64_t>(value))) {
-                return 1;
-            }
-
-            break;
-        }
-
-        
-        
-        
-
-        case 0x68:
-        {
-            std::uint32_t immediate = 0;
-
-            if (!Fetch32(immediate)) {
-                return 1;
-            }
-
-            const auto value =
-                static_cast<std::int64_t>(
-                    static_cast<std::int32_t>(immediate));
-
-            if (!Push64(
-                    static_cast<std::uint64_t>(value))) {
-                return 1;
-            }
-
-            break;
-        }
-
-        
-        
-        
-
-        case CALL_REL32:
-        {
-            std::int32_t displacement = 0;
-
-            if (!FetchRel32(displacement)) {
-                return 1;
-            }
-
-            const std::uint64_t returnAddress =
-                instruction_pointer_;
-
-            if (!Push64(returnAddress)) {
-                return 1;
-            }
-
-            instruction_pointer_ =
-                static_cast<std::uint64_t>(
-                    static_cast<std::int64_t>(
-                        instruction_pointer_) +
-                    static_cast<std::int64_t>(
-                        displacement));
-
-            ++call_depth;
-
-            break;
-        }
-
-        
-        
-        
-
-        case RET:
-        {
-            if (call_depth == 0) {
-                running = false;
-                break;
-            }
-
-            std::uint64_t returnAddress = 0;
-
-            if (!Pop64(returnAddress)) {
-                return 1;
-            }
-
-            instruction_pointer_ = returnAddress;
-            --call_depth;
-
-            break;
-        }
-
-        case 0x90: {
-            // NOP
-            break;
-        }
-
-        case 0x98: {
-            if (rex.w) {
-                // CDQE : sign-extend EAX -> RAX
-                const std::int32_t eax =
-                    static_cast<std::int32_t>(
-                        registers_.Read32(0));
-
-                registers_.Write64(
-                    0,
-                    static_cast<std::uint64_t>(
-                        static_cast<std::int64_t>(eax)));
-            }
-            else {
-                // CWDE : sign-extend AX -> EAX
-                const std::int16_t ax =
-                    static_cast<std::int16_t>(
-                        registers_.Read32(0) & 0xFFFF);
-
-                registers_.Write32(
-                    0,
-                    static_cast<std::uint32_t>(
-                        static_cast<std::int32_t>(ax)));
-            }
-
-            break;
-        }
-
         case 0x99: {
             if (rex.w) {
                 // CQO : sign-extend RAX -> RDX:RAX
