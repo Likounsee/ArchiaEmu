@@ -4702,6 +4702,11 @@ void TestOperandSizeOverrideArithmetic()
     }
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x112233445566FFFEULL); Append(code, MovR64(3, 3)); code.insert(code.end(), {0x66, 0xF7, 0xEB}); code = Finish(code);
+        CHECK("66h F7 IMUL r/m16 signed product", RunCode(cpu, mem, code) && cpu.ReadRegister64(0) == 0x112233445566FFFAULL && cpu.ReadRegister64(2) == 0xFFFFFFFFFFFFFFFFULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
         auto code = MovR64(0, 0x1122334455661234ULL); Append(code, MovR64(3, 2)); code.insert(code.end(), {0x66, 0xF7, 0xE3}); code = Finish(code);
         CHECK("66h F7 MUL r/m16 writes DX:AX", RunCode(cpu, mem, code) && cpu.ReadRegister64(0) == 0x1122334455662468ULL && cpu.ReadRegister64(2) == 0x0ULL);
     }
