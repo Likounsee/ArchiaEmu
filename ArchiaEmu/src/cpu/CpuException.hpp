@@ -25,6 +25,8 @@ struct CpuException {
     std::uint64_t instruction_pointer = 0;
     MemoryFault memory_fault = MemoryFault::None;
     CpuExceptionVector vector = CpuExceptionVector::None;
+    std::uint64_t page_fault_address = 0;
+    std::uint32_t page_fault_error = 0;
 };
 
 } // namespace myps5emu
