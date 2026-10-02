@@ -4658,6 +4658,8 @@ void TestOperandSizeOverride()
     }
 }
 
+void TestOperandSizeOverrideArithmetic()
+
     {
         Memory mem;
         mem.Map(CODE, 0x2000);
@@ -4717,7 +4719,6 @@ void TestOperandSizeOverride()
             cpu.Rax() == 0x1122334455660004ULL);
     }
 
-void TestOperandSizeOverrideArithmetic()
 {
     {
         Memory mem;
