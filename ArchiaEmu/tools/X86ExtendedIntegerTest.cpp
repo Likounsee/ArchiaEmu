@@ -86,7 +86,7 @@ static bool TestCmpxchg64() {
 static bool TestControlTransferGroups() {
     Memory memory; memory.Map(0x1000, 0x3000);
     Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetStackPointer(0x3000);
-    std::vector<std::uint8_t> code = {0x48,0xB8,0x08,0x10,0,0,0,0,0,0, 0xFF,0xD0, 0xF4};
+    std::vector<std::uint8_t> code = {0x48,0xB8,0x0C,0x10,0,0,0,0,0,0, 0xFF,0xD0, 0xF4};
     if (!Run(memory,cpu,code) || cpu.InstructionPointer() == 0) return false;
 
     Memory m2; m2.Map(0x1000,0x3000); Cpu c2; c2.ConnectMemory(&m2); c2.SetStackPointer(0x3000);
