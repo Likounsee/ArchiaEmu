@@ -12,16 +12,26 @@ bool Emulator::LoadGame(const std::string& path)
     guest_exited_ = false;
     guest_exit_code_ = 0;
 
+    auto& memory = machine_.GuestMemory();
+    auto& cpu = machine_.CPU();
+
+    // A new load attempt is transactional: do not leave the previous game
+    // runnable if ELF parsing or a later mapping/loading step fails.
+    memory.Clear();
+    cpu.SetInstructionPointer(0);
+    cpu.SetStackPointer(0);
+
+    const auto failLoad = [&]() {
+        memory.Clear();
+        cpu.SetInstructionPointer(0);
+        cpu.SetStackPointer(0);
+        return false;
+    };
+
     if (!loader_.Load(path)) {
         std::cerr << "[Emulator] Failed to load ELF.\n";
-        return false;
+        return failLoad();
     }
-
-    auto& memory = machine_.GuestMemory();
-    // A successful new load starts from a clean guest address space so
-    // repeated LoadGame() calls cannot inherit mappings from a prior game.
-    memory.Clear();
-    auto& cpu = machine_.CPU();
 
     constexpr std::uint32_t elf_pf_r = 0x4U;
     constexpr std::uint32_t elf_pf_w = 0x2U;
@@ -32,18 +42,18 @@ bool Emulator::LoadGame(const std::string& path)
         if (segment.memory_size == 0 ||
             segment.virtual_address > std::numeric_limits<std::uint64_t>::max() - segment.memory_size) {
             std::cerr << "[Memory] Invalid ELF segment range.\n";
-            return false;
+            return failLoad();
         }
         const std::uint64_t segmentEnd = segment.virtual_address + segment.memory_size;
         const std::uint64_t mapBase = segment.virtual_address - (segment.virtual_address % Memory::PageSize);
         if (segmentEnd > std::numeric_limits<std::uint64_t>::max() - (Memory::PageSize - 1)) {
             std::cerr << "[Memory] ELF segment alignment overflow.\n";
-            return false;
+            return failLoad();
         }
         const std::uint64_t mapEnd = ((segmentEnd + Memory::PageSize - 1) / Memory::PageSize) * Memory::PageSize;
         if (mapEnd <= mapBase) {
             std::cerr << "[Memory] ELF page range overflow.\n";
-            return false;
+            return failLoad();
         }
         MemoryPermission permissions = MemoryPermission::None;
         if (segment.flags & 0x4U) permissions = permissions | MemoryPermission::Read;
@@ -88,7 +98,7 @@ bool Emulator::LoadGame(const std::string& path)
     if (!memory.Map(stackBase, stackSize,
                     MemoryPermission::Read | MemoryPermission::Write)) {
         std::cerr << "[Memory] Failed to map guest stack.\n";
-        return false;
+        return failLoad();
     }
 
     cpu.SetSyscallHandler(
