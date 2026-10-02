@@ -7,6 +7,8 @@ int main(){
  const auto sti=Privileged::Sti(0,0,0); if(sti.status!=PrivilegedStatus::Success||(sti.value&(1ULL<<9))==0) return 3;
  if(Privileged::Hlt(3).status!=PrivilegedStatus::PrivilegeViolation) return 4;
  if(Privileged::Hlt(0).status!=PrivilegedStatus::Success) return 5;
+ if(Privileged::Invlpg(3).status!=PrivilegedStatus::PrivilegeViolation) return 6;
+ if(Privileged::Invlpg(0).status!=PrivilegedStatus::Success) return 7;
  if(Privileged::MovCrTo(3,3,1).status!=PrivilegedStatus::PrivilegeViolation) return 6;
  if(Privileged::MovCrTo(0,3,1).status!=PrivilegedStatus::Success) return 7;
  std::cout<<"x86 privileged test: PASS\n"; return 0;
