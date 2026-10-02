@@ -92,10 +92,12 @@ static bool TestMsrAndTsc() {
     AppendMovR64(code,1,0xC0000082ULL);
     AppendMovR64(code,0,0x55667788ULL);
     AppendMovR64(code,2,0x11223344ULL);
-    code.insert(code.end(),{0x0F,0x30,0x0F,0x32,0x0F,0x31,0xF4});
+    code.insert(code.end(),{0x0F,0x30,0x0F,0x32,0xF4});
     if(!Run(memory,cpu,code)) return false;
     const std::uint64_t msr=((cpu.ReadRegister64(2)&0xFFFFFFFFULL)<<32)|(cpu.ReadRegister64(0)&0xFFFFFFFFULL);
-    return msr==0x1122334455667788ULL;
+    if (msr != 0x1122334455667788ULL) return false;
+    Memory m2; m2.Map(0x1000,0x1000); Cpu c2; c2.ConnectMemory(&m2);
+    return Run(m2,c2,{0x0F,0x31}) && true;
 }
 
 static bool TestMoffs() {
