@@ -390,11 +390,8 @@ bool Cpu::TranslateMemoryAddress(
     exception.vector = CpuExceptionVector::PageFault;
     exception.page_fault_address = address;
     exception.page_fault_error = result.page_fault_error;
-    last_exception_ = exception;
     last_memory_fault_ = MemoryFault::PermissionDenied;
-    if (exception_handler_) {
-        exception_handler_(*this, last_exception_);
-    }
+    RaiseException(exception);
     return false;
 }
 
