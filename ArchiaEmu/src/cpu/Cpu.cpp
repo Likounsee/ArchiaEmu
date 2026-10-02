@@ -3506,6 +3506,25 @@ int Cpu::Run()
                     break;
                 }
 
+                if (regField == 4U) {
+                    std::uint8_t reg = 0, rm = 0; std::uint64_t address = 0; bool memory = false;
+                    if (!DecodeMemoryOrRegister32(modrmTable, rex, reg, rm, address, memory)) return 1;
+                    const std::uint16_t value = static_cast<std::uint16_t>(Cr0() & 0xFFFFU);
+                    if (memory) { if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return 1; }
+                    else registers_.Write16(rm, value);
+                    break;
+                }
+                if (regField == 6U) {
+                    std::uint8_t reg = 0, rm = 0; std::uint64_t address = 0; bool memory = false;
+                    if (!DecodeMemoryOrRegister32(modrmTable, rex, reg, rm, address, memory)) return 1;
+                    std::uint16_t value = 0;
+                    if (memory) { if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return 1; }
+                    else value = registers_.Read16(rm);
+                    const std::uint64_t preservedPe = Cr0() & 1ULL;
+                    SetCr0((Cr0() & ~0xFULL) | (static_cast<std::uint64_t>(value) & 0xFULL) | preservedPe);
+                    break;
+                }
+
                 if (regField != 7U || mod == 3U) {
                     if (!RaiseException({CpuExceptionKind::InvalidOpcode, instruction_address, MemoryFault::None, CpuExceptionVector::InvalidOpcode})) return 1;
                     break;
@@ -3554,6 +3573,26 @@ int Cpu::Run()
                 if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
                 break;
             }
+            if (opcode2 == 0x06 || opcode2 == 0x08 || opcode2 == 0x09 || opcode2 == 0x33) {
+                const std::uint8_t cpl = static_cast<std::uint8_t>(code_segment_ & 0x3U);
+                if (opcode2 == 0x33 && cpl != 0U && ((cr4_ & (1ULL << 8)) == 0)) {
+                    if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
+                    break;
+                }
+                if (opcode2 == 0x06 || opcode2 == 0x08 || opcode2 == 0x09) {
+                    if (cpl != 0U) {
+                        if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
+                        break;
+                    }
+                    if (opcode2 == 0x06) SetCr0(Cr0() & ~(1ULL << 3));
+                    break;
+                }
+                const std::uint64_t counter = instruction_counter;
+                registers_.Write32(0, static_cast<std::uint32_t>(counter));
+                registers_.Write32(2, static_cast<std::uint32_t>(counter >> 32U));
+                break;
+            }
+
             if (opcode2 == 0x20 || opcode2 == 0x22) {
                 std::uint8_t modrmCr = 0;
                 if (!Fetch8(modrmCr)) return 1;
