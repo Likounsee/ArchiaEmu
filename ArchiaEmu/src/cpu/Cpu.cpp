@@ -3363,6 +3363,7 @@ int Cpu::Run()
         current_instruction_ip_ = instruction_address;
 
         std::uint8_t opcode = 0;
+        std::uint8_t repeat_prefix = 0;
 
         if (!Fetch8(opcode)) {
             std::cerr
@@ -3377,11 +3378,13 @@ int Cpu::Run()
         address_size_override_ = false;
         operand_size_override_ = false;
 
-        while (opcode == 0x66 || opcode == 0x67) {
+        while (opcode == 0x66 || opcode == 0x67 || opcode == 0xF2 || opcode == 0xF3) {
             if (opcode == 0x66) {
                 operand_size_override_ = true;
-            } else {
+            } else if (opcode == 0x67) {
                 address_size_override_ = true;
+            } else {
+                repeat_prefix = opcode;
             }
             if (!Fetch8(opcode)) {
                 return 1;
@@ -7029,6 +7032,82 @@ case 0xD0:
         
         
         
+
+        case 0xA4:
+        case 0xA5:
+        case 0xA6:
+        case 0xA7:
+        case 0xAA:
+        case 0xAB:
+        case 0xAC:
+        case 0xAD:
+        case 0xAE:
+        case 0xAF: {
+            std::size_t width = 1;
+            if (opcode != 0xA4 && opcode != 0xA6 && opcode != 0xAA && opcode != 0xAC && opcode != 0xAE) {
+                if (rex.w) width = 8;
+                else if (operand_size_override_) width = 2;
+                else width = 4;
+            }
+            const bool compare = opcode == 0xA6 || opcode == 0xA7 || opcode == 0xAE || opcode == 0xAF;
+            const bool move = opcode == 0xA4 || opcode == 0xA5;
+            const bool load = opcode == 0xAC || opcode == 0xAD;
+            const bool store = opcode == 0xAA || opcode == 0xAB;
+            std::uint64_t count = (repeat_prefix == 0) ? 1 : (address_size_override_ ? registers_.Read32(1) : registers_.Read64(1));
+            if (repeat_prefix != 0 && count == 0) break;
+            auto getIndex = [&](std::uint8_t index) -> std::uint64_t {
+                return address_size_override_ ? static_cast<std::uint64_t>(registers_.Read32(index)) : registers_.Read64(index);
+            };
+            auto setIndex = [&](std::uint8_t index, std::uint64_t value) {
+                if (address_size_override_) registers_.Write32(index, static_cast<std::uint32_t>(value));
+                else registers_.Write64(index, value);
+            };
+            const std::int64_t delta = (rflags_ & (1ULL << 10)) ? -static_cast<std::int64_t>(width) : static_cast<std::int64_t>(width);
+            while (count != 0) {
+                const std::uint64_t si = getIndex(6);
+                const std::uint64_t di = getIndex(7);
+                std::uint64_t srcValue = 0, dstValue = 0;
+                if (move || compare || load) {
+                    if (!ReadMemory(si, reinterpret_cast<std::uint8_t*>(&srcValue), width)) return 1;
+                }
+                if (move || compare) {
+                    if (!ReadMemory(di, reinterpret_cast<std::uint8_t*>(&dstValue), width)) return 1;
+                }
+                if (move) {
+                    if (!WriteMemory(di, reinterpret_cast<const std::uint8_t*>(&srcValue), width)) return 1;
+                    setIndex(6, si + delta); setIndex(7, di + delta);
+                } else if (compare) {
+                    if (width == 1) SetSubFlags8(static_cast<std::uint8_t>(srcValue), static_cast<std::uint8_t>(dstValue), static_cast<std::uint8_t>(srcValue - dstValue));
+                    else if (width == 2) SetSubFlags16(static_cast<std::uint16_t>(srcValue), static_cast<std::uint16_t>(dstValue), static_cast<std::uint16_t>(srcValue - dstValue));
+                    else if (width == 4) SetSubFlags32(static_cast<std::uint32_t>(srcValue), static_cast<std::uint32_t>(dstValue), static_cast<std::uint32_t>(srcValue - dstValue));
+                    else SetSubFlags64(srcValue, dstValue, srcValue - dstValue);
+                    setIndex(6, si + delta); setIndex(7, di + delta);
+                } else if (store) {
+                    std::uint64_t value = registers_.Read64(0);
+                    if (!WriteMemory(di, reinterpret_cast<const std::uint8_t*>(&value), width)) return 1;
+                    setIndex(7, di + delta);
+                } else if (load) {
+                    if (width == 1) WriteReg8(0, false, static_cast<std::uint8_t>(srcValue));
+                    else if (width == 2) registers_.Write16(0, static_cast<std::uint16_t>(srcValue));
+                    else if (width == 4) registers_.Write32(0, static_cast<std::uint32_t>(srcValue));
+                    else registers_.Write64(0, srcValue);
+                    setIndex(6, si + delta);
+                } else {
+                    std::uint64_t acc = registers_.Read64(0);
+                    if (width == 1) SetSubFlags8(static_cast<std::uint8_t>(acc), static_cast<std::uint8_t>(dstValue), static_cast<std::uint8_t>(acc - dstValue));
+                    else if (width == 2) SetSubFlags16(static_cast<std::uint16_t>(acc), static_cast<std::uint16_t>(dstValue), static_cast<std::uint16_t>(acc - dstValue));
+                    else if (width == 4) SetSubFlags32(static_cast<std::uint32_t>(acc), static_cast<std::uint32_t>(dstValue), static_cast<std::uint32_t>(acc - dstValue));
+                    else SetSubFlags64(acc, dstValue, acc - dstValue);
+                    setIndex(7, di + delta);
+                }
+                --count;
+                if (repeat_prefix == 0) break;
+                if (address_size_override_) registers_.Write32(1, static_cast<std::uint32_t>(count));
+                else registers_.Write64(1, count);
+                if (compare && ((repeat_prefix == 0xF3 && !ZeroFlag()) || (repeat_prefix == 0xF2 && ZeroFlag()))) break;
+            }
+            break;
+        }
 
         case 0xB8:
         case 0xB9:
