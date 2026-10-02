@@ -21,6 +21,7 @@ int main() {
     {
         const std::uint8_t code[] = {0x66, 0xC1, 0xD0, 0x01};
         Cpu cpu;
+        cpu.ConnectMemory(&memory);
         cpu.WriteRegister64(0, 0x1122334455668000ULL);
         cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
         if (!Run(memory, cpu, code, sizeof(code)) ||
@@ -34,6 +35,7 @@ int main() {
     {
         const std::uint8_t code[] = {0x66, 0xC1, 0xD8, 0x01};
         Cpu cpu;
+        cpu.ConnectMemory(&memory);
         cpu.WriteRegister64(0, 0x1122334455660001ULL);
         cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
         if (!Run(memory, cpu, code, sizeof(code)) ||
