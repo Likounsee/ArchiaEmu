@@ -6993,6 +6993,7 @@ case 0xD0:
 
             if (operand_size_override_) {
                 if (!DecodeCmp16(0x39, modrm, rex)) return 1;
+                break;
             }
             else if (rex.w) {
 
