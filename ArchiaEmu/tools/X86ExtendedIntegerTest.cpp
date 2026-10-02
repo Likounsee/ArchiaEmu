@@ -162,6 +162,17 @@ static bool TestByteAlu() {
     return Run(memory,cpu,code) && (cpu.ReadRegister64(0)&0xFFU)==0x10U;
 }
 
+static bool TestStringIo() {
+    Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory);
+    cpu.WriteRegister64(2,0x40); cpu.WriteRegister64(7,0x2000); cpu.WriteRegister64(1,2);
+    std::uint32_t n=0;
+    cpu.SetIoHandlers([&](Cpu&,std::uint16_t port,std::uint8_t width)->std::uint32_t { if(port!=0x40||width!=1)return 0; return n++?0x22U:0x11U; },
+        [](Cpu&,std::uint16_t,std::uint32_t,std::uint8_t){return true;});
+    if(!Run(memory,cpu,{0xF3,0x6C}))return false;
+    std::uint8_t a=0,b=0;if(!memory.Read(0x2000,&a,1)||!memory.Read(0x2001,&b,1))return false;
+    return a==0x11&&b==0x22&&cpu.Rdi()==0x2002&&cpu.ReadRegister64(1)==0;
+}
+
 static bool TestIoPorts() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     bool wrote=false;
@@ -383,6 +394,7 @@ int main() {
     if (!TestBitModify()) { std::cerr << "bit modify failed\n"; return 6; }
     if (!TestBitScan()) { std::cerr << "bit scan failed\n"; return 6; }
     if (!TestByteAlu()) { std::cerr << "byte ALU failed\n"; return 6; }
+    if (!TestStringIo()) { std::cerr << "string I/O failed\n"; return 6; }
     if (!TestIoPorts()) { std::cerr << "I/O ports failed\n"; return 6; }
     if (!TestXlat()) { std::cerr << "XLAT failed\n"; return 6; }
     if (!TestIncDecByte()) { std::cerr << "byte INC/DEC failed\n"; return 6; }
