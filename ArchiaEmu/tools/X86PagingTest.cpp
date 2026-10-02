@@ -78,6 +78,22 @@ int main() {
     r = paging.Translate(0x12345678, false, false, false);
     if (!r.ok || r.physical_address != 0x52345678ULL) return Fail("1GiB translation failed") ? 0 : 1;
 
+    // Large-page base alignment bits are reserved.
+    paging.SetEfer(0);
+    Q(mem, 0x3000, 0x800000 | 0x87 | (1ULL << 13));
+    r = paging.Translate(0x12345, false, false, false);
+    if (r.ok || r.fault != PagingFault::Reserved ||
+        (r.page_fault_error & (1U << 3)) == 0) {
+        return Fail("2MiB page accepted reserved address bits") ? 0 : 1;
+    }
+
+    Q(mem, 0x2000, 0x40000000ULL | 0x87 | (1ULL << 13));
+    r = paging.Translate(0x12345678, false, false, false);
+    if (r.ok || r.fault != PagingFault::Reserved ||
+        (r.page_fault_error & (1U << 3)) == 0) {
+        return Fail("1GiB page accepted reserved address bits") ? 0 : 1;
+    }
+
     // NX is reserved when EFER.NXE is disabled.
     paging.SetEfer(0);
     Q(mem, 0x4000, 0x8000 | 0x7 | (1ULL << 63));
