@@ -4692,6 +4692,21 @@ void TestOperandSizeOverride()
         mem.Map(CODE, 0x2000);
         mem.Map(STACK, 0x2000);
         Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660000ULL);
+        code.insert(code.end(), {0x66, 0x6A, 0x80, 0x66, 0x58});
+        code = Finish(code);
+        CHECK(
+            "66h PUSH imm8 and POP r16 use 16-bit stack width",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x112233445566FF80ULL &&
+            cpu.Rsp() == STACK + 0x1000);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
         auto code = MovR64(0, 0x1122334455660001ULL);
         Append(code, MovR64(1, 2));
         code.insert(code.end(), {0x66, 0xD3, 0xE0});
