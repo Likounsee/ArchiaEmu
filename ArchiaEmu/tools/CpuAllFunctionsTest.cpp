@@ -182,6 +182,38 @@ void TestAddressSizeOverride()
         absoluteCpu.Rax() == 0xAABBCCDDULL);
 }
 
+void TestDescriptorTableInstructions()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(DATA, 0x2000);
+    mem.Map(STACK, 0x2000);
+    const std::uint64_t gdtrBase = 0x0000000012345000ULL;
+    const std::uint64_t idtrBase = 0x000000006789A000ULL;
+    std::uint8_t descriptor[10]{};
+    descriptor[0] = 0xFF; descriptor[1] = 0x00;
+    for (unsigned i = 0; i < 8; ++i) descriptor[2 + i] = static_cast<std::uint8_t>(gdtrBase >> (i * 8U));
+    mem.Write(DATA, descriptor, sizeof(descriptor));
+    descriptor[0] = 0x7F; descriptor[1] = 0x00;
+    for (unsigned i = 0; i < 8; ++i) descriptor[2 + i] = static_cast<std::uint8_t>(idtrBase >> (i * 8U));
+    mem.Write(DATA + 16, descriptor, sizeof(descriptor));
+
+    Cpu cpu = MakeCpu(mem);
+    auto code = MovR64(6, DATA);
+    code.insert(code.end(), {0x0F, 0x01, 0x16});
+    Append(code, MovR64(6, DATA + 16));
+    code.insert(code.end(), {0x0F, 0x01, 0x1E});
+    Append(code, MovR64(0, 0x28));
+    code.insert(code.end(), {0x0F, 0x00, 0xD8});
+    code = Finish(code);
+    CHECK(
+        "LGDT/LIDT/LTR wire architectural descriptor state",
+        RunCode(cpu, mem, code) &&
+        cpu.GdtrBase() == gdtrBase && cpu.GdtrLimit() == 0xFF &&
+        cpu.IdtrBase() == idtrBase && cpu.IdtrLimit() == 0x7F &&
+        cpu.TaskRegister() == 0x28);
+}
+
 void TestCanonicalAddressFault()
 {
     Memory mem;
@@ -4827,6 +4859,7 @@ int main()
     TestOperandSizeOverride();
     TestOperandSizeOverrideArithmetic();
     TestOperandSizeOverrideLegacyArithmetic();
+    TestDescriptorTableInstructions();
     TestCanonicalAddressFault();
     TestMemory();
     TestRegisterFile();
