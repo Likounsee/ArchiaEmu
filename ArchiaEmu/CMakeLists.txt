@@ -87,6 +87,15 @@ add_executable(EmulatorLoadGameTest
 target_include_directories(EmulatorLoadGameTest PRIVATE src)
 add_test(NAME EmulatorLoadGameTest COMMAND EmulatorLoadGameTest)
 
+add_executable(X86PrivilegedCpuTest
+    tools/X86PrivilegedCpuTest.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/RegisterFile.cpp
+    src/memory/Memory.cpp
+)
+target_include_directories(X86PrivilegedCpuTest PRIVATE src)
+add_test(NAME X86PrivilegedCpuTest COMMAND X86PrivilegedCpuTest)
+
 add_executable(CpuAllFunctionsTest
     tools/CpuAllFunctionsTest.cpp
     src/memory/Memory.cpp
