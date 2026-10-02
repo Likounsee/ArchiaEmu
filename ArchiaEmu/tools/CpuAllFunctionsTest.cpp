@@ -4346,20 +4346,20 @@ void TestOperandSizeOverride()
     auto code = MovR64(0, 0x1122334455667788ULL);
     code.insert(code.end(), {0x66, 0xB8, 0x34, 0x12});
 
-    // 66 89 D8 = MOV AX, BX.
+    // 66 BB ABCDh = MOV BX,ABCDh; 66 89 02 = MOV [RDX],AX;
+    // 66 8B 0A = MOV CX,[RDX].
     code.insert(code.end(), {0x66, 0xBB, 0xCD, 0xAB});
-    code.insert(code.end(), {0x66, 0x89, 0xD8});
-
-    // 66 8B 0D disp32 = MOV CX, [RIP+disp32] is not supported by the
-    // current address decoder, so exercise the register form above and
-    // a base-register memory form instead.
+    code.insert(code.end(), {0x48, 0xBA, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+    code.insert(code.end(), {0x66, 0x89, 0x02});
+    code.insert(code.end(), {0x66, 0x8B, 0x0A});
     code = Finish(code);
 
     CHECK(
-        "66h MOV AX/BX 16-bit register width",
+        "66h MOV register/memory 16-bit width",
         RunCode(cpu, mem, code) &&
         cpu.Rax() == 0x112233445566ABCDULL &&
-        cpu.ReadRegister64(1) == 0xAB);
+        cpu.ReadRegister64(1) == 0xABCD &&
+        Read16(mem, DATA) == 0xABCD);
 }
 
 int main()
