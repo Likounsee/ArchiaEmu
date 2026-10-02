@@ -126,6 +126,23 @@ int main()
         return Fail("IRETQ incorrectly restored privileged RFLAGS at CPL3") ? 0 : 1;
     }
 
+    // At CPL3, IRETQ must preserve the current VIF/VIP bits because they
+    // are privileged RFLAGS state, just like IOPL. The stacked values must
+    // not overwrite them when returning to a non-zero CPL.
+    constexpr std::uint64_t kVif = 1ULL << 19;
+    constexpr std::uint64_t kVip = 1ULL << 20;
+    userCpu.SetRflags(0x202 | kVif | kVip);
+    WriteQword(memory, 0x7100, 0x505678);
+    WriteQword(memory, 0x7108, 0x33);
+    WriteQword(memory, 0x7110, 0x202); // stacked VIF/VIP are clear.
+    WriteQword(memory, 0x7118, 0x800000);
+    WriteQword(memory, 0x7120, 0x3B);
+    result = ExceptionReturn64::Read(userCpu, memory, gdt);
+    if (result.status != ExceptionReturnStatus::Returned ||
+        (result.rflags & (kVif | kVip)) != (kVif | kVip)) {
+        return Fail("IRETQ incorrectly modified VIF/VIP at CPL3") ? 0 : 1;
+    }
+
     const auto beforeRip = userCpu.InstructionPointer();
     WriteQword(memory, 0x7100, 0x0001000000000000ULL);
     result = ExceptionReturn64::Read(userCpu, memory, gdt);
