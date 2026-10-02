@@ -2204,7 +2204,7 @@ bool Cpu::DecodeShiftRotate16Imm(
         // RCL/RCR rotate through CF across 17 bits for a 16-bit operand.
         const std::uint8_t n = static_cast<std::uint8_t>(shift % 17U);
         if (n == 0) return true;
-        bool carry = (rflags_ & CF_MASK) != 0;
+        carry = (rflags_ & CF_MASK) != 0;
         for (std::uint8_t i = 0; i < n; ++i) {
             if (group == 2) {
                 const bool nextCarry = (value & 0x8000U) != 0;
@@ -2231,7 +2231,7 @@ bool Cpu::DecodeShiftRotate16Imm(
         }
         return true;
     }
-    if (group == 0 || group == 1) {
+    else if (group == 0 || group == 1) {
         const std::uint8_t n = static_cast<std::uint8_t>(shift & 0x0F);
         if (n == 0) return true;
         if (group == 0) {
