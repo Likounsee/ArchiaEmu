@@ -401,7 +401,7 @@ Memory* memory_ = nullptr;
         std::uint32_t lhs,
         std::uint32_t rhs,
         std::uint32_t result) noexcept;
-        void SetSubFlags8(std::uint8_t lhs, std::uint8_t rhs, std::uint8_t result);
+        void SetSubFlags8(std::uint8_t lhs, std::uint8_t rhs, std::uint8_t result) noexcept;
 void SetSubFlags16(
         std::uint16_t lhs,
         std::uint16_t rhs,
