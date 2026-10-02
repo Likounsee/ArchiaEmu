@@ -21,6 +21,9 @@ int main() {
     gp=false; userHlt.SetExceptionHandler([&](Cpu&,const CpuException& e){gp=e.vector==CpuExceptionVector::GeneralProtection; return false;});
     if(Run(m,userHlt,{0xF4})) return 5;
     if(!gp) return 6;
+    Cpu cr; cr.SetCodeSegment(0x8); cr.WriteRegister64(0, 0x4000);
+    if(!Run(m,cr,{0x0F,0x22,0xD8,0x0F,0x20,0xC0,0xF4})) return 7;
+    if(cr.Cr3()!=0x4000 || cr.ReadRegister64(0)!=0x4000) return 8;
     std::cout<<"x86 privileged CPU instruction test: PASS\n";
     return 0;
 }
