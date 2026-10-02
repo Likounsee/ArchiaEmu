@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 using namespace myps5emu;
@@ -358,6 +359,18 @@ int main()
         machine.CPU().LastException().instruction_pointer != 0x47000F ||
         machine.CPU().LastException().vector != CpuExceptionVector::DivideError) {
         return Fail("CPU divide-overflow exception dispatch failed") ? 0 : 1;
+    }
+
+    if (bus.Map(std::numeric_limits<std::uint64_t>::max() - 0x7FFULL,
+                0x1000, MemoryPermission::Read) ||
+        bus.LastFault() != MemoryFault::InvalidRange) {
+        return Fail("Bus::Map overflow did not report InvalidRange") ? 0 : 1;
+    }
+
+    if (bus.MapDevice(std::numeric_limits<std::uint64_t>::max() - 0x7FFULL,
+                      0x1000, &ramDevice) ||
+        bus.LastFault() != MemoryFault::InvalidRange) {
+        return Fail("Bus::MapDevice overflow did not report InvalidRange") ? 0 : 1;
     }
 
     bus.ClearDevices();
