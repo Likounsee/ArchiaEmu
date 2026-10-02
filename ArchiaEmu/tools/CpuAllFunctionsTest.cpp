@@ -4485,6 +4485,40 @@ void TestOperandSizeOverride()
         stageMem.Map(DATA, 0x2000);
         stageMem.Map(STACK, 0x2000);
         Cpu stageCpu = MakeCpu(stageMem);
+        stageCpu.SetRflags(1ULL);
+        auto stageCode = MovR64(0, 0x1122334455660000ULL);
+        stageCode.insert(stageCode.end(), {0x66, 0x81, 0xD0, 0xFF, 0xFF});
+        stageCode = Finish(stageCode);
+        CHECK(
+            "66h ADC r/m16,imm16 preserves carry semantics",
+            RunCode(stageCpu, stageMem, stageCode) &&
+            stageCpu.Rax() == 0x1122334455660000ULL &&
+            (stageCpu.Rflags() & 1ULL) != 0);
+    }
+
+    {
+        Memory stageMem;
+        stageMem.Map(CODE, 0x2000);
+        stageMem.Map(DATA, 0x2000);
+        stageMem.Map(STACK, 0x2000);
+        Cpu stageCpu = MakeCpu(stageMem);
+        stageCpu.SetRflags(1ULL);
+        auto stageCode = MovR64(0, 0x1122334455660000ULL);
+        stageCode.insert(stageCode.end(), {0x66, 0x81, 0xD8, 0x00, 0x00});
+        stageCode = Finish(stageCode);
+        CHECK(
+            "66h SBB r/m16,imm16 preserves borrow semantics",
+            RunCode(stageCpu, stageMem, stageCode) &&
+            stageCpu.Rax() == 0x112233445566FFFFULL &&
+            (stageCpu.Rflags() & 1ULL) != 0);
+    }
+
+    {
+        Memory stageMem;
+        stageMem.Map(CODE, 0x2000);
+        stageMem.Map(DATA, 0x2000);
+        stageMem.Map(STACK, 0x2000);
+        Cpu stageCpu = MakeCpu(stageMem);
         auto stageCode = MovR64(0, 0x1122334455661000ULL);
         stageCode.insert(stageCode.end(), {0x66, 0x83, 0xC0, 0x02});
         stageCode = Finish(stageCode);
