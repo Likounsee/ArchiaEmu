@@ -7150,6 +7150,17 @@ case 0xD0:
         
         
 
+        case 0xA8: {
+            std::uint8_t immediate=0;
+            if(!Fetch8(immediate))return 1;
+            const std::uint8_t value=ReadReg8(0,false);
+            const std::uint8_t result=static_cast<std::uint8_t>(value & immediate);
+            SetZeroFlag(result==0); SetSignFlag((result&0x80U)!=0);
+            rflags_ &= ~(CF_MASK|OF_MASK|AF_MASK);
+            if(EvenParity8(result)) rflags_|=PF_MASK; else rflags_&=~PF_MASK;
+            break;
+        }
+
         case 0xA0:
         case 0xA1:
         case 0xA2:
