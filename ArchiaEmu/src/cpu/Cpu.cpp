@@ -4241,6 +4241,12 @@ int Cpu::Run()
                 break;
             }
 
+            if (opcode2 == 0x1F) {
+                std::uint8_t modrm=0,reg=0,rm=0;std::uint64_t address=0;bool memory=false;
+                if(!Fetch8(modrm)||!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory))return 1;
+                break;
+            }
+
             if (opcode2 == 0x63) {
                 std::uint8_t modrm = 0;
                 if (!Fetch8(modrm)) return 1;
