@@ -114,6 +114,7 @@ Memory* memory_ = nullptr;
     std::uint64_t current_instruction_ip_ = 0;
     bool halted_ = false;
     bool address_size_override_ = false;
+    bool operand_size_override_ = false;
 
     // Register file
     RegisterFile registers_;
