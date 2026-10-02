@@ -4043,8 +4043,8 @@ int Cpu::Run()
                 std::uint64_t address = 0;
                 bool memory = false;
                 if (opcode2 == 0xC0) {
-                    std::uint8_t regHigh = 0, rmHigh = 0;
-                    if (!DecodeMemoryOrRegister8(modrm, rex, reg, reinterpret_cast<bool&>(regHigh), rm, reinterpret_cast<bool&>(rmHigh), address, memory)) return 1;
+                    bool regHigh = false, rmHigh = false;
+                    if (!DecodeMemoryOrRegister8(modrm, rex, reg, regHigh, rm, rmHigh, address, memory)) return 1;
                     const std::uint8_t old = memory ? ([&]() { std::uint8_t v=0; if(!ReadMemory(address,&v,1)) return std::uint8_t(0); return v; })() : ReadReg8(rm,rmHigh);
                     const std::uint8_t src = ReadReg8(reg,regHigh);
                     const std::uint8_t sum = static_cast<std::uint8_t>(old + src);
