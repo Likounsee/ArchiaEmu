@@ -3262,10 +3262,12 @@ int Cpu::Run()
                 registers_.Write64(1, returnRip);
                 registers_.Write64(11, rflags_);
                 rflags_ &= ~msr_fmask_;
-                const std::uint16_t kernelCs = static_cast<std::uint16_t>(msr_star_ >> 32U);
-                code_segment_ = kernelCs;
-                stack_segment_ = static_cast<std::uint16_t>(kernelCs + 8U);
-                instruction_pointer_ = msr_lstar_;
+                if (msr_star_ != 0) {
+                    const std::uint16_t kernelCs = static_cast<std::uint16_t>(msr_star_ >> 32U);
+                    code_segment_ = kernelCs;
+                    stack_segment_ = static_cast<std::uint16_t>(kernelCs + 8U);
+                    instruction_pointer_ = msr_lstar_;
+                }
                 if (syscall_handler_) {
                     if (!syscall_handler_(*this)) {
                         return 1;
