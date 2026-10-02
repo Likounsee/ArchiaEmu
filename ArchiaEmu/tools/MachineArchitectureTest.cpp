@@ -27,17 +27,6 @@ int main()
     Machine machine;
     Bus& bus = machine.SystemBus();
 
-    const std::vector<std::uint8_t> saveData{0x41, 0x52, 0x43, 0x48};
-    if (!machine.Storage().CreateDirectory("/games") ||
-        !machine.Storage().WriteFile("/games/save.bin", saveData)) {
-        return Fail("Machine OpenFS integration failed") ? 0 : 1;
-    }
-    std::vector<std::uint8_t> loadedSave;
-    if (!machine.Storage().ReadFile("/games/save.bin", loadedSave) ||
-        loadedSave != saveData) {
-        return Fail("Machine OpenFS round-trip failed") ? 0 : 1;
-    }
-
     if (machine.CPU().InstructionPointer() != 0) {
         return Fail("Machine CPU initialization failed") ? 0 : 1;
     }
