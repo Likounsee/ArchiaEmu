@@ -4759,6 +4759,56 @@ void TestOperandSizeOverrideArithmetic()
     }
 }
 
+void TestOperandSizeOverrideLegacyArithmetic()
+{
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660080ULL);
+        code.insert(code.end(), {0x66, 0x98}); // CBW
+        code = Finish(code);
+        CHECK(
+            "66h CBW sign-extends AL into AX",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x112233445566FF80ULL);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x112233445566FF80ULL);
+        code.insert(code.end(), {0x66, 0x99}); // CWD
+        code = Finish(code);
+        CHECK(
+            "66h CWD sign-extends AX into DX",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(2) == 0x000000000000FFFFULL);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660005ULL);
+        Append(code, MovR64(3, 2));
+        cpu.SetRflags(1ULL);
+        code.insert(code.end(), {0x66, 0x1B, 0xC3}); // SBB AX,BX
+        code = Finish(code);
+        CHECK(
+            "66h SBB r16,r/m16 preserves upper bits",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x1122334455660002ULL);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660005ULL);
+        cpu.SetRflags(1ULL);
+        code.insert(code.end(), {0x66, 0x1D, 0x02, 0x00}); // SBB AX,2
+        code = Finish(code);
+        CHECK(
+            "66h SBB AX,imm16 preserves upper bits",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x1122334455660002ULL);
+    }
+}
+
 int main()
 {
     TestCpuAudit();
@@ -4776,6 +4826,7 @@ int main()
     TestAddressSizeOverride();
     TestOperandSizeOverride();
     TestOperandSizeOverrideArithmetic();
+    TestOperandSizeOverrideLegacyArithmetic();
     TestCanonicalAddressFault();
     TestMemory();
     TestRegisterFile();
