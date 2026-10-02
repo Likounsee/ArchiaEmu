@@ -5552,7 +5552,7 @@ case 0xD0:
                         registers_.Write16(rm, result);
                     }
                 }
-                return 0;
+                break;
             }
 
             if (!rex.w) {
