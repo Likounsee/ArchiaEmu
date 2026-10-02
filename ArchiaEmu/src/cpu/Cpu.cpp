@@ -4791,32 +4791,81 @@ int Cpu::Run()
         }
 
         case 0xF6: {
-
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
+            if (!Fetch8(modrm)) return 1;
+            const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+            if (group == 0) {
+                if (!DecodeTest8(modrm, rex)) return 1;
+                break;
             }
 
-            const std::uint8_t group =
-                static_cast<std::uint8_t>((modrm >> 3) & 0x07);
-
-            // Seul /0 (TEST r/m8, imm8) est implemente pour le
-            // moment. /2 (NOT), /3 (NEG), /4 (MUL), /5 (IMUL),
-            // /6 (DIV), /7 (IDIV) restent hors perimetre.
-            if (group != 0) {
-                std::cerr
-                    << "[CPU] F6 /"
-                    << static_cast<unsigned>(group)
-                    << " non supporte (seul TEST r/m8,imm8 l'est)\n";
-                return 1;
+            std::uint8_t reg = 0, rm = 0;
+            bool regHigh = false, rmHigh = false;
+            std::uint64_t address = 0;
+            bool memory = false;
+            if (!DecodeMemoryOrRegister8(modrm, rex, reg, regHigh, rm, rmHigh, address, memory)) return 1;
+            std::uint8_t value = 0;
+            if (memory) {
+                if (!ReadMemory(address, &value, 1)) return 1;
+            } else {
+                value = ReadReg8(rm, rmHigh);
             }
 
-            if (!DecodeTest8(modrm, rex)) {
-                return 1;
+            if (group == 2) {
+                value = static_cast<std::uint8_t>(~value);
+                if (memory) { if(!WriteMemory(address,&value,1)) return 1; }
+                else WriteReg8(rm,rmHigh,value);
+                break;
             }
-
-            break;
+            if (group == 3) {
+                const std::uint8_t result = static_cast<std::uint8_t>(0U - value);
+                if (memory) { if(!WriteMemory(address,&result,1)) return 1; }
+                else WriteReg8(rm,rmHigh,result);
+                SetSubFlags8(0, value, result);
+                break;
+            }
+            if (group == 4) {
+                const std::uint16_t product = static_cast<std::uint16_t>(static_cast<std::uint16_t>(ReadReg8(0,false)) * static_cast<std::uint16_t>(value));
+                registers_.Write16(0, product);
+                if ((product & 0xFF00U) != 0) rflags_ |= CF_MASK | OF_MASK;
+                else rflags_ &= ~(CF_MASK | OF_MASK);
+                break;
+            }
+            if (group == 5) {
+                const std::int16_t product = static_cast<std::int16_t>(static_cast<std::int8_t>(ReadReg8(0,false))) * static_cast<std::int16_t>(static_cast<std::int8_t>(value));
+                registers_.Write16(0, static_cast<std::uint16_t>(product));
+                if (product < -128 || product > 127) rflags_ |= CF_MASK | OF_MASK;
+                else rflags_ &= ~(CF_MASK | OF_MASK);
+                break;
+            }
+            if (group == 6 || group == 7) {
+                const std::uint16_t dividendBits = registers_.Read16(0);
+                if (value == 0) {
+                    if (!RaiseException({CpuExceptionKind::DivideError, instruction_address, MemoryFault::None, CpuExceptionVector::DivideError})) return 1;
+                    break;
+                }
+                if (group == 6) {
+                    const std::uint16_t quotient = static_cast<std::uint16_t>(dividendBits / value);
+                    const std::uint16_t remainder = static_cast<std::uint16_t>(dividendBits % value);
+                    if (quotient > 0xFFU) {
+                        if (!RaiseException({CpuExceptionKind::DivideError, instruction_address, MemoryFault::None, CpuExceptionVector::DivideError})) return 1;
+                        break;
+                    }
+                    registers_.Write16(0, static_cast<std::uint16_t>((remainder << 8) | quotient));
+                } else {
+                    const std::int16_t dividend = static_cast<std::int16_t>(dividendBits);
+                    const std::int8_t divisor = static_cast<std::int8_t>(value);
+                    const std::int16_t quotient = static_cast<std::int16_t>(dividend / divisor);
+                    const std::int16_t remainder = static_cast<std::int16_t>(dividend % divisor);
+                    if (quotient < -128 || quotient > 127) {
+                        if (!RaiseException({CpuExceptionKind::DivideError, instruction_address, MemoryFault::None, CpuExceptionVector::DivideError})) return 1;
+                        break;
+                    }
+                    registers_.Write16(0, static_cast<std::uint16_t>((static_cast<std::uint8_t>(remainder) << 8) | static_cast<std::uint8_t>(quotient)));
+                }
+                break;
+            }
+            return 1;
         }
 
         case 0xF7: {
