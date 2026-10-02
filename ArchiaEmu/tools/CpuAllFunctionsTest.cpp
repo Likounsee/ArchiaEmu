@@ -1616,7 +1616,10 @@ void TestAdcSbb()
         Cpu cpu=MakeCpu(mem); std::uint32_t v=0x80000000U; mem.Write(DATA,reinterpret_cast<std::uint8_t*>(&v),4);
         cpu.SetRflags(1);
         auto code=MovR64(0,DATA); Append(code,MovR64(3,0)); Append(code,{0x19,0x18}); code=Finish(code);
-        CHECK("SBB32_mem",RunCode(cpu,mem,code)&&Read32(mem,DATA)==0x7FFFFFFFU&&
+        const bool sbb32Ok = RunCode(cpu,mem,code);
+        std::cerr << "[SBB32 diag] flags=0x" << std::hex << cpu.Rflags() << " value=0x"
+                  << Read32(mem,DATA) << std::dec << '\\n';
+        CHECK("SBB32_mem",sbb32Ok&&Read32(mem,DATA)==0x7FFFFFFFU&&
               (cpu.Rflags()&(1ULL<<11))&&(cpu.Rflags()&(1ULL<<4))&&
               !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&!(cpu.Rflags()&(1ULL<<2))&&!(cpu.Rflags()&1ULL));
     }
@@ -1625,7 +1628,10 @@ void TestAdcSbb()
         Cpu cpu=MakeCpu(mem); std::uint64_t v=0x8000000000000000ULL; mem.Write(DATA,reinterpret_cast<std::uint8_t*>(&v),8);
         cpu.SetRflags(1);
         auto code=MovR64(0,DATA); Append(code,MovR64(3,0)); Append(code,{0x48,0x19,0x18}); code=Finish(code);
-        CHECK("SBB64_mem",RunCode(cpu,mem,code)&&Read64(mem,DATA)==0x7FFFFFFFFFFFFFFFULL&&
+        const bool sbb64Ok = RunCode(cpu,mem,code);
+        std::cerr << "[SBB64 diag] flags=0x" << std::hex << cpu.Rflags() << " value=0x"
+                  << Read64(mem,DATA) << std::dec << '\\n';
+        CHECK("SBB64_mem",sbb64Ok&&Read64(mem,DATA)==0x7FFFFFFFFFFFFFFFULL&&
               (cpu.Rflags()&(1ULL<<11))&&(cpu.Rflags()&(1ULL<<4))&&
               !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&!(cpu.Rflags()&(1ULL<<2))&&!(cpu.Rflags()&1ULL));
     }
