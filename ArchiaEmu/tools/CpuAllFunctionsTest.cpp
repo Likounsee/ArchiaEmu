@@ -4638,7 +4638,7 @@ void TestOperandSizeOverride()
         CHECK(
             "66h LEA writes a 16-bit destination",
             RunCode(stageCpu, stageMem, stageCode) &&
-            stageCpu.Rax() == 0x0000000000000020ULL);
+            stageCpu.Rax() == 0x1122334455660020ULL);
     }
 
     {
