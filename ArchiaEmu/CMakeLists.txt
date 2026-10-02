@@ -235,6 +235,27 @@ target_include_directories(X86ExceptionEntryTest PRIVATE src)
 add_test(NAME X86ExceptionEntryTest COMMAND X86ExceptionEntryTest)
 
 
+add_executable(X86ExceptionRoundTripTest
+    tools/X86ExceptionRoundTripTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/RegisterFile.cpp
+    src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
+    src/cpu/x86/ExceptionTarget.cpp
+    src/cpu/x86/ExceptionDelivery.cpp
+    src/cpu/x86/Tss64.cpp
+    src/cpu/x86/ExceptionStackFrame64.cpp
+    src/cpu/x86/ExceptionStackWriter64.cpp
+    src/cpu/x86/ExceptionStateApplier64.cpp
+    src/cpu/x86/ExceptionEntry64.cpp
+    src/cpu/x86/ExceptionReturn64.cpp
+)
+target_include_directories(X86ExceptionRoundTripTest PRIVATE src)
+add_test(NAME X86ExceptionRoundTripTest COMMAND X86ExceptionRoundTripTest)
+
 add_executable(X86ExceptionReturnTest
     tools/X86ExceptionReturnTest.cpp
     src/memory/Memory.cpp
