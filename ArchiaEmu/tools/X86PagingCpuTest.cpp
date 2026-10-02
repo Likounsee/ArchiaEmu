@@ -74,25 +74,31 @@ int main() {
 
     Tss64 tss;
     tss.SetRsp0(0x9000);
-    cpu.SetExceptionArchitecture(&idt, &gdt, &tss);
+    Cpu faultCpu;
+    faultCpu.ConnectMemory(&mem);
+    faultCpu.SetPaging(&paging);
+    faultCpu.SetCr3(0x1000);
+    faultCpu.SetCr4(1ULL << 5);
+    faultCpu.SetCr0(1ULL << 31);
+    faultCpu.SetExceptionArchitecture(&idt, &gdt, &tss);
 
     bool legacy_callback_called = false;
-    cpu.SetExceptionHandler([&](Cpu&, const CpuException&) {
+    faultCpu.SetExceptionHandler([&](Cpu&, const CpuException&) {
         legacy_callback_called = true;
         return true;
     });
 
-    cpu.SetCodeSegment(0x1B);
-    cpu.SetStackSegment(0x23);
-    cpu.SetStackPointer(0x8FF0);
-    cpu.SetInstructionPointer(0x900000);
-    if (cpu.Run() == 0 || legacy_callback_called ||
-        cpu.Cr2() != 0x900000 ||
-        cpu.LastException().page_fault_error != (1U << 4) ||
-        cpu.CodeSegment() != 0x08 ||
-        cpu.StackSegment() != 0 ||
-        cpu.InstructionPointer() != gate.offset ||
-        cpu.Rsp() != 0x8FD0) {
+    faultCpu.SetCodeSegment(0x1B);
+    faultCpu.SetStackSegment(0x23);
+    faultCpu.SetStackPointer(0x8FF0);
+    faultCpu.SetInstructionPointer(0x900000);
+    if (faultCpu.Run() == 0 || legacy_callback_called ||
+        faultCpu.Cr2() != 0x900000 ||
+        faultCpu.LastException().page_fault_error != (1U << 4) ||
+        faultCpu.CodeSegment() != 0x08 ||
+        faultCpu.StackSegment() != 0 ||
+        faultCpu.InstructionPointer() != gate.offset ||
+        faultCpu.Rsp() != 0x8FD0) {
         return Fail("CPU did not route paging #PF through hardware exception delivery") ? 0 : 1;
     }
 
