@@ -3124,6 +3124,14 @@ int Cpu::Run()
             return 1;
         }
 
+        address_size_override_ = false;
+        if (opcode == 0x67) {
+            address_size_override_ = true;
+            if (!Fetch8(opcode)) {
+                return 1;
+            }
+        }
+
         RexPrefix rex{};
 
         if (opcode >= 0x40 && opcode <= 0x4F) {
