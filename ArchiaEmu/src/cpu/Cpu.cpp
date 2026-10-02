@@ -4546,7 +4546,17 @@ int Cpu::Run()
             if (group == 2) {
 
                 // NOT : complement binaire, aucun flag affecte
-                if (rex.w) {
+                if (operand_size_override_ && !rex.w) {
+                    std::uint16_t value = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return 1;
+                    } else value = registers_.Read16(rm);
+                    const std::uint16_t result = static_cast<std::uint16_t>(~value);
+                    if (memory) {
+                        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return 1;
+                    } else registers_.Write16(rm, result);
+                }
+                else if (rex.w) {
 
                     std::uint64_t value = 0;
 
@@ -4608,7 +4618,22 @@ int Cpu::Run()
 
             if (group == 3) {
 
-                if (rex.w) {
+                if (operand_size_override_ && !rex.w) {
+                    std::uint16_t value = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return 1;
+                    } else value = registers_.Read16(rm);
+                    const std::uint16_t result = static_cast<std::uint16_t>(0U - value);
+                    if (memory) {
+                        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return 1;
+                    } else registers_.Write16(rm, result);
+                    SetZeroFlag(result == 0);
+                    SetSignFlag((result & 0x8000U) != 0);
+                    if (value != 0) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                    if (value == 0x8000U) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+                }
+                else if (rex.w) {
 
                     std::uint64_t value = 0;
 
