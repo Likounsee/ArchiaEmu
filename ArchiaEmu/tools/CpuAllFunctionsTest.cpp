@@ -4367,6 +4367,8 @@ void TestOperandSizeOverride()
         RunCode(cpu, mem, code) &&
         cpu.Rax() == 0x112233445566ABCDULL &&
         cpu.ReadRegister64(1) == 0xABCD &&
+        (cpu.ReadRegister64(3) & 0xFFFFULL) == 0xABCD &&
+        cpu.ReadRegister64(1) == 0x000000000000ABCDULL &&
         Read16(mem, DATA) == 0xABCD);
 
     {
