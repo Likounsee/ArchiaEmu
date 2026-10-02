@@ -44,9 +44,8 @@ bool Fail(const char* message)
     return false;
 }
 
-bool WriteOverlappingStackElf(const std::filesystem::path& path)
+bool WriteElf(const std::filesystem::path& path, std::uint64_t virtualAddress)
 {
-    constexpr std::uint64_t stackBase = 0x7FFF00000000ULL;
     constexpr std::uint64_t programOffset = 0x1000ULL;
 
     Elf64Header header{};
@@ -60,7 +59,7 @@ bool WriteOverlappingStackElf(const std::filesystem::path& path)
     header.type = 2;
     header.machine = 62;
     header.version = 1;
-    header.entry = stackBase;
+    header.entry = virtualAddress;
     header.program_header_offset = sizeof(Elf64Header);
     header.header_size = sizeof(Elf64Header);
     header.program_header_entry_size = sizeof(Elf64ProgramHeader);
@@ -70,7 +69,7 @@ bool WriteOverlappingStackElf(const std::filesystem::path& path)
     program.type = 1;
     program.flags = 0x5;
     program.offset = programOffset;
-    program.virtual_address = stackBase;
+    program.virtual_address = virtualAddress;
     program.file_size = 1;
     program.memory_size = 1;
     program.alignment = 0x1000;
@@ -98,48 +97,61 @@ bool WriteOverlappingStackElf(const std::filesystem::path& path)
 
 int main()
 {
-    const auto path =
+    constexpr std::uint64_t stackBase = 0x7FFF00000000ULL;
+    constexpr std::uint64_t validBase = 0x400000ULL;
+
+    const auto partialPath =
         std::filesystem::temp_directory_path() / "archiaemu_loadgame_partial_failure.elf";
     const auto validPath =
         std::filesystem::temp_directory_path() / "archiaemu_loadgame_valid.elf";
 
-    if (!WriteOverlappingStackElf(path)) {
-        return Fail("Failed to create LoadGame regression ELF") ? 0 : 1;
+    if (!WriteElf(partialPath, stackBase) ||
+        !WriteElf(validPath, validBase)) {
+        std::filesystem::remove(partialPath);
+        std::filesystem::remove(validPath);
+        return Fail("Failed to create LoadGame regression ELF fixtures") ? 0 : 1;
     }
-
-    // First prove that a valid game can load and run. This establishes guest
-    // state that the next failed LoadGame() call must not leave behind.
-    {
-        myps5emu::Emulator emulator;
-        if (!WriteOverlappingStackElf(validPath)) {
-            std::filesystem::remove(path);
-            return Fail("Failed to create valid LoadGame fixture") ? 0 : 1;
-        }
-
-        // The stack-overlap fixture is intentionally not a valid successful
-        // load, so build the successful fixture by changing its entry/segment
-        // address in a separate file below.
-    }
-
-    std::filesystem::remove(validPath);
 
     myps5emu::Emulator emulator;
 
-    if (emulator.LoadGame(path.string())) {
-        std::filesystem::remove(path);
+    // Baseline: a normal ELF loads and its HLT can run.
+    if (!emulator.LoadGame(validPath.string()) || emulator.Run() != 0) {
+        std::filesystem::remove(partialPath);
+        std::filesystem::remove(validPath);
+        return Fail("Valid LoadGame baseline failed") ? 0 : 1;
+    }
+
+    // Repeated LoadGame() with an invalid path must not leave the previous
+    // game's memory/entry point runnable.
+    if (emulator.LoadGame(validPath.string() + ".missing")) {
+        std::filesystem::remove(partialPath);
+        std::filesystem::remove(validPath);
+        return Fail("LoadGame unexpectedly accepted a missing ELF") ? 0 : 1;
+    }
+
+    if (emulator.Run() == 0) {
+        std::filesystem::remove(partialPath);
+        std::filesystem::remove(validPath);
+        return Fail("Failed repeated LoadGame left the previous game loaded") ? 0 : 1;
+    }
+
+    // The ELF loader succeeds here, but LoadGame maps the PT_LOAD before the
+    // later guest-stack mapping fails because both use stackBase. The failed
+    // load must not leave that PT_LOAD executable/runnable.
+    if (emulator.LoadGame(partialPath.string())) {
+        std::filesystem::remove(partialPath);
+        std::filesystem::remove(validPath);
         return Fail("LoadGame unexpectedly accepted an ELF whose PT_LOAD overlaps the guest stack") ? 0 : 1;
     }
 
-    // The ELF loader succeeds and LoadGame maps the PT_LOAD before the later
-    // guest-stack mapping fails. If that partial mapping is retained, Run()
-    // will execute the HLT left at the failed load's entry point.
-    const int partialFailureRun = emulator.Run();
-
-    std::filesystem::remove(path);
-
-    if (partialFailureRun == 0) {
+    if (emulator.Run() == 0) {
+        std::filesystem::remove(partialPath);
+        std::filesystem::remove(validPath);
         return Fail("Failed LoadGame left guest memory/CPU state partially loaded") ? 0 : 1;
     }
+
+    std::filesystem::remove(partialPath);
+    std::filesystem::remove(validPath);
 
     std::cout << "Emulator LoadGame failure rollback test: PASS\n";
     return 0;
