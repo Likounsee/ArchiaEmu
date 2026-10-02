@@ -86,6 +86,12 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestLockPrefix() {
+    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code; AppendMovR64(code,0,1); AppendMovR64(code,3,2); code.insert(code.end(),{0xF0,0x01,0xD8});
+    return Run(memory,cpu,code) && cpu.Rax()==3;
+}
+
 static bool TestPopRm() {
     Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetStackPointer(0x3000);
     std::vector<std::uint8_t> code; AppendMovR64(code,0,0x1122334455667788ULL); code.push_back(0x50); code.push_back(0x8F); code.push_back(0xC3);
@@ -306,6 +312,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestLockPrefix()) { std::cerr << "LOCK prefix failed\n"; return 6; }
     if (!TestPopRm()) { std::cerr << "POP r/m failed\n"; return 6; }
     if (!TestDoubleShift()) { std::cerr << "double shift failed\n"; return 6; }
     if (!TestBitModify()) { std::cerr << "bit modify failed\n"; return 6; }
