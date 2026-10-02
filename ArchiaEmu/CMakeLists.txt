@@ -51,6 +51,13 @@ add_executable(myps5emu
 )
 target_include_directories(myps5emu PRIVATE src)
 
+add_executable(OpenFsTest
+    tools/OpenFsTest.cpp
+    src/storage/OpenFs.cpp
+)
+target_include_directories(OpenFsTest PRIVATE src)
+add_test(NAME OpenFsTest COMMAND OpenFsTest)
+
 add_executable(EmulatorLoadGameTest
     tools/EmulatorLoadGameTest.cpp
     src/core/Emulator.cpp
