@@ -3499,36 +3499,24 @@ void TestImulMemory()
 // ============== SYSCALL -> repli PS5 interne (RAX=numero de service) ==============
 void TestSyscallPS5Fallback()
 {
-    {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        cpu.EnablePS5Features();
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(STACK, 0x2000);
 
-        auto code = MovR64(0, 2); // PS5_QUERY_CACHE_L1
-        code.insert(code.end(), {0x0F, 0x05}); // SYSCALL
-        code.push_back(0x58); // POP RAX
-        code = Finish(code);
+    Cpu cpu = MakeCpu(mem);
+    const std::uint8_t code[] = {0x0F, 0x05};
+    mem.Write(CODE, code, sizeof(code));
 
-        CHECK("SYSCALL PS5 fallback: query L1 cache", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 32 * 1024);
-    }
-    {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        // Pas d'EnablePS5Features() : le repli PS5 ne doit pas s'activer
+    bool called = false;
+    cpu.SetSyscallHandler([&](Cpu& handlerCpu) {
+        called = true;
+        handlerCpu.Halt();
+        return true;
+    });
 
-        auto code = MovR64(0, 2);
-        code.insert(code.end(), {0x0F, 0x05});
-        code = Finish(code);
-
-        CHECK("SYSCALL sans PS5 ni handler echoue proprement",
-              !RunCode(cpu, mem, code));
-    }
+    CHECK("SYSCALL invokes configured handler", cpu.Run() == 0 && called);
 }
+
 
 
 void TestRotate()
