@@ -8,6 +8,12 @@
 
 namespace myps5emu {
 
+namespace x86 {
+class Gdt64;
+class Idt;
+class Tss64;
+}
+
 class Memory;
 class Paging;
 class Cpu {
@@ -69,6 +75,7 @@ using FrameCallback = std::function<bool()>;
     MemoryFault LastMemoryFault() const noexcept;
     const CpuException& LastException() const noexcept;
     void Halt() noexcept;
+    bool DeliverException(const CpuException& exception);
 
     int Run();
 
@@ -117,6 +124,9 @@ Memory* memory_ = nullptr;
     SyscallHandler syscall_handler_;
     ExceptionHandler exception_handler_;
     ExceptionReturnHandler exception_return_handler_;
+    const x86::Idt* exception_idt_ = nullptr;
+    const x86::Gdt64* exception_gdt_ = nullptr;
+    const x86::Tss64* exception_tss_ = nullptr;
     MemoryFault last_memory_fault_ = static_cast<MemoryFault>(0);
     CpuException last_exception_{};
     std::uint64_t current_instruction_ip_ = 0;
