@@ -79,6 +79,40 @@ int main()
         return 5;
     }
 
+    // In long mode, 67h also changes ModRM r/m=101 from RIP-relative
+    // addressing to an absolute 32-bit displacement.
+    const std::uint8_t dispOnlyCode[] = {
+        0x67, 0x8B, 0x05, 0x10, 0x20, 0x00, 0x00, // MOV EAX, [disp32]
+        0xF4
+    };
+    if (!memory.Write(0x1000, dispOnlyCode, sizeof(dispOnlyCode)) ||
+        !Write32(memory, 0x2010, 0xA1B2C3D4U)) {
+        return 6;
+    }
+
+    Cpu dispOnlyCpu;
+    if (!Run(memory, dispOnlyCpu) || dispOnlyCpu.Rax() != 0x00000000A1B2C3D4ULL) {
+        std::cerr << "32-bit displacement-only address-size override failed\n";
+        return 7;
+    }
+
+    // SIB base=5, index=4 is the no-base/no-index encoding. Under 67h it
+    // must likewise use the zero-extended 32-bit displacement as the address.
+    const std::uint8_t sibNoBaseCode[] = {
+        0x67, 0x8B, 0x04, 0x25, 0x10, 0x20, 0x00, 0x00, // MOV EAX, [disp32]
+        0xF4
+    };
+    if (!memory.Write(0x1000, sibNoBaseCode, sizeof(sibNoBaseCode)) ||
+        !Write32(memory, 0x2010, 0xCAFEBABEU)) {
+        return 8;
+    }
+
+    Cpu sibNoBaseCpu;
+    if (!Run(memory, sibNoBaseCpu) || sibNoBaseCpu.Rax() != 0x00000000CAFEBABEULL) {
+        std::cerr << "32-bit SIB no-base address-size override failed\n";
+        return 9;
+    }
+
     std::cout << "x86 address-size override test: PASS\n";
     return 0;
 }
