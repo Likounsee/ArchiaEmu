@@ -3251,6 +3251,7 @@ void TestSyscallDispatch()
     mem.Map(STACK, 0x2000);
 
     Cpu cpu = MakeCpu(mem);
+    cpu.SetEfer(0x1ULL); // EFER.SCE: enable SYSCALL/SYSRET
     bool invoked = false;
 
     cpu.SetSyscallHandler(
