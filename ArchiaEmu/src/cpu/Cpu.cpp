@@ -2200,6 +2200,37 @@ bool Cpu::DecodeShiftRotate16Imm(
 
     std::uint16_t result = value;
     bool carry = false;
+    if (group == 2 || group == 3) {
+        // RCL/RCR rotate through CF across 17 bits for a 16-bit operand.
+        const std::uint8_t n = static_cast<std::uint8_t>(shift % 17U);
+        if (n == 0) return true;
+        bool carry = (rflags_ & CF_MASK) != 0;
+        for (std::uint8_t i = 0; i < n; ++i) {
+            if (group == 2) {
+                const bool nextCarry = (value & 0x8000U) != 0;
+                result = static_cast<std::uint16_t>((value << 1) | (carry ? 1U : 0U));
+                carry = nextCarry;
+            } else {
+                const bool nextCarry = (value & 1U) != 0;
+                result = static_cast<std::uint16_t>((value >> 1) | (carry ? 0x8000U : 0U));
+                carry = nextCarry;
+            }
+            value = result;
+        }
+        if (memory) {
+            if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return false;
+        } else {
+            registers_.Write16(rm, result);
+        }
+        rflags_ = (rflags_ & ~CF_MASK) | (carry ? CF_MASK : 0);
+        if (n == 1) {
+            const bool overflow = group == 2
+                ? (((result & 0x8000U) != 0) ^ carry)
+                : (((result & 0x8000U) != 0) ^ ((result & 0x4000U) != 0));
+            if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+        }
+        return true;
+    }
     if (group == 0 || group == 1) {
         const std::uint8_t n = static_cast<std::uint8_t>(shift & 0x0F);
         if (n == 0) return true;
