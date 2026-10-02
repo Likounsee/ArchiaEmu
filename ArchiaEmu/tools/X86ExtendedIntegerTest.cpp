@@ -83,6 +83,17 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestControlTransferGroups() {
+    Memory memory; memory.Map(0x1000, 0x3000);
+    Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetStackPointer(0x3000);
+    std::vector<std::uint8_t> code = {0x48,0xB8,0x08,0x10,0,0,0,0,0,0, 0xFF,0xD0, 0xF4};
+    if (!Run(memory,cpu,code) || cpu.InstructionPointer() == 0) return false;
+
+    Memory m2; m2.Map(0x1000,0x3000); Cpu c2; c2.ConnectMemory(&m2); c2.SetStackPointer(0x3000);
+    std::vector<std::uint8_t> ret = {0xC2,0x02,0x00,0xF4};
+    return Run(m2,c2,ret);
+}
+
 static bool TestSoftwareInterrupts() {
     Memory memory; memory.Map(0x1000, 0x2000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -197,6 +208,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestControlTransferGroups()) { std::cerr << "control transfer groups failed\n"; return 6; }
     if (!TestSoftwareInterrupts()) { std::cerr << "software interrupts failed\n"; return 6; }
     if (!TestGroupF6Byte()) { std::cerr << "F6 byte group failed\n"; return 6; }
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
