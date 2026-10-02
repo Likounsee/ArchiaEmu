@@ -79,10 +79,6 @@ using FrameCallback = std::function<bool()>;
 
     int Run();
 
-    // PS5-specific features
-    void EnablePS5Features();
-    bool IsPS5Mode() const noexcept;
-
 private:
     struct RexPrefix {
         bool present = false;
@@ -92,20 +88,6 @@ private:
         bool b = false;
     };
 
-    // CPU state
-    bool ps5_mode_ = false;
-
-    // PS5 hardware / cache simulation state
-    bool ps5_memory_layout_initialized_ = false;
-    std::uint64_t cache_l1_size_ = 0;
-    std::uint64_t cache_l2_size_ = 0;
-    std::uint64_t cache_l3_size_ = 0;
-    std::uint32_t cache_l1_associativity_ = 0;
-    std::uint32_t cache_l2_associativity_ = 0;
-    std::uint32_t cache_l3_associativity_ = 0;
-    std::uint32_t cache_line_size_ = 64;
-    bool ps5_cache_simulated_ = false;
-    std::uint64_t ps5_interrupts_handled_ = 0;
     std::uint64_t instruction_pointer_ = 0;
     std::uint64_t rflags_ = 0;
         std::uint16_t code_segment_ = 0;
@@ -196,12 +178,6 @@ Memory* memory_ = nullptr;
     bool DecodeMov32Load(
         std::uint8_t modrm,
         const RexPrefix& rex);
-
-    // New PS5-specific methods
-    bool DecodePS5Instructions();
-    void HandlePS5Interrupts();
-    void SimulatePS5CacheBehavior();
-    void SetupPS5MemoryLayout();
 
     bool DecodeMov32Store(
         std::uint8_t modrm,
