@@ -4439,7 +4439,7 @@ void TestOperandSizeOverride()
         stageMem.Map(DATA, 0x2000);
         stageMem.Map(STACK, 0x2000);
         Cpu stageCpu = MakeCpu(stageMem);
-        Append(stageCode, MovR64(2, DATA));
+        auto stageCode = MovR64(2, DATA);
         stageCode.insert(stageCode.end(), {0x66, 0xC7, 0x02, 0x34, 0x12});
         stageCode = Finish(stageCode);
         CHECK(
