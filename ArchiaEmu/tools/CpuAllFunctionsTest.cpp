@@ -4693,12 +4693,12 @@ void TestOperandSizeOverride()
     }
 }
 
+void TestOperandSizeOverrideArithmetic()
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
         auto code = MovR64(0, 1); Append(code, MovR64(3, 2)); code.insert(code.end(), {0x66, 0x0F, 0xC1, 0xC3}); code = Finish(code);
         CHECK("66h XADD r/m16,r16 swaps and adds", RunCode(cpu, mem, code) && cpu.Rax() == 0x2ULL && cpu.ReadRegister64(3) == 0x3ULL);
     }
-void TestOperandSizeOverrideArithmetic()
 {
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
