@@ -194,6 +194,27 @@ int main()
         return Fail("IRETQ incorrectly accepted current NT=1 in IA-32e mode") ? 0 : 1;
     }
 
+    // In IA-32e mode VM is not supported; a VM bit in the stacked
+    // RFLAGS image must not become set in the resulting RFLAGS.
+    WriteQword(ntMemory, 0x7000, 0x2000);
+    WriteQword(ntMemory, 0x7008, 0x28);
+    WriteQword(ntMemory, 0x7010, 0x202 | (1ULL << 17));
+
+    Cpu vmFlagFrame;
+    vmFlagFrame.ConnectMemory(&ntMemory);
+    vmFlagFrame.SetCodeSegment(0x28);
+    vmFlagFrame.SetStackSegment(0x10);
+    vmFlagFrame.SetStackPointer(0x7000);
+    vmFlagFrame.SetRflags(0x202);
+
+    const auto vmResult =
+        ExceptionReturn64::Read(vmFlagFrame, ntMemory, gdt);
+    if (vmResult.status != ExceptionReturnStatus::Returned ||
+        (vmResult.rflags & (1ULL << 17)) != 0) {
+        return Fail("IRETQ incorrectly restored VM in IA-32e mode")
+            ? 0 : 1;
+    }
+
     WriteQword(memory, 0x7000, 0x0001000000000000ULL);
 
     Cpu invalidFrame;
