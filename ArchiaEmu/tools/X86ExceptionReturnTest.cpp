@@ -148,6 +148,14 @@ int main()
         return Fail("Invalid RFLAGS was accepted") ? 0 : 1;
     }
 
+    // In IA-32e mode RFLAGS bits 63:22 are reserved (bit 21 ID is valid).
+    // IRETQ must reject a frame carrying any of those reserved bits.
+    WriteQword(memory, 0x7110, 0x8000000000202ULL);
+    result = ExceptionReturn64::Read(userCpu, memory, gdt);
+    if (result.status != ExceptionReturnStatus::InvalidRflags) {
+        return Fail("IRETQ accepted reserved high RFLAGS bits") ? 0 : 1;
+    }
+
     // A less privileged CPL3 context must not IRET back into CPL0.
     userCpu.SetCodeSegment(0x33);
     WriteQword(memory, 0x7100, 0x505678);
