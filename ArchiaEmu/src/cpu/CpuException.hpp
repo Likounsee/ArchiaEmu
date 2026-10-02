@@ -11,7 +11,8 @@ enum class CpuExceptionKind : std::uint8_t {
     MemoryFault,
     InvalidOpcode,
     DivideError,
-    GeneralProtection
+    GeneralProtection,
+    SoftwareInterrupt
 };
 
 enum class CpuExceptionVector : std::uint8_t {
@@ -19,7 +20,9 @@ enum class CpuExceptionVector : std::uint8_t {
     DivideError = 0,
     InvalidOpcode = 6,
     PageFault = 14,
-    GeneralProtection = 13
+    GeneralProtection = 13,
+    Breakpoint = 3,
+    Overflow = 4
 };
 
 struct CpuException {
