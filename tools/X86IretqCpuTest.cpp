@@ -196,6 +196,7 @@ int main()
         const auto result =
             ExceptionReturn64::Read(handlerCpu, ntMemory, gdt);
         nestedTaskStatus = result.status;
+        std::cerr << "IRETQ NT status=" << static_cast<unsigned>(nestedTaskStatus) << '\\n';
         return false;
     });
 
