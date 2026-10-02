@@ -3806,7 +3806,8 @@ int Cpu::Run()
             std::uint8_t lhs=destRm?(memory?0:ReadReg8(rm,rmHigh)):ReadReg8(reg,regHigh), rhs=destRm?ReadReg8(reg,regHigh):(memory?0:ReadReg8(rm,rmHigh));
             if(destRm&&memory){if(!ReadMemory(address,&lhs,1)) return 1;} if(!(!destRm)&&memory){if(!ReadMemory(address,&rhs,1)) return 1;}
             std::cerr << "[ADC/SBB8 diagnostic] opcode=0x" << std::hex
-                      << static_cast<unsigned>(opcode) << " lhs=0x"
+                      << static_cast<unsigned>(opcode) << " reg=" << static_cast<unsigned>(reg)
+                      << " high=" << regHigh << " lhs=0x"
                       << static_cast<unsigned>(lhs) << " rhs=0x"
                       << static_cast<unsigned>(rhs) << " cf=" << cfIn
                       << std::dec << '\\n';
