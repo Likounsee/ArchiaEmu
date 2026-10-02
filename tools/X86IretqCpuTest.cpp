@@ -215,6 +215,53 @@ int main()
             ? 0 : 1;
     }
 
+    // In IA-32e mode IRET faults if the current RFLAGS.NT is set.
+    // The stacked NT bit is not the condition being checked.
+    Memory ntMemory;
+    if (!ntMemory.Map(0x1000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
+        !ntMemory.Map(0x2000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
+        !ntMemory.Map(0x7000, 0x1000, MemoryPermission::Read | MemoryPermission::Write)) {
+        return Fail("Failed to map isolated IRETQ NT test") ? 0 : 1;
+    }
+
+    WriteQword(ntMemory, 0x7000, 0x2000);
+    WriteQword(ntMemory, 0x7008, 0x28);
+    WriteQword(ntMemory, 0x7010, 0x202); // stacked NT=0
+
+    Cpu nestedTaskFlag;
+    nestedTaskFlag.ConnectMemory(&ntMemory);
+    nestedTaskFlag.SetCodeSegment(0x28);
+    nestedTaskFlag.SetStackSegment(0x10);
+    nestedTaskFlag.SetStackPointer(0x7000);
+    nestedTaskFlag.SetRflags(0x4202); // current NT=1
+
+    const auto ntResult =
+        ExceptionReturn64::Read(nestedTaskFlag, ntMemory, gdt);
+    if (ntResult.status != ExceptionReturnStatus::InvalidRflags) {
+        return Fail("IRETQ incorrectly accepted current NT=1 in IA-32e mode") ? 0 : 1;
+    }
+
+    // VM cannot be set in IA-32e mode; a VM bit in the stacked image
+    // must not become set in the resulting RFLAGS.
+    WriteQword(ntMemory, 0x7000, 0x2000);
+    WriteQword(ntMemory, 0x7008, 0x28);
+    WriteQword(ntMemory, 0x7010, 0x202 | (1ULL << 17));
+
+    Cpu vmFlagFrame;
+    vmFlagFrame.ConnectMemory(&ntMemory);
+    vmFlagFrame.SetCodeSegment(0x28);
+    vmFlagFrame.SetStackSegment(0x10);
+    vmFlagFrame.SetStackPointer(0x7000);
+    vmFlagFrame.SetRflags(0x202);
+
+    const auto vmResult =
+        ExceptionReturn64::Read(vmFlagFrame, ntMemory, gdt);
+    if (vmResult.status != ExceptionReturnStatus::Returned ||
+        (vmResult.rflags & (1ULL << 17)) != 0) {
+        return Fail("IRETQ incorrectly restored VM in IA-32e mode")
+            ? 0 : 1;
+    }
+
     WriteQword(memory, 0x7000, 0x0001000000000000ULL);
 
     Cpu invalidFrame;
