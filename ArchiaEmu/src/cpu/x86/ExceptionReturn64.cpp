@@ -141,6 +141,14 @@ ExceptionReturnResult ExceptionReturn64::Read(
     if (target_cpl != 0) {
         result.rflags = (result.rflags & ~(3ULL << 12)) | current_iopl;
 
+        // IRETQ cannot modify VIF/VIP when returning to a non-zero CPL.
+        // Keep the current virtual-interrupt state just like IOPL.
+        constexpr std::uint64_t kVirtualInterruptFlags =
+            (1ULL << 19) | (1ULL << 20);
+        result.rflags =
+            (result.rflags & ~kVirtualInterruptFlags) |
+            (current_rflags & kVirtualInterruptFlags);
+
         const std::uint8_t current_iopl_level =
             static_cast<std::uint8_t>((current_rflags >> 12) & 0x3U);
         if (target_cpl > current_iopl_level) {
