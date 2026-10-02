@@ -7377,6 +7377,45 @@ case 0xD0:
 
         
 
+        case 0x00: case 0x02:
+        case 0x08: case 0x0A:
+        case 0x10: case 0x12:
+        case 0x18: case 0x1A:
+        case 0x20: case 0x22:
+        case 0x28: case 0x2A:
+        case 0x30: case 0x32:
+        case 0x38: case 0x3A: {
+            std::uint8_t modrm=0, reg=0, rm=0; bool regHigh=false, rmHigh=false;
+            std::uint64_t address=0; bool memory=false;
+            if(!Fetch8(modrm))return 1;
+            if(!DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory))return 1;
+            const bool destinationRm = (opcode & 1U)==0;
+            const std::uint8_t lhs = destinationRm ? (memory ? ([&](){std::uint8_t v=0; if(!ReadMemory(address,&v,1)) return std::uint8_t(0); return v;})() : ReadReg8(rm,rmHigh)) : ReadReg8(reg,regHigh);
+            const std::uint8_t rhs = destinationRm ? ReadReg8(reg,regHigh) : (memory ? ([&](){std::uint8_t v=0; if(!ReadMemory(address,&v,1)) return std::uint8_t(0); return v;})() : ReadReg8(rm,rmHigh));
+            std::uint8_t result=lhs;
+            const std::uint8_t op=static_cast<std::uint8_t>(opcode & 0xF8U);
+            if(op==0x00){result=static_cast<std::uint8_t>(lhs+rhs);SetAddFlags8(lhs,rhs,result);}
+            else if(op==0x08){result=static_cast<std::uint8_t>(lhs|rhs);SetLogicFlags8(result);}
+            else if(op==0x10){
+                const std::uint8_t carry=(rflags_&CF_MASK)?1U:0U; const std::uint16_t wide=static_cast<std::uint16_t>(lhs)+rhs+carry; result=static_cast<std::uint8_t>(wide);
+                SetZeroFlag(result==0);SetSignFlag((result&0x80U)!=0);if(wide>0xFF)rflags_|=CF_MASK;else rflags_&=~CF_MASK;
+                const bool of=((~(lhs^rhs)&(lhs^result)&0x80U)!=0);if(of)rflags_|=OF_MASK;else rflags_&=~OF_MASK;
+                if(((lhs^rhs^result)&0x10U)!=0)rflags_|=AF_MASK;else rflags_&=~AF_MASK;if(EvenParity8(result))rflags_|=PF_MASK;else rflags_&=~PF_MASK;
+            }
+            else if(op==0x18){
+                const std::uint8_t borrow=(rflags_&CF_MASK)?1U:0U; const std::uint16_t sub=static_cast<std::uint16_t>(rhs)+borrow; result=static_cast<std::uint8_t>(lhs-sub);
+                SetZeroFlag(result==0);SetSignFlag((result&0x80U)!=0);if(static_cast<std::uint16_t>(lhs)<sub)rflags_|=CF_MASK;else rflags_&=~CF_MASK;
+                const bool of=(((lhs^rhs)&(lhs^result)&0x80U)!=0);if(of)rflags_|=OF_MASK;else rflags_&=~OF_MASK;
+                if(((lhs^rhs^result)&0x10U)!=0)rflags_|=AF_MASK;else rflags_&=~AF_MASK;if(EvenParity8(result))rflags_|=PF_MASK;else rflags_&=~PF_MASK;
+            }
+            else if(op==0x20){result=static_cast<std::uint8_t>(lhs&rhs);SetLogicFlags8(result);}
+            else if(op==0x28){result=static_cast<std::uint8_t>(lhs-rhs);SetSubFlags8(lhs,rhs,result);}
+            else if(op==0x30){result=static_cast<std::uint8_t>(lhs^rhs);SetLogicFlags8(result);}
+            else {SetSubFlags8(lhs,rhs,static_cast<std::uint8_t>(lhs-rhs));break;}
+            if(destinationRm){if(memory){if(!WriteMemory(address,&result,1))return 1;}else WriteReg8(rm,rmHigh,result);}else WriteReg8(reg,regHigh,result);
+            break;
+        }
+
         case 0x88:
         case 0x8A: {
             std::uint8_t modrm=0, reg=0, rm=0;
