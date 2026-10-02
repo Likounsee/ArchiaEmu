@@ -1618,7 +1618,7 @@ void TestAdcSbb()
         Append(code,MovR64(0,DATA)); Append(code,MovR64(3,0)); Append(code,{0x19,0x18}); code=Finish(code);
         CHECK("SBB32_mem",RunCode(cpu,mem,code)&&Read32(mem,DATA)==0x7FFFFFFFU&&
               (cpu.Rflags()&(1ULL<<11))&&(cpu.Rflags()&(1ULL<<4))&&
-              !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&!(cpu.Rflags()&(1ULL<<2))&&!(cpu.Rflags()&1ULL));
+              !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&(cpu.Rflags()&(1ULL<<2))&&!(cpu.Rflags()&1ULL));
     }
     {
         Memory mem; mem.Map(CODE,0x2000); mem.Map(DATA,0x1000); mem.Map(STACK,0x2000);
