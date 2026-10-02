@@ -4128,6 +4128,30 @@ int Cpu::Run()
                 break;
             }
 
+            if (opcode2 == 0xA3 || opcode2 == 0xAB || opcode2 == 0xB3 || opcode2 == 0xBB) {
+                std::uint8_t modrm=0;if(!Fetch8(modrm))return 1;
+                if(((modrm>>6)&3U)!=3U)return 1;
+                std::uint8_t reg=static_cast<std::uint8_t>((modrm>>3)&7U),rm=static_cast<std::uint8_t>((modrm&7U)|(rex.b?8U:0U));
+                if(rex.r)reg=static_cast<std::uint8_t>(reg+8U);
+                if(operand_size_override_&&!rex.w){
+                    std::uint16_t value=registers_.Read16(rm);const std::uint8_t bit=static_cast<std::uint8_t>(registers_.Read16(reg)&15U);const bool set=((value>>bit)&1U)!=0;
+                    if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;
+                    if(opcode2==0xAB)value|=static_cast<std::uint16_t>(1U<<bit);else if(opcode2==0xB3)value&=static_cast<std::uint16_t>(~(1U<<bit));else if(opcode2==0xBB)value^=static_cast<std::uint16_t>(1U<<bit);
+                    if(opcode2!=0xA3)registers_.Write16(rm,value);
+                }else if(rex.w){
+                    std::uint64_t value=registers_.Read64(rm);const std::uint8_t bit=static_cast<std::uint8_t>(registers_.Read64(reg)&63U);const bool set=((value>>bit)&1ULL)!=0;
+                    if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;
+                    if(opcode2==0xAB)value|=1ULL<<bit;else if(opcode2==0xB3)value&=~(1ULL<<bit);else if(opcode2==0xBB)value^=1ULL<<bit;
+                    if(opcode2!=0xA3)registers_.Write64(rm,value);
+                }else{
+                    std::uint32_t value=registers_.Read32(rm);const std::uint8_t bit=static_cast<std::uint8_t>(registers_.Read32(reg)&31U);const bool set=((value>>bit)&1U)!=0;
+                    if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;
+                    if(opcode2==0xAB)value|=1U<<bit;else if(opcode2==0xB3)value&=~(1U<<bit);else if(opcode2==0xBB)value^=1U<<bit;
+                    if(opcode2!=0xA3)registers_.Write32(rm,value);
+                }
+                break;
+            }
+
             if (opcode2 == 0x63) {
                 std::uint8_t modrm = 0;
                 if (!Fetch8(modrm)) return 1;
