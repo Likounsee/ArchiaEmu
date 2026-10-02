@@ -4659,139 +4659,51 @@ void TestOperandSizeOverride()
 }
 
 void TestOperandSizeOverrideArithmetic()
-
-    {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x1122334455664001ULL);
-        code.insert(code.end(), {0x66, 0xC1, 0xE0, 0x01});
-        code = Finish(code);
-        CHECK(
-            "66h C1 SHL r/m16,1 preserves upper bits and flags",
-            RunCode(cpu, mem, code) &&
-            cpu.Rax() == 0x1122334455668002ULL &&
-            (cpu.Rflags() & 1ULL) == 0);
-    }
-
-    {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x1122334455664001ULL);
-        code.insert(code.end(), {0x66, 0xD1, 0xE0});
-        code = Finish(code);
-        CHECK(
-            "66h D1 SHL r/m16,1 preserves upper bits",
-            RunCode(cpu, mem, code) &&
-            cpu.Rax() == 0x1122334455668002ULL);
-    }
-
-    {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x1122334455660000ULL);
-        code.insert(code.end(), {0x66, 0x6A, 0x80, 0x66, 0x58});
-        code = Finish(code);
-        CHECK(
-            "66h PUSH imm8 and POP r16 use 16-bit stack width",
-            RunCode(cpu, mem, code) &&
-            cpu.Rax() == 0x112233445566FF80ULL &&
-            cpu.Rsp() == STACK + 0x1000);
-    }
-
-    {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x1122334455660001ULL);
-        Append(code, MovR64(1, 2));
-        code.insert(code.end(), {0x66, 0xD3, 0xE0});
-        code = Finish(code);
-        CHECK(
-            "66h D3 SHL r/m16,CL preserves upper bits",
-            RunCode(cpu, mem, code) &&
-            cpu.Rax() == 0x1122334455660004ULL);
-    }
-
 {
     {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x112233445566FFFFULL);
-        Append(code, MovR64(3, 2));
-        code.insert(code.end(), {0x66, 0x01, 0xD8}); // ADD AX,BX
-        code = Finish(code);
-        CHECK(
-            "66h ADD r/m16,r16 preserves upper bits",
-            RunCode(cpu, mem, code) &&
-            cpu.Rax() == 0x1122334455660001ULL);
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455664001ULL); code.insert(code.end(), {0x66, 0xC1, 0xE0, 0x01}); code = Finish(code);
+        CHECK("66h C1 SHL r/m16,1 preserves upper bits and flags", RunCode(cpu, mem, code) && cpu.Rax() == 0x1122334455668002ULL && (cpu.Rflags() & 1ULL) == 0);
     }
-
     {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0xAAAA000000001234ULL);
-        Append(code, MovR64(3, 0xBBBB56781234ULL));
-        code.insert(code.end(), {0x66, 0x39, 0xD8}); // CMP AX,BX
-        code = Finish(code);
-        CHECK(
-            "66h CMP compares only 16 bits",
-            RunCode(cpu, mem, code) &&
-            (cpu.Rflags() & (1ULL << 6)) != 0);
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455664001ULL); code.insert(code.end(), {0x66, 0xD1, 0xE0}); code = Finish(code);
+        CHECK("66h D1 SHL r/m16,1 preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x1122334455668002ULL);
     }
-
     {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x112233445566F0F0ULL);
-        Append(code, MovR64(3, 0x0000000000000FF0ULL));
-        code.insert(code.end(), {0x66, 0x21, 0xD8}); // AND AX,BX
-        code = Finish(code);
-        CHECK(
-            "66h AND r/m16,r16 preserves upper bits",
-            RunCode(cpu, mem, code) &&
-            cpu.Rax() == 0x11223344556600F0ULL);
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660000ULL); code.insert(code.end(), {0x66, 0x6A, 0x80, 0x66, 0x58}); code = Finish(code);
+        CHECK("66h PUSH imm8 and POP r16 use 16-bit stack width", RunCode(cpu, mem, code) && cpu.Rax() == 0x112233445566FF80ULL && cpu.Rsp() == STACK + 0x1000);
     }
-
     {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x11223344000000F0ULL);
-        Append(code, MovR64(3, 0x0000000000000F00ULL));
-        code.insert(code.end(), {0x66, 0x85, 0xD8}); // TEST AX,BX
-        code = Finish(code);
-        CHECK(
-            "66h TEST uses only 16-bit operands",
-            RunCode(cpu, mem, code) &&
-            (cpu.Rflags() & (1ULL << 6)) != 0);
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660001ULL); Append(code, MovR64(1, 2)); code.insert(code.end(), {0x66, 0xD3, 0xE0}); code = Finish(code);
+        CHECK("66h D3 SHL r/m16,CL preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x1122334455660004ULL);
     }
-
     {
-        Memory mem;
-        mem.Map(CODE, 0x2000);
-        mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x1122334455660001ULL);
-        code.insert(code.end(), {0x66, 0x81, 0xC0, 0x34, 0x12}); // ADD AX,1234h
-        code = Finish(code);
-        CHECK(
-            "66h Group1 ADD r/m16,imm16",
-            RunCode(cpu, mem, code) &&
-            cpu.Rax() == 0x1122334455661235ULL);
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x112233445566FFFFULL); Append(code, MovR64(3, 2)); code.insert(code.end(), {0x66, 0x01, 0xD8}); code = Finish(code);
+        CHECK("66h ADD r/m16,r16 preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x1122334455660001ULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0xAAAA000000001234ULL); Append(code, MovR64(3, 0xBBBB56781234ULL)); code.insert(code.end(), {0x66, 0x39, 0xD8}); code = Finish(code);
+        CHECK("66h CMP compares only 16 bits", RunCode(cpu, mem, code) && (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x112233445566F0F0ULL); Append(code, MovR64(3, 0x0000000000000FF0ULL)); code.insert(code.end(), {0x66, 0x21, 0xD8}); code = Finish(code);
+        CHECK("66h AND r/m16,r16 preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x11223344556600F0ULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x11223344000000F0ULL); Append(code, MovR64(3, 0x0000000000000F00ULL)); code.insert(code.end(), {0x66, 0x85, 0xD8}); code = Finish(code);
+        CHECK("66h TEST uses only 16-bit operands", RunCode(cpu, mem, code) && (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660001ULL); code.insert(code.end(), {0x66, 0x81, 0xC0, 0x34, 0x12}); code = Finish(code);
+        CHECK("66h Group1 ADD r/m16,imm16", RunCode(cpu, mem, code) && cpu.Rax() == 0x1122334455661235ULL);
     }
 }
 
