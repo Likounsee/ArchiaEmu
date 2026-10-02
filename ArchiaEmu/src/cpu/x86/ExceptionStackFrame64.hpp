@@ -14,6 +14,7 @@ struct ExceptionStackFrame64 {
     std::uint64_t rflags = 0;
     std::uint64_t rsp = 0;
     std::uint64_t ss = 0;
+    bool has_stack_switch = false;
     bool has_error_code = false;
     std::uint64_t error_code = 0;
 
