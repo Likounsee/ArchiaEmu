@@ -4371,6 +4371,26 @@ int Cpu::Run()
                 break;
             }
 
+            if (opcode2 == 0xC7) {
+                std::uint8_t modrm=0;if(!Fetch8(modrm))return 1;
+                const std::uint8_t group=static_cast<std::uint8_t>((modrm>>3)&7U);
+                if(group!=1U)return 1;
+                std::uint8_t reg=0,rm=0;std::uint64_t address=0;bool memory=false;
+                if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)||!memory)return 1;
+                std::uint64_t current=0;if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&current),8))return 1;
+                const std::uint64_t expected=(static_cast<std::uint64_t>(registers_.Read32(2))<<32)|registers_.Read32(0);
+                if(current==expected){
+                    const std::uint64_t replacement=(static_cast<std::uint64_t>(registers_.Read32(2+1))<<32)|registers_.Read32(3);
+                    if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&replacement),8))return 1;
+                    rflags_|=ZF_MASK;
+                }else{
+                    registers_.Write32(0,static_cast<std::uint32_t>(current));
+                    registers_.Write32(2,static_cast<std::uint32_t>(current>>32U));
+                    rflags_&=~ZF_MASK;
+                }
+                break;
+            }
+
             if (opcode2 == 0xC0 || opcode2 == 0xC1) {
                 std::uint8_t modrm = 0;
                 if (!Fetch8(modrm)) return 1;
