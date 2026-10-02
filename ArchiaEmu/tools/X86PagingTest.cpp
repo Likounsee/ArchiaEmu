@@ -85,6 +85,9 @@ int main() {
     r = paging.Translate(0x12345, false, false, false);
     if (r.ok || r.fault != PagingFault::Reserved ||
         (r.page_fault_error & (1U << 3)) == 0) {
+        std::cerr << "2MiB reserved details: ok=" << r.ok
+                  << " fault=" << static_cast<unsigned>(r.fault)
+                  << " error=0x" << std::hex << r.page_fault_error << std::dec << '\\n';
         return Fail("2MiB page accepted reserved address bits") ? 0 : 1;
     }
 
