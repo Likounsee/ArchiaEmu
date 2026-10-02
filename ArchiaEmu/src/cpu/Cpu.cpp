@@ -4050,7 +4050,13 @@ int Cpu::Run()
                     const std::uint8_t sum = static_cast<std::uint8_t>(old + src);
                     WriteReg8(reg,regHigh,old);
                     if(memory){if(!WriteMemory(address,&sum,1))return 1;}else WriteReg8(rm,rmHigh,sum);
-                    SetAddFlags8(old,src,sum);
+                    rflags_ = (rflags_ & ~(CF_MASK|PF_MASK|AF_MASK|ZF_MASK|SF_MASK|OF_MASK))
+                        | (((static_cast<std::uint16_t>(old)+static_cast<std::uint16_t>(src)) & 0x100U) ? CF_MASK : 0)
+                        | (((old ^ src ^ sum) & 0x10U) ? AF_MASK : 0)
+                        | (EvenParity8(sum) ? PF_MASK : 0)
+                        | (sum == 0 ? ZF_MASK : 0)
+                        | ((sum & 0x80U) ? SF_MASK : 0)
+                        | (((~(old ^ src) & (old ^ sum) & 0x80U) != 0) ? OF_MASK : 0);
                 } else if (operand_size_override_ && !rex.w) {
                     if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
                     std::uint16_t value = 0;
