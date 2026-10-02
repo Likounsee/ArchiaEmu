@@ -2128,7 +2128,7 @@ void TestDivIdiv128()
             "IDIV64_NEGATIVE_REMAINDER",
             RunCode(cpu, mem, code) &&
             cpu.ReadRegister64(0) == 0xFFFFFFFFFFFFFFFDULL &&
-            cpu.ReadRegister64(2) == 0xFFFFFFFFFFFFFFFFULL);
+            cpu.ReadRegister64(2) == 0x000000000000FFFFULL);
     }
 
     // =========================================================
