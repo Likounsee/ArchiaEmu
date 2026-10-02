@@ -3617,6 +3617,7 @@ void TestSyscallPS5Fallback()
     mem.Map(STACK, 0x2000);
 
     Cpu cpu = MakeCpu(mem);
+    cpu.SetEfer(cpu.Efer() | 1ULL); // EFER.SCE: enable SYSCALL/SYSRET in long mode.
     const std::uint8_t code[] = {0x0F, 0x05};
     mem.Write(CODE, code, sizeof(code));
 
