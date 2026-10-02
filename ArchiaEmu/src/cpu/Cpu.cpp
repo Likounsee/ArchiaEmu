@@ -5508,15 +5508,23 @@ case 0xD0:
                 case 2: {
                     const std::uint16_t carry = (rflags_ & CF_MASK) ? 1U : 0U;
                     const std::uint16_t rhs = static_cast<std::uint16_t>(immediate + carry);
-                    result = static_cast<std::uint16_t>(lhs + rhs);
+                    result = static_cast<std::uint16_t>(lhs + immediate + carry);
                     setAdd16(rhs, result);
+                    const std::uint32_t sum =
+                        static_cast<std::uint32_t>(lhs) +
+                        static_cast<std::uint32_t>(immediate) + carry;
+                    if (sum > 0xFFFFU) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
                     break;
                 }
                 case 3: {
                     const std::uint16_t borrow = (rflags_ & CF_MASK) ? 1U : 0U;
                     const std::uint16_t rhs = static_cast<std::uint16_t>(immediate + borrow);
-                    result = static_cast<std::uint16_t>(lhs - rhs);
+                    result = static_cast<std::uint16_t>(lhs - immediate - borrow);
                     setSub16(rhs, result);
+                    const std::uint32_t subtrahend =
+                        static_cast<std::uint32_t>(immediate) + borrow;
+                    if (static_cast<std::uint32_t>(lhs) < subtrahend) rflags_ |= CF_MASK;
+                    else rflags_ &= ~CF_MASK;
                     break;
                 }
                 case 4:
