@@ -4532,6 +4532,22 @@ int Cpu::Run()
 
             if (group == 0) {
 
+                if (operand_size_override_ && !rex.w) {
+                    std::uint16_t imm16 = 0;
+                    std::uint8_t lo = 0, hi = 0;
+                    if (!Fetch8(lo) || !Fetch8(hi)) return 1;
+                    imm16 = static_cast<std::uint16_t>(lo) |
+                            static_cast<std::uint16_t>(hi) << 8U;
+                    std::uint16_t value = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return 1;
+                    } else {
+                        value = registers_.Read16(rm);
+                    }
+                    SetLogicFlags16(static_cast<std::uint16_t>(value & imm16));
+                    break;
+                }
+
                 std::uint32_t imm32 = 0;
 
                 if (!Fetch32(imm32)) {
