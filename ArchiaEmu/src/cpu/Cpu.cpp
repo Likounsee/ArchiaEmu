@@ -463,33 +463,33 @@ bool Cpu::Fetch8(std::uint8_t& value)
 
 bool Cpu::Fetch32(std::uint32_t& value)
 {
-    if (memory_ == nullptr) return false;
-    std::uint64_t physical = 0;
-    if (!TranslateMemoryAddress(instruction_pointer_, false, true, physical)) return false;
-    if (!memory_->ExecuteRead(
-            physical,
-            reinterpret_cast<std::uint8_t*>(&value),
-            sizeof(value))) {
-        RaiseMemoryFault();
-        return false;
+    value = 0;
+
+    for (std::size_t i = 0; i < sizeof(value); ++i) {
+        std::uint8_t byte = 0;
+        if (!Fetch8(byte)) {
+            return false;
+        }
+
+        value |= static_cast<std::uint32_t>(byte) << (i * 8);
     }
-    instruction_pointer_ += sizeof(value);
+
     return true;
 }
 
 bool Cpu::Fetch64(std::uint64_t& value)
 {
-    if (memory_ == nullptr) return false;
-    std::uint64_t physical = 0;
-    if (!TranslateMemoryAddress(instruction_pointer_, false, true, physical)) return false;
-    if (!memory_->ExecuteRead(
-            physical,
-            reinterpret_cast<std::uint8_t*>(&value),
-            sizeof(value))) {
-        RaiseMemoryFault();
-        return false;
+    value = 0;
+
+    for (std::size_t i = 0; i < sizeof(value); ++i) {
+        std::uint8_t byte = 0;
+        if (!Fetch8(byte)) {
+            return false;
+        }
+
+        value |= static_cast<std::uint64_t>(byte) << (i * 8);
     }
-    instruction_pointer_ += sizeof(value);
+
     return true;
 }
 
