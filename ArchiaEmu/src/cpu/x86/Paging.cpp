@@ -100,6 +100,13 @@ PagingResult Paging::Translate(
             return Fault(PagingFault::NotPresent, write, user, instruction);
         }
 
+        // Bits 52..62 are reserved in the page-table format modeled here.
+        // NX (bit 63) is reserved until EFER.NXE is enabled.
+        if ((entry & 0x7FF0000000000000ULL) != 0 ||
+            ((entry & kNx) != 0 && (efer_ & kEferNxe) == 0)) {
+            return Fault(PagingFault::Reserved, write, user, instruction);
+        }
+
         if ((entry & kPresent) == 0) {
             return Fault(PagingFault::NotPresent, write, user, instruction);
         }
@@ -108,7 +115,14 @@ PagingResult Paging::Translate(
         effective_user = effective_user && (entry & kUser) != 0;
         nx = nx || (entry & kNx) != 0;
 
+        if (level == 0 && (entry & kLarge) != 0) {
+            return Fault(PagingFault::Reserved, write, user, instruction);
+        }
+
         if (level == 1 && (entry & kLarge) != 0) {
+            if ((entry & 0x00000000001FE000ULL) != 0) {
+                return Fault(PagingFault::Reserved, write, user, instruction);
+            }
             if (instruction && nx && (efer_ & kEferNxe) != 0) {
                 return Fault(PagingFault::Instruction, write, user, instruction);
             }
@@ -125,6 +139,9 @@ PagingResult Paging::Translate(
         }
 
         if (level == 2 && (entry & kLarge) != 0) {
+            if ((entry & 0x000000003FFFE000ULL) != 0) {
+                return Fault(PagingFault::Reserved, write, user, instruction);
+            }
             if (instruction && nx && (efer_ & kEferNxe) != 0) {
                 return Fault(PagingFault::Instruction, write, user, instruction);
             }
