@@ -86,6 +86,13 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestPopRm() {
+    Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetStackPointer(0x3000);
+    std::vector<std::uint8_t> code; AppendMovR64(code,0,0x1122334455667788ULL); code.push_back(0x50); code.push_back(0x8F); code.push_back(0xC3);
+    if(!Run(memory,cpu,code)||cpu.ReadRegister64(3)!=0x1122334455667788ULL)return false;
+    return cpu.Rsp()==0x3000ULL;
+}
+
 static bool TestDoubleShift() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code; AppendMovR64(code,0,0x1234); AppendMovR64(code,3,0xABCD);
@@ -299,6 +306,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestPopRm()) { std::cerr << "POP r/m failed\n"; return 6; }
     if (!TestDoubleShift()) { std::cerr << "double shift failed\n"; return 6; }
     if (!TestBitModify()) { std::cerr << "bit modify failed\n"; return 6; }
     if (!TestBitScan()) { std::cerr << "bit scan failed\n"; return 6; }
