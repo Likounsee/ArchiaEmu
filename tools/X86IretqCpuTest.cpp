@@ -262,6 +262,27 @@ int main()
             ? 0 : 1;
     }
 
+    // RFLAGS bits 15, 5 and 3 are reserved and must be zero.
+    for (const std::uint64_t reservedBit : {15ULL, 5ULL, 3ULL}) {
+        WriteQword(memory, 0x7000, 0x2000);
+        WriteQword(memory, 0x7008, 0x28);
+        WriteQword(memory, 0x7010, 0x202 | (1ULL << reservedBit));
+
+        Cpu reservedFlags;
+        reservedFlags.ConnectMemory(&memory);
+        reservedFlags.SetCodeSegment(0x28);
+        reservedFlags.SetStackSegment(0x10);
+        reservedFlags.SetStackPointer(0x7000);
+        reservedFlags.SetRflags(0x202);
+
+        const auto reservedResult =
+            ExceptionReturn64::Read(reservedFlags, memory, gdt);
+        if (reservedResult.status != ExceptionReturnStatus::InvalidRflags) {
+            return Fail("IRETQ accepted reserved RFLAGS bit")
+                ? 0 : 1;
+        }
+    }
+
     WriteQword(memory, 0x7000, 0x0001000000000000ULL);
 
     Cpu invalidFrame;
