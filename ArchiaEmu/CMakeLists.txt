@@ -263,6 +263,16 @@ add_executable(X86ExceptionRoundTripTest
 target_include_directories(X86ExceptionRoundTripTest PRIVATE src)
 add_test(NAME X86ExceptionRoundTripTest COMMAND X86ExceptionRoundTripTest)
 
+add_executable(X86SyscallCpuTest
+    tools/X86SyscallCpuTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
+    src/cpu/RegisterFile.cpp
+)
+target_include_directories(X86SyscallCpuTest PRIVATE src)
+add_test(NAME X86SyscallCpuTest COMMAND X86SyscallCpuTest)
+
 add_executable(X86PrivilegeTransitionTest
     tools/X86PrivilegeTransitionTest.cpp
     src/cpu/x86/PrivilegeTransition.cpp
