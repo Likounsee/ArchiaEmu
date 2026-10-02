@@ -175,6 +175,35 @@ void TestAddressSizeOverride()
         absoluteCpu.Rax() == 0xAABBCCDDULL);
 }
 
+void TestCanonicalAddressFault()
+{
+    Memory mem;
+    mem.Map(CODE, 0x1000);
+    mem.Map(STACK, 0x2000);
+
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(0, 0x0000800000000000ULL);
+
+    bool generalProtection = false;
+    cpu.SetExceptionHandler([&](Cpu& handlerCpu, const CpuException& exception) {
+        generalProtection = exception.vector == CpuExceptionVector::GeneralProtection;
+        if (generalProtection) {
+            handlerCpu.Halt();
+            return true;
+        }
+        return false;
+    });
+
+    const auto code = std::vector<std::uint8_t>{
+        0x8B, 0x00, // MOV EAX, [RAX] with a non-canonical address
+        0xF4
+    };
+
+    CHECK(
+        "Non-canonical 64-bit memory address raises #GP",
+        RunCode(cpu, mem, code) && generalProtection);
+}
+
 void TestMemory()
 {
     Memory mem;
@@ -4319,6 +4348,7 @@ int main()
     std::cout << "=============================================\n\n";
 
     TestAddressSizeOverride();
+    TestCanonicalAddressFault();
     TestMemory();
     TestRegisterFile();
 
