@@ -83,6 +83,27 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestSoftwareInterrupts() {
+    Memory memory; memory.Map(0x1000, 0x2000);
+    Cpu cpu; cpu.ConnectMemory(&memory);
+    bool seen = false;
+    std::uint8_t vector = 0;
+    cpu.SetExceptionHandler([&](Cpu&, const CpuException& e) {
+        seen = true;
+        vector = static_cast<std::uint8_t>(e.vector);
+        return true;
+    });
+    std::vector<std::uint8_t> code = {0xCC, 0xCD, 0x21, 0xF4};
+    if (!Run(memory, cpu, code)) return false;
+    if (!seen || vector != 0x21) return false;
+
+    Memory m2; m2.Map(0x1000,0x2000); Cpu c2; c2.ConnectMemory(&m2);
+    bool intoSeen=false; c2.SetExceptionHandler([&](Cpu&, const CpuException& e){intoSeen = static_cast<std::uint8_t>(e.vector)==4; return true;});
+    c2.SetRflags(c2.Rflags() | (1ULL<<11));
+    std::vector<std::uint8_t> into={0xCE,0xF4};
+    return Run(m2,c2,into) && intoSeen;
+}
+
 static bool TestGroupF6Byte() {
     Memory memory; memory.Map(0x1000, 0x2000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -176,6 +197,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestSoftwareInterrupts()) { std::cerr << "software interrupts failed\n"; return 6; }
     if (!TestGroupF6Byte()) { std::cerr << "F6 byte group failed\n"; return 6; }
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
