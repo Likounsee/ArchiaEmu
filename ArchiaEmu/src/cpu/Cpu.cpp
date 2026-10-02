@@ -6270,6 +6270,27 @@ case 0xD0:
 
             break;
         }
+        case 0x80: {
+            std::uint8_t modrm=0, reg=0, rm=0, immediate=0; std::uint64_t address=0; bool memory=false; bool regHigh=false,rmHigh=false;
+            if(!Fetch8(modrm)||!DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory)||!Fetch8(immediate))return 1;
+            const std::uint8_t group=static_cast<std::uint8_t>((modrm>>3)&7U);
+            std::uint8_t lhs=memory?([&](){std::uint8_t v=0; if(!ReadMemory(address,&v,1))return std::uint8_t(0);return v;})():ReadReg8(rm,rmHigh);
+            std::uint8_t result=lhs; const std::uint8_t carry=(rflags_&CF_MASK)?1U:0U;
+            switch(group){
+            case 0: result=static_cast<std::uint8_t>(lhs+immediate); SetAddFlags8(lhs,immediate,result); break;
+            case 1: result=static_cast<std::uint8_t>(lhs|immediate); SetLogicFlags8(result); break;
+            case 2: {const std::uint16_t sum=static_cast<std::uint16_t>(lhs)+immediate+carry; result=static_cast<std::uint8_t>(sum); SetZeroFlag(result==0);SetSignFlag((result&0x80U)!=0);if(sum>0xFF)rflags_|=CF_MASK;else rflags_&=~CF_MASK;const bool of=((~(lhs^immediate)&(lhs^result)&0x80U)!=0);if(of)rflags_|=OF_MASK;else rflags_&=~OF_MASK;if(((lhs^immediate^result)&0x10U)!=0)rflags_|=AF_MASK;else rflags_&=~AF_MASK;if(EvenParity8(result))rflags_|=PF_MASK;else rflags_&=~PF_MASK;break;}
+            case 3: {const std::uint16_t sub=static_cast<std::uint16_t>(immediate)+carry; result=static_cast<std::uint8_t>(lhs-sub);SetZeroFlag(result==0);SetSignFlag((result&0x80U)!=0);if(static_cast<std::uint16_t>(lhs)<sub)rflags_|=CF_MASK;else rflags_&=~CF_MASK;const bool of=(((lhs^immediate)&(lhs^result)&0x80U)!=0);if(of)rflags_|=OF_MASK;else rflags_&=~OF_MASK;if(((lhs^immediate^result)&0x10U)!=0)rflags_|=AF_MASK;else rflags_&=~AF_MASK;if(EvenParity8(result))rflags_|=PF_MASK;else rflags_&=~PF_MASK;break;}
+            case 4: result=static_cast<std::uint8_t>(lhs&immediate);SetLogicFlags8(result);break;
+            case 5: result=static_cast<std::uint8_t>(lhs-immediate);SetSubFlags8(lhs,immediate,result);break;
+            case 6: result=static_cast<std::uint8_t>(lhs^immediate);SetLogicFlags8(result);break;
+            case 7: SetSubFlags8(lhs,immediate,static_cast<std::uint8_t>(lhs-immediate));break;
+            default:return 1;
+            }
+            if(group!=7){if(memory){if(!WriteMemory(address,&result,1))return 1;}else WriteReg8(rm,rmHigh,result);}
+            break;
+        }
+
         case 0x81:
         case 0x83:
         {
