@@ -7127,8 +7127,18 @@ case 0xD0:
                     return 1;
                 }
             }
+            else if (operand_size_override_) {
+                if (!DecodeCmp16(0x39, modrm, rex)) {
+                    return 1;
+                }
+            }
+            else if (operand_size_override_) {
+                if (!DecodeCmp16(0x3B, modrm, rex)) {
+                    return 1;
+                }
+            }
             else {
-                if (!DecodeCmp32(opcode, modrm, rex)) {
+                if (!DecodeCmp32(0x3B, modrm, rex)) {
                     return 1;
                 }
             }
