@@ -24,6 +24,13 @@ int main() {
     Cpu cr; cr.SetCodeSegment(0x8); cr.WriteRegister64(0, 0x4000);
     if(!Run(m,cr,{0x0F,0x22,0xD8,0x0F,0x20,0xC3,0xF4})) return 7;
     if(cr.Cr3()!=0x4000 || cr.ReadRegister64(0)!=0x4000) return 8;
+    Cpu cr0; cr0.SetCodeSegment(0x8); cr0.WriteRegister64(0, 1);
+    if(!Run(m,cr0,{0x0F,0x22,0xC0,0xF4}) || cr0.Cr0()!=1) return 12;
+    if(!Run(m,cr0,{0x0F,0x20,0xC0,0xF4}) || cr0.ReadRegister64(0)!=1) return 13;
+    cr0.WriteRegister64(0, 0x20);
+    if(!Run(m,cr0,{0x0F,0x22,0xE0,0xF4}) || cr0.Cr4()!=0x20) return 14;
+    if(!Run(m,cr0,{0x0F,0x20,0xE0,0xF4}) || cr0.ReadRegister64(0)!=0x20) return 15;
+
     Cpu invlpg; invlpg.SetCodeSegment(0x8); invlpg.WriteRegister64(0, 0x1000);
     if(!Run(m,invlpg,{0x0F,0x01,0x38,0xF4})) return 9;
     Cpu userInvlpg; userInvlpg.SetCodeSegment(0x1B);
