@@ -78,6 +78,23 @@ int main() {
     r = paging.Translate(0x12345678, false, false, false);
     if (!r.ok || r.physical_address != 0x52345678ULL) return Fail("1GiB translation failed") ? 0 : 1;
 
-    // NX is reserved when EFER.NXE is disabled.\n    paging.SetEfer(0);\n    Q(mem, 0x4000, 0x8000 | 0x7 | (1ULL << 63));\n    r = paging.Translate(0x123, false, false, false);\n    if (r.ok || r.fault != PagingFault::Reserved ||\n        (r.page_fault_error & (1U << 3)) == 0) {\n        return Fail("NX bit was accepted while EFER.NXE=0") ? 0 : 1;\n    }\n\n    // PS is reserved in a PML4 entry.\n    Q(mem, 0x1000, 0x2000 | 0x7 | (1ULL << 7));\n    r = paging.Translate(0x123, false, false, false);\n    if (r.ok || r.fault != PagingFault::Reserved ||\n        (r.page_fault_error & (1U << 3)) == 0) {\n        return Fail("PML4 PS bit was not rejected as reserved") ? 0 : 1;\n    }\n\n    std::cout << "x86 paging test: PASS\n";
+    // NX is reserved when EFER.NXE is disabled.
+    paging.SetEfer(0);
+    Q(mem, 0x4000, 0x8000 | 0x7 | (1ULL << 63));
+    r = paging.Translate(0x123, false, false, false);
+    if (r.ok || r.fault != PagingFault::Reserved ||
+        (r.page_fault_error & (1U << 3)) == 0) {
+        return Fail("NX bit was accepted while EFER.NXE=0") ? 0 : 1;
+    }
+
+    // PS is reserved in a PML4 entry.
+    Q(mem, 0x1000, 0x2000 | 0x7 | (1ULL << 7));
+    r = paging.Translate(0x123, false, false, false);
+    if (r.ok || r.fault != PagingFault::Reserved ||
+        (r.page_fault_error & (1U << 3)) == 0) {
+        return Fail("PML4 PS bit was not rejected as reserved") ? 0 : 1;
+    }
+
+    std::cout << "x86 paging test: PASS\n";
     return 0;
 }
