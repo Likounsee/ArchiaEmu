@@ -4002,7 +4002,7 @@ int Cpu::Run()
             }
 
             if (operand_size_override_ && !rex.w) {
-                const std::int16_t lhs = static_cast<std::int16_t>(registers_.Read16(rm));
+                const std::int16_t lhs = static_cast<std::int16_t>(registers_.Read16(reg));
                 std::int16_t rhs = 0;
                 if (memory) {
                     std::uint16_t raw = 0;
