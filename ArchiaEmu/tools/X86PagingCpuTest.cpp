@@ -103,6 +103,8 @@ int main() {
         return Fail("paging #PF did not update CR2") ? 0 : 1;
     }
     if (faultCpu.LastException().page_fault_error != (1U << 4)) {
+        std::cerr << "actual PF error=0x" << std::hex
+                  << faultCpu.LastException().page_fault_error << std::dec << '\n';
         return Fail("paging #PF error code changed during delivery") ? 0 : 1;
     }
     if (faultCpu.CodeSegment() != 0x08 ||
