@@ -7088,6 +7088,45 @@ case 0xD0:
         
         
 
+        case 0xA0:
+        case 0xA1:
+        case 0xA2:
+        case 0xA3: {
+            std::uint64_t address = 0;
+            if (address_size_override_) {
+                std::uint32_t a = 0;
+                if (!Fetch32(a)) return 1;
+                address = a;
+            } else {
+                if (!Fetch64(address)) return 1;
+            }
+            if (opcode == 0xA0) {
+                std::uint8_t value=0;
+                if(!ReadMemory(address,&value,1))return 1;
+                WriteReg8(0,false,value);
+            } else if (opcode == 0xA2) {
+                const std::uint8_t value=ReadReg8(0,false);
+                if(!WriteMemory(address,&value,1))return 1;
+            } else if (opcode == 0xA1) {
+                if (rex.w) {
+                    std::uint64_t value=0; if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),8))return 1; registers_.Write64(0,value);
+                } else if (operand_size_override_) {
+                    std::uint16_t value=0; if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),2))return 1; registers_.Write16(0,value);
+                } else {
+                    std::uint32_t value=0; if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),4))return 1; registers_.Write32(0,value);
+                }
+            } else {
+                if (rex.w) {
+                    const std::uint64_t value=registers_.Read64(0); if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),8))return 1;
+                } else if (operand_size_override_) {
+                    const std::uint16_t value=registers_.Read16(0); if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),2))return 1;
+                } else {
+                    const std::uint32_t value=registers_.Read32(0); if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),4))return 1;
+                }
+            }
+            break;
+        }
+
         case 0xA4:
         case 0xA5:
         case 0xA6:
