@@ -176,23 +176,17 @@ int main()
     nestedTaskFlag.SetStackPointer(0x7000);
     nestedTaskFlag.SetRflags(0x202);
 
-    bool nestedTaskHandlerCalled = false;
-    ExceptionReturnStatus nestedTaskStatus =
-        ExceptionReturnStatus::InvalidFrame;
     nestedTaskFlag.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
-        nestedTaskHandlerCalled = true;
         const auto result =
             ExceptionReturn64::Read(handlerCpu, memory, gdt);
-        nestedTaskStatus = result.status;
-        return false;
+        return ExceptionReturn64::Apply(handlerCpu, result).status ==
+               ExceptionReturnStatus::Returned;
     });
 
     const auto ntBeforeRsp = nestedTaskFlag.Rsp();
     const auto ntBeforeCs = nestedTaskFlag.CodeSegment();
     const auto ntBeforeFlags = nestedTaskFlag.Rflags();
     if (nestedTaskFlag.Run() == 0 ||
-        !nestedTaskHandlerCalled ||
-        nestedTaskStatus == ExceptionReturnStatus::Returned ||
         nestedTaskFlag.Rsp() != ntBeforeRsp ||
         nestedTaskFlag.CodeSegment() != ntBeforeCs ||
         nestedTaskFlag.Rflags() != ntBeforeFlags) {
