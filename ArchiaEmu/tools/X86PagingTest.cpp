@@ -80,6 +80,7 @@ int main() {
 
     // Large-page base alignment bits are reserved.
     paging.SetEfer(0);
+    Q(mem, 0x2000, 0x3000 | 0x7);
     Q(mem, 0x3000, 0x800000 | 0x87 | (1ULL << 13));
     r = paging.Translate(0x12345, false, false, false);
     if (r.ok || r.fault != PagingFault::Reserved ||
