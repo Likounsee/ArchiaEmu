@@ -4658,6 +4658,35 @@ void TestOperandSizeOverride()
             (cpu.Rflags() & 1ULL) == 0);
     }
 
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455664001ULL);
+        code.insert(code.end(), {0x66, 0xD1, 0xE0});
+        code = Finish(code);
+        CHECK(
+            "66h D1 SHL r/m16,1 preserves upper bits",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x1122334455668002ULL);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660001ULL);
+        Append(code, MovR64(1, 2));
+        code.insert(code.end(), {0x66, 0xD3, 0xE0});
+        code = Finish(code);
+        CHECK(
+            "66h D3 SHL r/m16,CL preserves upper bits",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x1122334455660004ULL);
+    }
+
 void TestOperandSizeOverrideArithmetic()
 {
     {
