@@ -3540,7 +3540,13 @@ int Cpu::Run()
                     return 1;
                 }
 
-                if (rex.w) {
+                if (operand_size_override_) {
+                if (!DecodeLogic16(opcode, modrm, rex)) {
+                    return 1;
+                }
+            }
+            else if (rex.w) {
+            if (rex.w) {
                     if (!DecodeMovzx64Reg32(modrmMovzx, rex)) {
                         return 1;
                     }
@@ -6757,6 +6763,12 @@ case 0xD0:
                 return 1;
             }
 
+            if (operand_size_override_) {
+                if (!DecodeAdd16Store(modrm, rex)) {
+                    return 1;
+                }
+            }
+            else if (rex.w) {
             if (rex.w) {
 
                 std::uint8_t reg = 0;
@@ -6842,6 +6854,12 @@ case 0xD0:
                 return 1;
             }
 
+            if (operand_size_override_) {
+                if (!DecodeAdd16(modrm, rex)) {
+                    return 1;
+                }
+            }
+            else if (rex.w) {
             if (rex.w) {
                 if (!DecodeAdd64(modrm, rex)) {
                     return 1;
@@ -6868,6 +6886,12 @@ case 0xD0:
                 return 1;
             }
 
+            if (operand_size_override_) {
+                if (!DecodeSub16Store(modrm, rex)) {
+                    return 1;
+                }
+            }
+            else if (rex.w) {
             if (rex.w) {
 
                 std::uint8_t reg = 0;
@@ -6953,6 +6977,12 @@ case 0xD0:
                 return 1;
             }
 
+            if (operand_size_override_) {
+                if (!DecodeSub16(modrm, rex)) {
+                    return 1;
+                }
+            }
+            else if (rex.w) {
             if (rex.w) {
                 if (!DecodeSub64(modrm, rex)) {
                     return 1;
@@ -6985,6 +7015,12 @@ case 0xD0:
             
             
 
+            if (operand_size_override_) {
+                if (!DecodeCmp16(opcode, modrm, rex)) {
+                    return 1;
+                }
+            }
+            else if (rex.w) {
             if (rex.w) {
 
                 std::uint8_t reg = 0;
@@ -7080,6 +7116,12 @@ case 0xD0:
                 return 1;
             }
 
+            if (operand_size_override_) {
+                if (!DecodeCmp16(opcode, modrm, rex)) {
+                    return 1;
+                }
+            }
+            else if (rex.w) {
             if (rex.w) {
                 if (!DecodeCmp64(modrm, rex)) {
                     return 1;
@@ -7201,6 +7243,12 @@ case 0xD0:
                 return 1;
             }
 
+            if (operand_size_override_) {
+                if (!DecodeTest16(modrm, rex)) {
+                    return 1;
+                }
+            }
+            else if (rex.w) {
             if (rex.w) {
 
                 if (!DecodeTest64(
