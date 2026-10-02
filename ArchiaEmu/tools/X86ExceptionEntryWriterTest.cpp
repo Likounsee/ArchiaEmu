@@ -88,8 +88,8 @@ int main()
         sameBytes[0] != 0x05 || sameBytes[1] != 0x00 ||
         sameBytes[8] != 0xF0 || sameBytes[9] != 0xDE ||
         sameBytes[16] != 0x10 || sameBytes[24] != 0x02 ||
-        sameBytes[25] != 0x02 || sameBytes[32] != 0x00 ||
-        sameBytes[40 - 8] != 0x20) {
+        sameBytes[25] != 0x02 || sameBytes[32] != 0x20 ||
+        sameBytes[33] != 0x00) {
         return Fail("Same-CPL exception frame layout is wrong") ? 0 : 1;
     }
 
