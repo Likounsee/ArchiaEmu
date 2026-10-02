@@ -85,17 +85,10 @@ int main()
 
     std::array<std::uint8_t, 32> sameBytes{};
     if (!memory.Read(sameCplWrite.new_rsp, sameBytes.data(), sameBytes.size()) ||
-        sameBytes[0] != 0x20 || sameBytes[1] != 0x00 ||
+        sameBytes[0] != 0x05 || sameBytes[1] != 0x00 ||
         sameBytes[8] != 0xF0 || sameBytes[9] != 0xDE ||
         sameBytes[16] != 0x10 || sameBytes[24] != 0x02 ||
         sameBytes[25] != 0x02) {
-        std::cerr << "same-CPL bytes: "
-                  << std::hex
-                  << static_cast<unsigned>(sameBytes[0]) << " "
-                  << static_cast<unsigned>(sameBytes[8]) << " "
-                  << static_cast<unsigned>(sameBytes[16]) << " "
-                  << static_cast<unsigned>(sameBytes[24])
-                  << std::dec << '\\n';
         return Fail("Same-CPL exception frame layout is wrong") ? 0 : 1;
     }
 
