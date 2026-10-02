@@ -1,4 +1,5 @@
 ﻿#include "Cpu.hpp"
+#include "cpu/x86/Privileged.hpp"
 #include "x86/ExceptionEntry64.hpp"
 
 #include "memory/Memory.hpp"
@@ -1830,6 +1831,48 @@ bool Cpu::DecodeLogic64(
         std::uint64_t result = 0;
 
         switch (opcode) {
+
+        case 0xF4: { // HLT
+            const auto result = x86::Privileged::Hlt(
+                static_cast<std::uint8_t>(code_segment_ & 0x3U));
+            if (result.status != x86::PrivilegedStatus::Success) {
+                if (!RaiseException({
+                    CpuExceptionKind::GeneralProtection,
+                    instruction_address,
+                    MemoryFault::None,
+                    CpuExceptionVector::GeneralProtection
+                })) {
+                    return 1;
+                }
+                break;
+            }
+            halted_ = true;
+            break;
+        }
+
+        case 0xFA: // CLI
+        case 0xFB: { // STI
+            const std::uint8_t cpl =
+                static_cast<std::uint8_t>(code_segment_ & 0x3U);
+            const std::uint64_t iopl = (rflags_ >> 12U) & 0x3U;
+            const auto result = opcode == 0xFA
+                ? x86::Privileged::Cli(cpl, rflags_, iopl)
+                : x86::Privileged::Sti(cpl, rflags_, iopl);
+            if (result.status != x86::PrivilegedStatus::Success) {
+                if (!RaiseException({
+                    CpuExceptionKind::GeneralProtection,
+                    instruction_address,
+                    MemoryFault::None,
+                    CpuExceptionVector::GeneralProtection
+                })) {
+                    return 1;
+                }
+                break;
+            }
+            rflags_ = result.value;
+            break;
+        }
+
 
         case 0x09:
             result = lhs | rhs;
