@@ -62,9 +62,7 @@ int main()
     machine.CPU().SetCr0(1ULL << 31);  // PG.
     machine.CPU().SetCodeSegment(0x8);
     machine.CPU().SetInstructionPointer(0x500000);
-    if (!bus.Map(0x500000, 0x1000,
-                 MemoryPermission::Read | MemoryPermission::Execute) ||
-        machine.CPU().Run() != 0) {
+    if (machine.CPU().Run() != 0) {
         return Fail("Machine CPU did not fetch through its paging engine") ? 0 : 1;
     }
 
