@@ -5591,7 +5591,7 @@ case 0xD0:
                     static_cast<std::uint8_t>(
                         (modrm >> 3) & 0x07);
 
-                if (group64 == 0 || group64 == 1) {
+                if (group64 <= 3) {
                     if (!DecodeRotate64Imm(
                             modrm,
                             rex,
@@ -5608,7 +5608,7 @@ case 0xD0:
                     static_cast<std::uint8_t>(
                         (modrm >> 3) & 0x07);
 
-                if (group == 0 || group == 1) {
+                if (group <= 3) {
                     if (!DecodeRotate32Imm(
                             modrm,
                             rex,
@@ -5657,7 +5657,7 @@ case 0xD0:
                     static_cast<std::uint8_t>(
                         (modrm >> 3) & 0x07);
 
-                if (group64 == 0 || group64 == 1) {
+                if (group64 <= 3) {
                     if (!DecodeRotate64Imm(
                             modrm,
                             rex,
@@ -5679,7 +5679,7 @@ case 0xD0:
                     static_cast<std::uint8_t>(
                         (modrm >> 3) & 0x07);
 
-                if (group == 0 || group == 1) {
+                if (group <= 3) {
 
                     if (!DecodeRotate32Imm(
                             modrm,
@@ -8043,8 +8043,9 @@ bool Cpu::DecodeShift8Memory(
 {
     (void)rm;
 
-    if (group != 0 && group != 1 &&
-        group != 4 && group != 5 && group != 7) {
+    if (group > 7 ||
+        (group != 0 && group != 1 && group != 2 && group != 3 &&
+         group != 4 && group != 5 && group != 7)) {
         return false;
     }
 
@@ -8056,6 +8057,35 @@ bool Cpu::DecodeShift8Memory(
     }
 
     const bool isRotate = (group == 0 || group == 1);
+    const bool isRotateThroughCarry = (group == 2 || group == 3);
+
+    if (isRotateThroughCarry) {
+        const std::uint8_t effectiveCount = static_cast<std::uint8_t>(maskedCount % 9U);
+        if (effectiveCount == 0) return true;
+        std::uint8_t value = 0;
+        if (!ReadMemory(address, &value, sizeof(value))) return false;
+        bool carry = (rflags_ & CF_MASK) != 0;
+        for (std::uint8_t i = 0; i < effectiveCount; ++i) {
+            if (group == 2) {
+                const bool nextCarry = (value & 0x80U) != 0;
+                value = static_cast<std::uint8_t>((value << 1) | (carry ? 1U : 0U));
+                carry = nextCarry;
+            } else {
+                const bool nextCarry = (value & 1U) != 0;
+                value = static_cast<std::uint8_t>((value >> 1) | (carry ? 0x80U : 0U));
+                carry = nextCarry;
+            }
+        }
+        if (!WriteMemory(address, &value, sizeof(value))) return false;
+        rflags_ = (rflags_ & ~CF_MASK) | (carry ? CF_MASK : 0);
+        if (effectiveCount == 1) {
+            const bool overflow = group == 2
+                ? (((value & 0x80U) != 0) ^ carry)
+                : (((value & 0x80U) != 0) ^ ((value & 0x40U) != 0));
+            if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+        }
+        return true;
+    }
 
     // Une rotation 8 bits se repete tous les 8 bits : on reduit le
     // compte pour eviter un decalage >= largeur (UB en C++) et
@@ -8208,7 +8238,7 @@ bool Cpu::DecodeShift8Imm(
     const std::uint8_t group =
         static_cast<std::uint8_t>((modrm >> 3) & 0x07);
 
-    if (group != 0 && group != 1 &&
+    if (group != 0 && group != 1 && group != 2 && group != 3 &&
         group != 4 && group != 5 && group != 7) {
         return false;
     }
@@ -8221,6 +8251,7 @@ bool Cpu::DecodeShift8Imm(
     }
 
     const bool isRotate = (group == 0 || group == 1);
+    const bool isRotateThroughCarry = (group == 2 || group == 3);
 
     const std::uint8_t effectiveCount =
         isRotate
@@ -8239,7 +8270,49 @@ bool Cpu::DecodeShift8Imm(
 
     if (mod == 0x03) {
 
-        const bool hasRex =
+        if (isRotateThroughCarry) {
+            const std::uint8_t effectiveCount = static_cast<std::uint8_t>(count % 9U);
+            if (effectiveCount == 0) return true;
+            const bool hasRex = rex.present;
+            std::uint8_t registerIndex = rm;
+            bool highByte = false;
+            if (hasRex) {
+                if (rex.b) registerIndex = static_cast<std::uint8_t>(registerIndex + 8);
+            } else if (rm >= 4) {
+                registerIndex = static_cast<std::uint8_t>(rm - 4);
+                highByte = true;
+            }
+            const std::uint64_t oldValue = registers_.Read64(registerIndex);
+            std::uint8_t value = highByte
+                ? static_cast<std::uint8_t>((oldValue >> 8) & 0xFFU)
+                : static_cast<std::uint8_t>(oldValue & 0xFFU);
+            bool carry = (rflags_ & CF_MASK) != 0;
+            for (std::uint8_t i = 0; i < effectiveCount; ++i) {
+                if (group == 2) {
+                    const bool nextCarry = (value & 0x80U) != 0;
+                    value = static_cast<std::uint8_t>((value << 1) | (carry ? 1U : 0U));
+                    carry = nextCarry;
+                } else {
+                    const bool nextCarry = (value & 1U) != 0;
+                    value = static_cast<std::uint8_t>((value >> 1) | (carry ? 0x80U : 0U));
+                    carry = nextCarry;
+                }
+            }
+            std::uint64_t newValue = oldValue;
+            if (highByte) newValue = (newValue & ~(0xFFULL << 8)) | (static_cast<std::uint64_t>(value) << 8);
+            else newValue = (newValue & ~0xFFULL) | value;
+            registers_.Write64(registerIndex, newValue);
+            rflags_ = (rflags_ & ~CF_MASK) | (carry ? CF_MASK : 0);
+            if (effectiveCount == 1) {
+                const bool overflow = group == 2
+                    ? (((value & 0x80U) != 0) ^ carry)
+                    : (((value & 0x80U) != 0) ^ ((value & 0x40U) != 0));
+                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+            }
+            return true;
+        }
+
+        const bool hasRex = rex.present;
             rex.present;
 
         std::uint8_t registerIndex = rm;
