@@ -170,8 +170,9 @@ static bool TestIoPorts() {
     },[&](Cpu&,std::uint16_t port,std::uint32_t value,std::uint8_t width)->bool {
         wrote=port==0x3F8&&value==0xA5U&&width==1; return true;
     });
-    std::vector<std::uint8_t> code={0xE4,0xF8,0xE6,0xF8,0xA5,0xF4};
-    return Run(memory,cpu,code) && (cpu.ReadRegister64(0)&0xFFU)==0x5AU && wrote;
+    cpu.WriteRegister64(2,0x3F8);
+    std::vector<std::uint8_t> code={0xEC,0x88,0xC3,0xB0,0xA5,0xEE,0xF4};
+    return Run(memory,cpu,code) && (cpu.ReadRegister64(3)&0xFFU)==0x5AU && (cpu.ReadRegister64(0)&0xFFU)==0xA5U && wrote;
 }
 
 static bool TestXlat() {
