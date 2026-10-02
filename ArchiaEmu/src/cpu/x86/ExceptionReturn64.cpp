@@ -158,30 +158,24 @@ ExceptionReturnResult ExceptionReturn64::Read(
         }
     }
 
-    if (!AddOffset(old_rsp, 24, result.rsp)) {
-        result.status = ExceptionReturnStatus::InvalidStack;
+    // In 64-bit mode IRETQ always pops SS:RSP because interrupt/exception
+    // entry always pushed them, even when the return stays at the same CPL.
+    if (!AddOffset(old_rsp, 24, address) ||
+        !ReadQword(memory, address, result.rsp) ||
+        !AddOffset(old_rsp, 32, address) ||
+        !ReadQword(memory, address, address)) {
+        result.status = ReadFailureStatus(memory);
         return result;
     }
-    result.ss = cpu.StackSegment();
 
-    if (target_cpl != current_cpl) {
-        if (!AddOffset(old_rsp, 24, address) ||
-            !ReadQword(memory, address, result.rsp) ||
-            !AddOffset(old_rsp, 32, address) ||
-            !ReadQword(memory, address, address)) {
-            result.status = ReadFailureStatus(memory);
-            return result;
-        }
-
-        result.ss = static_cast<std::uint16_t>(address);
-        GdtDataSegment64 stack_segment{};
-        if (!gdt.ResolveDataSegment(result.ss, stack_segment) ||
-            stack_segment.dpl != target_cpl ||
-            (result.ss & 3U) != target_cpl || result.ss == 0 ||
-            result.rsp == 0 || !IsCanonical48(result.rsp)) {
-            result.status = ExceptionReturnStatus::InvalidStack;
-            return result;
-        }
+    result.ss = static_cast<std::uint16_t>(address);
+    GdtDataSegment64 stack_segment{};
+    if (!gdt.ResolveDataSegment(result.ss, stack_segment) ||
+        stack_segment.dpl != target_cpl ||
+        (result.ss & 3U) != target_cpl || result.ss == 0 ||
+        result.rsp == 0 || !IsCanonical48(result.rsp)) {
+        result.status = ExceptionReturnStatus::InvalidStack;
+        return result;
     }
 
     result.status = ExceptionReturnStatus::Returned;
