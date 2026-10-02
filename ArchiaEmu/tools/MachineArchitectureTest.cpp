@@ -172,6 +172,11 @@ int main()
         return Fail("Bus accepted overlapping mapping") ? 0 : 1;
     }
 
+    if (bus.Map(0x500000, 0, MemoryPermission::Read) ||
+        bus.LastFault() != MemoryFault::InvalidRange) {
+        return Fail("Bus::Map zero size did not report InvalidRange") ? 0 : 1;
+    }
+
     if (bus.MapDevice(0x30000000, 0, &ramDevice) ||
         bus.LastFault() != MemoryFault::InvalidRange) {
         return Fail("Bus did not report invalid device mapping range") ? 0 : 1;
