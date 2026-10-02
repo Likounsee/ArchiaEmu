@@ -3274,11 +3274,6 @@ int Cpu::Run()
                     }
                 }
                 else if (ps5_mode_) {
-                    if (!syscall_handler_(*this)) {
-                        return 1;
-                    }
-                }
-                else if (ps5_mode_) {
                     // Pas de handler systeme fourni par l'hote :
                     // repli sur les services PS5 internes, invoques
                     // via le mecanisme SYSCALL standard x86-64
