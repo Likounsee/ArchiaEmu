@@ -133,8 +133,8 @@ PagingResult Paging::Translate(
             if (write && !effective_write) {
                 return Fault(PagingFault::Write, write, user, instruction);
             }
-            return {true, (entry & 0x000FFFFFC0000000ULL) |
-                            (linear_address & 0x3FFFFFFFULL),
+            return {true, (entry & 0x000FFFFFFFE00000ULL) |
+                            (linear_address & 0x1FFFFFULL),
                     PagingFault::None, 0};
         }
 
