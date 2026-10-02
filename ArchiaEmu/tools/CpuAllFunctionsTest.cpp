@@ -1574,7 +1574,6 @@ void TestAdcSbb()
             cpu.Rax() == 7);
     }
 }
-
     // Group-1 immediate ADC/SBB carry/borrow must not lose the carry
     // when the immediate itself is UINT_MAX.
     {
@@ -1857,6 +1856,8 @@ void TestImul()
             (cpu.Rflags() & 1ULL) == 0 &&
             (cpu.Rflags() & 0x800ULL) == 0);
     }
+}
+
 }
 
 void TestDivIdiv128()
