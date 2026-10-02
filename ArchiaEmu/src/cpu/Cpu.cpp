@@ -4371,6 +4371,18 @@ int Cpu::Run()
 
             const bool old_cf = (rflags_ & CF_MASK) != 0;
 
+            if (operand_size_override_ && !rex.w) {
+                const std::uint16_t value = registers_.Read16(rm);
+                const std::uint16_t result = (group == 0) ? static_cast<std::uint16_t>(value + 1U) : static_cast<std::uint16_t>(value - 1U);
+                registers_.Write16(rm, result);
+                SetZeroFlag(result == 0);
+                SetSignFlag((result & 0x8000U) != 0);
+                const bool overflow = (group == 0) ? (value == 0x7FFFU) : (value == 0x8000U);
+                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                if (old_cf) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                break;
+            }
+
             if (rex.w) {
                 const std::uint64_t value = registers_.Read64(rm);
                 const std::uint64_t result =
