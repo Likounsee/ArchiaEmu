@@ -1,4 +1,5 @@
 name: ArchiaEmu CI
+# Temporary validation branch; remove after CI observation.
 
 on:
   push:
