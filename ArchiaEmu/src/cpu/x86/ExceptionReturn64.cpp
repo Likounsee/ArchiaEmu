@@ -65,6 +65,12 @@ ExceptionReturnResult ExceptionReturn64::Read(
     ExceptionReturnResult result{};
     const std::uint64_t old_rsp = cpu.Rsp();
 
+    // In IA-32e mode IRET causes #GP if the current NT flag is set.
+    if ((cpu.Rflags() & (1ULL << 14)) != 0) {
+        result.status = ExceptionReturnStatus::InvalidRflags;
+        return result;
+    }
+
     std::uint64_t address = 0;
     if (!ReadQword(memory, old_rsp, result.rip)) {
         result.status = ReadFailureStatus(memory);
@@ -107,6 +113,10 @@ ExceptionReturnResult ExceptionReturn64::Read(
         result.status = ExceptionReturnStatus::InvalidRflags;
         return result;
     }
+
+    // VM is ignored when loading RFLAGS in IA-32e mode because
+    // virtual-8086 mode is not supported in this execution mode.
+    result.rflags &= ~(1ULL << 17);
 
     const std::uint8_t current_cpl =
         static_cast<std::uint8_t>(cpu.CodeSegment() & 3U);
