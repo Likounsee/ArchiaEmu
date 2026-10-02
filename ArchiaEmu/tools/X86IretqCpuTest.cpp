@@ -155,11 +155,12 @@ int main()
 
     bool privilegeHandlerCalled = false;
     bool privilegeHltGp = false;
-    privilegeReturn.SetExceptionHandler([&](Cpu&, const CpuException& exception) {
+    privilegeReturn.SetExceptionHandler([&](Cpu& handlerCpu, const CpuException& exception) {
         if (exception.vector != CpuExceptionVector::GeneralProtection) {
             return false;
         }
         privilegeHltGp = true;
+        handlerCpu.Halt();
         return true;
     });
     privilegeReturn.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
