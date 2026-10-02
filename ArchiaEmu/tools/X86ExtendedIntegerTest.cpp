@@ -86,6 +86,15 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestAccumulatorXchg() {
+    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code; AppendMovR64(code,0,1); AppendMovR64(code,1,2); code.push_back(0x91);
+    if(!Run(memory,cpu,code) || cpu.Rax()!=2 || cpu.ReadRegister64(1)!=1) return false;
+    Memory m2; m2.Map(0x1000,0x1000); Cpu c2; c2.ConnectMemory(&m2);
+    code.clear(); AppendMovR64(code,0,0x1234); AppendMovR64(code,1,0x5678); code.insert(code.end(),{0x66,0x91});
+    return Run(m2,c2,code) && c2.Rax()==0x5678 && c2.ReadRegister64(1)==0x1234;
+}
+
 static bool TestMsrAndTsc() {
     Memory memory; memory.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code;
@@ -247,6 +256,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestAccumulatorXchg()) { std::cerr << "accumulator XCHG failed\n"; return 6; }
     if (!TestMsrAndTsc()) { std::cerr << "MSR/TSC failed\n"; return 6; }
     if (!TestMoffs()) { std::cerr << "moffs failed\n"; return 6; }
     if (!TestEnterLeave()) { std::cerr << "ENTER failed\n"; return 6; }
