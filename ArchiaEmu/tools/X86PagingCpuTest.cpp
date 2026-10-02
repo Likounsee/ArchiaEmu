@@ -54,6 +54,10 @@ int main() {
     });
     if (cpu.Run() == 0 || !handled || cpu.Cr2() != 0x900000 ||
         cpu.LastException().page_fault_error != 0) {
+        std::cerr << "handled=" << handled
+                  << " cr2=0x" << std::hex << cpu.Cr2()
+                  << " vector=" << static_cast<int>(cpu.LastException().vector)
+                  << " error=" << std::dec << cpu.LastException().page_fault_error << "\n";
         return Fail("CPU did not generate the expected paging #PF") ? 0 : 1;
     }
 
