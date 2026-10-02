@@ -63,7 +63,8 @@ int main()
         delivered.stack.status != ExceptionStackStatus::StackSelected ||
         delivered.stack.stack_pointer != 0x9000 ||
         delivered.stack_frame.rsp != 0x7000 ||
-        delivered.stack_frame.ss != 0x18) {
+        delivered.stack_frame.ss != 0x18 ||
+        !delivered.stack_frame.has_stack_switch) {
         return Fail("Valid exception delivery resolution failed") ? 0 : 1;
     }
 
@@ -98,6 +99,7 @@ int main()
         sameCpl.stack.status != ExceptionStackStatus::NoStackSwitch ||
         sameCpl.stack_frame.rsp != 0xB000 ||
         sameCpl.stack_frame.ss != 0x20 ||
+        !sameCpl.stack_frame.has_stack_switch ||
         sameCpl.target_ss != 0x20) {
         return Fail("Same-CPL exception frame did not preserve SS:RSP")
             ? 0 : 1;
