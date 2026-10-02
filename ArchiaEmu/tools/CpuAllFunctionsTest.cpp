@@ -4235,6 +4235,31 @@ void TestXchgAll()
 }
 
 
+void TestShift8LargeCount()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(DATA, 0x1000);
+    mem.Map(STACK, 0x2000);
+
+    Cpu cpu = MakeCpu(mem);
+
+    // MOV AL,0x81 ; SHL AL,31. Counts >= operand width have
+    // architecturally undefined result/flags, but must not invoke
+    // host-language undefined behavior.
+    auto code = std::vector<std::uint8_t>{
+        0xB8, 0x81, 0x00, 0x00, 0x00,
+        0xC0, 0xE0, 0x1F
+    };
+
+    code = Finish(code);
+
+    CHECK(
+        "SHL8 count >= width is defined by emulator policy",
+        RunCode(cpu, mem, code) &&
+        (cpu.ReadRegister64(0) & 0xFFU) == 0);
+}
+
 int main()
 {
     TestCpuAudit();
