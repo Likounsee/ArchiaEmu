@@ -179,6 +179,18 @@ int main()
         return Fail("IRETQ rejected permitted NULL SS at CPL0") ? 0 : 1;
     }
 
+    // NULL SS remains invalid when returning to CPL3.
+    userCpu.SetCodeSegment(0x33);
+    WriteQword(memory, 0x7100, 0x505678);
+    WriteQword(memory, 0x7108, 0x33);
+    WriteQword(memory, 0x7110, 0x202);
+    WriteQword(memory, 0x7118, 0x800000);
+    WriteQword(memory, 0x7120, 0x0);
+    result = ExceptionReturn64::Read(userCpu, memory, gdt);
+    if (result.status != ExceptionReturnStatus::InvalidStack) {
+        return Fail("IRETQ accepted NULL SS at CPL3") ? 0 : 1;
+    }
+
     const auto beforeRip = userCpu.InstructionPointer();
     WriteQword(memory, 0x7100, 0x0001000000000000ULL);
     result = ExceptionReturn64::Read(userCpu, memory, gdt);
