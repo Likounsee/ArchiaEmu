@@ -1575,6 +1575,80 @@ void TestAdcSbb()
     }
 }
 
+    // Immediate accumulator forms: ADC/SBB must exist for 8/32/64-bit operands.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0x7FULL);
+        code.insert(code.end(), {0x14, 0x01}); // ADC AL,1 -> 0x80, OF=1, AF=1
+        code = Finish(code);
+        CHECK("ADC8_imm", RunCode(cpu, mem, code) && cpu.Rax() == 0x80ULL &&
+              (cpu.Rflags() & (1ULL << 11)) != 0 &&
+              (cpu.Rflags() & (1ULL << 4)) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0x7FFFFFFFULL);
+        code.insert(code.end(), {0x15, 0x01, 0x00, 0x00, 0x00}); // ADC EAX,1
+        code = Finish(code);
+        CHECK("ADC32_imm", RunCode(cpu, mem, code) && cpu.Rax() == 0x80000000ULL &&
+              (cpu.Rflags() & (1ULL << 11)) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0x7FFFFFFFFFFFFFFFULL);
+        code.insert(code.end(), {0x48, 0x15, 0x01, 0x00, 0x00, 0x00}); // ADC RAX,1
+        code = Finish(code);
+        CHECK("ADC64_imm", RunCode(cpu, mem, code) && cpu.Rax() == 0x8000000000000000ULL &&
+              (cpu.Rflags() & (1ULL << 11)) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0);
+        Append(code, MovR64(3, 1));
+        code.insert(code.end(), {0x48, 0x39, 0xD8}); // CF=1
+        code.insert(code.end(), {0x14, 0x00});       // ADC AL,0 + CF -> 1
+        code.insert(code.end(), {0x1C, 0x01});       // SBB AL,1 -> 0, CF=0
+        code = Finish(code);
+        CHECK("ADC8_SBB8_imm_CF", RunCode(cpu, mem, code) && cpu.Rax() == 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 20);
+        code.insert(code.end(), {0x1D, 0x0A, 0x00, 0x00, 0x00}); // SBB EAX,10
+        code.insert(code.end(), {0x48, 0x1D, 0x0A, 0x00, 0x00, 0x00}); // SBB RAX,10
+        code = Finish(code);
+        CHECK("SBB32_64_imm", RunCode(cpu, mem, code) && cpu.Rax() == 0);
+    }
+
 void TestImul()
 {
     // =========================================================
