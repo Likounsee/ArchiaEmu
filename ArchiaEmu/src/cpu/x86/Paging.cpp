@@ -120,7 +120,7 @@ PagingResult Paging::Translate(
                 return Fault(PagingFault::Instruction, write, user, instruction);
             }
             if (user && !effective_user) {
-                return Fault(PagingFault::NotPresent, write, user, instruction);
+                return Fault(PagingFault::User, write, user, instruction);
             }
             if (write && !effective_write) {
                 return Fault(PagingFault::Write, write, user, instruction);
@@ -138,7 +138,7 @@ PagingResult Paging::Translate(
                 return Fault(PagingFault::Instruction, write, user, instruction);
             }
             if (user && !effective_user) {
-                return Fault(PagingFault::NotPresent, write, user, instruction);
+                return Fault(PagingFault::User, write, user, instruction);
             }
             if (write && !effective_write) {
                 return Fault(PagingFault::Write, write, user, instruction);
@@ -153,7 +153,7 @@ PagingResult Paging::Translate(
                 return Fault(PagingFault::Instruction, write, user, instruction);
             }
             if (user && !effective_user) {
-                return Fault(PagingFault::NotPresent, write, user, instruction);
+                return Fault(PagingFault::User, write, user, instruction);
             }
             if (write && !effective_write) {
                 return Fault(PagingFault::Write, write, user, instruction);
