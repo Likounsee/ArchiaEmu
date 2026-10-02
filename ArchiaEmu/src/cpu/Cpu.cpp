@@ -5501,10 +5501,23 @@ case 0xD0:
                         result);
                 }
 
-                SetAddFlags64(
-                    lhs,
-                    immediate,
-                    result);
+                SetZeroFlag(result == 0);
+                SetSignFlag((result & 0x8000000000000000ULL) != 0);
+                const std::uint64_t addMax = std::numeric_limits<std::uint64_t>::max();
+                const bool carryOut =
+                    lhs > addMax - immediate ||
+                    (cfIn && lhs == addMax - immediate);
+                if (carryOut) rflags_ |= CF_MASK;
+                else rflags_ &= ~CF_MASK;
+                const bool overflow =
+                    ((~(lhs ^ immediate) &
+                      (lhs ^ result)) & 0x8000000000000000ULL) != 0;
+                const bool auxiliary =
+                    ((lhs ^ immediate ^ result) & 0x10ULL) != 0;
+                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+                else rflags_ &= ~PF_MASK;
 
                 std::cout
                     << "[CPU] ADD64 IMM -> 0x"
@@ -5609,10 +5622,22 @@ case 0xD0:
                         result);
                 }
 
-                SetSubFlags64(
-                    lhs,
-                    immediate,
-                    result);
+                SetZeroFlag(result == 0);
+                SetSignFlag((result & 0x8000000000000000ULL) != 0);
+                const bool borrowOut =
+                    lhs < immediate ||
+                    (cfIn && lhs == immediate);
+                if (borrowOut) rflags_ |= CF_MASK;
+                else rflags_ &= ~CF_MASK;
+                const overflow =
+                    (((lhs ^ immediate) &
+                      (lhs ^ result)) & 0x8000000000000000ULL) != 0;
+                const bool auxiliary =
+                    ((lhs ^ immediate ^ result) & 0x10ULL) != 0;
+                if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+                else rflags_ &= ~PF_MASK;
 
                 std::cout
                     << "[CPU] SUB64 IMM -> 0x"
