@@ -85,9 +85,13 @@ int main()
     bareIretCpu.ConnectMemory(&memory);
     bareIretCpu.SetInstructionPointer(0x3000);
     bool bareIretHandlerCalled = false;
-    bareIretCpu.SetExceptionReturnHandler([&](Cpu&) { bareIretHandlerCalled = true; return true; });
-    if (bareIretCpu.Run() == 0 || bareIretHandlerCalled) {
-        return Fail("Bare CF was incorrectly dispatched as IRETQ") ? 0 : 1;
+    bareIretCpu.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
+        bareIretHandlerCalled = true;
+        handlerCpu.Halt();
+        return true;
+    });
+    if (bareIretCpu.Run() != 0 || !bareIretHandlerCalled) {
+        return Fail("IRETQ opcode was not dispatched") ? 0 : 1;
     }
 
 
