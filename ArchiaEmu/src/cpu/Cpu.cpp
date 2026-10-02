@@ -5344,13 +5344,11 @@ case 0xD0:
                 return 1;
             }
 
-            std::uint32_t immediate = 0;
-
-            if (!Fetch32(immediate)) {
-                return 1;
-            }
-
             if (rex.w) {
+                std::uint32_t immediate = 0;
+                if (!Fetch32(immediate)) {
+                    return 1;
+                }
                 const std::uint64_t value =
                     static_cast<std::uint64_t>(
                         static_cast<std::int64_t>(
@@ -5368,16 +5366,43 @@ case 0xD0:
                     registers_.Write64(rm, value);
                 }
             }
-            else if (memory) {
-                if (!WriteMemory(
-                        address,
-                        reinterpret_cast<const std::uint8_t*>(&immediate),
-                        sizeof(immediate))) {
+            else if (operand_size_override_) {
+                std::uint8_t lo = 0;
+                std::uint8_t hi = 0;
+                if (!Fetch8(lo) || !Fetch8(hi)) {
                     return 1;
+                }
+                const std::uint16_t value =
+                    static_cast<std::uint16_t>(lo) |
+                    static_cast<std::uint16_t>(hi) << 8U;
+                if (memory) {
+                    if (!WriteMemory(
+                            address,
+                            reinterpret_cast<const std::uint8_t*>(&value),
+                            sizeof(value))) {
+                        return 1;
+                    }
+                }
+                else {
+                    registers_.Write16(rm, value);
                 }
             }
             else {
-                registers_.Write32(rm, immediate);
+                std::uint32_t immediate = 0;
+                if (!Fetch32(immediate)) {
+                    return 1;
+                }
+                if (memory) {
+                    if (!WriteMemory(
+                            address,
+                            reinterpret_cast<const std::uint8_t*>(&immediate),
+                            sizeof(immediate))) {
+                        return 1;
+                    }
+                }
+                else {
+                    registers_.Write32(rm, immediate);
+                }
             }
 
             break;
@@ -6215,89 +6240,6 @@ case 0xD0:
 
         
         
-        case 0xC7:
-        {
-            std::uint8_t modrm = 0;
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
-            const std::uint8_t group =
-                static_cast<std::uint8_t>((modrm >> 3) & 0x07);
-            if (group != 0) {
-                return 1;
-            }
-
-            std::uint8_t reg = 0;
-            std::uint8_t rm = 0;
-            std::uint64_t address = 0;
-            bool memory = false;
-
-            if (!DecodeMemoryOrRegister32(
-                    modrm, rex, reg, rm, address, memory)) {
-                return 1;
-            }
-
-            if (rex.w) {
-                std::uint32_t immediate = 0;
-                if (!Fetch32(immediate)) {
-                    return 1;
-                }
-                const std::uint64_t value =
-                    static_cast<std::uint64_t>(
-                        static_cast<std::int64_t>(
-                            static_cast<std::int32_t>(immediate)));
-                if (memory) {
-                    if (!WriteMemory(
-                            address,
-                            reinterpret_cast<const std::uint8_t*>(&value),
-                            sizeof(value))) {
-                        return 1;
-                    }
-                } else {
-                    registers_.Write64(rm, value);
-                }
-            }
-            else if (operand_size_override_) {
-                std::uint8_t lo = 0;
-                std::uint8_t hi = 0;
-                if (!Fetch8(lo) || !Fetch8(hi)) {
-                    return 1;
-                }
-                const std::uint16_t value =
-                    static_cast<std::uint16_t>(lo) |
-                    static_cast<std::uint16_t>(hi) << 8U;
-                if (memory) {
-                    if (!WriteMemory(
-                            address,
-                            reinterpret_cast<const std::uint8_t*>(&value),
-                            sizeof(value))) {
-                        return 1;
-                    }
-                } else {
-                    registers_.Write16(rm, value);
-                }
-            }
-            else {
-                std::uint32_t value = 0;
-                if (!Fetch32(value)) {
-                    return 1;
-                }
-                if (memory) {
-                    if (!WriteMemory(
-                            address,
-                            reinterpret_cast<const std::uint8_t*>(&value),
-                            sizeof(value))) {
-                        return 1;
-                    }
-                } else {
-                    registers_.Write32(rm, value);
-                }
-            }
-
-            break;
-        }
-
         case 0x87:
         {
             std::uint8_t modrm = 0;
