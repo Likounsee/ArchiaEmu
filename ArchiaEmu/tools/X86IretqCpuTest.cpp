@@ -154,6 +154,14 @@ int main()
     privilegeReturn.SetRflags(0x202);
 
     bool privilegeHandlerCalled = false;
+    bool privilegeHltGp = false;
+    privilegeReturn.SetExceptionHandler([&](Cpu&, const CpuException& exception) {
+        if (exception.vector != CpuExceptionVector::GeneralProtection) {
+            return false;
+        }
+        privilegeHltGp = true;
+        return true;
+    });
     privilegeReturn.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
         privilegeHandlerCalled = true;
         const auto result =
@@ -165,7 +173,7 @@ int main()
                ExceptionReturnStatus::Returned;
     });
 
-    if (privilegeReturn.Run() != 0 || !privilegeHandlerCalled ||
+    if (privilegeReturn.Run() != 0 || !privilegeHandlerCalled || !privilegeHltGp ||
         privilegeReturn.InstructionPointer() != 0x2001 ||
         privilegeReturn.CodeSegment() != 0x33 ||
         privilegeReturn.Rsp() != 0x7800 ||
