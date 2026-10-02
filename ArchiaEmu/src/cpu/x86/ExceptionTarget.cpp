@@ -13,7 +13,10 @@ ExceptionTargetResult ExceptionTargetResolver::Resolve(
 {
     ExceptionTargetResult result{};
 
-    if (gate.selector == 0) {
+    // A null selector is defined by index 0; RPL bits do not make it a
+    // non-null selector.  The resolver must therefore classify 0x0001,
+    // 0x0002, and 0x0003 as null selectors as well.
+    if ((gate.selector >> 3) == 0) {
         result.status = ExceptionTargetStatus::NullSelector;
         return result;
     }
