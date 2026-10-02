@@ -374,6 +374,18 @@ bool Cpu::TranslateMemoryAddress(
     std::uint64_t& physical)
 {
     if (paging_ == nullptr || (cr0_ & (1ULL << 31)) == 0) {
+        const std::uint64_t upper = address >> 48U;
+        const bool sign = (address & (1ULL << 47U)) != 0;
+        if (upper != (sign ? 0xFFFFULL : 0ULL)) {
+            last_memory_fault_ = MemoryFault::None;
+            RaiseException({
+                CpuExceptionKind::GeneralProtection,
+                current_instruction_ip_,
+                MemoryFault::None,
+                CpuExceptionVector::GeneralProtection
+            });
+            return false;
+        }
         physical = address;
         return true;
     }
