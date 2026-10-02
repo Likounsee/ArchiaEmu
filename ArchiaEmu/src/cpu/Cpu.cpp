@@ -3468,6 +3468,75 @@ int Cpu::Run()
             if (!Fetch8(opcode2)) {
                 return 1;
             }            if (opcode2 == 0x01) {
+                std::uint8_t modrmTable = 0;
+                if (!Fetch8(modrmTable)) return 1;
+                const std::uint8_t regField = static_cast<std::uint8_t>((modrmTable >> 3) & 0x07U);
+                const std::uint8_t mod = static_cast<std::uint8_t>((modrmTable >> 6) & 0x03U);
+                const std::uint8_t cpl = static_cast<std::uint8_t>(code_segment_ & 0x3U);
+                if (regField <= 3U) {
+                    if (mod == 3U) {
+                        if (!RaiseException({CpuExceptionKind::InvalidOpcode, instruction_address, MemoryFault::None, CpuExceptionVector::InvalidOpcode})) return 1;
+                        break;
+                    }
+                    std::uint8_t reg = 0, rm = 0; std::uint64_t address = 0; bool memory = false;
+                    if (!DecodeMemoryOrRegister32(modrmTable, rex, reg, rm, address, memory) || !memory) {
+                        if (!RaiseException({CpuExceptionKind::InvalidOpcode, instruction_address, MemoryFault::None, CpuExceptionVector::InvalidOpcode})) return 1;
+                        break;
+                    }
+                    if (regField == 2U || regField == 3U) {
+                        if (cpl != 0U) {
+                            if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
+                            break;
+                        }
+                        std::uint8_t descriptor[10]{};
+                        if (!ReadMemory(address, descriptor, sizeof(descriptor))) return 1;
+                        const std::uint16_t limit = static_cast<std::uint16_t>(descriptor[0]) | (static_cast<std::uint16_t>(descriptor[1]) << 8U);
+                        std::uint64_t base = 0;
+                        for (unsigned i = 0; i < 8; ++i) base |= static_cast<std::uint64_t>(descriptor[2 + i]) << (i * 8U);
+                        if (regField == 2U) SetGdtr(base, limit); else SetIdtr(base, limit);
+                    } else {
+                        std::uint8_t descriptor[10]{};
+                        const std::uint64_t base = (regField == 0U) ? GdtrBase() : IdtrBase();
+                        const std::uint16_t limit = (regField == 0U) ? GdtrLimit() : IdtrLimit();
+                        descriptor[0] = static_cast<std::uint8_t>(limit);
+                        descriptor[1] = static_cast<std::uint8_t>(limit >> 8U);
+                        for (unsigned i = 0; i < 8; ++i) descriptor[2 + i] = static_cast<std::uint8_t>(base >> (i * 8U));
+                        if (!WriteMemory(address, descriptor, sizeof(descriptor))) return 1;
+                    }
+                    break;
+                }
+
+                if (regField != 7U || mod == 3U) {
+                    if (!RaiseException({CpuExceptionKind::InvalidOpcode, instruction_address, MemoryFault::None, CpuExceptionVector::InvalidOpcode})) return 1;
+                    break;
+                }
+                std::uint8_t reg = 0, rm = 0; std::uint64_t address = 0; bool memory = false;
+                if (!DecodeMemoryOrRegister32(modrmTable, rex, reg, rm, address, memory) || !memory) {
+                    if (!RaiseException({CpuExceptionKind::InvalidOpcode, instruction_address, MemoryFault::None, CpuExceptionVector::InvalidOpcode})) return 1;
+                    break;
+                }
+                const auto result = x86::Privileged::Invlpg(cpl);
+                if (result.status != x86::PrivilegedStatus::Success) {
+                    if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
+                    break;
+                }
+                break;
+            }
+            
+            if (opcode2 == 0x00) {
+                std::uint8_t modrmTr = 0;
+                if (!Fetch8(modrmTr)) return 1;
+                const std::uint8_t regField = static_cast<std::uint8_t>((modrmTr >> 3) & 0x07U);
+                const std::uint8_t mod = static_cast<std::uint8_t>((modrmTr >> 6) & 0x03U);
+                if (regField == 3U && mod == 3U && (code_segment_ & 3U) == 0U) {
+                    std::uint8_t rm = static_cast<std::uint8_t>(modrmTr & 0x07U);
+                    if (rex.b) rm = static_cast<std::uint8_t>(rm + 8U);
+                    SetTaskRegister(static_cast<std::uint16_t>(registers_.Read16(rm)));
+                    break;
+                }
+                if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
+                break;
+            }
                 std::uint8_t modrmInvlpg = 0;
                 if (!Fetch8(modrmInvlpg)) return 1;
                 const std::uint8_t regField =
