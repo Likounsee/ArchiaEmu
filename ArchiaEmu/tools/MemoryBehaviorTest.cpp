@@ -40,8 +40,9 @@ int main()
         return 11;
     }
 
-    const std::uint8_t untouched = 0xFF;
-    if (!largeMemory.Read(highAddress + 1, const_cast<std::uint8_t*>(&untouched), 0)) {
+    std::uint8_t untouched = 0xFF;
+    if (!largeMemory.Read(highAddress + 1, &untouched, 1) ||
+        untouched != 0) {
         return 12;
     }
 
