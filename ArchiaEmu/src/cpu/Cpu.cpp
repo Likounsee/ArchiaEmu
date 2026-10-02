@@ -3258,8 +3258,23 @@ int Cpu::Run()
                 return 1;
             }
             if (opcode2 == 0x05) {
-
+                if ((code_segment_ & 3U) != 3U) {
+                    return 1;
+                }
+                const std::uint64_t returnRip = instruction_pointer_;
+                registers_.Write64(1, returnRip);
+                registers_.Write64(11, rflags_);
+                rflags_ &= ~msr_fmask_;
+                const std::uint16_t kernelCs = static_cast<std::uint16_t>(msr_star_ >> 32U);
+                code_segment_ = kernelCs;
+                stack_segment_ = static_cast<std::uint16_t>(kernelCs + 8U);
+                instruction_pointer_ = msr_lstar_;
                 if (syscall_handler_) {
+                    if (!syscall_handler_(*this)) {
+                        return 1;
+                    }
+                }
+                else if (ps5_mode_) {
                     if (!syscall_handler_(*this)) {
                         return 1;
                     }
@@ -3278,6 +3293,17 @@ int Cpu::Run()
                     return 1;
                 }
 
+                break;
+            }
+            if (opcode2 == 0x07) {
+                if ((code_segment_ & 3U) != 0U) {
+                    return 1;
+                }
+                const std::uint16_t userCs = static_cast<std::uint16_t>((msr_star_ >> 48U) + 16U);
+                code_segment_ = userCs;
+                stack_segment_ = static_cast<std::uint16_t>(userCs + 8U);
+                instruction_pointer_ = registers_.Read64(1);
+                rflags_ = registers_.Read64(11);
                 break;
             }
             if (opcode2 == 0xB6) {
