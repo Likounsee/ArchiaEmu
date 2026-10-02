@@ -92,14 +92,25 @@ int main() {
     faultCpu.SetStackSegment(0x23);
     faultCpu.SetStackPointer(0x8FF0);
     faultCpu.SetInstructionPointer(0x900000);
-    if (faultCpu.Run() == 0 || legacy_callback_called ||
-        faultCpu.Cr2() != 0x900000 ||
-        faultCpu.LastException().page_fault_error != (1U << 4) ||
-        faultCpu.CodeSegment() != 0x08 ||
+    const int faultRun = faultCpu.Run();
+    if (faultRun == 0) {
+        return Fail("paging fault CPU unexpectedly completed normally") ? 0 : 1;
+    }
+    if (legacy_callback_called) {
+        return Fail("paging #PF still used the legacy exception callback") ? 0 : 1;
+    }
+    if (faultCpu.Cr2() != 0x900000) {
+        return Fail("paging #PF did not update CR2") ? 0 : 1;
+    }
+    if (faultCpu.LastException().page_fault_error != (1U << 4)) {
+        return Fail("paging #PF error code changed during delivery") ? 0 : 1;
+    }
+    if (faultCpu.CodeSegment() != 0x08 ||
         faultCpu.StackSegment() != 0 ||
         faultCpu.InstructionPointer() != gate.offset ||
         faultCpu.Rsp() != 0x8FD0) {
-        return Fail("CPU did not route paging #PF through hardware exception delivery") ? 0 : 1;
+        return Fail("paging #PF did not apply the hardware exception target state")
+            ? 0 : 1;
     }
 
     std::cout << "x86 CPU paging integration test: PASS\n";
