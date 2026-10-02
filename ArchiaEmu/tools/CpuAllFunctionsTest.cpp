@@ -4534,6 +4534,27 @@ void TestOperandSizeOverride()
         stageMem.Map(DATA, 0x2000);
         stageMem.Map(STACK, 0x2000);
         Cpu stageCpu = MakeCpu(stageMem);
+        auto stageCode = MovR64(0, 0x112233445566ABCDULL);
+        stageCode.push_back(0x66);
+        stageCode.push_back(0x50);
+        stageCode.push_back(0x33);
+        stageCode.push_back(0xC0);
+        stageCode.push_back(0x66);
+        stageCode.push_back(0x58);
+        stageCode = Finish(stageCode);
+        CHECK(
+            "66h PUSH/POP r16 uses 16-bit stack width",
+            RunCode(stageCpu, stageMem, stageCode) &&
+            stageCpu.Rax() == 0x000000000000ABCDULL &&
+            stageCpu.Rsp() == STACK + 0x1000);
+    }
+
+    {
+        Memory stageMem;
+        stageMem.Map(CODE, 0x2000);
+        stageMem.Map(DATA, 0x2000);
+        stageMem.Map(STACK, 0x2000);
+        Cpu stageCpu = MakeCpu(stageMem);
         auto stageCode = MovR64(0, 0x1122334455661111ULL);
         Append(stageCode, MovR64(3, 0xAABBCCDDEEFF2222ULL));
         stageCode.insert(stageCode.end(), {0x66, 0x87, 0xD8});
