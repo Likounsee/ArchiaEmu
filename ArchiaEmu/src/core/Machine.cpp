@@ -40,14 +40,3 @@ const Bus& Machine::SystemBus() const noexcept
 }
 
 } // namespace myps5emu
-
-
-myps5emu::storage::OpenFs& myps5emu::Machine::Storage() noexcept
-{
-    return storage_;
-}
-
-const myps5emu::storage::OpenFs& myps5emu::Machine::Storage() const noexcept
-{
-    return storage_;
-}
