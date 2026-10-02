@@ -3258,9 +3258,6 @@ int Cpu::Run()
                 return 1;
             }
             if (opcode2 == 0x05) {
-                if ((code_segment_ & 3U) != 3U) {
-                    return 1;
-                }
                 const std::uint64_t returnRip = instruction_pointer_;
                 registers_.Write64(1, returnRip);
                 registers_.Write64(11, rflags_);
