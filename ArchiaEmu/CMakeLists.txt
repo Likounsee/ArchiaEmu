@@ -32,6 +32,7 @@ add_executable(myps5emu
     src/memory/Memory.cpp
     src/memory/Memory.hpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/Cpu.hpp
     src/cpu/RegisterFile.cpp
@@ -69,6 +70,7 @@ add_executable(EmulatorLoadGameTest
     src/loader/Elf64Loader.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
@@ -90,8 +92,8 @@ add_test(NAME EmulatorLoadGameTest COMMAND EmulatorLoadGameTest)
 add_executable(X86PrivilegedCpuTest
     tools/X86PrivilegedCpuTest.cpp
     src/cpu/Cpu.cpp
-    src/cpu/RegisterFile.cpp
     src/cpu/x86/Privileged.cpp
+    src/cpu/RegisterFile.cpp
     src/memory/Memory.cpp
 )
 target_include_directories(X86PrivilegedCpuTest PRIVATE src)
@@ -101,6 +103,7 @@ add_executable(CpuAllFunctionsTest
     tools/CpuAllFunctionsTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
@@ -127,6 +130,7 @@ add_executable(MachineArchitectureTest
     src/core/MmioRegisterDevice.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
@@ -242,6 +246,7 @@ add_executable(X86ExceptionStateApplierTest
     src/core/MmioRegisterDevice.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
@@ -265,6 +270,7 @@ add_executable(X86ExceptionEntryTest
     tools/X86ExceptionEntryTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
@@ -288,6 +294,7 @@ add_executable(X86ExceptionRoundTripTest
     tools/X86ExceptionRoundTripTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
@@ -311,6 +318,7 @@ add_executable(X86SyscallCpuTest
     tools/X86SyscallCpuTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
@@ -332,6 +340,7 @@ add_executable(X86ExceptionCpuIntegrationTest
     tools/X86ExceptionCpuIntegrationTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
@@ -360,7 +369,6 @@ add_test(NAME X86PrivilegeTransitionTest COMMAND X86PrivilegeTransitionTest)
 
 add_executable(X86PrivilegedTest
     tools/X86PrivilegedTest.cpp
-    src/cpu/x86/Privileged.cpp
 )
 target_include_directories(X86PrivilegedTest PRIVATE src)
 add_test(NAME X86PrivilegedTest COMMAND X86PrivilegedTest)
@@ -369,6 +377,7 @@ add_executable(X86PagingCpuTest
     tools/X86PagingCpuTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/x86/Idt.cpp
@@ -407,6 +416,7 @@ add_executable(X86ExceptionReturnTest
     tools/X86ExceptionReturnTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Gdt.cpp
@@ -430,6 +440,7 @@ add_executable(X86IretqCpuTest
     tools/X86IretqCpuTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Gdt.cpp
@@ -453,6 +464,7 @@ add_executable(X86InvalidOpcodeResumeTest
     tools/X86InvalidOpcodeResumeTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
@@ -493,6 +505,7 @@ add_executable(X86SetccTest
     tools/X86SetccTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
