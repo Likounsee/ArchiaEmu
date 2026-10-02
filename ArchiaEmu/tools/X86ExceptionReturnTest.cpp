@@ -33,6 +33,12 @@ Gdt64 MakeGdt()
     kernel.dpl = 0;
     gdt.SetCodeSegment(5, kernel);
 
+    GdtDataSegment64 kernelStack{};
+    kernelStack.present = true;
+    kernelStack.writable = true;
+    kernelStack.dpl = 0;
+    gdt.SetDataSegment(2, kernelStack);
+
     GdtCodeSegment64 user{};
     user.present = true;
     user.long_mode = true;
