@@ -5416,6 +5416,145 @@ case 0xD0:
                 return 1;
             }
 
+            if (operand_size_override_ && !rex.w) {
+                const std::uint8_t group =
+                    static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+
+                std::uint8_t reg = 0;
+                std::uint8_t rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+                if (!DecodeMemoryOrRegister32(
+                        modrm, rex, reg, rm, address, memory)) {
+                    return 1;
+                }
+
+                std::uint16_t immediate = 0;
+                if (opcode == 0x81) {
+                    std::uint8_t lo = 0;
+                    std::uint8_t hi = 0;
+                    if (!Fetch8(lo) || !Fetch8(hi)) {
+                        return 1;
+                    }
+                    immediate = static_cast<std::uint16_t>(lo) |
+                                static_cast<std::uint16_t>(hi) << 8U;
+                }
+                else {
+                    std::uint8_t imm8 = 0;
+                    if (!Fetch8(imm8)) {
+                        return 1;
+                    }
+                    immediate = static_cast<std::uint16_t>(
+                        static_cast<std::int16_t>(
+                            static_cast<std::int8_t>(imm8)));
+                }
+
+                std::uint16_t lhs = 0;
+                if (memory) {
+                    if (!ReadMemory(
+                            address,
+                            reinterpret_cast<std::uint8_t*>(&lhs),
+                            sizeof(lhs))) {
+                        return 1;
+                    }
+                }
+                else {
+                    lhs = registers_.Read16(rm);
+                }
+
+                const auto setLogic16 = [&](std::uint16_t result) {
+                    rflags_ &= ~(CF_MASK | OF_MASK);
+                    if (result == 0) rflags_ |= ZF_MASK; else rflags_ &= ~ZF_MASK;
+                    if ((result & 0x8000U) != 0) rflags_ |= SF_MASK; else rflags_ &= ~SF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+                    else rflags_ &= ~PF_MASK;
+                };
+                const auto setAdd16 = [&](std::uint16_t rhs, std::uint16_t result) {
+                    const std::uint32_t sum =
+                        static_cast<std::uint32_t>(lhs) +
+                        static_cast<std::uint32_t>(rhs);
+                    if (sum > 0xFFFFU) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                    if ((~(lhs ^ rhs) & (lhs ^ result) & 0x8000U) != 0) rflags_ |= OF_MASK;
+                    else rflags_ &= ~OF_MASK;
+                    if (((lhs ^ rhs ^ result) & 0x10U) != 0) rflags_ |= AF_MASK;
+                    else rflags_ &= ~AF_MASK;
+                    if (result == 0) rflags_ |= ZF_MASK; else rflags_ &= ~ZF_MASK;
+                    if ((result & 0x8000U) != 0) rflags_ |= SF_MASK; else rflags_ &= ~SF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+                    else rflags_ &= ~PF_MASK;
+                };
+                const auto setSub16 = [&](std::uint16_t rhs, std::uint16_t result) {
+                    if (lhs < rhs) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                    if (((lhs ^ rhs) & (lhs ^ result) & 0x8000U) != 0) rflags_ |= OF_MASK;
+                    else rflags_ &= ~OF_MASK;
+                    if (((lhs ^ rhs ^ result) & 0x10U) != 0) rflags_ |= AF_MASK;
+                    else rflags_ &= ~AF_MASK;
+                    if (result == 0) rflags_ |= ZF_MASK; else rflags_ &= ~ZF_MASK;
+                    if ((result & 0x8000U) != 0) rflags_ |= SF_MASK; else rflags_ &= ~SF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+                    else rflags_ &= ~PF_MASK;
+                };
+
+                std::uint16_t result = lhs;
+                switch (group) {
+                case 0:
+                    result = static_cast<std::uint16_t>(lhs + immediate);
+                    setAdd16(immediate, result);
+                    break;
+                case 1:
+                    result = static_cast<std::uint16_t>(lhs | immediate);
+                    setLogic16(result);
+                    break;
+                case 2: {
+                    const std::uint16_t carry = (rflags_ & CF_MASK) ? 1U : 0U;
+                    const std::uint16_t rhs = static_cast<std::uint16_t>(immediate + carry);
+                    result = static_cast<std::uint16_t>(lhs + rhs);
+                    setAdd16(rhs, result);
+                    break;
+                }
+                case 3: {
+                    const std::uint16_t borrow = (rflags_ & CF_MASK) ? 1U : 0U;
+                    const std::uint16_t rhs = static_cast<std::uint16_t>(immediate + borrow);
+                    result = static_cast<std::uint16_t>(lhs - rhs);
+                    setSub16(rhs, result);
+                    break;
+                }
+                case 4:
+                    result = static_cast<std::uint16_t>(lhs & immediate);
+                    setLogic16(result);
+                    break;
+                case 5:
+                    result = static_cast<std::uint16_t>(lhs - immediate);
+                    setSub16(immediate, result);
+                    break;
+                case 6:
+                    result = static_cast<std::uint16_t>(lhs ^ immediate);
+                    setLogic16(result);
+                    break;
+                case 7:
+                    result = static_cast<std::uint16_t>(lhs - immediate);
+                    setSub16(immediate, result);
+                    break;
+                default:
+                    return 1;
+                }
+
+                if (group != 7) {
+                    if (memory) {
+                        if (!WriteMemory(
+                                address,
+                                reinterpret_cast<const std::uint8_t*>(&result),
+                                sizeof(result))) {
+                            return 1;
+                        }
+                    }
+                    else {
+                        registers_.Write16(rm, result);
+                    }
+                }
+                return 0;
+            }
+
             if (!rex.w) {
                 const std::uint8_t group =
                     static_cast<std::uint8_t>((modrm >> 3) & 0x07);
