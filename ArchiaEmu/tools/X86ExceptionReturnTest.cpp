@@ -151,6 +151,19 @@ int main()
         return Fail("IRETQ incorrectly modified VIF/VIP at CPL3") ? 0 : 1;
     }
 
+    // RSP=0 is a canonical 64-bit stack pointer and must not be rejected
+    // solely because its value is zero.
+    userCpu.SetCodeSegment(0x33);
+    WriteQword(memory, 0x7100, 0x505678);
+    WriteQword(memory, 0x7108, 0x33);
+    WriteQword(memory, 0x7110, 0x202);
+    WriteQword(memory, 0x7118, 0x0);
+    WriteQword(memory, 0x7120, 0x3B);
+    result = ExceptionReturn64::Read(userCpu, memory, gdt);
+    if (result.status != ExceptionReturnStatus::Returned || result.rsp != 0) {
+        return Fail("IRETQ rejected canonical zero RSP") ? 0 : 1;
+    }
+
     const auto beforeRip = userCpu.InstructionPointer();
     WriteQword(memory, 0x7100, 0x0001000000000000ULL);
     result = ExceptionReturn64::Read(userCpu, memory, gdt);
