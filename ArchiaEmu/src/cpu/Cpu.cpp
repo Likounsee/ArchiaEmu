@@ -4241,6 +4241,13 @@ int Cpu::Run()
                 break;
             }
 
+            if (opcode2 == 0xAE) {
+                std::uint8_t modrm=0;if(!Fetch8(modrm))return 1;
+                const std::uint8_t group=static_cast<std::uint8_t>((modrm>>3)&7U);
+                if(group==5U||group==6U||group==7U) break;
+                return 1;
+            }
+
             if (opcode2 == 0x0D || opcode2 == 0x18 || opcode2 == 0x1E) {
                 std::uint8_t modrm=0,reg=0,rm=0;std::uint64_t address=0;bool memory=false;
                 if(!Fetch8(modrm)||!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory))return 1;
