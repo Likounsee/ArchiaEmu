@@ -7331,6 +7331,25 @@ case 0xD0:
 
         
 
+        case 0x88:
+        case 0x8A: {
+            std::uint8_t modrm=0, reg=0, rm=0;
+            bool regHigh=false, rmHigh=false;
+            std::uint64_t address=0;
+            bool memory=false;
+            if(!Fetch8(modrm))return 1;
+            if(!DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory))return 1;
+            if(opcode==0x88){
+                const std::uint8_t value=ReadReg8(reg,regHigh);
+                if(memory){if(!WriteMemory(address,&value,1))return 1;}else WriteReg8(rm,rmHigh,value);
+            }else{
+                std::uint8_t value=0;
+                if(memory){if(!ReadMemory(address,&value,1))return 1;}else value=ReadReg8(rm,rmHigh);
+                WriteReg8(reg,regHigh,value);
+            }
+            break;
+        }
+
         case MOV_RM32_R32:
         {
             std::uint8_t modrm = 0;
