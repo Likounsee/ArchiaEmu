@@ -186,6 +186,15 @@ std::uint64_t Cpu::MsrLstar() const noexcept { return msr_lstar_; }
 void Cpu::SetMsrFmask(std::uint64_t value) noexcept { msr_fmask_ = value; }
 std::uint64_t Cpu::MsrFmask() const noexcept { return msr_fmask_; }
 
+void Cpu::SetGdtr(std::uint64_t base, std::uint16_t limit) noexcept { gdtr_base_ = base; gdtr_limit_ = limit; }
+std::uint64_t Cpu::GdtrBase() const noexcept { return gdtr_base_; }
+std::uint16_t Cpu::GdtrLimit() const noexcept { return gdtr_limit_; }
+void Cpu::SetIdtr(std::uint64_t base, std::uint16_t limit) noexcept { idtr_base_ = base; idtr_limit_ = limit; }
+std::uint64_t Cpu::IdtrBase() const noexcept { return idtr_base_; }
+std::uint16_t Cpu::IdtrLimit() const noexcept { return idtr_limit_; }
+void Cpu::SetTaskRegister(std::uint16_t selector) noexcept { task_register_ = selector; }
+std::uint16_t Cpu::TaskRegister() const noexcept { return task_register_; }
+
 void Cpu::SetInstructionPointer(std::uint64_t value) noexcept
 {
     instruction_pointer_ = value;
