@@ -3083,8 +3083,14 @@ int Cpu::Run()
         }
 
         address_size_override_ = false;
-        if (opcode == 0x67) {
-            address_size_override_ = true;
+        operand_size_override_ = false;
+
+        while (opcode == 0x66 || opcode == 0x67) {
+            if (opcode == 0x66) {
+                operand_size_override_ = true;
+            } else {
+                address_size_override_ = true;
+            }
             if (!Fetch8(opcode)) {
                 return 1;
             }
