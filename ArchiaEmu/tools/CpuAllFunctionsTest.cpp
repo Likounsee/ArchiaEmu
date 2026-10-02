@@ -205,13 +205,14 @@ void TestDescriptorTableInstructions()
     code.insert(code.end(), {0x0F, 0x01, 0x1E});
     Append(code, MovR64(0, 0x28));
     code.insert(code.end(), {0x0F, 0x00, 0xD8});
+    code.insert(code.end(), {0x33, 0xC0, 0x0F, 0x00, 0xC8});
     code = Finish(code);
     CHECK(
         "LGDT/LIDT/LTR wire architectural descriptor state",
         RunCode(cpu, mem, code) &&
         cpu.GdtrBase() == gdtrBase && cpu.GdtrLimit() == 0xFF &&
         cpu.IdtrBase() == idtrBase && cpu.IdtrLimit() == 0x7F &&
-        cpu.TaskRegister() == 0x28);
+        cpu.TaskRegister() == 0x28 && cpu.Rax() == 0x28ULL);
 }
 
 void TestCanonicalAddressFault()
