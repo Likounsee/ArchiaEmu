@@ -16,6 +16,9 @@ PrivilegedResult Privileged::MovCrTo(std::uint8_t cpl,std::uint8_t cr,std::uint6
  if(cpl!=0 || cr==1 || cr>4) return {PrivilegedStatus::PrivilegeViolation,0};
  return {PrivilegedStatus::Success,value};
 }
+PrivilegedResult Privileged::Invlpg(std::uint8_t cpl) noexcept {
+ return cpl==0 ? PrivilegedResult{PrivilegedStatus::Success,0} : PrivilegedResult{PrivilegedStatus::PrivilegeViolation,0};
+}
 PrivilegedResult Privileged::MovCrFrom(std::uint8_t cpl,std::uint8_t cr,std::uint64_t value) noexcept {
  if(cpl!=0 || cr==1 || cr>4) return {PrivilegedStatus::PrivilegeViolation,0};
  return {PrivilegedStatus::Success,value};
