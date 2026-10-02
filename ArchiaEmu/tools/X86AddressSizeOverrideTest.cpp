@@ -133,6 +133,27 @@ int main()
         return 11;
     }
 
+    // REX.W changes only operand width: 67h must still constrain the
+    // effective address to 32 bits while MOV loads the full 64-bit value.
+    const std::uint8_t rexWCode[] = {
+        0x67, 0x48, 0x8B, 0x00, // MOV RAX, [EAX]
+        0xF4
+    };
+    if (!memory.Write(0x1000, rexWCode, sizeof(rexWCode))) {
+        return 12;
+    }
+    const std::uint64_t wideValue = 0x8877665544332211ULL;
+    if (!memory.Write(0x2000, reinterpret_cast<const std::uint8_t*>(&wideValue), sizeof(wideValue))) {
+        return 13;
+    }
+
+    Cpu rexWCpu;
+    rexWCpu.WriteRegister64(0, 0x0000000100002000ULL);
+    if (!Run(memory, rexWCpu) || rexWCpu.Rax() != wideValue) {
+        std::cerr << "REX.W + 32-bit address-size override failed\n";
+        return 14;
+    }
+
     std::cout << "x86 address-size override test: PASS\n";
     return 0;
 }
