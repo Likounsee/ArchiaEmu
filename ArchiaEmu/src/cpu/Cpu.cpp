@@ -3653,17 +3653,32 @@ int Cpu::Run()
 
             if (opcode2 == 0xBE) {
                 std::uint8_t modrmMovsx = 0;
-
-                if (!Fetch8(modrmMovsx)) {
-                    return 1;
+                if (!Fetch8(modrmMovsx)) return 1;
+                if (operand_size_override_ && !rex.w) {
+                    std::uint8_t regIndex = 0;
+                    bool regHighByte = false;
+                    std::uint8_t rmRegisterIndex = 0;
+                    bool rmHighByte = false;
+                    std::uint64_t address = 0;
+                    bool memory = false;
+                    if (!DecodeMemoryOrRegister8(
+                            modrmMovsx, rex,
+                            regIndex, regHighByte,
+                            rmRegisterIndex, rmHighByte,
+                            address, memory)) return 1;
+                    std::uint8_t raw = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, &raw, sizeof(raw))) return 1;
+                    } else {
+                        raw = ReadReg8(rmRegisterIndex, rmHighByte);
+                    }
+                    const std::int8_t value = static_cast<std::int8_t>(raw);
+                    registers_.Write16(regIndex, static_cast<std::uint16_t>(static_cast<std::int16_t>(value)));
                 }
-
-                if (!DecodeMovsx32Reg8(modrmMovsx, rex)) {
-                    return 1;
-                }
-
+                else if (!DecodeMovsx32Reg8(modrmMovsx, rex)) return 1;
                 break;
             }
+
             if (opcode2 == 0x84) {
                 
                 std::int32_t rel = 0;
