@@ -880,6 +880,19 @@ bool Cpu::DecodeSIBAddress(
     return true;
 }
 
+bool Cpu::DecodeMemoryOrRegister16(
+    std::uint8_t modrm,
+    const RexPrefix& rex,
+    std::uint8_t& reg,
+    std::uint8_t& rm,
+    std::uint64_t& address,
+    bool& memory)
+{
+    // Operand width does not change ModRM/SIB address decoding.
+    return DecodeMemoryOrRegister32(
+        modrm, rex, reg, rm, address, memory);
+}
+
 bool Cpu::DecodeMemoryOrRegister32(
     std::uint8_t modrm,
     const RexPrefix& rex,
