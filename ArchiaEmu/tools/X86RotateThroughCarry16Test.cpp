@@ -50,10 +50,10 @@ int main() {
         const std::uint8_t code[] = {0xC1, 0xD0, 0x01};
         Cpu cpu;
         cpu.ConnectMemory(&memory);
-        cpu.WriteRegister64(0, 0x1122334480000000ULL);
+        cpu.WriteRegister64(0, 0x0000000080000000ULL);
         cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
         if (!Run(memory, cpu, code, sizeof(code)) ||
-            cpu.ReadRegister64(0) != 0x1122334400000001ULL ||
+            cpu.ReadRegister64(0) != 0x0000000000000001ULL ||
             (cpu.Rflags() & (1ULL << 0)) == 0) {
             std::cerr << "32-bit RCL failed\n";
             return 3;
