@@ -131,6 +131,30 @@ std::vector<std::uint8_t> Finish(
     return code;
 }
 
+void TestAddressSizeOverride()
+{
+    Memory mem;
+    mem.Map(CODE, 0x1000);
+    mem.Map(DATA, 0x1000);
+    mem.Map(STACK, 0x2000);
+
+    Write32(mem, DATA, 0xAABBCCDDU);
+
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(0, 0x100000000ULL + DATA);
+
+    const auto code = std::vector<std::uint8_t>{
+        0x67,             // address-size override: 32-bit effective address
+        0x8B, 0x00,       // MOV EAX, [EAX]
+        0xF4
+    };
+
+    CHECK(
+        "67 address-size override uses EAX/32-bit effective address",
+        RunCode(cpu, mem, code) &&
+        cpu.Rax() == 0xAABBCCDDULL);
+}
+
 void TestMemory()
 {
     Memory mem;
@@ -4274,6 +4298,7 @@ int main()
     std::cout << "        MyPS5Emu CPU FUNCTION TEST\n";
     std::cout << "=============================================\n\n";
 
+    TestAddressSizeOverride();
     TestMemory();
     TestRegisterFile();
 
