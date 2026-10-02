@@ -7643,7 +7643,11 @@ case 0xD0:
         }
 
         case 0x98: {
-            if (rex.w) {
+            if (operand_size_override_ && !rex.w) {
+                const std::int8_t al = static_cast<std::int8_t>(registers_.Read64(0) & 0xFFU);
+                registers_.Write16(0, static_cast<std::uint16_t>(static_cast<std::int16_t>(al)));
+            }
+            else if (rex.w) {
                 // CDQE : sign-extend EAX -> RAX
                 const std::int32_t eax =
                     static_cast<std::int32_t>(
@@ -7670,7 +7674,11 @@ case 0xD0:
         }
 
         case 0x99: {
-            if (rex.w) {
+            if (operand_size_override_ && !rex.w) {
+                const std::int16_t ax = static_cast<std::int16_t>(registers_.Read16(0));
+                registers_.Write16(2, (ax < 0) ? 0xFFFFU : 0U);
+            }
+            else if (rex.w) {
                 // CQO : sign-extend RAX -> RDX:RAX
                 const std::int64_t rax =
                     static_cast<std::int64_t>(
