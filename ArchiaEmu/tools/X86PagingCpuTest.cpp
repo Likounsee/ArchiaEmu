@@ -1,11 +1,15 @@
 #include "cpu/Cpu.hpp"
 #include "cpu/x86/Paging.hpp"
+#include "cpu/x86/Gdt.hpp"
+#include "cpu/x86/Idt.hpp"
+#include "cpu/x86/Tss64.hpp"
 #include "memory/Memory.hpp"
 
 #include <cstdint>
 #include <iostream>
 
 using namespace myps5emu;
+using namespace myps5emu::x86;
 
 namespace {
 void Q(Memory& m, std::uint64_t a, std::uint64_t v) {
