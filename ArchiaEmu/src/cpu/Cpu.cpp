@@ -607,6 +607,18 @@ bool Cpu::SignFlag() const noexcept
     return (rflags_ & SF_MASK) != 0;
 }
 
+void Cpu::SetLogicFlags16(std::uint16_t result) noexcept
+{
+    SetZeroFlag(result == 0);
+    SetSignFlag((result & 0x8000U) != 0);
+    rflags_ &= ~CF_MASK;
+    rflags_ &= ~OF_MASK;
+    rflags_ &= ~AF_MASK;
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+    else rflags_ &= ~PF_MASK;
+}
+
+
 void Cpu::SetLogicFlags32(std::uint32_t result) noexcept
 {
     SetZeroFlag(result == 0);
@@ -630,6 +642,31 @@ void Cpu::SetLogicFlags64(std::uint64_t result) noexcept
     if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
     else rflags_ &= ~PF_MASK;
 }
+
+void Cpu::SetAddFlags16(
+    std::uint16_t lhs,
+    std::uint16_t rhs,
+    std::uint16_t result) noexcept
+{
+    SetZeroFlag(result == 0);
+    SetSignFlag((result & 0x8000U) != 0);
+
+    const bool carry =
+        result < lhs ||
+        rhs > static_cast<std::uint16_t>(0xFFFFU - lhs);
+    if (carry) rflags_ |= CF_MASK;
+    else rflags_ &= ~CF_MASK;
+
+    const bool overflow =
+        ((~(lhs ^ rhs) & (lhs ^ result)) & 0x8000U) != 0;
+    const bool auxiliary = ((lhs ^ rhs ^ result) & 0x10U) != 0;
+    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+    else rflags_ &= ~PF_MASK;
+    if (overflow) rflags_ |= OF_MASK;
+    else rflags_ &= ~OF_MASK;
+}
+
 
 void Cpu::SetAddFlags32(
     std::uint32_t lhs,
@@ -660,6 +697,28 @@ void Cpu::SetAddFlags32(
         rflags_ &= ~OF_MASK;
     }
 }
+
+void Cpu::SetSubFlags16(
+    std::uint16_t lhs,
+    std::uint16_t rhs,
+    std::uint16_t result) noexcept
+{
+    SetZeroFlag(result == 0);
+    SetSignFlag((result & 0x8000U) != 0);
+
+    if (lhs < rhs) rflags_ |= CF_MASK;
+    else rflags_ &= ~CF_MASK;
+
+    const bool overflow =
+        (((lhs ^ rhs) & (lhs ^ result)) & 0x8000U) != 0;
+    const bool auxiliary = ((lhs ^ rhs ^ result) & 0x10U) != 0;
+    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+    else rflags_ &= ~PF_MASK;
+    if (overflow) rflags_ |= OF_MASK;
+    else rflags_ &= ~OF_MASK;
+}
+
 
 void Cpu::SetSubFlags32(
     std::uint32_t lhs,
@@ -990,6 +1049,55 @@ bool Cpu::DecodeMemoryOrRegister32(
     }
     return false;
 }
+bool Cpu::DecodeAdd16(
+    std::uint8_t modrm,
+    const RexPrefix& rex)
+{
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return false;
+
+    const std::uint16_t lhs = registers_.Read16(reg);
+    std::uint16_t rhs = 0;
+    if (memory) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rhs), sizeof(rhs))) return false;
+    } else {
+        rhs = registers_.Read16(rm);
+    }
+    const std::uint16_t result = static_cast<std::uint16_t>(lhs + rhs);
+    registers_.Write16(reg, result);
+    SetAddFlags16(lhs, rhs, result);
+    return true;
+}
+
+bool Cpu::DecodeAdd16Store(
+    std::uint8_t modrm,
+    const RexPrefix& rex)
+{
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return false;
+
+    const std::uint16_t rhs = registers_.Read16(reg);
+    std::uint16_t lhs = 0;
+    if (memory) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&lhs), sizeof(lhs))) return false;
+    } else {
+        lhs = registers_.Read16(rm);
+    }
+    const std::uint16_t result = static_cast<std::uint16_t>(lhs + rhs);
+    if (memory) {
+        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return false;
+    } else {
+        registers_.Write16(rm, result);
+    }
+    SetAddFlags16(lhs, rhs, result);
+    return true;
+}
+
+
 bool Cpu::DecodeAdd32(
     std::uint8_t modrm,
     const RexPrefix& rex)
@@ -1041,6 +1149,55 @@ bool Cpu::DecodeAdd32(
     return true;
 }
 
+bool Cpu::DecodeSub16(
+    std::uint8_t modrm,
+    const RexPrefix& rex)
+{
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return false;
+
+    const std::uint16_t lhs = registers_.Read16(reg);
+    std::uint16_t rhs = 0;
+    if (memory) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rhs), sizeof(rhs))) return false;
+    } else {
+        rhs = registers_.Read16(rm);
+    }
+    const std::uint16_t result = static_cast<std::uint16_t>(lhs - rhs);
+    registers_.Write16(reg, result);
+    SetSubFlags16(lhs, rhs, result);
+    return true;
+}
+
+bool Cpu::DecodeSub16Store(
+    std::uint8_t modrm,
+    const RexPrefix& rex)
+{
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return false;
+
+    const std::uint16_t rhs = registers_.Read16(reg);
+    std::uint16_t lhs = 0;
+    if (memory) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&lhs), sizeof(lhs))) return false;
+    } else {
+        lhs = registers_.Read16(rm);
+    }
+    const std::uint16_t result = static_cast<std::uint16_t>(lhs - rhs);
+    if (memory) {
+        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return false;
+    } else {
+        registers_.Write16(rm, result);
+    }
+    SetSubFlags16(lhs, rhs, result);
+    return true;
+}
+
+
 bool Cpu::DecodeSub32(
     std::uint8_t modrm,
     const RexPrefix& rex)
@@ -1091,6 +1248,31 @@ bool Cpu::DecodeSub32(
 
     return true;
 }
+
+bool Cpu::DecodeCmp16(
+    std::uint8_t opcode,
+    std::uint8_t modrm,
+    const RexPrefix& rex)
+{
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return false;
+
+    std::uint16_t rmValue = 0;
+    if (memory) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rmValue), sizeof(rmValue))) return false;
+    } else {
+        rmValue = registers_.Read16(rm);
+    }
+    const std::uint16_t regValue = registers_.Read16(reg);
+    const std::uint16_t lhs = opcode == 0x3B ? regValue : rmValue;
+    const std::uint16_t rhs = opcode == 0x3B ? rmValue : regValue;
+    const std::uint16_t result = static_cast<std::uint16_t>(lhs - rhs);
+    SetSubFlags16(lhs, rhs, result);
+    return true;
+}
+
 
 bool Cpu::DecodeCmp32(
     std::uint8_t opcode,
@@ -1151,6 +1333,57 @@ bool Cpu::DecodeCmp32(
 
     return true;
 }
+
+bool Cpu::DecodeLogic16(
+    std::uint8_t opcode,
+    std::uint8_t modrm,
+    const RexPrefix& rex)
+{
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return false;
+
+    const bool rmDestination = opcode == 0x09 || opcode == 0x21 || opcode == 0x31;
+    std::uint16_t lhs = 0, rhs = 0;
+    if (rmDestination) {
+        lhs = memory ? 0 : registers_.Read16(rm);
+        if (memory) {
+            if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&lhs), sizeof(lhs))) return false;
+        }
+        rhs = registers_.Read16(reg);
+    } else {
+        lhs = registers_.Read16(reg);
+        rhs = memory ? 0 : registers_.Read16(rm);
+        if (memory) {
+            if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rhs), sizeof(rhs))) return false;
+        }
+    }
+
+    std::uint16_t result = 0;
+    switch (opcode) {
+    case 0x09:
+    case 0x0B: result = static_cast<std::uint16_t>(lhs | rhs); break;
+    case 0x21:
+    case 0x23: result = static_cast<std::uint16_t>(lhs & rhs); break;
+    case 0x31:
+    case 0x33: result = static_cast<std::uint16_t>(lhs ^ rhs); break;
+    default: return false;
+    }
+
+    if (rmDestination) {
+        if (memory) {
+            if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return false;
+        } else {
+            registers_.Write16(rm, result);
+        }
+    } else {
+        registers_.Write16(reg, result);
+    }
+    SetLogicFlags16(result);
+    return true;
+}
+
 
 bool Cpu::DecodeLogic32(
     std::uint8_t opcode,
@@ -1256,6 +1489,27 @@ bool Cpu::DecodeLogic32(
 
     return true;
 }
+bool Cpu::DecodeTest16(
+    std::uint8_t modrm,
+    const RexPrefix& rex)
+{
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return false;
+
+    const std::uint16_t lhs = registers_.Read16(reg);
+    std::uint16_t rhs = 0;
+    if (memory) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rhs), sizeof(rhs))) return false;
+    } else {
+        rhs = registers_.Read16(rm);
+    }
+    SetLogicFlags16(static_cast<std::uint16_t>(lhs & rhs));
+    return true;
+}
+
+
 bool Cpu::DecodeTest32(
     std::uint8_t modrm,
     const RexPrefix& rex)
