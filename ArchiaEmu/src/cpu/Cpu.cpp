@@ -4152,6 +4152,40 @@ int Cpu::Run()
                 break;
             }
 
+            if (opcode2 == 0xA4 || opcode2 == 0xA5 || opcode2 == 0xAC || opcode2 == 0xAD) {
+                std::uint8_t modrm=0;if(!Fetch8(modrm))return 1;
+                std::uint8_t reg=0,rm=0;std::uint64_t address=0;bool memory=false;
+                if(operand_size_override_&&!rex.w){
+                    if(!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory))return 1;
+                    std::uint16_t dst=0,src=registers_.Read16(reg);if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&dst),2))return 1;}else dst=registers_.Read16(rm);
+                    std::uint8_t count=0;if(opcode2==0xA4||opcode2==0xAC){if(!Fetch8(count))return 1;}else count=static_cast<std::uint8_t>(registers_.Read32(1)&0xFFU);count&=15U;if(count==0)break;
+                    std::uint16_t result=opcode2==0xA4||opcode2==0xA5?static_cast<std::uint16_t>((dst<<count)|(src>>(16-count))):static_cast<std::uint16_t>((dst>>count)|(src<<(16-count)));
+                    const bool carry=opcode2==0xA4||opcode2==0xA5?((dst>>(16-count))&1U)!=0:((dst>>(count-1))&1U)!=0;
+                    if(carry)rflags_|=CF_MASK;else rflags_&=~CF_MASK;SetZeroFlag(result==0);SetSignFlag((result&0x8000U)!=0);if(EvenParity8(static_cast<std::uint8_t>(result)))rflags_|=PF_MASK;else rflags_&=~PF_MASK;
+                    if(count==1){const bool of=opcode2==0xA4||opcode2==0xA5?(((result&0x8000U)!=0)^carry):(((result&0x8000U)!=0)^((dst&0x8000U)!=0));if(of)rflags_|=OF_MASK;else rflags_&=~OF_MASK;}
+                    if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&result),2))return 1;}else registers_.Write16(rm,result);
+                }else if(rex.w){
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory))return 1;
+                    std::uint64_t dst=0,src=registers_.Read64(reg);if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&dst),8))return 1;}else dst=registers_.Read64(rm);
+                    std::uint8_t count=0;if(opcode2==0xA4||opcode2==0xAC){if(!Fetch8(count))return 1;}else count=static_cast<std::uint8_t>(registers_.Read32(1)&0xFFU);count&=63U;if(count==0)break;
+                    std::uint64_t result=opcode2==0xA4||opcode2==0xA5?(dst<<count)|(src>>(64-count)):(dst>>count)|(src<<(64-count));
+                    const bool carry=opcode2==0xA4||opcode2==0xA5?((dst>>(64-count))&1ULL)!=0:((dst>>(count-1))&1ULL)!=0;
+                    if(carry)rflags_|=CF_MASK;else rflags_&=~CF_MASK;SetZeroFlag(result==0);SetSignFlag((result>>63)!=0);if(EvenParity8(static_cast<std::uint8_t>(result)))rflags_|=PF_MASK;else rflags_&=~PF_MASK;
+                    if(count==1){const bool of=opcode2==0xA4||opcode2==0xA5?(((result>>63)&1ULL)!=carry):(((result>>63)&1ULL)!=((dst>>63)&1ULL));if(of)rflags_|=OF_MASK;else rflags_&=~OF_MASK;}
+                    if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&result),8))return 1;}else registers_.Write64(rm,result);
+                }else{
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory))return 1;
+                    std::uint32_t dst=0,src=registers_.Read32(reg);if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&dst),4))return 1;}else dst=registers_.Read32(rm);
+                    std::uint8_t count=0;if(opcode2==0xA4||opcode2==0xAC){if(!Fetch8(count))return 1;}else count=static_cast<std::uint8_t>(registers_.Read32(1)&0xFFU);count&=31U;if(count==0)break;
+                    std::uint32_t result=opcode2==0xA4||opcode2==0xA5?(dst<<count)|(src>>(32-count)):(dst>>count)|(src<<(32-count));
+                    const bool carry=opcode2==0xA4||opcode2==0xA5?((dst>>(32-count))&1U)!=0:((dst>>(count-1))&1U)!=0;
+                    if(carry)rflags_|=CF_MASK;else rflags_&=~CF_MASK;SetZeroFlag(result==0);SetSignFlag((result>>31)!=0);if(EvenParity8(static_cast<std::uint8_t>(result)))rflags_|=PF_MASK;else rflags_&=~PF_MASK;
+                    if(count==1){const bool of=opcode2==0xA4||opcode2==0xA5?(((result>>31)&1U)!=carry):(((result>>31)&1U)!=((dst>>31)&1U));if(of)rflags_|=OF_MASK;else rflags_&=~OF_MASK;}
+                    if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&result),4))return 1;}else registers_.Write32(rm,result);
+                }
+                break;
+            }
+
             if (opcode2 == 0x63) {
                 std::uint8_t modrm = 0;
                 if (!Fetch8(modrm)) return 1;
