@@ -7267,6 +7267,29 @@ case 0xD0:
             break;
         }
 
+        case 0xB0:
+        case 0xB1:
+        case 0xB2:
+        case 0xB3:
+        case 0xB4:
+        case 0xB5:
+        case 0xB6:
+        case 0xB7: {
+            std::uint8_t immediate=0;
+            if(!Fetch8(immediate))return 1;
+            const std::uint8_t raw=static_cast<std::uint8_t>(opcode-0xB0);
+            std::uint8_t reg=raw;
+            bool highByte=false;
+            if(rex.present){
+                if(rex.b) reg=static_cast<std::uint8_t>(reg+8);
+            } else if(raw>=4){
+                reg=static_cast<std::uint8_t>(raw-4);
+                highByte=true;
+            }
+            WriteReg8(reg,highByte,immediate);
+            break;
+        }
+
         case 0xB8:
         case 0xB9:
         case 0xBA:
