@@ -1575,6 +1575,84 @@ void TestAdcSbb()
     }
 }
 
+    // Group-1 immediate ADC/SBB carry/borrow must not lose the carry
+    // when the immediate itself is UINT_MAX.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0);
+        Append(code, MovR64(3, 1));
+        Append(code, {0x48, 0x39, 0xD8}); // CF=1
+        Append(code, {0x83, 0xD0, 0xFF}); // ADC EAX,-1 + CF => 0, CF must remain 1
+        code = Finish(code);
+
+        CHECK("ADC32_imm8_CF_boundary",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0 &&
+              (cpu.Rflags() & CF_MASK) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0);
+        Append(code, MovR64(3, 1));
+        Append(code, {0x48, 0x39, 0xD8}); // CF=1
+        Append(code, {0x83, 0xD8, 0xFF}); // SBB EAX,-1 - CF => 0, CF must remain 1
+        code = Finish(code);
+
+        CHECK("SBB32_imm8_CF_boundary",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0 &&
+              (cpu.Rflags() & CF_MASK) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0);
+        Append(code, MovR64(3, 1));
+        Append(code, {0x48, 0x39, 0xD8}); // CF=1
+        Append(code, {0x48, 0x83, 0xD0, 0xFF}); // ADC RAX,-1 + CF => 0
+        code = Finish(code);
+
+        CHECK("ADC64_imm8_CF_boundary",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0 &&
+              (cpu.Rflags() & CF_MASK) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0);
+        Append(code, MovR64(3, 1));
+        Append(code, {0x48, 0x39, 0xD8}); // CF=1
+        Append(code, {0x48, 0x83, 0xD8, 0xFF}); // SBB RAX,-1 - CF => 0
+        code = Finish(code);
+
+        CHECK("SBB64_imm8_CF_boundary",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0 &&
+              (cpu.Rflags() & CF_MASK) != 0);
+    }
+
     // Immediate accumulator forms: ADC/SBB must exist for 8/32/64-bit operands.
     {
         Memory mem;
