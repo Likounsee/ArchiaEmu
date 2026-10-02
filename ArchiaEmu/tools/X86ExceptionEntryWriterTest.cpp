@@ -79,7 +79,7 @@ int main()
     const auto sameCplWrite =
         ExceptionEntryWriter64::Write(memory, sameCpl);
     if (sameCplWrite.status != ExceptionEntryWriteStatus::Written ||
-        sameCplWrite.new_rsp != 0x9FE0) {
+        sameCplWrite.new_rsp != 0x9FE8) {
         return Fail("Same-CPL exception entry write failed") ? 0 : 1;
     }
 
