@@ -4262,6 +4262,31 @@ int Cpu::Run()
 
         case 0x15:
         case 0x1D: {
+            if (operand_size_override_ && !rex.w) {
+                std::uint16_t immediate = 0;
+                if (!Fetch16(immediate)) return 1;
+                const std::uint16_t lhs = registers_.Read16(0);
+                const bool carryIn = (rflags_ & CF_MASK) != 0;
+                const std::uint16_t result = opcode == 0x15
+                    ? static_cast<std::uint16_t>(lhs + immediate + carryIn)
+                    : static_cast<std::uint16_t>(lhs - immediate - carryIn);
+                if (opcode == 0x15) {
+                    const std::uint32_t sum = static_cast<std::uint32_t>(lhs) + immediate + carryIn;
+                    if (sum > 0xFFFFU) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                    if (((~(lhs ^ immediate) & (lhs ^ result)) & 0x8000U) != 0) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                } else {
+                    const bool borrow = lhs < immediate || (carryIn && lhs == immediate);
+                    if (borrow) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                    if ((((lhs ^ immediate) & (lhs ^ result)) & 0x8000U) != 0) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                }
+                SetZeroFlag(result == 0);
+                SetSignFlag((result & 0x8000U) != 0);
+                if (((lhs ^ immediate ^ result) & 0x10U) != 0) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+                registers_.Write16(0, result);
+                break;
+            }
+
             std::uint32_t immediateRaw = 0;
             if (!Fetch32(immediateRaw)) return 1;
             const bool cfIn = (rflags_ & CF_MASK) != 0;
@@ -4404,6 +4429,37 @@ int Cpu::Run()
         case 0x1B: {
             std::uint8_t modrm=0, reg=0, rm=0; std::uint64_t address=0; bool memory=false;
             if(!Fetch8(modrm) || !DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+            if (operand_size_override_ && !rex.w) {
+                const bool isAdc16 = opcode == 0x13;
+                const bool isSbb16 = opcode == 0x1B;
+                if (!isAdc16 && !isSbb16) return 1;
+                std::uint16_t lhs = registers_.Read16(reg);
+                std::uint16_t rhs = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rhs), sizeof(rhs))) return 1;
+                } else {
+                    rhs = registers_.Read16(rm);
+                }
+                const bool carryIn = (rflags_ & CF_MASK) != 0;
+                const std::uint16_t result = isAdc16
+                    ? static_cast<std::uint16_t>(lhs + rhs + carryIn)
+                    : static_cast<std::uint16_t>(lhs - rhs - carryIn);
+                if (isAdc16) {
+                    const std::uint32_t sum = static_cast<std::uint32_t>(lhs) + rhs + carryIn;
+                    if (sum > 0xFFFFU) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                    if (((~(lhs ^ rhs) & (lhs ^ result)) & 0x8000U) != 0) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                } else {
+                    const bool borrow = lhs < rhs || (carryIn && lhs == rhs);
+                    if (borrow) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                    if ((((lhs ^ rhs) & (lhs ^ result)) & 0x8000U) != 0) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                }
+                SetZeroFlag(result == 0);
+                SetSignFlag((result & 0x8000U) != 0);
+                if (((lhs ^ rhs ^ result) & 0x10U) != 0) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+                registers_.Write16(reg, result);
+                break;
+            }
             const bool isAdc=(opcode==0x11||opcode==0x13);
             const bool destRm=(opcode==0x11||opcode==0x19);
             const bool cfIn=(rflags_&CF_MASK)!=0;
