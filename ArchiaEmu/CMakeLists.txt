@@ -418,6 +418,29 @@ add_executable(X86PagingTest
 target_include_directories(X86PagingTest PRIVATE src)
 add_test(NAME X86PagingTest COMMAND X86PagingTest)
 
+add_executable(X86AddressSizeOverrideTest
+    tools/X86AddressSizeOverrideTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/x86/Privileged.cpp
+    src/cpu/x86/Paging.cpp
+    src/cpu/RegisterFile.cpp
+    src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
+    src/cpu/x86/ExceptionTarget.cpp
+    src/cpu/x86/ExceptionDelivery.cpp
+    src/cpu/x86/Tss64.cpp
+    src/cpu/x86/ExceptionStackFrame64.cpp
+    src/cpu/x86/ExceptionStackWriter64.cpp
+    src/cpu/x86/ExceptionEntryWriter64.cpp
+    src/cpu/x86/ExceptionStateApplier64.cpp
+    src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(X86AddressSizeOverrideTest PRIVATE src)
+add_test(NAME X86AddressSizeOverrideTest COMMAND X86AddressSizeOverrideTest)
+
 add_executable(X86LargePageTest
     tools/X86LargePageTest.cpp
     src/memory/Memory.cpp
