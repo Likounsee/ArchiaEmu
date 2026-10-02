@@ -162,8 +162,8 @@ int main()
         return Fail("IRETQ privilege return failed") ? 0 : 1;
     }
 
-    // In IA-32e mode, IRET with NT=1 is a general-protection fault;
-    // it must not be accepted as a normal return frame.
+    // In IA-32e mode, IRET checks the current RFLAGS.NT before
+    // consuming the return frame. A stacked NT bit is not the trigger.
     Memory ntMemory;
     if (!ntMemory.Map(0x1000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
         !ntMemory.Map(0x2000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
@@ -178,7 +178,7 @@ int main()
 
     WriteQword(ntMemory, 0x7000, 0x2000);
     WriteQword(ntMemory, 0x7008, 0x28);
-    WriteQword(ntMemory, 0x7010, 0x4202); // NT=1, otherwise valid RFLAGS
+    WriteQword(ntMemory, 0x7010, 0x202); // stacked NT=0
 
     Cpu nestedTaskFlag;
     nestedTaskFlag.ConnectMemory(&ntMemory);
@@ -186,7 +186,7 @@ int main()
     nestedTaskFlag.SetCodeSegment(0x28);
     nestedTaskFlag.SetStackSegment(0x10);
     nestedTaskFlag.SetStackPointer(0x7000);
-    nestedTaskFlag.SetRflags(0x202);
+    nestedTaskFlag.SetRflags(0x4202); // current NT=1
 
     bool nestedTaskHandlerCalled = false;
     ExceptionReturnStatus nestedTaskStatus =
@@ -196,26 +196,19 @@ int main()
         const auto result =
             ExceptionReturn64::Read(handlerCpu, ntMemory, gdt);
         nestedTaskStatus = result.status;
-        std::cerr << "IRETQ NT status=" << static_cast<unsigned>(nestedTaskStatus) << '\\n';
         return false;
     });
 
     const auto ntBeforeRsp = nestedTaskFlag.Rsp();
     const auto ntBeforeCs = nestedTaskFlag.CodeSegment();
     const auto ntBeforeFlags = nestedTaskFlag.Rflags();
-    const ntRunResult = nestedTaskFlag.Run();
-    std::cerr << "IRETQ NT diagnostic: run=" << ntRunResult
-              << " called=" << nestedTaskHandlerCalled
-              << " status=" << static_cast<unsigned>(nestedTaskStatus)
-              << "\\n";
-    return Fail("temporary IRETQ NT diagnostic") ? 0 : 1;
-    if (ntRunResult == 0 ||
+    if (nestedTaskFlag.Run() == 0 ||
         !nestedTaskHandlerCalled ||
         nestedTaskStatus == ExceptionReturnStatus::Returned ||
         nestedTaskFlag.Rsp() != ntBeforeRsp ||
         nestedTaskFlag.CodeSegment() != ntBeforeCs ||
         nestedTaskFlag.Rflags() != ntBeforeFlags) {
-        return Fail("IRETQ incorrectly accepted NT=1 in IA-32e mode") ? 0 : 1;
+        return Fail("IRETQ incorrectly accepted current NT=1 in IA-32e mode") ? 0 : 1;
     }
 
     WriteQword(memory, 0x7000, 0x0001000000000000ULL);
