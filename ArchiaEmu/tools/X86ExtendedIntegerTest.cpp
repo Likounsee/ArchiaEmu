@@ -27,7 +27,10 @@ static bool TestMovsxd() {
     std::vector<std::uint8_t> code;
     AppendMovR64(code, 3, 0x00000000FFFFFFFFULL);
     code.insert(code.end(), {0x48, 0x63, 0xC3});
-    return Run(memory, cpu, code) && cpu.Rax() == 0xFFFFFFFFFFFFFFFFULL;
+    if (!Run(memory, cpu, code) || cpu.Rax() != 0xFFFFFFFFFFFFFFFFULL) return false;
+    Memory m2; m2.Map(0x1000,0x1000); Cpu c2; c2.ConnectMemory(&m2);
+    std::vector<std::uint8_t> code2; AppendMovR64(code2,3,0x00000000FFFFFFFFULL); code2.insert(code2.end(),{0x63,0xC3});
+    return Run(m2,c2,code2) && c2.Rax() == 0x00000000FFFFFFFFULL;
 }
 
 static bool TestBswap() {
