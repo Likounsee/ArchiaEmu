@@ -76,6 +76,7 @@ using FrameCallback = std::function<bool()>;
     void SetSyscallHandler(SyscallHandler callback);
     void SetExceptionHandler(ExceptionHandler callback);
     void SetExceptionReturnHandler(ExceptionReturnHandler callback);
+    void SetIoHandlers(IoReadHandler read, IoWriteHandler write);
     void SetExceptionArchitecture(
         const x86::Idt* idt,
         const x86::Gdt64* gdt,
@@ -119,6 +120,8 @@ Memory* memory_ = nullptr;
     SyscallHandler syscall_handler_;
     ExceptionHandler exception_handler_;
     ExceptionReturnHandler exception_return_handler_;
+    IoReadHandler io_read_handler_;
+    IoWriteHandler io_write_handler_;
     const x86::Idt* exception_idt_ = nullptr;
     const x86::Gdt64* exception_gdt_ = nullptr;
     const x86::Tss64* exception_tss_ = nullptr;
