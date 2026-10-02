@@ -7049,7 +7049,9 @@ case 0xD0:
                 else if (operand_size_override_) width = 2;
                 else width = 4;
             }
-            const bool compare = opcode == 0xA6 || opcode == 0xA7 || opcode == 0xAE || opcode == 0xAF;
+            const bool cmps = opcode == 0xA6 || opcode == 0xA7;
+            const bool scas = opcode == 0xAE || opcode == 0xAF;
+            const bool compare = cmps || scas;
             const bool move = opcode == 0xA4 || opcode == 0xA5;
             const bool load = opcode == 0xAC || opcode == 0xAD;
             const bool store = opcode == 0xAA || opcode == 0xAB;
@@ -7067,16 +7069,16 @@ case 0xD0:
                 const std::uint64_t si = getIndex(6);
                 const std::uint64_t di = getIndex(7);
                 std::uint64_t srcValue = 0, dstValue = 0;
-                if (move || compare || load) {
+                if (move || cmps || load) {
                     if (!ReadMemory(si, reinterpret_cast<std::uint8_t*>(&srcValue), width)) return 1;
                 }
-                if (move || compare) {
+                if (move || cmps || scas) {
                     if (!ReadMemory(di, reinterpret_cast<std::uint8_t*>(&dstValue), width)) return 1;
                 }
                 if (move) {
                     if (!WriteMemory(di, reinterpret_cast<const std::uint8_t*>(&srcValue), width)) return 1;
                     setIndex(6, si + delta); setIndex(7, di + delta);
-                } else if (compare) {
+                } else if (cmps) {
                     if (width == 1) SetSubFlags8(static_cast<std::uint8_t>(srcValue), static_cast<std::uint8_t>(dstValue), static_cast<std::uint8_t>(srcValue - dstValue));
                     else if (width == 2) SetSubFlags16(static_cast<std::uint16_t>(srcValue), static_cast<std::uint16_t>(dstValue), static_cast<std::uint16_t>(srcValue - dstValue));
                     else if (width == 4) SetSubFlags32(static_cast<std::uint32_t>(srcValue), static_cast<std::uint32_t>(dstValue), static_cast<std::uint32_t>(srcValue - dstValue));
@@ -7092,8 +7094,8 @@ case 0xD0:
                     else if (width == 4) registers_.Write32(0, static_cast<std::uint32_t>(srcValue));
                     else registers_.Write64(0, srcValue);
                     setIndex(6, si + delta);
-                } else {
-                    std::uint64_t acc = registers_.Read64(0);
+                } else if (scas) {
+                    const std::uint64_t acc = registers_.Read64(0);
                     if (width == 1) SetSubFlags8(static_cast<std::uint8_t>(acc), static_cast<std::uint8_t>(dstValue), static_cast<std::uint8_t>(acc - dstValue));
                     else if (width == 2) SetSubFlags16(static_cast<std::uint16_t>(acc), static_cast<std::uint16_t>(dstValue), static_cast<std::uint16_t>(acc - dstValue));
                     else if (width == 4) SetSubFlags32(static_cast<std::uint32_t>(acc), static_cast<std::uint32_t>(dstValue), static_cast<std::uint32_t>(acc - dstValue));
