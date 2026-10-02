@@ -283,6 +283,14 @@ void Cpu::SetExceptionReturnHandler(ExceptionReturnHandler callback)
     exception_return_handler_ = std::move(callback);
 }
 
+void Cpu::SetIoHandlers(IoReadHandler read, IoWriteHandler write)
+{
+    io_read_handler_ = std::move(read);
+    io_write_handler_ = std::move(write);
+}
+
+
+
 void Cpu::SetExceptionArchitecture(
     const x86::Idt* idt,
     const x86::Gdt64* gdt,
