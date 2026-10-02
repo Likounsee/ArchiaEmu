@@ -4069,7 +4069,11 @@ int Cpu::Run()
                 } else {
                     source = static_cast<std::int32_t>(registers_.Read32(rm));
                 }
-                registers_.Write64(reg, static_cast<std::uint64_t>(static_cast<std::int64_t>(source)));
+                if (rex.w) {
+                    registers_.Write64(reg, static_cast<std::uint64_t>(static_cast<std::int64_t>(source)));
+                } else {
+                    registers_.Write32(reg, static_cast<std::uint32_t>(source));
+                }
                 break;
             }
 
