@@ -100,7 +100,7 @@ PagingResult Paging::Translate(
             return Fault(PagingFault::NotPresent, write, user, instruction);
         }
 
-        // Bits 52..62 are reserved in the page-table format modeled here.
+        // Bits 52..62 are reserved in the modeled page-table format.
         // NX (bit 63) is reserved until EFER.NXE is enabled.
         if ((entry & 0x7FF0000000000000ULL) != 0 ||
             ((entry & kNx) != 0 && (efer_ & kEferNxe) == 0)) {
