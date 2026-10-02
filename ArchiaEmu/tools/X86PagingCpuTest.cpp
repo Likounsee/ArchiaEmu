@@ -17,7 +17,7 @@ bool Fail(const char* s) { std::cerr << s << '\n'; return false; }
 int main() {
     Memory mem;
     if (!mem.Map(0x1000, 0x5000, MemoryPermission::Read | MemoryPermission::Write) ||
-        !mem.Map(0x8000, 0x1000, MemoryPermission::Read | MemoryPermission::Execute)) {
+        !mem.Map(0x8000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute)) {
         return 1;
     }
 
