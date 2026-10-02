@@ -1,6 +1,7 @@
 ﻿#include "Cpu.hpp"
 
 #include "memory/Memory.hpp"
+#include "x86/Paging.hpp"
 
 #include <iostream>
 #include <limits>
@@ -140,6 +141,42 @@ void Cpu::ConnectMemory(Memory* memory) noexcept
     memory_ = memory;
 }
 
+void Cpu::SetPaging(Paging* paging) noexcept
+{
+    paging_ = paging;
+    if (paging_ != nullptr) {
+        paging_->SetCr3(cr3_);
+        paging_->SetCr4(cr4_);
+        paging_->SetEfer(efer_);
+    }
+}
+
+void Cpu::SetCr0(std::uint64_t value) noexcept { cr0_ = value; }
+std::uint64_t Cpu::Cr0() const noexcept { return cr0_; }
+void Cpu::SetCr2(std::uint64_t value) noexcept { cr2_ = value; }
+std::uint64_t Cpu::Cr2() const noexcept { return cr2_; }
+
+void Cpu::SetCr3(std::uint64_t value) noexcept
+{
+    cr3_ = value;
+    if (paging_ != nullptr) paging_->SetCr3(value);
+}
+std::uint64_t Cpu::Cr3() const noexcept { return cr3_; }
+
+void Cpu::SetCr4(std::uint64_t value) noexcept
+{
+    cr4_ = value;
+    if (paging_ != nullptr) paging_->SetCr4(value);
+}
+std::uint64_t Cpu::Cr4() const noexcept { return cr4_; }
+
+void Cpu::SetEfer(std::uint64_t value) noexcept
+{
+    efer_ = value;
+    if (paging_ != nullptr) paging_->SetEfer(value);
+}
+std::uint64_t Cpu::Efer() const noexcept { return efer_; }
+
 void Cpu::SetInstructionPointer(std::uint64_t value) noexcept
 {
     instruction_pointer_ = value;
@@ -275,26 +312,83 @@ bool Cpu::RaiseMemoryFault()
 }
 
 
+bool Cpu::TranslateMemoryAddress(
+    std::uint64_t address,
+    bool write,
+    bool instruction,
+    std::uint64_t& physical)
+{
+    if (paging_ == nullptr || (cr0_ & (1ULL << 31)) == 0) {
+        physical = address;
+        return true;
+    }
+
+    const bool user = (code_segment_ & 3U) == 3U;
+    const auto result = paging_->Translate(address, write, user, instruction);
+    if (result.ok) {
+        physical = result.physical_address;
+        return true;
+    }
+
+    cr2_ = address;
+    CpuException exception{};
+    exception.kind = CpuExceptionKind::MemoryFault;
+    exception.instruction_pointer = current_instruction_ip_;
+    exception.vector = CpuExceptionVector::PageFault;
+    exception.page_fault_address = address;
+    exception.page_fault_error = result.page_fault_error;
+    last_exception_ = exception;
+    last_memory_fault_ = MemoryFault::PermissionDenied;
+    if (exception_handler_) {
+        exception_handler_(*this, last_exception_);
+    }
+    return false;
+}
+
 bool Cpu::ReadMemory(std::uint64_t address, std::uint8_t* data, std::size_t size)
 {
-    if (memory_ == nullptr) {
+    if (memory_ == nullptr || data == nullptr || size == 0) {
         return false;
     }
-    if (!memory_->Read(address, data, size)) {
-        RaiseMemoryFault();
-        return false;
+
+    std::size_t done = 0;
+    while (done < size) {
+        std::uint64_t physical = 0;
+        if (!TranslateMemoryAddress(address + done, false, false, physical)) {
+            return false;
+        }
+        const std::size_t page_left =
+            Memory::PageSize - static_cast<std::size_t>(physical % Memory::PageSize);
+        const std::size_t chunk = std::min(page_left, size - done);
+        if (!memory_->Read(physical, data + done, chunk)) {
+            RaiseMemoryFault();
+            return false;
+        }
+        done += chunk;
     }
     return true;
 }
 
 bool Cpu::WriteMemory(std::uint64_t address, const std::uint8_t* data, std::size_t size)
 {
-    if (memory_ == nullptr) {
+    if (memory_ == nullptr || data == nullptr || size == 0) {
         return false;
     }
-    if (!memory_->Write(address, data, size)) {
-        RaiseMemoryFault();
-        return false;
+
+    std::size_t done = 0;
+    while (done < size) {
+        std::uint64_t physical = 0;
+        if (!TranslateMemoryAddress(address + done, true, false, physical)) {
+            return false;
+        }
+        const std::size_t page_left =
+            Memory::PageSize - static_cast<std::size_t>(physical % Memory::PageSize);
+        const std::size_t chunk = std::min(page_left, size - done);
+        if (!memory_->Write(physical, data + done, chunk)) {
+            RaiseMemoryFault();
+            return false;
+        }
+        done += chunk;
     }
     return true;
 }
@@ -444,54 +538,45 @@ bool Cpu::DecodePS5Instructions()
 
 bool Cpu::Fetch8(std::uint8_t& value)
 {
-    if (memory_ == nullptr) {
-        return false;
-    }
-
-    if (!memory_->ExecuteRead(
-            instruction_pointer_,
-            &value,
-            sizeof(value))) {
+    if (memory_ == nullptr) return false;
+    std::uint64_t physical = 0;
+    if (!TranslateMemoryAddress(instruction_pointer_, false, true, physical)) return false;
+    if (!memory_->ExecuteRead(physical, &value, sizeof(value))) {
         RaiseMemoryFault();
         return false;
     }
-
     ++instruction_pointer_;
     return true;
 }
 
 bool Cpu::Fetch32(std::uint32_t& value)
 {
-    if (memory_ == nullptr) {
-        return false;
-    }
-
+    if (memory_ == nullptr) return false;
+    std::uint64_t physical = 0;
+    if (!TranslateMemoryAddress(instruction_pointer_, false, true, physical)) return false;
     if (!memory_->ExecuteRead(
-            instruction_pointer_,
+            physical,
             reinterpret_cast<std::uint8_t*>(&value),
             sizeof(value))) {
         RaiseMemoryFault();
         return false;
     }
-
     instruction_pointer_ += sizeof(value);
     return true;
 }
 
 bool Cpu::Fetch64(std::uint64_t& value)
 {
-    if (memory_ == nullptr) {
-        return false;
-    }
-
+    if (memory_ == nullptr) return false;
+    std::uint64_t physical = 0;
+    if (!TranslateMemoryAddress(instruction_pointer_, false, true, physical)) return false;
     if (!memory_->ExecuteRead(
-            instruction_pointer_,
+            physical,
             reinterpret_cast<std::uint8_t*>(&value),
             sizeof(value))) {
         RaiseMemoryFault();
         return false;
     }
-
     instruction_pointer_ += sizeof(value);
     return true;
 }
