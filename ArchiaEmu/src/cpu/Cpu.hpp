@@ -149,6 +149,14 @@ Memory* memory_ = nullptr;
         std::uint64_t& address,
         bool& memory);
 
+    bool DecodeMemoryOrRegister16(
+        std::uint8_t modrm,
+        const RexPrefix& rex,
+        std::uint8_t& reg,
+        std::uint8_t& rm,
+        std::uint64_t& address,
+        bool& memory);
+
     bool DecodeSIBAddress(
         std::uint8_t mod,
         std::uint8_t sib,
