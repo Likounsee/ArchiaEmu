@@ -7359,51 +7359,36 @@ case 0xD0:
         case 0x6A:
         {
             std::uint8_t immediate = 0;
-
-            if (!Fetch8(immediate)) {
-                return 1;
+            if (!Fetch8(immediate)) return 1;
+            if (operand_size_override_) {
+                const std::uint16_t value = static_cast<std::uint16_t>(static_cast<std::int16_t>(static_cast<std::int8_t>(immediate)));
+                if (!Push16(value)) return 1;
             }
-
-            const auto value =
-                static_cast<std::int64_t>(
-                    static_cast<std::int8_t>(immediate));
-
-            if (!Push64(
-                    static_cast<std::uint64_t>(value))) {
-                return 1;
+            else {
+                const auto value = static_cast<std::int64_t>(static_cast<std::int8_t>(immediate));
+                if (!Push64(static_cast<std::uint64_t>(value))) return 1;
             }
-
             break;
         }
-
-        
-        
-        
 
         case 0x68:
         {
-            std::uint32_t immediate = 0;
-
-            if (!Fetch32(immediate)) {
-                return 1;
+            if (operand_size_override_) {
+                std::uint16_t immediate = 0;
+                if (!Fetch16(immediate)) return 1;
+                if (!Push16(immediate)) return 1;
             }
-
-            const auto value =
-                static_cast<std::int64_t>(
-                    static_cast<std::int32_t>(immediate));
-
-            if (!Push64(
-                    static_cast<std::uint64_t>(value))) {
-                return 1;
+            else {
+                std::uint32_t immediate = 0;
+                if (!Fetch32(immediate)) return 1;
+                const auto value = static_cast<std::int64_t>(static_cast<std::int32_t>(immediate));
+                if (!Push64(static_cast<std::uint64_t>(value))) return 1;
             }
-
             break;
         }
 
         
         
-        
-
         case CALL_REL32:
         {
             std::int32_t displacement = 0;
