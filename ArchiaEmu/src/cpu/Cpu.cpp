@@ -4739,6 +4739,31 @@ int Cpu::Run()
             
             
             
+            if (operand_size_override_ && !rex.w && (group == 4 || group == 5)) {
+                std::uint16_t rhs = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rhs), sizeof(rhs))) return 1;
+                } else rhs = registers_.Read16(rm);
+                const std::uint16_t lhs = registers_.Read16(0);
+                if (group == 4) {
+                    const std::uint32_t product = static_cast<std::uint32_t>(lhs) * rhs;
+                    const std::uint16_t lo = static_cast<std::uint16_t>(product);
+                    const std::uint16_t hi = static_cast<std::uint16_t>(product >> 16);
+                    registers_.Write16(0, lo);
+                    registers_.Write16(2, hi);
+                    if (hi != 0) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
+                } else {
+                    const std::int32_t product = static_cast<std::int32_t>(static_cast<std::int16_t>(lhs)) * static_cast<std::int32_t>(static_cast<std::int16_t>(rhs));
+                    const std::uint16_t lo = static_cast<std::uint16_t>(product);
+                    const std::int16_t signLo = static_cast<std::int16_t>(lo);
+                    const std::int32_t expected = static_cast<std::int32_t>(signLo);
+                    registers_.Write16(0, lo);
+                    registers_.Write16(2, static_cast<std::uint16_t>(static_cast<std::uint32_t>(product) >> 16));
+                    if (product != expected) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
+                }
+                break;
+            }
+
             if (group == 4 || group == 5) {
 
                 if (rex.w) {
@@ -4901,6 +4926,46 @@ int Cpu::Run()
 
             
             
+            if (operand_size_override_ && !rex.w && (group == 6 || group == 7)) {
+                std::uint16_t divisorBits = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&divisorBits), sizeof(divisorBits))) return 1;
+                } else divisorBits = registers_.Read16(rm);
+                if (divisorBits == 0) {
+                    RaiseException({CpuExceptionKind::DivideError, instruction_address, MemoryFault::None, CpuExceptionVector::DivideError});
+                    return 1;
+                }
+                const std::uint16_t ax = registers_.Read16(0);
+                const std::uint16_t dx = registers_.Read16(2);
+                const std::uint32_t dividendBits = (static_cast<std::uint32_t>(dx) << 16) | ax;
+                if (group == 6) {
+                    const std::uint32_t quotient = dividendBits / divisorBits;
+                    const std::uint16_t remainder = static_cast<std::uint16_t>(dividendBits % divisorBits);
+                    if (quotient > 0xFFFFU) {
+                        RaiseException({CpuExceptionKind::DivideError, instruction_address, MemoryFault::None, CpuExceptionVector::DivideError});
+                        return 1;
+                    }
+                    registers_.Write16(0, static_cast<std::uint16_t>(quotient));
+                    registers_.Write16(2, remainder);
+                } else {
+                    const std::int32_t dividend = static_cast<std::int32_t>(dividendBits);
+                    const std::int16_t divisor = static_cast<std::int16_t>(divisorBits);
+                    if (dividend == std::numeric_limits<std::int32_t>::min() && divisor == -1) {
+                        RaiseException({CpuExceptionKind::DivideError, instruction_address, MemoryFault::None, CpuExceptionVector::DivideError});
+                        return 1;
+                    }
+                    const std::int32_t quotient = dividend / divisor;
+                    const std::int32_t remainder = dividend % divisor;
+                    if (quotient < std::numeric_limits<std::int16_t>::min() || quotient > std::numeric_limits<std::int16_t>::max()) {
+                        RaiseException({CpuExceptionKind::DivideError, instruction_address, MemoryFault::None, CpuExceptionVector::DivideError});
+                        return 1;
+                    }
+                    registers_.Write16(0, static_cast<std::uint16_t>(static_cast<std::int16_t>(quotient)));
+                    registers_.Write16(2, static_cast<std::uint16_t>(static_cast<std::int16_t>(remainder)));
+                }
+                break;
+            }
+
             if (group == 6 || group == 7) {
 
                 const bool signed_division =
