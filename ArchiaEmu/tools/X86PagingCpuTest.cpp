@@ -34,6 +34,27 @@ int main() {
     const std::uint8_t hlt = 0xF4;
     mem.Write(0x8000, &hlt, 1);
 
+    // Instruction fetches may span two linear pages. The second page must
+    // be translated independently rather than assuming physical contiguity.
+    if (!mem.Map(0x9000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute)) {
+        return Fail("failed to map second instruction page") ? 0 : 1;
+    }
+    Q(mem, 0x4008, 0x9000 | 0x7); // PT index 1 for linear 0x401000.
+    const std::uint8_t crossPageCode[] = { 0xB8, 0x01, 0x02, 0x03, 0x04, 0xF4 };
+    mem.Write(0x8FFF, crossPageCode, sizeof(crossPageCode));
+
+    Paging crossPagePaging(mem);
+    Cpu crossPageCpu;
+    crossPageCpu.ConnectMemory(&mem);
+    crossPageCpu.SetPaging(&crossPagePaging);
+    crossPageCpu.SetCr3(0x1000);
+    crossPageCpu.SetCr4(1ULL << 5);
+    crossPageCpu.SetCr0(1ULL << 31);
+    crossPageCpu.SetInstructionPointer(0x400FFF);
+    if (crossPageCpu.Run() != 0 || crossPageCpu.Rax() != 0x04030201ULL) {
+        return Fail("CPU failed to fetch instruction across a page boundary") ? 0 : 1;
+    }
+
     Paging paging(mem);
     Cpu cpu;
     cpu.ConnectMemory(&mem);
