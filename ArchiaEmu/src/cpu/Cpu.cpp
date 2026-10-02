@@ -3139,8 +3139,7 @@ int Cpu::Run()
         
 
         case 0xCF: {
-            // In 64-bit mode, IRETQ requires a 64-bit operand size (REX.W).
-            if (!rex.w || !exception_return_handler_) {
+            if (!exception_return_handler_) {
                 return 1;
             }
 
