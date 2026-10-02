@@ -168,6 +168,7 @@ int main()
     // non-CPL3 64-bit context.
     cpu.SetCodeSegment(0x28);
     cpu.SetStackSegment(0x10);
+    cpu.SetStackPointer(0x7000);
     WriteQword(memory, 0x7000, 0x401234);
     WriteQword(memory, 0x7008, 0x28);
     WriteQword(memory, 0x7010, 0x202);
