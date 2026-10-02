@@ -30,10 +30,10 @@ int main()
     if (bus.ExecuteRead(0x1002, read.data(), read.size())) return 4;
     if (bus.LastFault() != MemoryFault::PermissionDenied) return 5;
 
-    if (!bus.MapDevice(0x1008, rom.Size(), &rom, MemoryPermission::Read)) return 6;
-    if (!bus.Read(0x1008, read.data(), read.size())) return 7;
+    if (!bus.MapDevice(0x3000, rom.Size(), &rom, MemoryPermission::Read)) return 6;
+    if (!bus.Read(0x3000, read.data(), read.size())) return 7;
     if (read[0] != 0x11 || read[1] != 0x22) return 8;
-    if (bus.Write(0x1008, value.data(), value.size())) return 9;
+    if (bus.Write(0x3000, value.data(), value.size())) return 9;
 
     if (!bus.MapDevice(0x2000, mmio.Size(), &mmio,
                        MemoryPermission::Read | MemoryPermission::Write)) return 10;
@@ -46,7 +46,7 @@ int main()
 
     if (bus.MapDevice(0x1004, 4, &ram, MemoryPermission::Read)) return 14;
     if (bus.UnmapDevice(&rom) == false) return 15;
-    if (bus.Read(0x1008, read.data(), read.size())) return 16;
+    if (bus.Read(0x3000, read.data(), read.size())) return 16;
 
     std::cout << "Bus device mapping/permissions test: PASS\n";
     return 0;
