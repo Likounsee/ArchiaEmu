@@ -166,12 +166,22 @@ Memory* memory_ = nullptr;
     bool DecodeAdd32(
         std::uint8_t modrm,
         const RexPrefix& rex);
+    bool DecodeAdd16(
+        std::uint8_t modrm,
+        const RexPrefix& rex);
 
     bool DecodeSub32(
         std::uint8_t modrm,
         const RexPrefix& rex);
+    bool DecodeSub16(
+        std::uint8_t modrm,
+        const RexPrefix& rex);
 
     bool DecodeCmp32(
+        std::uint8_t opcode,
+        std::uint8_t modrm,
+        const RexPrefix& rex);
+    bool DecodeCmp16(
         std::uint8_t opcode,
         std::uint8_t modrm,
         const RexPrefix& rex);
@@ -180,8 +190,15 @@ Memory* memory_ = nullptr;
         std::uint8_t opcode,
         std::uint8_t modrm,
         const RexPrefix& rex);
+    bool DecodeLogic16(
+        std::uint8_t opcode,
+        std::uint8_t modrm,
+        const RexPrefix& rex);
 
     bool DecodeTest32(
+        std::uint8_t modrm,
+        const RexPrefix& rex);
+    bool DecodeTest16(
         std::uint8_t modrm,
         const RexPrefix& rex);
 
@@ -342,16 +359,25 @@ Memory* memory_ = nullptr;
         const RexPrefix& rex);
     void SetLogicFlags32(std::uint32_t result) noexcept;
     void SetLogicFlags64(std::uint64_t result) noexcept;
+    void SetLogicFlags16(std::uint16_t result) noexcept;
 
     void SetAddFlags32(
         std::uint32_t lhs,
         std::uint32_t rhs,
         std::uint32_t result) noexcept;
+    void SetAddFlags16(
+        std::uint16_t lhs,
+        std::uint16_t rhs,
+        std::uint16_t result) noexcept;
 
     void SetSubFlags32(
         std::uint32_t lhs,
         std::uint32_t rhs,
         std::uint32_t result) noexcept;
+    void SetSubFlags16(
+        std::uint16_t lhs,
+        std::uint16_t rhs,
+        std::uint16_t result) noexcept;
 
     void SetAddFlags64(
         std::uint64_t lhs,
