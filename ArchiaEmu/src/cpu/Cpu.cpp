@@ -3827,7 +3827,134 @@ int Cpu::Run()
                     const bool pf = (rflags_ & PF_MASK) != 0;
                     bool condition = false;
                     switch (opcode2) {
-                    case 0x90: condition = of; break;
+                    case 0x50:
+        case 0x51:
+        case 0x52:
+        case 0x53:
+        case 0x54:
+        case 0x55:
+        case 0x56:
+        case 0x57:
+        {
+            std::uint8_t reg = static_cast<std::uint8_t>(opcode - PUSH_R64_BASE);
+            if (rex.b) reg = static_cast<std::uint8_t>(reg + 8);
+            if (operand_size_override_) {
+                const std::uint16_t value = registers_.Read16(reg);
+                const std::uint64_t rsp = registers_.Rsp();
+                if (rsp < 2) return 1;
+                const std::uint64_t newRsp = rsp - 2;
+                if (!WriteMemory(newRsp, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return 1;
+                registers_.SetRsp(newRsp);
+            }
+            else if (!Push64(registers_.Read64(reg))) {
+                return 1;
+            }
+            break;
+        }
+
+        case 0x58:
+        case 0x59:
+        case 0x5A:
+        case 0x5B:
+        case 0x5C:
+        case 0x5D:
+        case 0x5E:
+        case 0x5F:
+        {
+            std::uint8_t reg = static_cast<std::uint8_t>(opcode - POP_R64_BASE);
+            if (rex.b) reg = static_cast<std::uint8_t>(reg + 8);
+            if (operand_size_override_) {
+                const std::uint64_t rsp = registers_.Rsp();
+                std::uint16_t value = 0;
+                if (!ReadMemory(rsp, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return 1;
+                if (rsp > std::numeric_limits<std::uint64_t>::max() - 2) return 1;
+                registers_.SetRsp(rsp + 2);
+                registers_.Write16(reg, value);
+            }
+            else {
+                std::uint64_t value = 0;
+                if (!Pop64(value)) return 1;
+                registers_.Write64(reg, value);
+            }
+            break;
+        }
+
+        case 0xC9:
+        {
+            const std::uint64_t rbp = registers_.Read64(5);
+            registers_.SetRsp(rbp);
+            std::uint64_t value = 0;
+            if (!Pop64(value)) return 1;
+            registers_.Write64(5, value);
+            break;
+        }
+
+        case 0x6A:
+        {
+            std::uint8_t immediate = 0;
+            if (!Fetch8(immediate)) return 1;
+            if (operand_size_override_) {
+                const std::uint16_t value = static_cast<std::uint16_t>(static_cast<std::int16_t>(static_cast<std::int8_t>(immediate)));
+                const std::uint64_t rsp = registers_.Rsp();
+                if (rsp < 2) return 1;
+                const std::uint64_t newRsp = rsp - 2;
+                if (!WriteMemory(newRsp, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return 1;
+                registers_.SetRsp(newRsp);
+            }
+            else if (!Push64(static_cast<std::uint64_t>(static_cast<std::int64_t>(static_cast<std::int8_t>(immediate))))) {
+                return 1;
+            }
+            break;
+        }
+
+        case 0x68:
+        {
+            if (operand_size_override_) {
+                std::uint16_t immediate = 0;
+                std::uint8_t lo = 0, hi = 0;
+                if (!Fetch8(lo) || !Fetch8(hi)) return 1;
+                immediate = static_cast<std::uint16_t>(lo) | static_cast<std::uint16_t>(hi) << 8U;
+                const std::uint64_t rsp = registers_.Rsp();
+                if (rsp < 2) return 1;
+                const std::uint64_t newRsp = rsp - 2;
+                if (!WriteMemory(newRsp, reinterpret_cast<const std::uint8_t*>(&immediate), sizeof(immediate))) return 1;
+                registers_.SetRsp(newRsp);
+            }
+            else {
+                std::uint32_t immediate = 0;
+                if (!Fetch32(immediate)) return 1;
+                if (!Push64(static_cast<std::uint64_t>(static_cast<std::int64_t>(static_cast<std::int32_t>(immediate))))) return 1;
+            }
+            break;
+        }
+
+        case CALL_REL32:
+        {
+            std::int32_t displacement = 0;
+            if (!FetchRel32(displacement)) return 1;
+            const std::uint64_t returnAddress = instruction_pointer_;
+            if (!Push64(returnAddress)) return 1;
+            instruction_pointer_ = static_cast<std::uint64_t>(static_cast<std::int64_t>(instruction_pointer_) + static_cast<std::int64_t>(displacement));
+            ++call_depth;
+            break;
+        }
+
+        case RET:
+        {
+            if (call_depth == 0) {
+                running = false;
+                break;
+            }
+            std::uint64_t returnAddress = 0;
+            if (!Pop64(returnAddress)) return 1;
+            instruction_pointer_ = returnAddress;
+            --call_depth;
+            break;
+        }
+
+        
+        
+        case 0x90: condition = of; break;
                     case 0x91: condition = !of; break;
                     case 0x92: condition = cf; break;
                     case 0x93: condition = !cf; break;
