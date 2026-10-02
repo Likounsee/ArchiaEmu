@@ -154,6 +154,24 @@ int main()
         return 14;
     }
 
+    // LEA must use the same 32-bit effective-address rules, while its
+    // 64-bit destination receives the zero-extended effective address.
+    const std::uint8_t leaCode[] = {
+        0x67, 0x48, 0x8D, 0x44, 0x88, 0x04, // LEA RAX, [EAX + ECX*4 + 4]
+        0xF4
+    };
+    if (!memory.Write(0x1000, leaCode, sizeof(leaCode))) {
+        return 15;
+    }
+
+    Cpu leaCpu;
+    leaCpu.WriteRegister64(0, 0x0000000100002000ULL);
+    leaCpu.WriteRegister64(1, 0x0000000100000003ULL);
+    if (!Run(memory, leaCpu) || leaCpu.Rax() != 0x0000000000002010ULL) {
+        std::cerr << "LEA + 32-bit address-size override failed\n";
+        return 16;
+    }
+
     std::cout << "x86 address-size override test: PASS\n";
     return 0;
 }
