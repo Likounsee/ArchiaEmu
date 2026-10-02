@@ -7,7 +7,7 @@ int main(){
  Memory memory;
  if(!memory.Map(0x1000,0x1000,MemoryPermission::Read|MemoryPermission::Write|MemoryPermission::Execute)) return 1;
  if(!memory.Write(0x1000,std::array<std::uint8_t,5>{0x0f,0x05,0x0f,0x07,0xf4}.data(),5)) return 2;
- Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetEfer(cpu.Efer() | 1ULL); cpu.SetInstructionPointer(0x1000); cpu.SetCodeSegment(0x1b); cpu.SetStackSegment(0x23); cpu.SetRflags(0x246);
+ Cpu cpu; cpu.SetEfer(0x1ULL); cpu.ConnectMemory(&memory); cpu.SetEfer(cpu.Efer() | 1ULL); cpu.SetInstructionPointer(0x1000); cpu.SetCodeSegment(0x1b); cpu.SetStackSegment(0x23); cpu.SetRflags(0x246);
  cpu.SetMsrStar((0x0000000000000008ULL<<32)|(0x0000000000000010ULL<<48));
  cpu.SetMsrLstar(0x1002); cpu.SetMsrFmask(1ULL<<0);
  bool called=false;
