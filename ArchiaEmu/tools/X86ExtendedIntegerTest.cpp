@@ -86,6 +86,11 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestMultiByteNop() {
+    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
+    return Run(memory,cpu,{0x0F,0x1F,0x00});
+}
+
 static bool TestSystemIntegerOps() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetCr0(0x8);
     std::vector<std::uint8_t> code={0x0F,0x06,0x0F,0x01,0xE0,0xF4};
@@ -319,6 +324,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestMultiByteNop()) { std::cerr << "multi-byte NOP failed\n"; return 6; }
     if (!TestSystemIntegerOps()) { std::cerr << "system integer ops failed\n"; return 6; }
     if (!TestLockPrefix()) { std::cerr << "LOCK prefix failed\n"; return 6; }
     if (!TestPopRm()) { std::cerr << "POP r/m failed\n"; return 6; }
