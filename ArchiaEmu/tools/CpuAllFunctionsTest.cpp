@@ -1593,7 +1593,7 @@ void TestAdcSbb()
         CHECK("ADC32_imm8_CF_boundary",
               RunCode(cpu, mem, code) &&
               cpu.Rax() == 0 &&
-              (cpu.Rflags() & CF_MASK) != 0);
+              (cpu.Rflags() & 1ULL) != 0);
     }
 
     {
@@ -1612,7 +1612,7 @@ void TestAdcSbb()
         CHECK("SBB32_imm8_CF_boundary",
               RunCode(cpu, mem, code) &&
               cpu.Rax() == 0 &&
-              (cpu.Rflags() & CF_MASK) != 0);
+              (cpu.Rflags() & 1ULL) != 0);
     }
 
     {
@@ -1631,7 +1631,7 @@ void TestAdcSbb()
         CHECK("ADC64_imm8_CF_boundary",
               RunCode(cpu, mem, code) &&
               cpu.Rax() == 0 &&
-              (cpu.Rflags() & CF_MASK) != 0);
+              (cpu.Rflags() & 1ULL) != 0);
     }
 
     {
@@ -1650,7 +1650,7 @@ void TestAdcSbb()
         CHECK("SBB64_imm8_CF_boundary",
               RunCode(cpu, mem, code) &&
               cpu.Rax() == 0 &&
-              (cpu.Rflags() & CF_MASK) != 0);
+              (cpu.Rflags() & 1ULL) != 0);
     }
 
     // Immediate accumulator forms: ADC/SBB must exist for 8/32/64-bit operands.
