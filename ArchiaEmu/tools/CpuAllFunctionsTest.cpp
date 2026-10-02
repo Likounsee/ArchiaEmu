@@ -1860,8 +1860,6 @@ void TestImul()
     }
 }
 
-}
-
 void TestDivIdiv128()
 {
     Memory mem;
