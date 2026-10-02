@@ -86,6 +86,14 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestBitModify() {
+    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code; AppendMovR64(code,3,0x8ULL);
+    code.insert(code.end(),{0x48,0x0F,0xA3,0xCB,0x48,0x0F,0xAB,0xCB,0x48,0x0F,0xB3,0xCB,0x48,0x0F,0xBB,0xCB});
+    if(!Run(memory,cpu,code))return false;
+    return cpu.ReadRegister64(3)==0x8ULL && (cpu.Rflags()&(1ULL<<0))!=0;
+}
+
 static bool TestBitScan() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code; AppendMovR64(code,3,0x00100000ULL); code.insert(code.end(),{0x48,0x0F,0xBC,0xC3});
@@ -284,6 +292,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestBitModify()) { std::cerr << "bit modify failed\n"; return 6; }
     if (!TestBitScan()) { std::cerr << "bit scan failed\n"; return 6; }
     if (!TestByteAlu()) { std::cerr << "byte ALU failed\n"; return 6; }
     if (!TestMovByteImmediate()) { std::cerr << "byte immediate MOV failed\n"; return 6; }
