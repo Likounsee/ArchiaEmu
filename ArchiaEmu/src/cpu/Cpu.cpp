@@ -3877,6 +3877,7 @@ int Cpu::Run()
                           << static_cast<unsigned>(lhs) << " rhs=0x"
                           << static_cast<unsigned>(rhs) << " cf=" << carryIn
                           << " result=0x" << static_cast<unsigned>(result)
+                          << " overflow=" << overflow
                           << " flags=0x" << rflags_ << std::dec << '\\n';
             }
 
