@@ -1,156 +1,366 @@
 # ArchiaEmu
 
-ArchiaEmu is an experimental C++20 **general-purpose emulation project**.
+ArchiaEmu is an experimental C++20 **general-purpose emulation framework**.
 
-The long-term goal is to build a reusable emulation framework that can host different CPU architectures, machines, operating systems and hardware devices. Specific consoles and platforms are targets built on top of that framework; they are not assumed to be compatible merely because a shared CPU architecture is supported.
+The long-term goal is to build a reusable emulator capable of supporting a very large range of machines and consoles, from older systems to modern platforms. Consoles are platform implementations built on top of reusable CPU, memory, bus and device components.
 
-> **Current status:** early research and development. ArchiaEmu is not a complete console emulator.
+> **Current status:** active research and development. ArchiaEmu is **not yet a complete console emulator**.
 
-## Current foundation
+## Project goal
 
-The repository currently contains a tested x86-64 guest execution foundation:
+The target is not a single console.
 
-- x86-64 CPU state and instruction execution
-- General-purpose register file
-- REX prefix handling
-- ModRM/SIB addressing
-- 8/32/64-bit integer operations
-- Memory operations
-- Stack and control-flow instructions
-- Integer arithmetic, logic, shifts and rotates
-- Basic flag handling
-- ELF64 validation and PT_LOAD loading
-- Guest memory mapping
-- Basic Linux-style syscall handling for `write` and `exit`
-- Dedicated CPU regression/function tests
-- A `Machine` runtime boundary owning CPU, paging and the guest bus/memory devices
+ArchiaEmu is being designed so that the same core can eventually host many different platforms:
 
-The CPU implementation and tests are developed incrementally with an emphasis on architectural correctness and regression coverage.
+- PlayStation families
+- Xbox families
+- Nintendo systems
+- PC-compatible machines
+- handhelds
+- arcade and other specialized systems
+- additional platforms when their documented hardware/software behavior can be modeled
 
-## Architecture direction
+Supporting a CPU architecture does **not** imply compatibility with every machine using that architecture. Each platform needs its own CPU configuration, memory map, firmware, devices, buses, operating-system interfaces and other hardware behavior.
 
-The project is being evolved toward a layered, reusable design:
+The priority is therefore to build a strong reusable foundation first, then use it to implement concrete machines one at a time.
+
+## Current architecture
+
+The repository currently has these major layers:
 
 ```text
 ArchiaEmu
 ├── Core
 │   ├── Emulator
-│   └── Machine
+│   ├── Machine
+│   ├── Bus
+│   └── Devices
 ├── CPU
 │   └── x86-64 (current implementation)
 ├── Memory
 ├── Loaders
 │   └── ELF64 (current implementation)
-├── Bus / Devices (current foundation)
-├── Operating-system interfaces (future)
-└── Platforms / Machines (future)
-    ├── PC
-    ├── PlayStation
-    ├── Xbox
-    ├── Nintendo
-    └── other systems
+├── x86 architecture support
+│   ├── Exceptions
+│   ├── GDT / IDT / TSS
+│   ├── Paging
+│   └── Privilege/return paths
+├── Operating-system interfaces
+│   └── basic syscall foundation
+└── Platforms / Machines
+    └── future console and computer implementations
 ```
 
-The important separation is between **CPU architecture** and **machine/platform**. For example, two machines may use related CPU technology while having completely different memory maps, devices, firmware and operating systems.
+The important separation is between **CPU architecture** and **machine/platform**. The CPU is reusable; a machine defines how that CPU interacts with memory, buses, devices, firmware and software.
 
-The current `Machine` layer owns the concrete guest CPU and memory. This is an incremental architectural boundary; it does not claim that other CPU architectures or consoles are already implemented.
+## Current implementation status
 
-## Build
+### CPU: x86-64 foundation — IN PROGRESS
 
-ArchiaEmu uses **CMake 3.20+** and **C++20**.
+A substantial x86-64 interpreter foundation is implemented and under regression testing.
 
-From the repository root on Windows:
+Implemented/tested areas include:
 
-```powershell
-cmake -S ArchiaEmu -B ArchiaEmu/build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-cmake --build ArchiaEmu/build
-```
-
-A Visual Studio generator can also be used:
-
-```powershell
-cmake -S ArchiaEmu -B ArchiaEmu/build
-cmake --build ArchiaEmu/build --config Debug
-```
-
-## Tests
-
-The project currently contains a dedicated CPU regression/function test executable plus a machine architecture test.
-
-The CPU test source currently contains **58 test functions and 176 `CHECK(...)` assertions**.
-
-Coverage includes:
-
+- general-purpose register state
+- instruction fetch/decode/execute
+- REX prefixes and extended registers
+- ModRM and SIB addressing
+- operand-size overrides
+- address-size override support, including dedicated regression coverage
+- 8/16/32/64-bit integer operations
+- register and memory operands
+- immediate operands
 - arithmetic and logical operations
-- comparisons and flags
-- memory operands
-- ModRM/SIB addressing
-- REX and extended registers
-- 8-bit register edge cases
-- stack operations
-- branches and calls/returns
+- comparisons and flag handling
+- ADC/SBB
+- IMUL
+- DIV/IDIV
 - shifts and rotates
-- sign/zero extension
-- `TEST`
-- `XCHG`
-- `IMUL`
-- `DIV`
-- `IDIV`
-- syscall dispatch
-- instruction-byte consumption order regressions
+- TEST
+- XCHG
+- LEA
+- MOV variants
+- INC/DEC/NEG
+- stack operations
+- PUSH/POP and immediate stack forms
+- CALL/RET
+- conditional branches
+- SETcc
+- HLT
+- syscall dispatch and fallback behavior
+- invalid-opcode/exception-related execution paths
+
+The CPU implementation is **not a complete x86-64 ISA implementation**. Unsupported instructions and architectural corner cases remain part of the ongoing audit.
+
+### x86 architectural support — FOUNDATION IMPLEMENTED, AUDIT IN PROGRESS
+
+The repository contains dedicated components and tests for:
+
+- exception delivery
+- exception entry
+- exception stack frames
+- exception return paths
+- GDT
+- IDT
+- TSS64
+- privilege transitions
+- privileged instruction handling
+- paging
+- large-page handling
+- CPU/paging integration
+- IRETQ integration
+- canonical-address checks
+
+These components provide the foundation required for protected/privileged execution, but they are not yet considered a complete implementation of all x86-64 architectural behavior.
+
+### Memory — FOUNDATION IMPLEMENTED
+
+The project has a dedicated guest-memory subsystem with:
+
+- mapped guest memory
+- read/write operations
+- access/error handling
+- integration with CPU execution
+- dedicated memory behavior tests
+
+Virtual-memory/paging support is also present in the x86 layer and is being expanded and audited independently from the basic memory subsystem.
+
+### Core / Machine / Bus — FOUNDATION IMPLEMENTED
+
+The reusable runtime boundary currently contains:
+
+- `Emulator`
+- `Machine`
+- `Bus`
+- `Device`
+- RAM device
+- ROM device
+- MMIO register device
+
+Dedicated architecture tests verify the machine/bus/device boundaries.
+
+This is the beginning of the reusable multi-platform architecture. It is **not yet a collection of complete console machines**.
+
+### ELF64 loading — IMPLEMENTED FOUNDATION
+
+The current executable loader supports validation and loading of ELF64 x86-64 executables, including loadable segments and guest-memory mapping.
+
+Dedicated loader tests and emulator loading tests are present.
+
+This does **not** mean that arbitrary console executables are currently supported.
+
+## Test status
 
 CMake/CTest is the source of truth for the runnable test suite.
 
-## Running the current emulator
+The current branch contains **30 registered CTest targets**, covering:
 
-The current executable accepts an ELF64 file:
+- CPU function/regression testing
+- x86 exceptions and exception return
+- GDT / IDT / TSS
+- privilege transitions
+- privileged CPU paths
+- paging and large pages
+- address-size override
+- IRETQ
+- SETcc
+- syscall execution
+- memory behavior
+- bus behavior
+- machine architecture
+- ELF64 loading
+- emulator game/loading paths
 
-```powershell
-.\ArchiaEmu\build\myps5emu.exe path\to\program.elf
-```
+The main `CpuAllFunctionsTest` currently contains **58 CPU test functions and 218 `CHECK(...)` assertions**. Additional dedicated executables provide focused architectural regression coverage.
 
-At the current stage, the loader accepts ELF64 x86-64 executables and maps their loadable segments into guest memory.
+Tests are deliberately kept separate and reproducible so that fixing one architectural area does not silently weaken another.
 
-This does **not** mean that arbitrary console executables or arbitrary x86-64 software are currently supported.
+## Development status
 
-## Development strategy
+### Completed foundations
 
-ArchiaEmu is being developed in layers:
+- [x] C++20/CMake project foundation
+- [x] x86-64 register state
+- [x] core instruction execution framework
+- [x] REX handling
+- [x] ModRM/SIB addressing
+- [x] operand-size handling
+- [x] broad integer arithmetic/logic foundation
+- [x] stack and control-flow foundation
+- [x] basic flag handling
+- [x] guest memory subsystem
+- [x] ELF64 loading foundation
+- [x] reusable Machine boundary
+- [x] Bus/Device foundation
+- [x] RAM/ROM/MMIO device foundation
+- [x] syscall foundation
+- [x] exception/paging architectural foundation
+- [x] dedicated regression test infrastructure
+- [x] GitHub Actions build/test workflows
 
-1. Establish a correct and testable CPU foundation.
-2. Keep guest memory and executable loading independently testable.
-3. Introduce reusable machine/core boundaries without changing verified CPU behavior.
-4. Add a bus and device model when the first machine targets require them.
-5. Add additional CPU architectures only when the common interfaces are stable enough to support them cleanly.
-6. Build real platform models from documented hardware/software behavior.
-7. Add optimization such as JIT/recompilation only after correctness and regression coverage are strong.
+### In progress
 
-**Correctness and reproducible tests take priority over performance and premature abstraction.**
+- [ ] finish the x86-64 architectural audit
+- [ ] finish all important 32-bit address-size override edge cases
+- [ ] expand privileged/control-instruction coverage
+- [ ] expand virtual-memory and paging semantics
+- [ ] expand instruction decoding and architectural corner cases
+- [ ] increase integration coverage between CPU, memory, paging, bus and devices
+- [ ] keep the complete CTest suite continuously green
+- [ ] improve documentation of architectural guarantees and unsupported behavior
+
+### Not started as complete platform implementations
+
+- [ ] PlayStation machine models
+- [ ] Xbox machine models
+- [ ] Nintendo machine models
+- [ ] handheld machine models
+- [ ] PC-compatible machine models
+- [ ] platform-specific GPU implementations
+- [ ] platform-specific audio implementations
+- [ ] platform-specific input/controllers
+- [ ] platform-specific storage and peripherals
+- [ ] platform firmware/boot chains
+- [ ] platform operating-system environments
+- [ ] additional CPU architectures such as AArch64, MIPS and PowerPC
+- [ ] JIT/recompiler
+
+A checked foundation item means that the repository contains an implementation and corresponding tests. It does **not** mean every edge case of the real hardware architecture has already been verified.
 
 ## Roadmap
 
-Planned areas include:
+ArchiaEmu is being developed in stages.
 
-- broader x86-64 instruction coverage and architectural audits
-- verified 32-bit address-size override and privileged control-instruction paths
-- more complete memory and virtual-memory semantics
-- bus and device abstractions
-- syscall and operating-system interfaces
-- threading and synchronization
-- additional CPU architectures such as AArch64, MIPS and PowerPC
-- loaders for additional executable/ROM formats
-- GPU, audio, input and storage devices
-- debugging and compatibility tooling
-- concrete PC and console platform models
-- PS5-specific research as one platform target among others
-- JIT/recompiler work after the interpreter foundation is sufficiently verified
+### Phase 1 — Correct CPU foundation
 
-None of these future items should be interpreted as existing compatibility.
+**Current priority.**
 
-## Project status
+1. Complete the x86-64 interpreter audit.
+2. Reproduce every discovered architectural bug with a regression test.
+3. Correct instruction semantics and decoding.
+4. Expand exception, privilege and paging behavior.
+5. Keep CPU and architectural tests independently runnable.
+6. Require targeted tests and the complete CTest suite before considering each area stable.
 
-ArchiaEmu is an educational/research project under active development.
+### Phase 2 — Stable machine/core architecture
+
+After the CPU foundation is sufficiently verified:
+
+1. strengthen the Machine abstraction;
+2. formalize the bus/address-space model;
+3. improve device registration and MMIO;
+4. define interrupt, DMA and timing interfaces;
+5. make platform components replaceable without changing verified CPU behavior.
+
+### Phase 3 — First complete machine target
+
+Build a complete documented machine model using the reusable foundation.
+
+The first machine target is intended to validate the architecture itself:
+
+- CPU configuration
+- physical memory map
+- bus
+- interrupts
+- timers
+- storage
+- input
+- display/GPU boundary
+- firmware/boot path
+- operating-system interface
+
+The goal is to establish a repeatable pattern for adding additional machines rather than hard-coding one console into the emulator core.
+
+### Phase 4 — Console platform families
+
+Add concrete console families progressively.
+
+Each platform must have its own:
+
+- hardware model
+- CPU configuration
+- memory map
+- buses
+- devices
+- firmware/boot process
+- operating-system/runtime interfaces
+- executable or ROM loading path
+- compatibility tests
+
+Shared components should be reused where the real hardware behavior allows it; platform-specific behavior must remain isolated.
+
+### Phase 5 — Broader architecture support
+
+Add additional CPU architectures when the common interfaces are stable enough to support them cleanly, including candidates such as:
+
+- AArch64 / ARM
+- MIPS
+- PowerPC
+- other architectures required by target platforms
+
+### Phase 6 — Performance
+
+Only after correctness and regression coverage are strong:
+
+- interpreter optimization
+- caching
+- block execution
+- JIT/recompilation
+- parallelism where architecturally safe
+- platform-specific acceleration
+
+**Correctness, reproducibility and architectural fidelity take priority over performance.**
+
+## Working rules
+
+Development follows:
+
+```text
+OBSERVE
+  ↓
+REPRODUIS
+  ↓
+TEST
+  ↓
+CORRIGE
+  ↓
+BUILD
+  ↓
+TEST CIBLÉ
+  ↓
+SUITE COMPLÈTE
+  ↓
+CI
+```
+
+Rules:
+
+- inspect the current implementation before changing it;
+- do not fix behavior by assumption;
+- when a bug is suspected, create a reproducer/regression test first;
+- never delete or weaken an existing test to make a change pass;
+- reread modified files after every change;
+- inspect the resulting diff;
+- do not claim a build, test or CI result without actual verification.
+
+## What "complete" means
+
+ArchiaEmu will not be considered a general multi-console emulator merely because it contains several CPU implementations.
+
+A platform becomes a real ArchiaEmu target only when its relevant hardware/software environment is modeled and verified sufficiently to run actual software for that platform.
+
+The long-term objective is therefore:
+
+```text
+Reliable reusable foundations
+        ↓
+Reusable machine architecture
+        ↓
+Complete platform models
+        ↓
+Multiple console families
+        ↓
+Large multi-platform emulator
+```
 
 The repository is the source of truth for what is actually implemented and tested.
-
-Features are considered complete only after they have been implemented and positively verified by tests.
