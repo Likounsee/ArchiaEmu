@@ -36,7 +36,7 @@ int main()
     if (!bus.Map(0x1000, 0x5000,
                  MemoryPermission::Read | MemoryPermission::Write) ||
         !bus.Map(0x9000, 0x1000,
-                 MemoryPermission::Read | MemoryPermission::Execute)) {
+                 MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute)) {
         return Fail("Paging regression memory setup failed") ? 0 : 1;
     }
 
