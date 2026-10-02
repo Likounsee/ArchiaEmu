@@ -47,6 +47,19 @@ int main() {
         return Fail("write/user page fault flags incorrect") ? 0 : 1;
     }
 
+    // CR0.WP controls supervisor writes to read-only pages.
+    Q(mem, 0x4000, 0x8000 | 0x1);
+    paging.SetCr0(0);
+    r = paging.Translate(0x123, true, false, false);
+    if (!r.ok) return Fail("supervisor write incorrectly blocked with CR0.WP=0") ? 0 : 1;
+
+    paging.SetCr0(1ULL << 16);
+    r = paging.Translate(0x123, true, false, false);
+    if (r.ok || r.fault != PagingFault::Write ||
+        (r.page_fault_error & (1U << 1)) == 0) {
+        return Fail("CR0.WP write protection semantics incorrect") ? 0 : 1;
+    }
+
     // Restore mapping and make it NX. Instruction fetch must fault when NXE is enabled.
     Q(mem, 0x4000, 0x8000 | 0x7 | (1ULL << 63));
     paging.SetEfer(1ULL << 11);
