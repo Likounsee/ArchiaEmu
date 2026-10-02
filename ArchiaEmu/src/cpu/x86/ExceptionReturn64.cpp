@@ -173,7 +173,7 @@ ExceptionReturnResult ExceptionReturn64::Read(
     if (!gdt.ResolveDataSegment(result.ss, stack_segment) ||
         stack_segment.dpl != target_cpl ||
         (result.ss & 3U) != target_cpl || result.ss == 0 ||
-        result.rsp == 0 || !IsCanonical48(result.rsp)) {
+        !IsCanonical48(result.rsp)) {
         result.status = ExceptionReturnStatus::InvalidStack;
         return result;
     }
