@@ -83,6 +83,36 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestGroupF6Byte() {
+    Memory memory; memory.Map(0x1000, 0x2000);
+    Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 0, 0xF0);
+    code.insert(code.end(), {0xF6, 0xD0});
+    if (!Run(memory, cpu, code) || (cpu.ReadRegister64(0) & 0xFFU) != 0x0FU) return false;
+
+    Memory m2; m2.Map(0x1000, 0x2000); Cpu c2; c2.ConnectMemory(&m2);
+    code.clear(); AppendMovR64(code,0,1); code.insert(code.end(),{0xF6,0xD8});
+    if (!Run(m2,c2,code) || (c2.ReadRegister64(0)&0xFFU)!=0xFFU || (c2.Rflags()&1ULL)==0) return false;
+
+    Memory m3; m3.Map(0x1000,0x2000); Cpu c3; c3.ConnectMemory(&m3);
+    code.clear(); AppendMovR64(code,0,0x10); AppendMovR64(code,3,0x10); code.insert(code.end(),{0xF6,0xE3});
+    if (!Run(m3,c3,code) || (c3.ReadRegister64(0)&0xFFFFU)!=0x0100U) return false;
+
+    Memory m4; m4.Map(0x1000,0x2000); Cpu c4; c4.ConnectMemory(&m4);
+    code.clear(); AppendMovR64(code,0,0xF0); AppendMovR64(code,3,4); code.insert(code.end(),{0xF6,0xEB});
+    if (!Run(m4,c4,code) || (c4.ReadRegister64(0)&0xFFFFU)!=0xFFC0U) return false;
+
+    Memory m5; m5.Map(0x1000,0x2000); Cpu c5; c5.ConnectMemory(&m5);
+    code.clear(); AppendMovR64(code,0,0x0105); AppendMovR64(code,3,3); code.insert(code.end(),{0xF6,0xF3});
+    if (!Run(m5,c5,code) || (c5.ReadRegister64(0)&0xFFFFU)!=0x0057U) return false;
+
+    Memory m6; m6.Map(0x1000,0x2000); Cpu c6; c6.ConnectMemory(&m6);
+    code.clear(); AppendMovR64(code,0,0xFF85); AppendMovR64(code,3,5); code.insert(code.end(),{0xF6,0xFB});
+    if (!Run(m6,c6,code) || (c6.ReadRegister64(0)&0xFFFFU)!=0xFDE8U) return false;
+    return true;
+}
+
 static bool TestStringInstructions() {
     Memory memory; memory.Map(0x1000, 0x4000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -146,6 +176,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestGroupF6Byte()) { std::cerr << "F6 byte group failed\n"; return 6; }
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
