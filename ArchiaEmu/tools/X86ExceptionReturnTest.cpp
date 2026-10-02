@@ -164,6 +164,20 @@ int main()
         return Fail("IRETQ rejected canonical zero RSP") ? 0 : 1;
     }
 
+    // In 64-bit mode, IRET may restore a NULL SS when returning to a
+    // non-CPL3 64-bit context.
+    cpu.SetCodeSegment(0x28);
+    cpu.SetStackSegment(0x10);
+    WriteQword(memory, 0x7000, 0x401234);
+    WriteQword(memory, 0x7008, 0x28);
+    WriteQword(memory, 0x7010, 0x202);
+    WriteQword(memory, 0x7018, 0x7600);
+    WriteQword(memory, 0x7020, 0x0);
+    result = ExceptionReturn64::Read(cpu, memory, gdt);
+    if (result.status != ExceptionReturnStatus::Returned || result.ss != 0) {
+        return Fail("IRETQ rejected permitted NULL SS at CPL0") ? 0 : 1;
+    }
+
     const auto beforeRip = userCpu.InstructionPointer();
     WriteQword(memory, 0x7100, 0x0001000000000000ULL);
     result = ExceptionReturn64::Read(userCpu, memory, gdt);
