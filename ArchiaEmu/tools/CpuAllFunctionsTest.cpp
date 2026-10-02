@@ -1582,8 +1582,9 @@ void TestAdcSbb()
         Append(code,MovR64(0,DATA)); Append(code,MovR64(3,0)); Append(code,{0x10,0x18}); code=Finish(code);
         const bool adc8Ok = RunCode(cpu,mem,code);
         std::cerr << "[ADC8 diagnostic] value=0x" << std::hex
-                  << (Read64(mem,DATA)&0xFF) << " flags=0x" << cpu.Rflags()
-                  << std::dec << "\\n";
+                  << (Read64(mem,DATA)&0xFF) << " rbx=0x" << cpu.ReadRegister64(3)
+                  << " rax=0x" << cpu.ReadRegister64(0)
+                  << " flags=0x" << cpu.Rflags() << std::dec << "\\n";
         CHECK("ADC8_mem",adc8Ok&&(Read64(mem,DATA)&0xFF)==0x80&&
               (cpu.Rflags()&(1ULL<<11))&&(cpu.Rflags()&(1ULL<<4))&&(cpu.Rflags()&(1ULL<<7))&&
               !(cpu.Rflags()&(1ULL<<6))&&!(cpu.Rflags()&(1ULL<<2))&&!(cpu.Rflags()&1ULL));
