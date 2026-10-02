@@ -162,6 +162,18 @@ static bool TestByteAlu() {
     return Run(memory,cpu,code) && (cpu.ReadRegister64(0)&0xFFU)==0x10U;
 }
 
+static bool TestIoPorts() {
+    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
+    bool wrote=false;
+    cpu.SetIoHandlers([](Cpu&,std::uint16_t port,std::uint8_t width)->std::uint32_t {
+        return (port==0x3F8&&width==1)?0x5AU:0;
+    },[&](Cpu&,std::uint16_t port,std::uint32_t value,std::uint8_t width)->bool {
+        wrote=port==0x3F8&&value==0xA5U&&width==1; return true;
+    });
+    std::vector<std::uint8_t> code={0xE4,0xF8,0xE6,0xF8,0xA5,0xF4};
+    return Run(memory,cpu,code) && (cpu.ReadRegister64(0)&0xFFU)==0x5AU && wrote;
+}
+
 static bool TestXlat() {
     Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory);
     const std::uint8_t table[256] = {0}; std::uint8_t value=0xA7;
@@ -370,6 +382,7 @@ int main() {
     if (!TestBitModify()) { std::cerr << "bit modify failed\n"; return 6; }
     if (!TestBitScan()) { std::cerr << "bit scan failed\n"; return 6; }
     if (!TestByteAlu()) { std::cerr << "byte ALU failed\n"; return 6; }
+    if (!TestIoPorts()) { std::cerr << "I/O ports failed\n"; return 6; }
     if (!TestXlat()) { std::cerr << "XLAT failed\n"; return 6; }
     if (!TestIncDecByte()) { std::cerr << "byte INC/DEC failed\n"; return 6; }
     if (!TestMovByteImmediate()) { std::cerr << "byte immediate MOV failed\n"; return 6; }
