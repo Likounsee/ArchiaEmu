@@ -23,6 +23,12 @@ public:
     std::uint64_t Cr4() const noexcept;
     void SetEfer(std::uint64_t value) noexcept;
     std::uint64_t Efer() const noexcept;
+    void SetMsrStar(std::uint64_t value) noexcept;
+    std::uint64_t MsrStar() const noexcept;
+    void SetMsrLstar(std::uint64_t value) noexcept;
+    std::uint64_t MsrLstar() const noexcept;
+    void SetMsrFmask(std::uint64_t value) noexcept;
+    std::uint64_t MsrFmask() const noexcept;
     void ConnectMemory(Memory* memory) noexcept;
 
     void SetInstructionPointer(std::uint64_t value) noexcept;
@@ -100,6 +106,9 @@ Memory* memory_ = nullptr;
     std::uint64_t cr3_ = 0;
     std::uint64_t cr4_ = 0;
     std::uint64_t efer_ = 0;
+    std::uint64_t msr_star_ = 0;
+    std::uint64_t msr_lstar_ = 0;
+    std::uint64_t msr_fmask_ = 0;
     FrameCallback frame_callback_;
     SyscallHandler syscall_handler_;
     ExceptionHandler exception_handler_;
