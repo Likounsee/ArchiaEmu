@@ -121,7 +121,7 @@ PagingResult Paging::Translate(
         }
 
         if (level == 1 && (entry & kLarge) != 0) {
-            if ((entry & 0x00000000001FE000ULL) != 0) {
+            if ((entry & 0x000000003FFFE000ULL) != 0) {
                 return Fault(PagingFault::Reserved, write, user, instruction);
             }
             if (instruction && nx && (efer_ & kEferNxe) != 0) {
@@ -140,7 +140,7 @@ PagingResult Paging::Translate(
         }
 
         if (level == 2 && (entry & kLarge) != 0) {
-            if ((entry & 0x000000003FFFE000ULL) != 0) {
+            if ((entry & 0x00000000001FE000ULL) != 0) {
                 return Fault(PagingFault::Reserved, write, user, instruction);
             }
             if (instruction && nx && (efer_ & kEferNxe) != 0) {
