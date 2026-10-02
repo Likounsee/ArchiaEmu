@@ -60,6 +60,11 @@ int main() {
     r = paging.Translate(0x12345, false, false, false);
     if (!r.ok || r.physical_address != 0x812345) return Fail("2MiB translation failed") ? 0 : 1;
 
+    // 1 GiB large page at the PDPT level.
+    Q(mem, 0x2000, 0x40000000ULL | 0x87);
+    r = paging.Translate(0x12345678, false, false, false);
+    if (!r.ok || r.physical_address != 0x52345678ULL) return Fail("1GiB translation failed") ? 0 : 1;
+
     std::cout << "x86 paging test: PASS\n";
     return 0;
 }
