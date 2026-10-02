@@ -4712,14 +4712,23 @@ void TestOperandSizeOverrideArithmetic()
     }
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x1122334455660010ULL); Append(code, MovR64(2, 0)); Append(code, MovR64(3, 3)); code.insert(code.end(), {0x66, 0xF7, 0xF3});
-    {
-        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
         auto code = MovR64(0, 0x112233445566FFF6ULL); Append(code, MovR64(2, 0xFFFFFFFFFFFFFFFFULL)); Append(code, MovR64(3, 0xFFFFFFFFFFFFFFFDULL)); code.insert(code.end(), {0x66, 0xF7, 0xFB}); code = Finish(code);
         CHECK("66h F7 IDIV r/m16 signed quotient/remainder", RunCode(cpu, mem, code) && cpu.ReadRegister64(0) == 0x1122334455660003ULL && cpu.ReadRegister64(2) == 0xFFFFFFFFFFFFFFFFULL);
     }
- code = Finish(code);
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660010ULL); Append(code, MovR64(2, 0)); Append(code, MovR64(3, 3)); code.insert(code.end(), {0x66, 0xF7, 0xF3}); code = Finish(code);
         CHECK("66h F7 DIV r/m16 writes quotient and remainder", RunCode(cpu, mem, code) && cpu.ReadRegister64(0) == 0x1122334455660005ULL && cpu.ReadRegister64(2) == 0x1ULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x112233445566FFFFULL); code.insert(code.end(), {0x66, 0xF7, 0xD8}); code = Finish(code);
+        CHECK("66h F7 NEG r/m16 preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x1122334455660001ULL && (cpu.Rflags() & 1ULL) != 0);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x11223344556600F0ULL); code.insert(code.end(), {0x66, 0xF7, 0xD0}); code = Finish(code);
+        CHECK("66h F7 NOT r/m16 preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x112233445566FF0FULL);
     }
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
