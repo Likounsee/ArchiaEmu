@@ -86,8 +86,7 @@ add_executable(CpuAllFunctionsTest
     src/cpu/Cpu.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
-)
-target_include_directories(CpuAllFunctionsTest PRIVATE src    src/cpu/x86/Idt.cpp
+    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
     src/cpu/x86/ExceptionFrame64.cpp
     src/cpu/x86/Gdt.cpp
@@ -99,6 +98,8 @@ target_include_directories(CpuAllFunctionsTest PRIVATE src    src/cpu/x86/Idt.cp
     src/cpu/x86/ExceptionEntryWriter64.cpp
     src/cpu/x86/ExceptionStateApplier64.cpp
     src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(CpuAllFunctionsTest PRIVATE src    src/cpu/x86/Idt.cpp
 )
 
 add_executable(MachineArchitectureTest
@@ -112,12 +113,7 @@ add_executable(MachineArchitectureTest
     src/cpu/Cpu.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
-)
-target_include_directories(MachineArchitectureTest PRIVATE src)
-
-enable_testing()
-add_test(NAME CpuAllFunctionsTest COMMAND CpuAllFunctionsTest)
-add_test(NAME MachineArchitectureTest COMMAND MachineArchitectureTest    src/cpu/x86/Idt.cpp
+    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
     src/cpu/x86/ExceptionFrame64.cpp
     src/cpu/x86/Gdt.cpp
@@ -130,16 +126,15 @@ add_test(NAME MachineArchitectureTest COMMAND MachineArchitectureTest    src/cpu
     src/cpu/x86/ExceptionStateApplier64.cpp
     src/cpu/x86/ExceptionEntry64.cpp
 )
+target_include_directories(MachineArchitectureTest PRIVATE src)
+
+enable_testing()
+add_test(NAME CpuAllFunctionsTest COMMAND CpuAllFunctionsTest)
+add_test(NAME MachineArchitectureTest COMMAND MachineArchitectureTest    src/cpu/x86/Idt.cpp
+)
 
 add_executable(X86ExceptionDeliveryTest
     tools/X86ExceptionDeliveryTest.cpp
-    src/cpu/x86/Idt.cpp
-    src/cpu/x86/ExceptionDispatcher.cpp
-    src/cpu/x86/ExceptionFrame64.cpp
-    src/cpu/x86/Gdt.cpp
-    src/cpu/x86/ExceptionTarget.cpp
-    src/cpu/x86/ExceptionDelivery.cpp
-    src/cpu/x86/Tss64.cpp
 )
 target_include_directories(X86ExceptionDeliveryTest PRIVATE src)
 
@@ -147,8 +142,6 @@ add_test(NAME X86ExceptionDeliveryTest COMMAND X86ExceptionDeliveryTest)
 
 add_executable(X86GdtTest
     tools/X86GdtTest.cpp
-    src/cpu/x86/Gdt.cpp
-    src/cpu/x86/ExceptionTarget.cpp
 )
 target_include_directories(X86GdtTest PRIVATE src)
 
@@ -156,7 +149,6 @@ add_test(NAME X86GdtTest COMMAND X86GdtTest)
 
 add_executable(X86ExceptionFrameTest
     tools/X86ExceptionFrameTest.cpp
-    src/cpu/x86/ExceptionFrame64.cpp
 )
 target_include_directories(X86ExceptionFrameTest PRIVATE src)
 
@@ -164,8 +156,6 @@ add_test(NAME X86ExceptionFrameTest COMMAND X86ExceptionFrameTest)
 
 add_executable(X86IdtTest
     tools/X86IdtTest.cpp
-    src/cpu/x86/Idt.cpp
-    src/cpu/x86/ExceptionDispatcher.cpp
 )
 target_include_directories(X86IdtTest PRIVATE src)
 
@@ -173,7 +163,6 @@ add_test(NAME X86IdtTest COMMAND X86IdtTest)
 
 add_executable(X86TssTest
     tools/X86TssTest.cpp
-    src/cpu/x86/Tss64.cpp
 )
 target_include_directories(X86TssTest PRIVATE src)
 
@@ -182,7 +171,6 @@ add_test(NAME X86TssTest COMMAND X86TssTest)
 
 add_executable(X86ExceptionStackFrameTest
     tools/X86ExceptionStackFrameTest.cpp
-    src/cpu/x86/ExceptionStackFrame64.cpp
 )
 target_include_directories(X86ExceptionStackFrameTest PRIVATE src)
 add_test(NAME X86ExceptionStackFrameTest COMMAND X86ExceptionStackFrameTest)
@@ -191,8 +179,6 @@ add_test(NAME X86ExceptionStackFrameTest COMMAND X86ExceptionStackFrameTest)
 add_executable(X86ExceptionStackWriterTest
     tools/X86ExceptionStackWriterTest.cpp
     src/memory/Memory.cpp
-    src/cpu/x86/ExceptionStackFrame64.cpp
-    src/cpu/x86/ExceptionStackWriter64.cpp
 )
 target_include_directories(X86ExceptionStackWriterTest PRIVATE src)
 add_test(NAME X86ExceptionStackWriterTest COMMAND X86ExceptionStackWriterTest)
@@ -201,16 +187,6 @@ add_test(NAME X86ExceptionStackWriterTest COMMAND X86ExceptionStackWriterTest)
 add_executable(X86ExceptionEntryWriterTest
     tools/X86ExceptionEntryWriterTest.cpp
     src/memory/Memory.cpp
-    src/cpu/x86/Idt.cpp
-    src/cpu/x86/ExceptionDispatcher.cpp
-    src/cpu/x86/ExceptionFrame64.cpp
-    src/cpu/x86/Gdt.cpp
-    src/cpu/x86/ExceptionTarget.cpp
-    src/cpu/x86/ExceptionDelivery.cpp
-    src/cpu/x86/Tss64.cpp
-    src/cpu/x86/ExceptionStackFrame64.cpp
-    src/cpu/x86/ExceptionStackWriter64.cpp
-    src/cpu/x86/ExceptionEntryWriter64.cpp
 )
 target_include_directories(X86ExceptionEntryWriterTest PRIVATE src)
 add_test(NAME X86ExceptionEntryWriterTest COMMAND X86ExceptionEntryWriterTest)
@@ -238,6 +214,7 @@ add_executable(X86ExceptionStateApplierTest
     src/cpu/x86/ExceptionStackWriter64.cpp
     src/cpu/x86/ExceptionEntryWriter64.cpp
     src/cpu/x86/ExceptionStateApplier64.cpp
+    src/cpu/x86/ExceptionEntry64.cpp
 )
 target_include_directories(X86ExceptionStateApplierTest PRIVATE src)
 add_test(NAME X86ExceptionStateApplierTest COMMAND X86ExceptionStateApplierTest    src/cpu/x86/ExceptionEntry64.cpp
@@ -259,6 +236,7 @@ add_executable(X86ExceptionEntryTest
     src/cpu/x86/Tss64.cpp
     src/cpu/x86/ExceptionStackFrame64.cpp
     src/cpu/x86/ExceptionStackWriter64.cpp
+    src/cpu/x86/ExceptionEntryWriter64.cpp
     src/cpu/x86/ExceptionStateApplier64.cpp
     src/cpu/x86/ExceptionEntry64.cpp
 )
@@ -273,32 +251,8 @@ add_executable(X86ExceptionRoundTripTest
     src/cpu/Cpu.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
-    src/cpu/x86/Idt.cpp
-    src/cpu/x86/ExceptionDispatcher.cpp
-    src/cpu/x86/ExceptionFrame64.cpp
-    src/cpu/x86/Gdt.cpp
-    src/cpu/x86/ExceptionTarget.cpp
-    src/cpu/x86/ExceptionDelivery.cpp
-    src/cpu/x86/Tss64.cpp
-    src/cpu/x86/ExceptionStackFrame64.cpp
-    src/cpu/x86/ExceptionStackWriter64.cpp
-    src/cpu/x86/ExceptionStateApplier64.cpp
-    src/cpu/x86/ExceptionEntry64.cpp
     src/cpu/x86/ExceptionReturn64.cpp
-)
-target_include_directories(X86ExceptionRoundTripTest PRIVATE src)
-add_test(NAME X86ExceptionRoundTripTest COMMAND X86ExceptionRoundTripTest    src/cpu/x86/ExceptionEntryWriter64.cpp
-)
-
-add_executable(X86SyscallCpuTest
-    tools/X86SyscallCpuTest.cpp
-    src/memory/Memory.cpp
-    src/cpu/Cpu.cpp
-    src/cpu/x86/Paging.cpp
-    src/cpu/RegisterFile.cpp
-)
-target_include_directories(X86SyscallCpuTest PRIVATE src)
-add_test(NAME X86SyscallCpuTest COMMAND X86SyscallCpuTest    src/cpu/x86/Idt.cpp
+    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
     src/cpu/x86/ExceptionFrame64.cpp
     src/cpu/x86/Gdt.cpp
@@ -310,6 +264,32 @@ add_test(NAME X86SyscallCpuTest COMMAND X86SyscallCpuTest    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionEntryWriter64.cpp
     src/cpu/x86/ExceptionStateApplier64.cpp
     src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(X86ExceptionRoundTripTest PRIVATE src)
+add_test(NAME X86ExceptionRoundTripTest COMMAND X86ExceptionRoundTripTest    src/cpu/x86/ExceptionEntryWriter64.cpp
+)
+
+add_executable(X86SyscallCpuTest
+    tools/X86SyscallCpuTest.cpp
+    src/memory/Memory.cpp
+    src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
+    src/cpu/RegisterFile.cpp
+    src/cpu/x86/Idt.cpp
+    src/cpu/x86/ExceptionDispatcher.cpp
+    src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
+    src/cpu/x86/ExceptionTarget.cpp
+    src/cpu/x86/ExceptionDelivery.cpp
+    src/cpu/x86/Tss64.cpp
+    src/cpu/x86/ExceptionStackFrame64.cpp
+    src/cpu/x86/ExceptionStackWriter64.cpp
+    src/cpu/x86/ExceptionEntryWriter64.cpp
+    src/cpu/x86/ExceptionStateApplier64.cpp
+    src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(X86SyscallCpuTest PRIVATE src)
+add_test(NAME X86SyscallCpuTest COMMAND X86SyscallCpuTest    src/cpu/x86/Idt.cpp
 )
 
 add_executable(X86ExceptionCpuIntegrationTest
@@ -327,6 +307,7 @@ add_executable(X86ExceptionCpuIntegrationTest
     src/cpu/x86/Tss64.cpp
     src/cpu/x86/ExceptionStackFrame64.cpp
     src/cpu/x86/ExceptionStackWriter64.cpp
+    src/cpu/x86/ExceptionEntryWriter64.cpp
     src/cpu/x86/ExceptionStateApplier64.cpp
     src/cpu/x86/ExceptionEntry64.cpp
 )
@@ -354,9 +335,7 @@ add_executable(X86PagingCpuTest
     src/cpu/Cpu.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Paging.cpp
-)
-target_include_directories(X86PagingCpuTest PRIVATE src)
-add_test(NAME X86PagingCpuTest COMMAND X86PagingCpuTest    src/cpu/x86/Idt.cpp
+    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
     src/cpu/x86/ExceptionFrame64.cpp
     src/cpu/x86/Gdt.cpp
@@ -368,6 +347,9 @@ add_test(NAME X86PagingCpuTest COMMAND X86PagingCpuTest    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionEntryWriter64.cpp
     src/cpu/x86/ExceptionStateApplier64.cpp
     src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(X86PagingCpuTest PRIVATE src)
+add_test(NAME X86PagingCpuTest COMMAND X86PagingCpuTest    src/cpu/x86/Idt.cpp
 )
 
 add_executable(X86PagingTest
@@ -384,13 +366,11 @@ add_executable(X86ExceptionReturnTest
     src/cpu/Cpu.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
-    src/cpu/x86/Gdt.cpp
     src/cpu/x86/ExceptionReturn64.cpp
-)
-target_include_directories(X86ExceptionReturnTest PRIVATE src)
-add_test(NAME X86ExceptionReturnTest COMMAND X86ExceptionReturnTest    src/cpu/x86/Idt.cpp
+    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
     src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
     src/cpu/x86/ExceptionTarget.cpp
     src/cpu/x86/ExceptionDelivery.cpp
     src/cpu/x86/Tss64.cpp
@@ -399,6 +379,9 @@ add_test(NAME X86ExceptionReturnTest COMMAND X86ExceptionReturnTest    src/cpu/x
     src/cpu/x86/ExceptionEntryWriter64.cpp
     src/cpu/x86/ExceptionStateApplier64.cpp
     src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(X86ExceptionReturnTest PRIVATE src)
+add_test(NAME X86ExceptionReturnTest COMMAND X86ExceptionReturnTest    src/cpu/x86/Idt.cpp
 )
 
 add_executable(X86IretqCpuTest
@@ -407,13 +390,11 @@ add_executable(X86IretqCpuTest
     src/cpu/Cpu.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
-    src/cpu/x86/Gdt.cpp
     src/cpu/x86/ExceptionReturn64.cpp
-)
-target_include_directories(X86IretqCpuTest PRIVATE src)
-add_test(NAME X86IretqCpuTest COMMAND X86IretqCpuTest    src/cpu/x86/Idt.cpp
+    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
     src/cpu/x86/ExceptionFrame64.cpp
+    src/cpu/x86/Gdt.cpp
     src/cpu/x86/ExceptionTarget.cpp
     src/cpu/x86/ExceptionDelivery.cpp
     src/cpu/x86/Tss64.cpp
@@ -422,6 +403,9 @@ add_test(NAME X86IretqCpuTest COMMAND X86IretqCpuTest    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionEntryWriter64.cpp
     src/cpu/x86/ExceptionStateApplier64.cpp
     src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(X86IretqCpuTest PRIVATE src)
+add_test(NAME X86IretqCpuTest COMMAND X86IretqCpuTest    src/cpu/x86/Idt.cpp
 )
 
 add_executable(MemoryBehaviorTest
@@ -437,9 +421,7 @@ add_executable(X86SetccTest
     src/cpu/Cpu.cpp
     src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
-)
-target_include_directories(X86SetccTest PRIVATE src)
-add_test(NAME X86SetccTest COMMAND X86SetccTest    src/cpu/x86/Idt.cpp
+    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
     src/cpu/x86/ExceptionFrame64.cpp
     src/cpu/x86/Gdt.cpp
@@ -451,4 +433,7 @@ add_test(NAME X86SetccTest COMMAND X86SetccTest    src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionEntryWriter64.cpp
     src/cpu/x86/ExceptionStateApplier64.cpp
     src/cpu/x86/ExceptionEntry64.cpp
+)
+target_include_directories(X86SetccTest PRIVATE src)
+add_test(NAME X86SetccTest COMMAND X86SetccTest    src/cpu/x86/Idt.cpp
 )
