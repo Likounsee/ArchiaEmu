@@ -1,0 +1,29 @@
+name: ArchiaEmu CI
+
+on:
+  push:
+    branches:
+      - ArchiaEmu
+  pull_request:
+    branches:
+      - ArchiaEmu
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ArchiaEmu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
