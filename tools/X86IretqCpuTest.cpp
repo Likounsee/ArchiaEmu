@@ -203,7 +203,13 @@ int main()
     const auto ntBeforeRsp = nestedTaskFlag.Rsp();
     const auto ntBeforeCs = nestedTaskFlag.CodeSegment();
     const auto ntBeforeFlags = nestedTaskFlag.Rflags();
-    if (nestedTaskFlag.Run() == 0 ||
+    const ntRunResult = nestedTaskFlag.Run();
+    std::cerr << "IRETQ NT diagnostic: run=" << ntRunResult
+              << " called=" << nestedTaskHandlerCalled
+              << " status=" << static_cast<unsigned>(nestedTaskStatus)
+              << "\\n";
+    return Fail("temporary IRETQ NT diagnostic") ? 0 : 1;
+    if (ntRunResult == 0 ||
         !nestedTaskHandlerCalled ||
         nestedTaskStatus == ExceptionReturnStatus::Returned ||
         nestedTaskFlag.Rsp() != ntBeforeRsp ||
