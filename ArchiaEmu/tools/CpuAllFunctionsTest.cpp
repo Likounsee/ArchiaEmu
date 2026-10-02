@@ -1607,7 +1607,11 @@ void TestAdcSbb()
         Cpu cpu=MakeCpu(mem); std::uint8_t v=0x80; mem.Write(DATA,&v,1);
         auto code=MovR64(0,0); Append(code,MovR64(3,1)); Append(code,{0x48,0x39,0xD8});
         Append(code,MovR64(0,DATA)); Append(code,MovR64(3,0)); Append(code,{0x18,0x18}); code=Finish(code);
-        CHECK("SBB8_mem",RunCode(cpu,mem,code)&&(Read64(mem,DATA)&0xFF)==0x7F&&
+        const bool sbb8Ok = RunCode(cpu,mem,code);
+        std::cerr << "[SBB8 finaldiag] value=0x" << std::hex
+                  << (Read64(mem,DATA)&0xFF) << " flags=0x" << cpu.Rflags()
+                  << std::dec << '\\n';
+        CHECK("SBB8_mem",sbb8Ok&&(Read64(mem,DATA)&0xFF)==0x7F&&
               (cpu.Rflags()&(1ULL<<11))&&(cpu.Rflags()&(1ULL<<4))&&
               !(cpu.Rflags()&(1ULL<<7))&&!(cpu.Rflags()&(1ULL<<6))&&(cpu.Rflags()&(1ULL<<2))&&!(cpu.Rflags()&1ULL));
     }
