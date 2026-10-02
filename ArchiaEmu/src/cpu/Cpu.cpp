@@ -3800,22 +3800,78 @@ int Cpu::Run()
         case 0x12:
         case 0x18:
         case 0x1A: {
-            std::uint8_t modrm=0, reg=0, rm=0; bool regHigh=false, rmHigh=false; std::uint64_t address=0; bool memory=false;
-            if(!Fetch8(modrm) || !DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory)) return 1;
-            const bool isAdc=(opcode==0x10||opcode==0x12), destRm=(opcode==0x10||opcode==0x18), cfIn=(rflags_&CF_MASK)!=0;
-            std::uint8_t lhs=destRm?(memory?0:ReadReg8(rm,rmHigh)):ReadReg8(reg,regHigh), rhs=destRm?ReadReg8(reg,regHigh):(memory?0:ReadReg8(rm,rmHigh));
-            if(destRm&&memory){if(!ReadMemory(address,&lhs,1)) return 1;} if(!(!destRm)&&memory){if(!ReadMemory(address,&rhs,1)) return 1;}
-            std::cerr << "[ADC/SBB8 diagnostic] opcode=0x" << std::hex
-                      << static_cast<unsigned>(opcode) << " reg=" << static_cast<unsigned>(reg)
-                      << " high=" << regHigh << " lhs=0x"
-                      << static_cast<unsigned>(lhs) << " rhs=0x"
-                      << static_cast<unsigned>(rhs) << " cf=" << cfIn
-                      << std::dec << '\\n';
-            const std::uint8_t result=isAdc?static_cast<std::uint8_t>(lhs+rhs+(cfIn?1U:0U)):static_cast<std::uint8_t>(lhs-rhs-(cfIn?1U:0U));
-            if(destRm){if(memory){if(!WriteMemory(address,&result,1)) return 1;}else WriteReg8(rm,rmHigh,result);}else WriteReg8(reg,regHigh,result);
-            const bool cfOut=isAdc?(lhs>static_cast<std::uint8_t>(0xFFU-rhs)||(cfIn&&lhs==static_cast<std::uint8_t>(0xFFU-rhs))):(lhs<rhs||(cfIn&&lhs==rhs));
-            const bool of=isAdc?((~(lhs^rhs)&(lhs^result)&0x80U)!=0):(((lhs^rhs)&(lhs^result)&0x80U)!=0);
-            if(cfOut) rflags_|=CF_MASK; else rflags_&=~CF_MASK; SetZeroFlag(result==0); SetSignFlag((result&0x80U)!=0); if(of) rflags_|=OF_MASK; else rflags_&=~OF_MASK; if(((lhs^rhs^result)&0x10U)!=0) rflags_|=AF_MASK; else rflags_&=~AF_MASK; if(EvenParity8(result)) rflags_|=PF_MASK; else rflags_&=~PF_MASK;
+            std::uint8_t modrm = 0;
+            std::uint8_t reg = 0;
+            std::uint8_t rm = 0;
+            bool regHigh = false;
+            bool rmHigh = false;
+            std::uint64_t address = 0;
+            bool memory = false;
+
+            if (!Fetch8(modrm) ||
+                !DecodeMemoryOrRegister8(
+                    modrm, rex, reg, regHigh, rm, rmHigh,
+                    address, memory)) {
+                return 1;
+            }
+
+            const bool isAdc = opcode == 0x10 || opcode == 0x12;
+            const bool destinationIsRm = opcode == 0x10 || opcode == 0x18;
+            const bool carryIn = (rflags_ & CF_MASK) != 0;
+
+            std::uint8_t lhs = 0;
+            std::uint8_t rhs = 0;
+
+            if (destinationIsRm) {
+                if (memory) {
+                    if (!ReadMemory(address, &lhs, sizeof(lhs))) return 1;
+                } else {
+                    lhs = ReadReg8(rm, rmHigh);
+                }
+                rhs = ReadReg8(reg, regHigh);
+            } else {
+                lhs = ReadReg8(reg, regHigh);
+                if (memory) {
+                    if (!ReadMemory(address, &rhs, sizeof(rhs))) return 1;
+                } else {
+                    rhs = ReadReg8(rm, rmHigh);
+                }
+            }
+
+            const std::uint8_t result =
+                isAdc
+                    ? static_cast<std::uint8_t>(lhs + rhs + (carryIn ? 1U : 0U))
+                    : static_cast<std::uint8_t>(lhs - rhs - (carryIn ? 1U : 0U));
+
+            if (destinationIsRm) {
+                if (memory) {
+                    if (!WriteMemory(address, &result, sizeof(result))) return 1;
+                } else {
+                    WriteReg8(rm, rmHigh, result);
+                }
+            } else {
+                WriteReg8(reg, regHigh, result);
+            }
+
+            const bool carryOut =
+                isAdc
+                    ? (lhs > static_cast<std::uint8_t>(0xFFU - rhs) ||
+                       (carryIn && lhs == static_cast<std::uint8_t>(0xFFU - rhs)))
+                    : (lhs < rhs || (carryIn && lhs == rhs));
+            const bool overflow =
+                isAdc
+                    ? ((~(lhs ^ rhs) & (lhs ^ result) & 0x80U) != 0)
+                    : (((lhs ^ rhs) & (lhs ^ result) & 0x80U) != 0);
+
+            if (carryOut) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+            SetZeroFlag(result == 0);
+            SetSignFlag((result & 0x80U) != 0);
+            if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+            if (((lhs ^ rhs ^ result) & 0x10U) != 0) rflags_ |= AF_MASK;
+            else rflags_ &= ~AF_MASK;
+            if (EvenParity8(result)) rflags_ |= PF_MASK;
+            else rflags_ &= ~PF_MASK;
+
             break;
         }
         case 0x11:
