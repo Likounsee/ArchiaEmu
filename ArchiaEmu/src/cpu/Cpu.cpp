@@ -6662,7 +6662,6 @@ case 0xD0:
                 if (!DecodeAdd16Store(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
 
                 std::uint8_t reg = 0;
                 std::uint8_t rm = 0;
@@ -6751,7 +6750,6 @@ case 0xD0:
                 if (!DecodeAdd16(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
                 if (!DecodeAdd64(modrm, rex)) {
                     return 1;
                 }
@@ -6781,7 +6779,6 @@ case 0xD0:
                 if (!DecodeSub16Store(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
 
                 std::uint8_t reg = 0;
                 std::uint8_t rm = 0;
@@ -6870,7 +6867,6 @@ case 0xD0:
                 if (!DecodeSub16(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
                 if (!DecodeSub64(modrm, rex)) {
                     return 1;
                 }
@@ -6906,7 +6902,6 @@ case 0xD0:
                 if (!DecodeCmp16(0x39, modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
 
                 std::uint8_t reg = 0;
                 std::uint8_t rm = 0;
@@ -7005,7 +7000,6 @@ case 0xD0:
                 if (!DecodeCmp16(0x3B, modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
                 if (!DecodeCmp64(modrm, rex)) {
                     return 1;
                 }
@@ -7138,7 +7132,6 @@ case 0xD0:
                 if (!DecodeTest16(modrm, rex)) return 1;
             }
             else if (rex.w) {
-            if (rex.w) {
 
                 if (!DecodeTest64(
                         modrm,
