@@ -3,8 +3,10 @@
 namespace myps5emu {
 
 Machine::Machine()
+    : paging_(bus_)
 {
     cpu_.ConnectMemory(&bus_);
+    cpu_.SetPaging(&paging_);
 }
 
 Cpu& Machine::CPU() noexcept
