@@ -32,6 +32,7 @@ add_executable(myps5emu
     src/memory/Memory.cpp
     src/memory/Memory.hpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/Cpu.hpp
     src/cpu/RegisterFile.cpp
     src/cpu/RegisterFile.hpp
@@ -61,6 +62,7 @@ add_executable(EmulatorLoadGameTest
     src/loader/Elf64Loader.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
@@ -82,6 +84,7 @@ add_executable(CpuAllFunctionsTest
     tools/CpuAllFunctionsTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
 )
 target_include_directories(CpuAllFunctionsTest PRIVATE src)
@@ -95,6 +98,7 @@ add_executable(MachineArchitectureTest
     src/core/MmioRegisterDevice.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
 )
 target_include_directories(MachineArchitectureTest PRIVATE src)
@@ -197,6 +201,7 @@ add_executable(X86ExceptionStateApplierTest
     src/core/MmioRegisterDevice.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
@@ -218,6 +223,7 @@ add_executable(X86ExceptionEntryTest
     tools/X86ExceptionEntryTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
@@ -239,6 +245,7 @@ add_executable(X86ExceptionRoundTripTest
     tools/X86ExceptionRoundTripTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Idt.cpp
     src/cpu/x86/ExceptionDispatcher.cpp
@@ -268,6 +275,7 @@ add_executable(X86ExceptionReturnTest
     tools/X86ExceptionReturnTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Gdt.cpp
     src/cpu/x86/ExceptionReturn64.cpp
@@ -279,6 +287,7 @@ add_executable(X86IretqCpuTest
     tools/X86IretqCpuTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
     src/cpu/x86/Gdt.cpp
     src/cpu/x86/ExceptionReturn64.cpp
@@ -297,6 +306,7 @@ add_executable(X86SetccTest
     tools/X86SetccTest.cpp
     src/memory/Memory.cpp
     src/cpu/Cpu.cpp
+    src/cpu/x86/Paging.cpp
     src/cpu/RegisterFile.cpp
 )
 target_include_directories(X86SetccTest PRIVATE src)
