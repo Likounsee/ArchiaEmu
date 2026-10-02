@@ -120,7 +120,7 @@ int main()
     if (cpu.Run() != 0 || !handlerCalled ||
         cpu.InstructionPointer() != 0x2001 ||
         cpu.CodeSegment() != 0x28 ||
-        cpu.Rsp() != 0x7018 ||
+        cpu.Rsp() != 0x7600 ||
         cpu.StackSegment() != 0x10 ||
         cpu.Rflags() != 0x202) {
         return Fail("IRETQ instruction execution failed") ? 0 : 1;
