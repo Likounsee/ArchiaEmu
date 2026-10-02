@@ -113,6 +113,7 @@ Memory* memory_ = nullptr;
     CpuException last_exception_{};
     std::uint64_t current_instruction_ip_ = 0;
     bool halted_ = false;
+    bool address_size_override_ = false;
 
     // Register file
     RegisterFile registers_;
