@@ -1,4 +1,5 @@
 ﻿#include "Cpu.hpp"
+#include "x86/ExceptionEntry64.hpp"
 
 #include "memory/Memory.hpp"
 #include "x86/Paging.hpp"
@@ -269,6 +270,16 @@ void Cpu::SetExceptionHandler(ExceptionHandler callback)
 void Cpu::SetExceptionReturnHandler(ExceptionReturnHandler callback)
 {
     exception_return_handler_ = std::move(callback);
+}
+
+void Cpu::SetExceptionArchitecture(
+    const x86::Idt* idt,
+    const x86::Gdt64* gdt,
+    const x86::Tss64* tss) noexcept
+{
+    exception_idt_ = idt;
+    exception_gdt_ = gdt;
+    exception_tss_ = tss;
 }
 
 MemoryFault Cpu::LastMemoryFault() const noexcept
