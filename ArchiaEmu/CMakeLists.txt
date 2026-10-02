@@ -51,6 +51,13 @@ add_executable(myps5emu
 )
 target_include_directories(myps5emu PRIVATE src)
 
+add_executable(Elf64LoaderTest
+    tools/Elf64LoaderTest.cpp
+    src/loader/Elf64Loader.cpp
+)
+target_include_directories(Elf64LoaderTest PRIVATE src)
+add_test(NAME Elf64LoaderTest COMMAND Elf64LoaderTest)
+
 add_executable(EmulatorLoadGameTest
     tools/EmulatorLoadGameTest.cpp
     src/core/Emulator.cpp
