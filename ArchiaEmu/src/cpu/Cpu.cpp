@@ -8140,6 +8140,28 @@ case 0xD0:
             break;
         }
 
+        case 0x91:
+        case 0x92:
+        case 0x93:
+        case 0x94:
+        case 0x95:
+        case 0x96:
+        case 0x97: {
+            std::uint8_t reg = static_cast<std::uint8_t>(opcode - 0x90);
+            if (rex.b) reg = static_cast<std::uint8_t>(reg + 8);
+            if (operand_size_override_ && !rex.w) {
+                const std::uint16_t a = registers_.Read16(0), b = registers_.Read16(reg);
+                registers_.Write16(0,b); registers_.Write16(reg,a);
+            } else if (rex.w) {
+                const std::uint64_t a=registers_.Read64(0), b=registers_.Read64(reg);
+                registers_.Write64(0,b); registers_.Write64(reg,a);
+            } else {
+                const std::uint32_t a=registers_.Read32(0), b=registers_.Read32(reg);
+                registers_.Write32(0,b); registers_.Write32(reg,a);
+            }
+            break;
+        }
+
         case 0x98: {
             if (operand_size_override_ && !rex.w) {
                 const std::int8_t al = static_cast<std::int8_t>(registers_.Read64(0) & 0xFFU);
