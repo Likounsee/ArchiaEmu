@@ -32,6 +32,9 @@ public:
     std::uint32_t Read32(std::uint8_t index) const noexcept;
     void Write32(std::uint8_t index, std::uint32_t value) noexcept;
 
+    std::uint16_t Read16(std::uint8_t index) const noexcept;
+    void Write16(std::uint8_t index, std::uint16_t value) noexcept;
+
     std::uint64_t Rax() const noexcept;
     std::uint64_t Rsp() const noexcept;
 
