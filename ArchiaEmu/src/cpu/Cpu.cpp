@@ -3528,10 +3528,18 @@ int Cpu::Run()
                 if (!Fetch8(modrmTr)) return 1;
                 const std::uint8_t regField = static_cast<std::uint8_t>((modrmTr >> 3) & 0x07U);
                 const std::uint8_t mod = static_cast<std::uint8_t>((modrmTr >> 6) & 0x03U);
-                if (regField == 3U && mod == 3U && (code_segment_ & 3U) == 0U) {
-                    std::uint8_t rm = static_cast<std::uint8_t>(modrmTr & 0x07U);
-                    if (rex.b) rm = static_cast<std::uint8_t>(rm + 8U);
-                    SetTaskRegister(static_cast<std::uint16_t>(registers_.Read16(rm)));
+                if (regField == 3U && (code_segment_ & 3U) == 0U) {
+                    std::uint8_t reg = 0, rm = 0;
+                    std::uint64_t address = 0;
+                    bool memory = false;
+                    if (!DecodeMemoryOrRegister16(modrmTr, rex, reg, rm, address, memory)) return 1;
+                    std::uint16_t selector = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&selector), sizeof(selector))) return 1;
+                    } else {
+                        selector = registers_.Read16(rm);
+                    }
+                    SetTaskRegister(selector);
                     break;
                 }
                 if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
