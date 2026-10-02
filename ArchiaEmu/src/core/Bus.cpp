@@ -16,12 +16,18 @@ bool Bus::Map(std::uint64_t virtual_address,
               std::size_t size,
               MemoryPermission permissions)
 {
-    if (size == 0 || HasOverlappingRegion(virtual_address, size)) {
+    if (size == 0) {
+        SetFault(MemoryFault::InvalidRange);
+        return false;
+    }
+    if (HasOverlappingRegion(virtual_address, size)) {
+        SetFault(MemoryFault::Overlap);
         return false;
     }
 
     const auto size64 = static_cast<std::uint64_t>(size);
     if (size64 > std::numeric_limits<std::uint64_t>::max() - virtual_address) {
+        SetFault(MemoryFault::InvalidRange);
         return false;
     }
 
@@ -32,6 +38,7 @@ bool Bus::Map(std::uint64_t virtual_address,
             mapping.base + static_cast<std::uint64_t>(mapping.size);
 
         if (virtual_address < mapping_end && end > mapping.base) {
+            SetFault(MemoryFault::Overlap);
             return false;
         }
     }
@@ -44,13 +51,18 @@ bool Bus::MapDevice(std::uint64_t base,
                     Device* device,
                     MemoryPermission permissions)
 {
-    if (device == nullptr || size == 0 ||
-        HasOverlappingRegion(base, size)) {
+    if (device == nullptr || size == 0) {
+        SetFault(MemoryFault::InvalidRange);
+        return false;
+    }
+    if (HasOverlappingRegion(base, size)) {
+        SetFault(MemoryFault::Overlap);
         return false;
     }
 
     const auto size64 = static_cast<std::uint64_t>(size);
     if (size64 > std::numeric_limits<std::uint64_t>::max() - base) {
+        SetFault(MemoryFault::InvalidRange);
         return false;
     }
 
@@ -61,11 +73,13 @@ bool Bus::MapDevice(std::uint64_t base,
             mapping.base + static_cast<std::uint64_t>(mapping.size);
 
         if (base < mapping_end && end > mapping.base) {
+            SetFault(MemoryFault::Overlap);
             return false;
         }
     }
 
     devices_.push_back(DeviceMapping{base, size, device, permissions});
+    SetFault(MemoryFault::None);
     return true;
 }
 
