@@ -79,6 +79,24 @@ int main()
         return Fail("64-bit IDT gate decoding failed") ? 0 : 1;
     }
 
+    auto reservedBytes = bytes;
+    reservedBytes[4] = 0x83; // Reserved IST bits must be zero.
+    if (IdtGate64::Decode(reservedBytes).IsValid()) {
+        return Fail("IDT decode accepted reserved IST bits") ? 0 : 1;
+    }
+
+    reservedBytes = bytes;
+    reservedBytes[5] = 0xDF; // Reserved attribute bit 4 must be zero.
+    if (IdtGate64::Decode(reservedBytes).IsValid()) {
+        return Fail("IDT decode accepted reserved attribute bit") ? 0 : 1;
+    }
+
+    reservedBytes = bytes;
+    reservedBytes[12] = 0x01; // Bytes 12..15 are reserved.
+    if (IdtGate64::Decode(reservedBytes).IsValid()) {
+        return Fail("IDT decode accepted reserved high descriptor bytes") ? 0 : 1;
+    }
+
     auto invalidBytes = bytes;
     invalidBytes[5] = 0x81; // Present, DPL 0, reserved gate type 1.
     const IdtGate64 invalidDecoded = IdtGate64::Decode(invalidBytes);
