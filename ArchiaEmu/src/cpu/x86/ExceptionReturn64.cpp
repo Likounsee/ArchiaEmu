@@ -151,7 +151,7 @@ ExceptionReturnResult ExceptionReturn64::Read(
 
         const std::uint8_t current_iopl_level =
             static_cast<std::uint8_t>((current_rflags >> 12) & 0x3U);
-        if (target_cpl > current_iopl_level) {
+        if (current_cpl <= current_iopl_level) {
             result.rflags =
                 (result.rflags & ~(1ULL << 9)) |
                 (current_rflags & (1ULL << 9));
