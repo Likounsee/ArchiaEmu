@@ -4380,7 +4380,7 @@ int Cpu::Run()
                 std::uint64_t current=0;if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&current),8))return 1;
                 const std::uint64_t expected=(static_cast<std::uint64_t>(registers_.Read32(2))<<32)|registers_.Read32(0);
                 if(current==expected){
-                    const std::uint64_t replacement=(static_cast<std::uint64_t>(registers_.Read32(2+1))<<32)|registers_.Read32(3);
+                    const std::uint64_t replacement=(static_cast<std::uint64_t>(registers_.Read32(1))<<32)|registers_.Read32(3);
                     if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&replacement),8))return 1;
                     rflags_|=ZF_MASK;
                 }else{
