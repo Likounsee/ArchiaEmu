@@ -3509,15 +3509,21 @@ int Cpu::Run()
 
             if (opcode2 == 0xB7) {
                 std::uint8_t modrmMovzx16 = 0;
-
-                if (!Fetch8(modrmMovzx16)) {
-                    return 1;
+                if (!Fetch8(modrmMovzx16)) return 1;
+                if (operand_size_override_ && !rex.w) {
+                    std::uint8_t reg = 0, rm = 0;
+                    std::uint64_t address = 0;
+                    bool memory = false;
+                    if (!DecodeMemoryOrRegister16(modrmMovzx16, rex, reg, rm, address, memory)) return 1;
+                    std::uint16_t value = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return 1;
+                    } else {
+                        value = registers_.Read16(rm);
+                    }
+                    registers_.Write16(reg, value);
                 }
-
-                if (!DecodeMovzx32Reg16(modrmMovzx16, rex)) {
-                    return 1;
-                }
-
+                else if (!DecodeMovzx32Reg16(modrmMovzx16, rex)) return 1;
                 break;
             }
 
