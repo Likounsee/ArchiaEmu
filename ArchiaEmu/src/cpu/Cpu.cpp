@@ -3704,6 +3704,98 @@ int Cpu::Run()
 
             break;
         }
+        case 0x14:
+        case 0x1C: {
+            std::uint8_t immediate = 0;
+            if (!Fetch8(immediate)) return 1;
+
+            const std::uint8_t lhs = ReadReg8(0, false);
+            const bool cfIn = (rflags_ & CF_MASK) != 0;
+            const std::uint8_t result =
+                opcode == 0x14
+                    ? static_cast<std::uint8_t>(lhs + immediate + (cfIn ? 1U : 0U))
+                    : static_cast<std::uint8_t>(lhs - immediate - (cfIn ? 1U : 0U));
+
+            WriteReg8(0, false, result);
+
+            const bool cfOut =
+                opcode == 0x14
+                    ? (lhs > static_cast<std::uint8_t>(0xFFU - immediate) ||
+                       (cfIn && lhs == static_cast<std::uint8_t>(0xFFU - immediate)))
+                    : (lhs < immediate || (cfIn && lhs == immediate));
+            const bool of =
+                opcode == 0x14
+                    ? ((~(lhs ^ immediate) & (lhs ^ result) & 0x80U) != 0)
+                    : (((lhs ^ immediate) & (lhs ^ result) & 0x80U) != 0);
+
+            if (cfOut) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+            SetZeroFlag(result == 0);
+            SetSignFlag((result & 0x80U) != 0);
+            if (of) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+            if (((lhs ^ immediate ^ result) & 0x10U) != 0) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+            if (EvenParity8(result)) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+            break;
+        }
+
+        case 0x15:
+        case 0x1D: {
+            std::uint32_t immediateRaw = 0;
+            if (!Fetch32(immediateRaw)) return 1;
+            const bool cfIn = (rflags_ & CF_MASK) != 0;
+
+            if (rex.w) {
+                const std::uint64_t lhs = registers_.Read64(0);
+                const std::uint64_t immediate =
+                    static_cast<std::uint64_t>(static_cast<std::int64_t>(static_cast<std::int32_t>(immediateRaw)));
+                const std::uint64_t result =
+                    opcode == 0x15
+                        ? lhs + immediate + (cfIn ? 1ULL : 0ULL)
+                        : lhs - immediate - (cfIn ? 1ULL : 0ULL);
+                registers_.Write64(0, result);
+                const std::uint64_t sign = 0x8000000000000000ULL;
+                const bool cfOut =
+                    opcode == 0x15
+                        ? (lhs > std::numeric_limits<std::uint64_t>::max() - immediate ||
+                           (cfIn && lhs == std::numeric_limits<std::uint64_t>::max() - immediate))
+                        : (lhs < immediate || (cfIn && lhs == immediate));
+                const bool of =
+                    opcode == 0x15
+                        ? ((~(lhs ^ immediate) & (lhs ^ result) & sign) != 0)
+                        : (((lhs ^ immediate) & (lhs ^ result) & sign) != 0);
+                if (cfOut) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                SetZeroFlag(result == 0);
+                SetSignFlag((result & sign) != 0);
+                if (of) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                if (((lhs ^ immediate ^ result) & 0x10ULL) != 0) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+            } else {
+                const std::uint32_t lhs = registers_.Read32(0);
+                const std::uint32_t immediate = immediateRaw;
+                const std::uint32_t result =
+                    opcode == 0x15
+                        ? lhs + immediate + (cfIn ? 1U : 0U)
+                        : lhs - immediate - (cfIn ? 1U : 0U);
+                registers_.Write32(0, result);
+                const std::uint32_t sign = 0x80000000U;
+                const bool cfOut =
+                    opcode == 0x15
+                        ? (lhs > std::numeric_limits<std::uint32_t>::max() - immediate ||
+                           (cfIn && lhs == std::numeric_limits<std::uint32_t>::max() - immediate))
+                        : (lhs < immediate || (cfIn && lhs == immediate));
+                const bool of =
+                    opcode == 0x15
+                        ? ((~(lhs ^ immediate) & (lhs ^ result) & sign) != 0)
+                        : (((lhs ^ immediate) & (lhs ^ result) & sign) != 0);
+                if (cfOut) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+                SetZeroFlag(result == 0);
+                SetSignFlag((result & sign) != 0);
+                if (of) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                if (((lhs ^ immediate ^ result) & 0x10U) != 0) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+            }
+            break;
+        }
+
         case 0x10:
         case 0x12:
         case 0x18:
