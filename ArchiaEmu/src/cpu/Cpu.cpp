@@ -5258,6 +5258,11 @@ case 0xD0:
                 return 1;
             }
 
+            if (operand_size_override_ && !rex.w) {
+                if (!DecodeShiftRotate16Imm(modrm, rex, 0, true)) return 1;
+                break;
+            }
+
             const std::uint8_t modC0 =
                 static_cast<std::uint8_t>((modrm >> 6) & 0x03);
 
@@ -5340,6 +5345,11 @@ case 0xD0:
                 static_cast<std::uint8_t>(
                     registers_.Read32(1) & 0xFF);
 
+            if (operand_size_override_ && !rex.w) {
+                if (!DecodeShiftRotate16Imm(modrm, rex, clCount, false)) return 1;
+                break;
+            }
+
             if (rex.w) {
                 const std::uint8_t group64 =
                     static_cast<std::uint8_t>(
@@ -5398,6 +5408,11 @@ case 0xD0:
 
             if (!Fetch8(modrm)) {
                 return 1;
+            }
+
+            if (operand_size_override_ && !rex.w) {
+                if (!DecodeShiftRotate16Imm(modrm, rex, 1, false)) return 1;
+                break;
             }
 
             if (rex.w) {
