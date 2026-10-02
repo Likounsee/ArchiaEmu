@@ -46,6 +46,62 @@ int main() {
         }
     }
 
-    std::cout << "x86 16-bit rotate-through-carry test: PASS\n";
+    {
+        const std::uint8_t code[] = {0xC1, 0xD0, 0x01};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x1122334480000000ULL);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x1122334400000001ULL ||
+            (cpu.Rflags() & (1ULL << 0)) == 0) {
+            std::cerr << "32-bit RCL failed\n";
+            return 3;
+        }
+    }
+
+    {
+        const std::uint8_t code[] = {0xC1, 0xD8, 0x01};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x1122334400000001ULL);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x1122334480000000ULL ||
+            (cpu.Rflags() & (1ULL << 0)) == 0) {
+            std::cerr << "32-bit RCR failed\n";
+            return 4;
+        }
+    }
+
+    {
+        const std::uint8_t code[] = {0x48, 0xC1, 0xD0, 0x01};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x8000000000000000ULL);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x0000000000000001ULL ||
+            (cpu.Rflags() & (1ULL << 0)) == 0) {
+            std::cerr << "64-bit RCL failed\n";
+            return 5;
+        }
+    }
+
+    {
+        const std::uint8_t code[] = {0x48, 0xC1, 0xD8, 0x01};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x0000000000000001ULL);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 0));
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x8000000000000000ULL ||
+            (cpu.Rflags() & (1ULL << 0)) == 0) {
+            std::cerr << "64-bit RCR failed\n";
+            return 6;
+        }
+    }
+
+    std::cout << "x86 rotate-through-carry test: PASS\n";
     return 0;
 }
