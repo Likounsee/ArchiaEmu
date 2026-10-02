@@ -95,7 +95,7 @@ static bool TestCmpxchg8b() {
     Memory memory; memory.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&memory);
     const std::uint64_t initial=0x1122334455667788ULL; if(!memory.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&initial),8))return false;
     std::vector<std::uint8_t> code; AppendMovR64(code,0,0x55667788ULL); AppendMovR64(code,2,0x11223344ULL); AppendMovR64(code,3,0xAABBCCDDULL); AppendMovR64(code,1,0xEEFF0011ULL);
-    code.insert(code.end(),{0x0F,0xC7,0x0D,0x00,0x08,0x00,0x00});
+    code.insert(code.end(),{0x0F,0xC7,0x0C,0x25,0x00,0x18,0x00,0x00});
     if(!Run(memory,cpu,code))return false;
     std::uint64_t out=0;if(!memory.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8))return false;
     return out==0xAABBCCDDEEFF0011ULL && (cpu.Rflags()&(1ULL<<6))!=0;
