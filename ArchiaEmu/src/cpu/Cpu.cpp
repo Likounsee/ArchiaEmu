@@ -3861,7 +3861,8 @@ int Cpu::Run()
             const bool overflow =
                 isAdc
                     ? ((~(lhs ^ rhs) & (lhs ^ result) & 0x80U) != 0)
-                    : (((lhs ^ rhs) & (lhs ^ result) & 0x80U) != 0);
+                    : (((lhs ^ rhs) & 0x80U) != 0 &&
+                       ((lhs ^ result) & 0x80U) != 0);
 
             if (carryOut) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
             SetZeroFlag(result == 0);
@@ -3871,15 +3872,6 @@ int Cpu::Run()
             else rflags_ &= ~AF_MASK;
             if (EvenParity8(result)) rflags_ |= PF_MASK;
             else rflags_ &= ~PF_MASK;
-
-            if (opcode == 0x18) {
-                std::cerr << "[SBB8 engine] lhs=0x" << std::hex
-                          << static_cast<unsigned>(lhs) << " rhs=0x"
-                          << static_cast<unsigned>(rhs) << " cf=" << carryIn
-                          << " result=0x" << static_cast<unsigned>(result)
-                          << " overflow=" << overflow
-                          << " flags=0x" << rflags_ << std::dec << '\\n';
-            }
 
             break;
         }
