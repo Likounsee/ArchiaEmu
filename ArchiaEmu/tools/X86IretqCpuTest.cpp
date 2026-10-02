@@ -32,6 +32,12 @@ Gdt64 MakeGdt()
     kernel.dpl = 0;
     gdt.SetCodeSegment(5, kernel);
 
+    GdtDataSegment64 kernelStack{};
+    kernelStack.present = true;
+    kernelStack.writable = true;
+    kernelStack.dpl = 0;
+    gdt.SetDataSegment(2, kernelStack);
+
     GdtCodeSegment64 user{};
     user.present = true;
     user.long_mode = true;
@@ -96,6 +102,8 @@ int main()
     WriteQword(memory, 0x7000, 0x2000);
     WriteQword(memory, 0x7008, 0x28);
     WriteQword(memory, 0x7010, 0x202);
+    WriteQword(memory, 0x7018, 0x7600);
+    WriteQword(memory, 0x7020, 0x10);
 
     bool handlerCalled = false;
     cpu.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
