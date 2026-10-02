@@ -5299,10 +5299,23 @@ case 0xD0:
                     result32 =
                         lhs32 + immediate32 + carry;
 
-                    SetAddFlags32(
-                        lhs32,
-                        immediate32 + carry,
-                        result32);
+                    SetZeroFlag(result32 == 0);
+                    SetSignFlag((result32 & 0x80000000U) != 0);
+                    const std::uint64_t sum32 =
+                        static_cast<std::uint64_t>(lhs32) +
+                        static_cast<std::uint64_t>(immediate32) +
+                        carry;
+                    if ((sum32 >> 32) != 0) rflags_ |= CF_MASK;
+                    else rflags_ &= ~CF_MASK;
+                    const bool of32 =
+                        ((~(lhs32 ^ immediate32) &
+                          (lhs32 ^ result32)) & 0x80000000U) != 0;
+                    const bool af32 =
+                        ((lhs32 ^ immediate32 ^ result32) & 0x10U) != 0;
+                    if (of32) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                    if (af32) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result32))) rflags_ |= PF_MASK;
+                    else rflags_ &= ~PF_MASK;
                     break;
                 }
 
@@ -5314,10 +5327,22 @@ case 0xD0:
                     result32 =
                         lhs32 - immediate32 - borrow;
 
-                    SetSubFlags32(
-                        lhs32,
-                        immediate32 + borrow,
-                        result32);
+                    SetZeroFlag(result32 == 0);
+                    SetSignFlag((result32 & 0x80000000U) != 0);
+                    const bool borrowOut =
+                        lhs32 < immediate32 ||
+                        (borrow && lhs32 == immediate32);
+                    if (borrowOut) rflags_ |= CF_MASK;
+                    else rflags_ &= ~CF_MASK;
+                    const bool of32 =
+                        (((lhs32 ^ immediate32) &
+                          (lhs32 ^ result32)) & 0x80000000U) != 0;
+                    const bool af32 =
+                        ((lhs32 ^ immediate32 ^ result32) & 0x10U) != 0;
+                    if (of32) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                    if (af32) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result32))) rflags_ |= PF_MASK;
+                    else rflags_ &= ~PF_MASK;
                     break;
                 }
 
