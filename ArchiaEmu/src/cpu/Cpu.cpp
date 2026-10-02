@@ -7535,6 +7535,19 @@ case 0xD0:
             break;
         }
 
+        case 0x8F: {
+            std::uint8_t modrm=0,reg=0,rm=0;std::uint64_t address=0;bool memory=false;
+            if(!Fetch8(modrm)||((modrm>>3)&7U)!=0U)return 1;
+            if(operand_size_override_&&!rex.w){
+                if(!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory))return 1;
+                std::uint16_t value=0;if(!Pop16(value))return 1;if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),2))return 1;}else registers_.Write16(rm,value);
+            }else{
+                if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory))return 1;
+                std::uint64_t value=0;if(!Pop64(value))return 1;if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),8))return 1;}else registers_.Write64(rm,value);
+            }
+            break;
+        }
+
         case 0x88:
         case 0x8A: {
             std::uint8_t modrm=0, reg=0, rm=0;
