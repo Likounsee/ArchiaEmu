@@ -113,6 +113,26 @@ int main()
         return 9;
     }
 
+    // 67h must compose correctly with REX.X/B: the extended base/index
+    // registers are still read at 32-bit width and the destination extension
+    // from REX.R must remain independent of address calculation.
+    const std::uint8_t rexSibCode[] = {
+        0x67, 0x47, 0x8B, 0x44, 0x88, 0x04, // MOV R8D, [R8D + R9D*4 + 4]
+        0xF4
+    };
+    if (!memory.Write(0x1000, rexSibCode, sizeof(rexSibCode)) ||
+        !Write32(memory, 0x2010, 0x0BADF00DU)) {
+        return 10;
+    }
+
+    Cpu rexSibCpu;
+    rexSibCpu.WriteRegister64(8, 0x0000000100002000ULL);
+    rexSibCpu.WriteRegister64(9, 0x0000000100000003ULL);
+    if (!Run(memory, rexSibCpu) || rexSibCpu.ReadRegister64(8) != 0x000000000BADF00DULL) {
+        std::cerr << "REX + 32-bit SIB address-size override failed\n";
+        return 11;
+    }
+
     std::cout << "x86 address-size override test: PASS\n";
     return 0;
 }
