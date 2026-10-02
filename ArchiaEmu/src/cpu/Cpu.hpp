@@ -387,10 +387,12 @@ Memory* memory_ = nullptr;
     bool DecodeTest8(
         std::uint8_t modrm,
         const RexPrefix& rex);
+    void SetLogicFlags8(std::uint8_t result) noexcept;
     void SetLogicFlags32(std::uint32_t result) noexcept;
     void SetLogicFlags64(std::uint64_t result) noexcept;
     void SetLogicFlags16(std::uint16_t result) noexcept;
 
+    void SetAddFlags8(std::uint8_t lhs, std::uint8_t rhs, std::uint8_t result) noexcept;
     void SetAddFlags32(
         std::uint32_t lhs,
         std::uint32_t rhs,
