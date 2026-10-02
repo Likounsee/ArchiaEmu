@@ -6923,61 +6923,29 @@ case 0xD0:
         case 0x8D:
         {
             std::uint8_t modrm = 0;
-
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
+            if (!Fetch8(modrm)) return 1;
             if (rex.w) {
-
-                if (!DecodeLea64(
-                        modrm,
-                        rex)) {
-
-                    return 1;
-                }
-
+                if (!DecodeLea64(modrm, rex)) return 1;
             }
-            else {
-
-                std::uint8_t reg = 0;
-                std::uint8_t rm = 0;
+            else if (operand_size_override_) {
+                std::uint8_t reg = 0, rm = 0;
                 std::uint64_t address = 0;
                 bool memory = false;
-
-                if (!DecodeMemoryOrRegister32(
-                        modrm, rex, reg, rm, address, memory)) {
-                    return 1;
-                }
-
-                if (!memory) {
-                    return 1;
-                }
-
-                const std::uint32_t address32 =
-                    static_cast<std::uint32_t>(address);
-
-                registers_.Write32(
-                    reg,
-                    address32);
-
-                std::cout
-                    << "[CPU] LEA r32["
-                    << static_cast<unsigned>(reg)
-                    << "] = 0x"
-                    << std::hex
-                    << address32
-                    << std::dec
-                    << '\n';
+                if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory) || !memory) return 1;
+                registers_.Write16(reg, static_cast<std::uint16_t>(address));
             }
-
+            else {
+                std::uint8_t reg = 0, rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+                if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory) || !memory) return 1;
+                registers_.Write32(reg, static_cast<std::uint32_t>(address));
+            }
             break;
         }
 
         
         
-        
-
         case TEST_RM32_R32:
         {
             std::uint8_t modrm = 0;
