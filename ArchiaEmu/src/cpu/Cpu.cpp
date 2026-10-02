@@ -4128,6 +4128,18 @@ int Cpu::Run()
                 break;
             }
 
+            if (opcode2 == 0xBA) {
+                std::uint8_t modrm=0,imm=0;if(!Fetch8(modrm)||!Fetch8(imm))return 1;
+                if(((modrm>>6)&3U)!=3U)return 1;
+                const std::uint8_t group=static_cast<std::uint8_t>((modrm>>3)&7U);
+                if(group<4||group>7)return 1;
+                const std::uint8_t rm=static_cast<std::uint8_t>((modrm&7U)|(rex.b?8U:0U));
+                if(rex.w){std::uint64_t value=registers_.Read64(rm);const std::uint8_t bit=static_cast<std::uint8_t>(imm&63U);const bool set=((value>>bit)&1ULL)!=0;if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;if(group==5)value|=1ULL<<bit;else if(group==6)value&=~(1ULL<<bit);else if(group==7)value^=1ULL<<bit;if(group!=4)registers_.Write64(rm,value);}
+                else if(operand_size_override_){std::uint16_t value=registers_.Read16(rm);const std::uint8_t bit=static_cast<std::uint8_t>(imm&15U);const bool set=((value>>bit)&1U)!=0;if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;if(group==5)value|=1U<<bit;else if(group==6)value&=~(1U<<bit);else if(group==7)value^=1U<<bit;if(group!=4)registers_.Write16(rm,value);}
+                else{std::uint32_t value=registers_.Read32(rm);const std::uint8_t bit=static_cast<std::uint8_t>(imm&31U);const bool set=((value>>bit)&1U)!=0;if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;if(group==5)value|=1U<<bit;else if(group==6)value&=~(1U<<bit);else if(group==7)value^=1U<<bit;if(group!=4)registers_.Write32(rm,value);}
+                break;
+            }
+
             if (opcode2 == 0xA3 || opcode2 == 0xAB || opcode2 == 0xB3 || opcode2 == 0xBB) {
                 std::uint8_t modrm=0;if(!Fetch8(modrm))return 1;
                 if(((modrm>>6)&3U)!=3U)return 1;
