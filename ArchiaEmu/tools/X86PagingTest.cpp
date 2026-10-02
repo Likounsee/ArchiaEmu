@@ -44,6 +44,8 @@ int main() {
     Q(mem, 0x4000, 0x8000 | 0x1);
     r = paging.Translate(0x123, true, true, false);
     if (r.ok || r.fault != PagingFault::Write || (r.page_fault_error & 0x7) != 0x7) {
+        std::cerr << "fault=" << static_cast<int>(r.fault)
+                  << " error=" << r.page_fault_error << "\n";
         return Fail("write/user page fault flags incorrect") ? 0 : 1;
     }
 
