@@ -4693,6 +4693,7 @@ void TestOperandSizeOverride()
     }
 }
 
+void TestOperandSizeOverrideArithmetic()
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
         auto code = MovR64(0, 0x1122334455660080ULL); code.insert(code.end(), {0x66, 0x98}); code = Finish(code);
@@ -4703,7 +4704,6 @@ void TestOperandSizeOverride()
         auto code = MovR64(0, 0x1122334455668000ULL); code.insert(code.end(), {0x66, 0x99}); code = Finish(code);
         CHECK("66h CWD sign-extends AX into DX", RunCode(cpu, mem, code) && cpu.ReadRegister64(2) == 0xFFFFFFFFFFFFFFFFULL);
     }
-void TestOperandSizeOverrideArithmetic()
 {
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
