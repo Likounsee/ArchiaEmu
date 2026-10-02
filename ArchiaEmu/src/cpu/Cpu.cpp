@@ -3696,11 +3696,18 @@ int Cpu::Run()
                 if ((code_segment_ & 3U) != 0U) {
                     return 1;
                 }
+                const std::uint64_t targetRip = registers_.Read64(1);
+                if ((targetRip >> 48U) != 0U && (targetRip >> 48U) != 0xFFFFU) {
+                    if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
+                    break;
+                }
                 const std::uint16_t userCs = static_cast<std::uint16_t>((msr_star_ >> 48U) + 16U);
                 code_segment_ = userCs;
                 stack_segment_ = static_cast<std::uint16_t>(userCs + 8U);
-                instruction_pointer_ = registers_.Read64(1);
-                rflags_ = registers_.Read64(11);
+                instruction_pointer_ = targetRip;
+                rflags_ = (registers_.Read64(11) & 0x00000000FFFFFFFFULL) | 0x2ULL;
+                rflags_ &= ~(1ULL << 16); // RF
+                rflags_ &= ~(1ULL << 17); // VM
                 break;
             }
             if (opcode2 == 0xB6) {
