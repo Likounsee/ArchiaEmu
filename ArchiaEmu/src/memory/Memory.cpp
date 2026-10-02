@@ -17,30 +17,6 @@ bool RangeValid(std::uint64_t address, std::size_t size) noexcept
     return size64 <= std::numeric_limits<std::uint64_t>::max() - address;
 }
 
-const Memory::Region* FindRegion(const std::vector<Memory::Region>& regions,
-                                 std::uint64_t address) noexcept
-{
-    for (const auto& region : regions) {
-        if (address >= region.base &&
-            address - region.base < static_cast<std::uint64_t>(region.size)) {
-            return &region;
-        }
-    }
-    return nullptr;
-}
-
-Memory::Region* FindRegion(std::vector<Memory::Region>& regions,
-                           std::uint64_t address) noexcept
-{
-    for (auto& region : regions) {
-        if (address >= region.base &&
-            address - region.base < static_cast<std::uint64_t>(region.size)) {
-            return &region;
-        }
-    }
-    return nullptr;
-}
-
 } // namespace
 
 bool Memory::Map(std::uint64_t virtual_address, std::size_t size)
@@ -97,7 +73,16 @@ bool Memory::HasPermissionAt(std::uint64_t virtual_address,
         virtual_address + static_cast<std::uint64_t>(size);
 
     while (cursor < end) {
-        const Region* region = FindRegion(regions_, cursor);
+        const Region* region = nullptr;
+        for (const auto& candidate : regions_) {
+            const std::uint64_t candidate_end =
+                candidate.base + static_cast<std::uint64_t>(candidate.size);
+            if (cursor >= candidate.base && cursor < candidate_end) {
+                region = &candidate;
+                break;
+            }
+        }
+
         if (region == nullptr) {
             return false;
         }
