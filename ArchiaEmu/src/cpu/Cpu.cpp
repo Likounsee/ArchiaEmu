@@ -8605,7 +8605,9 @@ case 0xD0:
             std::int8_t displacement = 0;
             if (!FetchRel8(displacement)) return 1;
             if (opcode == 0xE3) {
-                const std::uint64_t count = registers_.Read64(1);
+                const std::uint64_t count = address_size_override_
+                    ? static_cast<std::uint64_t>(registers_.Read32(1))
+                    : registers_.Read64(1);
                 if (count == 0) {
                     instruction_pointer_ = static_cast<std::uint64_t>(
                         static_cast<std::int64_t>(instruction_pointer_) + displacement);
