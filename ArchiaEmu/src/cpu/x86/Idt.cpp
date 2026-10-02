@@ -53,6 +53,16 @@ std::array<std::uint8_t, 16> IdtGate64::Encode() const noexcept
 IdtGate64 IdtGate64::Decode(
     const std::array<std::uint8_t, 16>& bytes) noexcept
 {
+    // Bytes 4 high bits, attribute bit 4, and bytes 12..15 are reserved
+    // in a 64-bit IDT interrupt/trap gate and must be zero.
+    if ((bytes[4] & 0xF8U) != 0U ||
+        (bytes[5] & 0x10U) != 0U ||
+        bytes[12] != 0U || bytes[13] != 0U ||
+        bytes[14] != 0U || bytes[15] != 0U) {
+        gate.type = static_cast<IdtGateType>(0x00U);
+        return gate;
+    }
+
     IdtGate64 gate{};
 
     const std::uint16_t offset_low =
