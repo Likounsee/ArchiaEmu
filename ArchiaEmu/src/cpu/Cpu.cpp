@@ -3805,6 +3805,11 @@ int Cpu::Run()
             const bool isAdc=(opcode==0x10||opcode==0x12), destRm=(opcode==0x10||opcode==0x18), cfIn=(rflags_&CF_MASK)!=0;
             std::uint8_t lhs=destRm?(memory?0:ReadReg8(rm,rmHigh)):ReadReg8(reg,regHigh), rhs=destRm?ReadReg8(reg,regHigh):(memory?0:ReadReg8(rm,rmHigh));
             if(destRm&&memory){if(!ReadMemory(address,&lhs,1)) return 1;} if(!(!destRm)&&memory){if(!ReadMemory(address,&rhs,1)) return 1;}
+            std::cerr << "[ADC/SBB8 diagnostic] opcode=0x" << std::hex
+                      << static_cast<unsigned>(opcode) << " lhs=0x"
+                      << static_cast<unsigned>(lhs) << " rhs=0x"
+                      << static_cast<unsigned>(rhs) << " cf=" << cfIn
+                      << std::dec << '\\n';
             const std::uint8_t result=isAdc?static_cast<std::uint8_t>(lhs+rhs+(cfIn?1U:0U)):static_cast<std::uint8_t>(lhs-rhs-(cfIn?1U:0U));
             if(destRm){if(memory){if(!WriteMemory(address,&result,1)) return 1;}else WriteReg8(rm,rmHigh,result);}else WriteReg8(reg,regHigh,result);
             const bool cfOut=isAdc?(lhs>static_cast<std::uint8_t>(0xFFU-rhs)||(cfIn&&lhs==static_cast<std::uint8_t>(0xFFU-rhs))):(lhs<rhs||(cfIn&&lhs==rhs));
