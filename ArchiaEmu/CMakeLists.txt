@@ -17,6 +17,7 @@ add_executable(myps5emu
     src/core/Emulator.cpp
     src/core/Emulator.hpp
     src/core/Machine.cpp
+    src/storage/OpenFs.cpp
     src/core/Machine.hpp
     src/core/Bus.cpp
     src/core/Bus.hpp
@@ -62,6 +63,7 @@ add_executable(EmulatorLoadGameTest
     tools/EmulatorLoadGameTest.cpp
     src/core/Emulator.cpp
     src/core/Machine.cpp
+    src/storage/OpenFs.cpp
     src/core/Bus.cpp
     src/core/RamDevice.cpp
     src/core/RomDevice.cpp
@@ -111,6 +113,7 @@ target_include_directories(CpuAllFunctionsTest PRIVATE src)
 add_executable(MachineArchitectureTest
     tools/MachineArchitectureTest.cpp
     src/core/Machine.cpp
+    src/storage/OpenFs.cpp
     src/core/Bus.cpp
     src/core/RamDevice.cpp
     src/core/RomDevice.cpp
@@ -226,6 +229,7 @@ add_test(NAME X86ExceptionEntryWriterTest COMMAND X86ExceptionEntryWriterTest)
 add_executable(X86ExceptionStateApplierTest
     tools/X86ExceptionStateApplierTest.cpp
     src/core/Machine.cpp
+    src/storage/OpenFs.cpp
     src/core/Bus.cpp
     src/core/RamDevice.cpp
     src/core/RomDevice.cpp
