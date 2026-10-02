@@ -4100,6 +4100,34 @@ int Cpu::Run()
                 break;
             }
 
+            if (opcode2 == 0xBC || opcode2 == 0xBD) {
+                std::uint8_t modrm=0, reg=0, rm=0; std::uint64_t address=0; bool memory=false;
+                if(!Fetch8(modrm))return 1;
+                if(operand_size_override_ && !rex.w){
+                    if(!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory))return 1;
+                    std::uint16_t value=0;if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),2))return 1;}else value=registers_.Read16(rm);
+                    if(value==0){rflags_|=ZF_MASK;break;}
+                    rflags_&=~ZF_MASK;std::uint16_t index=0;
+                    if(opcode2==0xBC){while(((value>>index)&1U)==0)++index;}else{index=15;while(((value>>index)&1U)==0)--index;}
+                    registers_.Write16(reg,index);
+                }else if(rex.w){
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory))return 1;
+                    std::uint64_t value=0;if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),8))return 1;}else value=registers_.Read64(rm);
+                    if(value==0){rflags_|=ZF_MASK;break;}
+                    rflags_&=~ZF_MASK;std::uint8_t index=0;
+                    if(opcode2==0xBC){while(((value>>index)&1ULL)==0)++index;}else{index=63;while(((value>>index)&1ULL)==0)--index;}
+                    registers_.Write64(reg,index);
+                }else{
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory))return 1;
+                    std::uint32_t value=0;if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),4))return 1;}else value=registers_.Read32(rm);
+                    if(value==0){rflags_|=ZF_MASK;break;}
+                    rflags_&=~ZF_MASK;std::uint8_t index=0;
+                    if(opcode2==0xBC){while(((value>>index)&1U)==0)++index;}else{index=31;while(((value>>index)&1U)==0)--index;}
+                    registers_.Write32(reg,index);
+                }
+                break;
+            }
+
             if (opcode2 == 0x63) {
                 std::uint8_t modrm = 0;
                 if (!Fetch8(modrm)) return 1;
