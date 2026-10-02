@@ -474,6 +474,17 @@ bool Cpu::Fetch8(std::uint8_t& value)
     return true;
 }
 
+bool Cpu::Fetch16(std::uint16_t& value)
+{
+    value = 0;
+    for (std::size_t i = 0; i < sizeof(value); ++i) {
+        std::uint8_t byte = 0;
+        if (!Fetch8(byte)) return false;
+        value |= static_cast<std::uint16_t>(byte) << (i * 8);
+    }
+    return true;
+}
+
 bool Cpu::Fetch32(std::uint32_t& value)
 {
     value = 0;
