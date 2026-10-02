@@ -9,6 +9,7 @@
 namespace myps5emu {
 
 class Memory;
+class Paging;
 class Cpu {
 public:
     void ConnectMemory(Memory* memory) noexcept;
@@ -97,6 +98,7 @@ Memory* memory_ = nullptr;
     bool Fetch8(std::uint8_t& value);
     bool RaiseException(const CpuException& exception);
     bool RaiseMemoryFault();
+    bool TranslateMemoryAddress(std::uint64_t address, bool write, bool instruction, std::uint64_t& physical);
     bool ReadMemory(std::uint64_t address, std::uint8_t* data, std::size_t size);
     bool WriteMemory(std::uint64_t address, const std::uint8_t* data, std::size_t size);
     bool Fetch32(std::uint32_t& value);
