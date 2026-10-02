@@ -2,6 +2,7 @@
 
 #include "core/Bus.hpp"
 #include "cpu/Cpu.hpp"
+#include "cpu/x86/Paging.hpp"
 
 namespace myps5emu {
 
@@ -20,6 +21,7 @@ public:
 
 private:
     Bus bus_;
+    Paging paging_;
     Cpu cpu_;
 };
 
