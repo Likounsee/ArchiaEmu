@@ -59,6 +59,16 @@ static bool TestXadd32() {
     return Run(memory, cpu, code) && cpu.Rax() == 5 && cpu.ReadRegister64(3) == 12;
 }
 
+static bool TestXadd8() {
+    Memory memory; memory.Map(0x1000, 0x1000);
+    Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 0, 5);
+    AppendMovR64(code, 3, 7);
+    code.insert(code.end(), {0x0F, 0xC0, 0xC3});
+    return Run(memory, cpu, code) && (cpu.ReadRegister64(0) & 0xFFU) == 5 && (cpu.ReadRegister64(3) & 0xFFU) == 12;
+}
+
 static bool TestCmpxchg64() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -88,7 +98,8 @@ int main() {
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
     if (!TestCmovz()) { std::cerr << "CMOVZ failed\n"; return 3; }
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
-    if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 5; }
+    if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
+    if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 6; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
