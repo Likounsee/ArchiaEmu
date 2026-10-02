@@ -742,6 +742,29 @@ void Cpu::SetAddFlags32(
     }
 }
 
+void Cpu::SetAddFlags8(
+    std::uint8_t lhs,
+    std::uint8_t rhs,
+    std::uint8_t result) noexcept
+{
+    SetZeroFlag(result == 0);
+    SetSignFlag((result & 0x80U) != 0);
+    if (static_cast<std::uint16_t>(lhs) + rhs > 0xFFU) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+    const bool overflow = ((~(lhs ^ rhs) & (lhs ^ result)) & 0x80U) != 0;
+    const bool auxiliary = ((lhs ^ rhs ^ result) & 0x10U) != 0;
+    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+    if (EvenParity8(result)) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+    if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+}
+
+void Cpu::SetLogicFlags8(std::uint8_t result) noexcept
+{
+    SetZeroFlag(result == 0);
+    SetSignFlag((result & 0x80U) != 0);
+    rflags_ &= ~(CF_MASK | OF_MASK | AF_MASK);
+    if (EvenParity8(result)) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+}
+
 void Cpu::SetSubFlags8(
     std::uint8_t lhs,
     std::uint8_t rhs,
