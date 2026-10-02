@@ -4044,9 +4044,12 @@ int Cpu::Run()
                 bool memory = false;
                 if (operand_size_override_ && !rex.w) {
                     if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
-                    const std::uint16_t value = memory
-                        ? ([&]() { std::uint16_t v=0; ReadMemory(address, reinterpret_cast<std::uint8_t*>(&v), sizeof(v)); return v; })()
-                        : registers_.Read16(rm);
+                    std::uint16_t value = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return 1;
+                    } else {
+                        value = registers_.Read16(rm);
+                    }
                     if (ConditionHolds(static_cast<std::uint8_t>(opcode2 - 0x40), rflags_)) registers_.Write16(reg, value);
                 } else if (rex.w) {
                     if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
@@ -4112,26 +4115,99 @@ int Cpu::Run()
                 std::uint8_t reg = 0, rm = 0;
                 std::uint64_t address = 0;
                 bool memory = false;
+
                 if (operand_size_override_ && !rex.w) {
                     if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
-                    std::uint16_t dst=0;
-                    if (memory) { if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&dst), sizeof(dst))) return 1; }
-                    else dst=registers_.Read16(rm);
-                    const std::uint16_t src=registers_.Read16(reg), sum=static_cast<std::uint16_t>(dst+src);
-                    if (opcode2==0xC0) { registers_.Write16(reg,dst); if(memory) { if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),2)) return 1; } else registers_.Write16(rm,sum); SetAddFlags16(dst,src,sum); }
-                    else { registers_.Write16(reg,dst); if(dst==registers_.Read16(0)){ if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),2))return 1;}else registers_.Write16(rm,src); SetAddFlags16(dst,src,sum); } else { registers_.Write16(0,dst); SetSubFlags16(dst,registers_.Read16(0),0); } }
+                    const std::uint16_t old = memory ? ([&]() { std::uint16_t v=0; if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&v),2)) return std::uint16_t(0); return v; })() : registers_.Read16(rm);
+                    const std::uint16_t src = registers_.Read16(reg);
+                    if (opcode2 == 0xC0) {
+                        const std::uint16_t sum = static_cast<std::uint16_t>(old + src);
+                        registers_.Write16(reg, old);
+                        if (memory) { if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),2)) return 1; } else registers_.Write16(rm,sum);
+                        SetAddFlags16(old,src,sum);
+                    } else {
+                        const std::uint16_t acc = registers_.Read16(0);
+                        const std::uint16_t diff = static_cast<std::uint16_t>(acc - old);
+                        SetSubFlags16(acc, old, diff);
+                        if (acc == old) {
+                            if (memory) { if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),2)) return 1; } else registers_.Write16(rm,src);
+                        } else {
+                            registers_.Write16(0, old);
+                        }
+                    }
                 } else if (rex.w) {
                     if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
-                    std::uint64_t dst=0; if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&dst),8))return 1;}else dst=registers_.Read64(rm);
-                    const std::uint64_t src=registers_.Read64(reg), sum=dst+src;
-                    if(opcode2==0xC0){registers_.Write64(reg,dst);if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),8))return 1;}else registers_.Write64(rm,sum);SetAddFlags64(dst,src,sum);}
-                    else {registers_.Write64(reg,dst);if(dst==registers_.Read64(0)){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),8))return 1;}else registers_.Write64(rm,src);SetAddFlags64(dst,src,sum);}else{registers_.Write64(0,dst);SetSubFlags64(dst,registers_.Read64(0),0);}}
+                    std::uint64_t old = 0;
+                    if (memory) { if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&old),8)) return 1; } else old=registers_.Read64(rm);
+                    const std::uint64_t src=registers_.Read64(reg);
+                    if (opcode2==0xC0) {
+                        const std::uint64_t sum=old+src;
+                        registers_.Write64(reg,old);
+                        if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),8))return 1;}else registers_.Write64(rm,sum);
+                        SetAddFlags64(old,src,sum);
+                    } else {
+                        const std::uint64_t acc=registers_.Read64(0), diff=acc-old;
+                        SetSubFlags64(acc,old,diff);
+                        if(acc==old){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),8))return 1;}else registers_.Write64(rm,src);}
+                        else registers_.Write64(0,old);
+                    }
                 } else {
                     if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
-                    std::uint32_t dst=0; if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&dst),4))return 1;}else dst=registers_.Read32(rm);
-                    const std::uint32_t src=registers_.Read32(reg), sum=dst+src;
-                    if(opcode2==0xC0){registers_.Write32(reg,dst);if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),4))return 1;}else registers_.Write32(rm,sum);SetAddFlags32(dst,src,sum);}
-                    else {registers_.Write32(reg,dst);if(dst==registers_.Read32(0)){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),4))return 1;}else registers_.Write32(rm,src);SetAddFlags32(dst,src,sum);}else{registers_.Write32(0,dst);SetSubFlags32(dst,registers_.Read32(0),0);}}
+                    std::uint32_t old=0;
+                    if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&old),4))return 1;}else old=registers_.Read32(rm);
+                    const std::uint32_t src=registers_.Read32(reg);
+                    if(opcode2==0xC0){
+                        const std::uint32_t sum=old+src;
+                        registers_.Write32(reg,old);
+                        if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),4))return 1;}else registers_.Write32(rm,sum);
+                        SetAddFlags32(old,src,sum);
+                    } else {
+                        const std::uint32_t acc=registers_.Read32(0), diff=acc-old;
+                        SetSubFlags32(acc,old,diff);
+                        if(acc==old){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),4))return 1;}else registers_.Write32(rm,src);}
+                        else registers_.Write32(0,old);
+                    }
+                }
+                break;
+            }
+
+            if (opcode2 == 0xB0 || opcode2 == 0xB1) {
+                std::uint8_t modrm = 0;
+                if (!Fetch8(modrm)) return 1;
+                std::uint8_t reg = 0, rm = 0;
+                bool regHigh = false, rmHigh = false;
+                std::uint64_t address = 0;
+                bool memory = false;
+
+                if (opcode2 == 0xB0) {
+                    if (!DecodeMemoryOrRegister8(modrm, rex, reg, regHigh, rm, rmHigh, address, memory)) return 1;
+                    const std::uint8_t old = memory ? ([&]() { std::uint8_t v=0; if(!ReadMemory(address,&v,1)) return std::uint8_t(0); return v; })() : ReadReg8(rm,rmHigh);
+                    const std::uint8_t src = ReadReg8(reg,regHigh);
+                    const std::uint8_t acc = ReadReg8(0,false);
+                    const std::uint8_t diff = static_cast<std::uint8_t>(acc-old);
+                    SetSubFlags8(acc,old,diff);
+                    if(acc==old){if(memory){if(!WriteMemory(address,&src,1))return 1;}else WriteReg8(rm,rmHigh,src);}
+                    else WriteReg8(0,false,old);
+                } else {
+                    if (operand_size_override_ && !rex.w) {
+                        if (!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory)) return 1;
+                        std::uint16_t old=0; if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&old),2))return 1;}else old=registers_.Read16(rm);
+                        const std::uint16_t src=registers_.Read16(reg), acc=registers_.Read16(0), diff=static_cast<std::uint16_t>(acc-old);
+                        SetSubFlags16(acc,old,diff);
+                        if(acc==old){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),2))return 1;}else registers_.Write16(rm,src);}else registers_.Write16(0,old);
+                    } else if (rex.w) {
+                        if (!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+                        std::uint64_t old=0; if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&old),8))return 1;}else old=registers_.Read64(rm);
+                        const std::uint64_t src=registers_.Read64(reg), acc=registers_.Read64(0), diff=acc-old;
+                        SetSubFlags64(acc,old,diff);
+                        if(acc==old){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),8))return 1;}else registers_.Write64(rm,src);}else registers_.Write64(0,old);
+                    } else {
+                        if (!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+                        std::uint32_t old=0; if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&old),4))return 1;}else old=registers_.Read32(rm);
+                        const std::uint32_t src=registers_.Read32(reg), acc=registers_.Read32(0), diff=acc-old;
+                        SetSubFlags32(acc,old,diff);
+                        if(acc==old){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),4))return 1;}else registers_.Write32(rm,src);}else registers_.Write32(0,old);
+                    }
                 }
                 break;
             }
