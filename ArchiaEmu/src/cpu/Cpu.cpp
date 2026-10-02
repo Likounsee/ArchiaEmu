@@ -6178,6 +6178,18 @@ case 0xD0:
 
             break;
         }
+        case 0xC6: {
+            std::uint8_t modrm=0, reg=0, rm=0, immediate=0;
+            std::uint64_t address=0; bool memory=false;
+            if(!Fetch8(modrm))return 1;
+            if(((modrm>>3)&7U)!=0) return 1;
+            bool regHigh=false, rmHigh=false;
+            if(!DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory))return 1;
+            if(!Fetch8(immediate))return 1;
+            if(memory){if(!WriteMemory(address,&immediate,1))return 1;}else WriteReg8(rm,rmHigh,immediate);
+            break;
+        }
+
         case 0xC7:
         {
             
