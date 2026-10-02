@@ -7266,6 +7266,18 @@ bool Cpu::DecodeShift8Memory(
         return true;
     }
 
+    if (!isRotate && maskedCount >= 8) {
+        std::uint8_t result = 0;
+        if (!WriteMemory(address, &result, sizeof(result))) {
+            return false;
+        }
+        SetZeroFlag(true);
+        SetSignFlag(false);
+        rflags_ &= ~CF_MASK;
+        rflags_ &= ~OF_MASK;
+        return true;
+    }
+
     std::uint8_t value = 0;
 
     if (!ReadMemory(
@@ -7460,6 +7472,23 @@ bool Cpu::DecodeShift8Imm(
             value =
                 static_cast<std::uint8_t>(
                     oldValue & 0xFFU);
+        }
+
+        if (!isRotate && count >= 8) {
+            const std::uint8_t result = 0;
+            std::uint64_t newValue = oldValue;
+            if (highByte) {
+                newValue = (newValue & ~(0xFFULL << 8)) |
+                            (static_cast<std::uint64_t>(result) << 8);
+            } else {
+                newValue = (newValue & ~0xFFULL) | result;
+            }
+            registers_.Write64(registerIndex, newValue);
+            SetZeroFlag(true);
+            SetSignFlag(false);
+            rflags_ &= ~CF_MASK;
+            rflags_ &= ~OF_MASK;
+            return true;
         }
 
         const std::uint8_t original = value;
