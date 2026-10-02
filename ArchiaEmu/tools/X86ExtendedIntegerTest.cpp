@@ -86,6 +86,12 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestByteAlu() {
+    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code={0xB0,0x10,0xB3,0x05,0x00,0xD8,0x08,0xD8,0x20,0xD8,0x30,0xD8,0x38,0xD8,0xF4};
+    return Run(memory,cpu,code) && (cpu.ReadRegister64(0)&0xFFU)==0;
+}
+
 static bool TestMovByteImmediate() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code={0xB0,0x5A,0xC6,0xC3,0x7E,0xF4};
@@ -269,6 +275,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestByteAlu()) { std::cerr << "byte ALU failed\n"; return 6; }
     if (!TestMovByteImmediate()) { std::cerr << "byte immediate MOV failed\n"; return 6; }
     if (!TestByteMov()) { std::cerr << "byte MOV failed\n"; return 6; }
     if (!TestAccumulatorXchg()) { std::cerr << "accumulator XCHG failed\n"; return 6; }
