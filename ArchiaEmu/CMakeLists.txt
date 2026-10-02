@@ -263,6 +263,13 @@ add_executable(X86ExceptionRoundTripTest
 target_include_directories(X86ExceptionRoundTripTest PRIVATE src)
 add_test(NAME X86ExceptionRoundTripTest COMMAND X86ExceptionRoundTripTest)
 
+add_executable(X86PrivilegedTest
+    tools/X86PrivilegedTest.cpp
+    src/cpu/x86/Privileged.cpp
+)
+target_include_directories(X86PrivilegedTest PRIVATE src)
+add_test(NAME X86PrivilegedTest COMMAND X86PrivilegedTest)
+
 add_executable(X86PagingCpuTest
     tools/X86PagingCpuTest.cpp
     src/memory/Memory.cpp
