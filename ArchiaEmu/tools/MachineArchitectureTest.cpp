@@ -47,8 +47,8 @@ int main()
     };
     if (!WriteQword(0x1000, 0x2000 | 0x7) ||
         !WriteQword(0x2000, 0x3000 | 0x7) ||
-        !WriteQword(0x3000, 0x4000 | 0x7) ||
-        !WriteQword(0x4000, 0x9000 | 0x7)) {
+        !WriteQword(0x3010, 0x4000 | 0x7) ||
+        !WriteQword(0x4800, 0x9000 | 0x7)) {
         return Fail("Paging regression page-table setup failed") ? 0 : 1;
     }
 
@@ -61,8 +61,8 @@ int main()
     machine.CPU().SetCr4(1ULL << 5);   // PAE.
     machine.CPU().SetCr0(1ULL << 31);  // PG.
     machine.CPU().SetCodeSegment(0x8);
-    machine.CPU().SetInstructionPointer(0x400000);
-    if (!bus.Map(0x400000, 0x1000,
+    machine.CPU().SetInstructionPointer(0x500000);
+    if (!bus.Map(0x500000, 0x1000,
                  MemoryPermission::Read | MemoryPermission::Execute) ||
         machine.CPU().Run() != 0) {
         return Fail("Machine CPU did not fetch through its paging engine") ? 0 : 1;
