@@ -5735,13 +5735,13 @@ case 0xD0:
             }
             else if (rex.w) {
                 const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
-                if (group == 0 || group == 1) {
+                if (group <= 3) {
                     if (!DecodeRotate64Imm(modrm, rex, 0, true)) return 1;
                 } else if (!DecodeShiftLeft64Imm(modrm, rex, 0, true)) return 1;
             }
             else {
                 const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
-                if (group == 0 || group == 1) {
+                if (group <= 3) {
                     if (!DecodeRotate32Imm(modrm, rex, 0, true)) return 1;
                 } else if (group == 4) {
                     if (!DecodeShiftLeft32Imm(modrm, rex, 0, true)) return 1;
