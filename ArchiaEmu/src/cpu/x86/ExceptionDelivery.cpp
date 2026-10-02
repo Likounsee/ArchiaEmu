@@ -69,8 +69,11 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
     result.stack_frame.has_error_code =
         ExceptionFrame64::HasHardwareErrorCode(exception.vector);
     result.stack_frame.error_code = error_code;
-    // In 64-bit mode the interrupted SS:RSP are always part of the saved
-    // exception frame, including same-CPL delivery.
+    // SS:RSP are saved when exception delivery changes stacks: either the
+    // target is at a less-privileged CPL or the IDT gate selects an IST.
+    // Same-CPL delivery without IST keeps only RIP/CS/RFLAGS (+ error code).
+    result.stack_frame.has_stack_switch =
+        target.segment.dpl < current_cpl || dispatch.gate.ist != 0;
     result.stack_frame.rsp = current_rsp;
     result.stack_frame.ss = current_ss;
     result.frame = ExceptionFrame64::Build(
