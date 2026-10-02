@@ -62,6 +62,10 @@ using FrameCallback = std::function<bool()>;
     void SetSyscallHandler(SyscallHandler callback);
     void SetExceptionHandler(ExceptionHandler callback);
     void SetExceptionReturnHandler(ExceptionReturnHandler callback);
+    void SetExceptionArchitecture(
+        const x86::Idt* idt,
+        const x86::Gdt64* gdt,
+        const x86::Tss64* tss) noexcept;
     MemoryFault LastMemoryFault() const noexcept;
     const CpuException& LastException() const noexcept;
     void Halt() noexcept;
