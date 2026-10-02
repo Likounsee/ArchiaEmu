@@ -35,6 +35,14 @@ public:
     std::uint64_t MsrLstar() const noexcept;
     void SetMsrFmask(std::uint64_t value) noexcept;
     std::uint64_t MsrFmask() const noexcept;
+    void SetGdtr(std::uint64_t base, std::uint16_t limit) noexcept;
+    std::uint64_t GdtrBase() const noexcept;
+    std::uint16_t GdtrLimit() const noexcept;
+    void SetIdtr(std::uint64_t base, std::uint16_t limit) noexcept;
+    std::uint64_t IdtrBase() const noexcept;
+    std::uint16_t IdtrLimit() const noexcept;
+    void SetTaskRegister(std::uint16_t selector) noexcept;
+    std::uint16_t TaskRegister() const noexcept;
     void ConnectMemory(Memory* memory) noexcept;
 
     void SetInstructionPointer(std::uint64_t value) noexcept;
@@ -102,6 +110,11 @@ Memory* memory_ = nullptr;
     std::uint64_t msr_star_ = 0;
     std::uint64_t msr_lstar_ = 0;
     std::uint64_t msr_fmask_ = 0;
+    std::uint64_t gdtr_base_ = 0;
+    std::uint16_t gdtr_limit_ = 0;
+    std::uint64_t idtr_base_ = 0;
+    std::uint16_t idtr_limit_ = 0;
+    std::uint16_t task_register_ = 0;
     FrameCallback frame_callback_;
     SyscallHandler syscall_handler_;
     ExceptionHandler exception_handler_;
