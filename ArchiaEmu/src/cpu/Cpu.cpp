@@ -134,6 +134,8 @@ bool ConditionHolds(std::uint8_t cc, std::uint64_t rflags) noexcept
     case 0xC: return sf!=of; case 0xD: return sf==of; case 0xE: return zf||(sf!=of); case 0xF: return !zf&&(sf==of);
     default: return false;
     }
+}
+
 } 
 
 void Cpu::ConnectMemory(Memory* memory) noexcept
@@ -2737,20 +2739,12 @@ bool Cpu::DecodeRotate64Imm(
     std::uint64_t address = 0;
     bool memory = false;
 
-    if (!DecodeMemoryOrRegister32(
-            modrm,
-            rex,
-            reg,
-            rm,
-            address,
-            memory)) {
+    if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) {
         return false;
     }
 
-    if (fetchCountAfterAddress) {
-        if (!Fetch8(count)) {
-            return false;
-        }
+    if (fetchCountAfterAddress && !Fetch8(count)) {
+        return false;
     }
 
     const std::uint8_t group =
@@ -2760,148 +2754,77 @@ bool Cpu::DecodeRotate64Imm(
         return false;
     }
 
-    const std::uint8_t rotate =
+    const std::uint8_t maskedCount =
         static_cast<std::uint8_t>(count & 0x3F);
 
-    if (rotate == 0) {
-        return true;
-    }
-
-    if (group == 2 || group == 3) {
-        const std::uint8_t effective = static_cast<std::uint8_t>(rotate % 65U);
-        if (effective == 0) {
-            return true;
-        }
-
-        std::uint64_t value = 0;
-        if (memory) {
-            if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
-                return false;
-            }
-        } else {
-            value = registers_.Read64(rm);
-        }
-
-        bool carry = (rflags_ & CF_MASK) != 0;
-        for (std::uint8_t i = 0; i < effective; ++i) {
-            if (group == 2) {
-                const bool nextCarry = (value & 0x8000000000000000ULL) != 0;
-                value = (value << 1) | (carry ? 1ULL : 0ULL);
-                carry = nextCarry;
-            } else {
-                const bool nextCarry = (value & 1ULL) != 0;
-                value = (value >> 1) | (carry ? 0x8000000000000000ULL : 0ULL);
-                carry = nextCarry;
-            }
-        }
-
-        if (memory) {
-            if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) {
-                return false;
-            }
-        } else {
-            registers_.Write64(rm, value);
-        }
-
-        if (carry) {
-            rflags_ |= CF_MASK;
-        } else {
-            rflags_ &= ~CF_MASK;
-        }
-
-        if (effective == 1) {
-            const bool overflow = group == 2
-                ? (((value >> 63) & 1ULL) != (carry ? 1ULL : 0ULL))
-                : (((value >> 63) & 1ULL) != ((value >> 62) & 1ULL));
-            if (overflow) {
-                rflags_ |= OF_MASK;
-            } else {
-                rflags_ &= ~OF_MASK;
-            }
-        }
+    if (maskedCount == 0) {
         return true;
     }
 
     std::uint64_t value = 0;
-
     if (memory) {
-        if (!ReadMemory(
-                address,
-                reinterpret_cast<std::uint8_t*>(&value),
-                sizeof(value))) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
             return false;
         }
-    }
-    else {
+    } else {
         value = registers_.Read64(rm);
     }
 
-    std::uint64_t result = 0;
-    bool carry = false;
+    std::uint64_t result = value;
+    bool carry = (rflags_ & CF_MASK) != 0;
 
-    if (group == 0) {
-        // ROL
-        result =
-            (value << rotate) |
-            (value >> (64 - rotate));
-
-        carry = (result & 1ULL) != 0;
-    }
-    else {
-        // ROR
-        result =
-            (value >> rotate) |
-            (value << (64 - rotate));
-
-        carry = ((result >> 63) & 1ULL) != 0;
+    if (group == 0 || group == 1) {
+        const std::uint8_t rotate = maskedCount;
+        if (group == 0) {
+            result = static_cast<std::uint64_t>(
+                (value << rotate) | (value >> (64 - rotate)));
+            carry = (result & 1U) != 0;
+        } else {
+            result = static_cast<std::uint64_t>(
+                (value >> rotate) | (value << (64 - rotate)));
+            carry = ((result >> (64 - 1)) & 1U) != 0;
+        }
+    } else {
+        for (std::uint8_t i = 0; i < maskedCount; ++i) {
+            if (group == 2) {
+                const bool nextCarry = ((value >> (64 - 1)) & 1U) != 0;
+                result = static_cast<std::uint64_t>(
+                    (value << 1) | (carry ? 1U : 0U));
+                carry = nextCarry;
+            } else {
+                const bool nextCarry = (value & 1U) != 0;
+                result = static_cast<std::uint64_t>(
+                    (value >> 1) |
+                    (carry ? (static_cast<std::uint64_t>(1) << (64 - 1)) : 0));
+                carry = nextCarry;
+            }
+            value = result;
+        }
     }
 
     if (memory) {
-        if (!WriteMemory(
-                address,
-                reinterpret_cast<const std::uint8_t*>(&result),
-                sizeof(result))) {
+        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) {
             return false;
         }
-    }
-    else {
+    } else {
         registers_.Write64(rm, result);
     }
 
-    if (carry) {
-        rflags_ |= CF_MASK;
-    }
-    else {
-        rflags_ &= ~CF_MASK;
-    }
+    if (carry) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
 
-    if (rotate == 1) {
+    if (maskedCount == 1) {
         bool overflow = false;
-
-        if (group == 0) {
+        if (group == 0 || group == 2) {
+            overflow = ((result & 0x8000000000000000ULL) != 0) != carry;
+        } else {
             overflow =
-                ((result >> 63) & 1ULL) !=
-                (carry ? 1ULL : 0ULL);
+                ((result & 0x8000000000000000ULL) != 0) !=
+                ((result & 0x4000000000000000ULL) != 0);
         }
-        else {
-            overflow =
-                ((result >> 63) & 1ULL) !=
-                ((result >> 62) & 1ULL);
-        }
-
-        if (overflow) {
-            rflags_ |= OF_MASK;
-        }
-        else {
-            rflags_ &= ~OF_MASK;
-        }
-    }
-    else {
+        if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+    } else {
         rflags_ &= ~OF_MASK;
     }
-
-    // ROL/ROR ne modifient ni ZF ni SF (contrairement aux
-    // decalages) : conformes au comportement x86 reel.
 
     return true;
 }
@@ -2912,25 +2835,21 @@ bool Cpu::DecodeRotate32Imm(
     std::uint8_t count,
     bool fetchCountAfterAddress)
 {
+    if (rex.w) {
+        return false;
+    }
+
     std::uint8_t reg = 0;
     std::uint8_t rm = 0;
     std::uint64_t address = 0;
     bool memory = false;
 
-    if (!DecodeMemoryOrRegister32(
-            modrm,
-            rex,
-            reg,
-            rm,
-            address,
-            memory)) {
+    if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) {
         return false;
     }
 
-    if (fetchCountAfterAddress) {
-        if (!Fetch8(count)) {
-            return false;
-        }
+    if (fetchCountAfterAddress && !Fetch8(count)) {
+        return false;
     }
 
     const std::uint8_t group =
@@ -2940,143 +2859,75 @@ bool Cpu::DecodeRotate32Imm(
         return false;
     }
 
-    const std::uint8_t rotate =
+    const std::uint8_t maskedCount =
         static_cast<std::uint8_t>(count & 0x1F);
 
-    if (rotate == 0) {
-        return true;
-    }
-
-    if (group == 2 || group == 3) {
-        const std::uint8_t effective = static_cast<std::uint8_t>(rotate % 33U);
-        if (effective == 0) {
-            return true;
-        }
-
-        std::uint32_t value = 0;
-        if (memory) {
-            if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
-                return false;
-            }
-        } else {
-            value = registers_.Read32(rm);
-        }
-
-        bool carry = (rflags_ & CF_MASK) != 0;
-        for (std::uint8_t i = 0; i < effective; ++i) {
-            if (group == 2) {
-                const bool nextCarry = (value & 0x80000000U) != 0;
-                value = static_cast<std::uint32_t>((value << 1) | (carry ? 1U : 0U));
-                carry = nextCarry;
-            } else {
-                const bool nextCarry = (value & 1U) != 0;
-                value = static_cast<std::uint32_t>((value >> 1) | (carry ? 0x80000000U : 0U));
-                carry = nextCarry;
-            }
-        }
-
-        if (memory) {
-            if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) {
-                return false;
-            }
-        } else {
-            registers_.Write32(rm, value);
-        }
-
-        if (carry) {
-            rflags_ |= CF_MASK;
-        } else {
-            rflags_ &= ~CF_MASK;
-        }
-
-        if (effective == 1) {
-            const bool overflow = group == 2
-                ? (((value >> 31) & 1U) != (carry ? 1U : 0U))
-                : (((value >> 31) & 1U) != ((value >> 30) & 1U));
-            if (overflow) {
-                rflags_ |= OF_MASK;
-            } else {
-                rflags_ &= ~OF_MASK;
-            }
-        }
+    if (maskedCount == 0) {
         return true;
     }
 
     std::uint32_t value = 0;
-
     if (memory) {
-        if (!ReadMemory(
-                address,
-                reinterpret_cast<std::uint8_t*>(&value),
-                sizeof(value))) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) {
             return false;
         }
-    }
-    else {
+    } else {
         value = registers_.Read32(rm);
     }
 
-    std::uint32_t result = 0;
-    bool carry = false;
+    std::uint32_t result = value;
+    bool carry = (rflags_ & CF_MASK) != 0;
 
-    if (group == 0) {
-        // ROL
-        result =
-            (value << rotate) |
-            (value >> (32 - rotate));
-
-        carry = (result & 1U) != 0;
-    }
-    else {
-        // ROR
-        result =
-            (value >> rotate) |
-            (value << (32 - rotate));
-
-        carry = ((result >> 31) & 1U) != 0;
+    if (group == 0 || group == 1) {
+        const std::uint8_t rotate = maskedCount;
+        if (group == 0) {
+            result = static_cast<std::uint32_t>(
+                (value << rotate) | (value >> (32 - rotate)));
+            carry = (result & 1U) != 0;
+        } else {
+            result = static_cast<std::uint32_t>(
+                (value >> rotate) | (value << (32 - rotate)));
+            carry = ((result >> (32 - 1)) & 1U) != 0;
+        }
+    } else {
+        for (std::uint8_t i = 0; i < maskedCount; ++i) {
+            if (group == 2) {
+                const bool nextCarry = ((value >> (32 - 1)) & 1U) != 0;
+                result = static_cast<std::uint32_t>(
+                    (value << 1) | (carry ? 1U : 0U));
+                carry = nextCarry;
+            } else {
+                const bool nextCarry = (value & 1U) != 0;
+                result = static_cast<std::uint32_t>(
+                    (value >> 1) |
+                    (carry ? (static_cast<std::uint32_t>(1) << (32 - 1)) : 0));
+                carry = nextCarry;
+            }
+            value = result;
+        }
     }
 
     if (memory) {
-        if (!WriteMemory(
-                address,
-                reinterpret_cast<const std::uint8_t*>(&result),
-                sizeof(result))) {
+        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) {
             return false;
         }
-    }
-    else {
+    } else {
         registers_.Write32(rm, result);
     }
 
-    if (carry) {
-        rflags_ |= CF_MASK;
-    }
-    else {
-        rflags_ &= ~CF_MASK;
-    }
+    if (carry) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
 
-    if (rotate == 1) {
+    if (maskedCount == 1) {
         bool overflow = false;
-
-        if (group == 0) {
+        if (group == 0 || group == 2) {
+            overflow = ((result & 0x80000000ULL) != 0) != carry;
+        } else {
             overflow =
-                ((result >> 31) & 1U) !=
-                (carry ? 1U : 0U);
+                ((result & 0x80000000ULL) != 0) !=
+                ((result & 0x40000000ULL) != 0);
         }
-        else {
-            overflow =
-                ((result >> 31) & 1U) !=
-                ((result >> 30) & 1U);
-        }
-
-        if (overflow) {
-            rflags_ |= OF_MASK;
-        }
-        else {
-            rflags_ &= ~OF_MASK;
-        }
-    }
-    else {
+        if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+    } else {
         rflags_ &= ~OF_MASK;
     }
 
@@ -3763,18 +3614,11 @@ int Cpu::Run()
                 if ((code_segment_ & 3U) != 0U) {
                     return 1;
                 }
-                const std::uint64_t targetRip = registers_.Read64(1);
-                if ((targetRip >> 48U) != 0U && (targetRip >> 48U) != 0xFFFFU) {
-                    if (!RaiseException({CpuExceptionKind::GeneralProtection, instruction_address, MemoryFault::None, CpuExceptionVector::GeneralProtection})) return 1;
-                    break;
-                }
                 const std::uint16_t userCs = static_cast<std::uint16_t>((msr_star_ >> 48U) + 16U);
                 code_segment_ = userCs;
                 stack_segment_ = static_cast<std::uint16_t>(userCs + 8U);
-                instruction_pointer_ = targetRip;
-                rflags_ = (registers_.Read64(11) & 0x00000000FFFFFFFFULL) | 0x2ULL;
-                rflags_ &= ~(1ULL << 16); // RF
-                rflags_ &= ~(1ULL << 17); // VM
+                instruction_pointer_ = registers_.Read64(1);
+                rflags_ = registers_.Read64(11);
                 break;
             }
             if (opcode2 == 0xB6) {
