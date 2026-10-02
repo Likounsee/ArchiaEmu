@@ -3458,21 +3458,34 @@ int Cpu::Run()
             }
             if (opcode2 == 0xB6) {
                 std::uint8_t modrmMovzx = 0;
+                if (!Fetch8(modrmMovzx)) return 1;
 
-                if (!Fetch8(modrmMovzx)) {
-                    return 1;
-                }
-
-                if (rex.w) {
-                    if (!DecodeMovzx64Reg32(modrmMovzx, rex)) {
-                        return 1;
+                if (operand_size_override_ && !rex.w) {
+                    std::uint8_t regIndex = 0;
+                    bool regHighByte = false;
+                    std::uint8_t rmRegisterIndex = 0;
+                    bool rmHighByte = false;
+                    std::uint64_t address = 0;
+                    bool memory = false;
+                    if (!DecodeMemoryOrRegister8(
+                            modrmMovzx, rex,
+                            regIndex, regHighByte,
+                            rmRegisterIndex, rmHighByte,
+                            address, memory)) return 1;
+                    std::uint8_t value = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, &value, sizeof(value))) return 1;
+                    } else {
+                        value = ReadReg8(rmRegisterIndex, rmHighByte);
                     }
-                } else {
-                    if (!DecodeMovzx32Reg32(modrmMovzx, rex)) {
-                        return 1;
-                    }
+                    registers_.Write16(regIndex, value);
                 }
-
+                else if (rex.w) {
+                    if (!DecodeMovzx64Reg32(modrmMovzx, rex)) return 1;
+                }
+                else {
+                    if (!DecodeMovzx32Reg32(modrmMovzx, rex)) return 1;
+                }
                 break;
             }
 
