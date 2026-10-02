@@ -99,9 +99,6 @@ static bool TestCmpxchg8b() {
     if(!Run(memory,cpu,code))return false;
     std::uint64_t out=0;if(!memory.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8))return false;
     if(out!=0xAABBCCDDEEFF0011ULL || (cpu.Rflags()&(1ULL<<6))==0) return false;
-    const std::uint64_t lo=0x1122334455667788ULL, hi=0x99AABBCCDDEEFF00ULL;
-    if(!memory.Write(0x1900,reinterpret_cast<const std::uint8_t*>(&lo),8))return false;
-    if(!memory.Write(0x1908,reinterpret_cast<const std::uint8_t*>(&hi),8))return false;
     return true;
 }
 
