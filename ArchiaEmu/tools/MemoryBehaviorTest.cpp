@@ -19,6 +19,17 @@ int main()
     if (!memory.Write(0x2000, input.data(), input.size())) return 6;
     if (!memory.Protect(0x1000, 0x1000, MemoryPermission::Read | MemoryPermission::Write)) return 7;
     if (!memory.Write(0x1000, input.data(), input.size())) return 8;
+
+    std::array<std::uint8_t, 1> instruction{0xF4};
+    if (memory.ExecuteRead(0x1000, instruction.data(), instruction.size())) return 13;
+    if (!memory.Protect(0x1000, 0x1000,
+                        MemoryPermission::Read | MemoryPermission::Execute)) {
+        return 14;
+    }
+    if (!memory.ExecuteRead(0x1000, instruction.data(), instruction.size()) ||
+        instruction[0] != input[0]) {
+        return 15;
+    }
     // Large console RAM must be virtual/sparse: mapping 16 GiB must not
     // allocate 16 GiB of host memory before the guest touches a page.
     Memory largeMemory;
