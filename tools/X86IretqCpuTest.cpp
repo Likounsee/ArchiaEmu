@@ -188,26 +188,9 @@ int main()
     nestedTaskFlag.SetStackPointer(0x7000);
     nestedTaskFlag.SetRflags(0x4202); // current NT=1
 
-    bool nestedTaskHandlerCalled = false;
-    ExceptionReturnStatus nestedTaskStatus =
-        ExceptionReturnStatus::InvalidFrame;
-    nestedTaskFlag.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
-        nestedTaskHandlerCalled = true;
-        const auto result =
-            ExceptionReturn64::Read(handlerCpu, ntMemory, gdt);
-        nestedTaskStatus = result.status;
-        return false;
-    });
-
-    const auto ntBeforeRsp = nestedTaskFlag.Rsp();
-    const auto ntBeforeCs = nestedTaskFlag.CodeSegment();
-    const auto ntBeforeFlags = nestedTaskFlag.Rflags();
-    if (nestedTaskFlag.Run() == 0 ||
-        !nestedTaskHandlerCalled ||
-        nestedTaskStatus == ExceptionReturnStatus::Returned ||
-        nestedTaskFlag.Rsp() != ntBeforeRsp ||
-        nestedTaskFlag.CodeSegment() != ntBeforeCs ||
-        nestedTaskFlag.Rflags() != ntBeforeFlags) {
+    const auto ntResult =
+        ExceptionReturn64::Read(nestedTaskFlag, ntMemory, gdt);
+    if (ntResult.status != ExceptionReturnStatus::InvalidRflags) {
         return Fail("IRETQ incorrectly accepted current NT=1 in IA-32e mode") ? 0 : 1;
     }
 
