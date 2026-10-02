@@ -153,6 +153,26 @@ void TestAddressSizeOverride()
         "67 address-size override uses EAX/32-bit effective address",
         RunCode(cpu, mem, code) &&
         cpu.Rax() == 0xAABBCCDDULL);
+
+    Write32(mem, DATA + 4, 0x11223344U);
+    Cpu sibCpu = MakeCpu(mem);
+    sibCpu.WriteRegister64(0, 1);
+    const auto sibCode = std::vector<std::uint8_t>{
+        0x67, 0x8B, 0x04, 0x85, 0x00, 0x00, 0x50, 0x00, 0xF4
+    };
+    CHECK(
+        "67 address-size override uses 32-bit SIB addressing",
+        RunCode(sibCpu, mem, sibCode) &&
+        sibCpu.Rax() == 0x11223344ULL);
+
+    Cpu absoluteCpu = MakeCpu(mem);
+    const auto absoluteCode = std::vector<std::uint8_t>{
+        0x67, 0x8B, 0x05, 0x00, 0x00, 0x50, 0x00, 0xF4
+    };
+    CHECK(
+        "67 address-size override makes ModRM rm=101 absolute",
+        RunCode(absoluteCpu, mem, absoluteCode) &&
+        absoluteCpu.Rax() == 0xAABBCCDDULL);
 }
 
 void TestMemory()
