@@ -72,14 +72,14 @@ bool Emulator::LoadGame(const std::string& path)
         (void)permissions;
         if (!memory.Map(page, Memory::PageSize, allPermissions)) {
             std::cerr << "[Memory] Failed to map ELF page at 0x" << std::hex << page << std::dec << '\n';
-            return false;
+            return failLoad();
         }
     }
 
     for (const auto& segment : loader_.Segments()) {
         if (!segment.data.empty() && !memory.Write(segment.virtual_address, segment.data.data(), segment.data.size())) {
             std::cerr << "[Memory] Failed to load segment at 0x" << std::hex << segment.virtual_address << std::dec << '\n';
-            return false;
+            return failLoad();
         }
         std::cout << "[Memory] Loaded PT_LOAD at 0x" << std::hex << segment.virtual_address
                   << " (" << std::dec << segment.memory_size << " bytes)\n";
@@ -88,7 +88,7 @@ bool Emulator::LoadGame(const std::string& path)
     for (const auto& [page, permissions] : pagePermissions) {
         if (!memory.Protect(page, Memory::PageSize, permissions)) {
             std::cerr << "[Memory] Failed to apply ELF page permissions at 0x" << std::hex << page << std::dec << '\n';
-            return false;
+            return failLoad();
         }
     }
 
