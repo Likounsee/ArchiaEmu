@@ -4042,7 +4042,16 @@ int Cpu::Run()
                 std::uint8_t reg = 0, rm = 0;
                 std::uint64_t address = 0;
                 bool memory = false;
-                if (operand_size_override_ && !rex.w) {
+                if (opcode2 == 0xC0) {
+                    std::uint8_t regHigh = 0, rmHigh = 0;
+                    if (!DecodeMemoryOrRegister8(modrm, rex, reg, reinterpret_cast<bool&>(regHigh), rm, reinterpret_cast<bool&>(rmHigh), address, memory)) return 1;
+                    const std::uint8_t old = memory ? ([&]() { std::uint8_t v=0; if(!ReadMemory(address,&v,1)) return std::uint8_t(0); return v; })() : ReadReg8(rm,rmHigh);
+                    const std::uint8_t src = ReadReg8(reg,regHigh);
+                    const std::uint8_t sum = static_cast<std::uint8_t>(old + src);
+                    WriteReg8(reg,regHigh,old);
+                    if(memory){if(!WriteMemory(address,&sum,1))return 1;}else WriteReg8(rm,rmHigh,sum);
+                    SetAddFlags8(old,src,sum);
+                } else if (operand_size_override_ && !rex.w) {
                     if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
                     std::uint16_t value = 0;
                     if (memory) {
