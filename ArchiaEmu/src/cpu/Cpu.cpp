@@ -3613,6 +3613,10 @@ int Cpu::Run()
 
 
             if (opcode2 == 0x05) {
+                if ((efer_ & 0x1ULL) == 0) {
+                    if (!RaiseException({CpuExceptionKind::InvalidOpcode, instruction_address, MemoryFault::None, CpuExceptionVector::InvalidOpcode})) return 1;
+                    break;
+                }
                 const std::uint64_t returnRip = instruction_pointer_;
                 registers_.Write64(1, returnRip);
                 registers_.Write64(11, rflags_);
@@ -3635,6 +3639,10 @@ int Cpu::Run()
                 break;
             }
             if (opcode2 == 0x07) {
+                if ((efer_ & 0x1ULL) == 0) {
+                    if (!RaiseException({CpuExceptionKind::InvalidOpcode, instruction_address, MemoryFault::None, CpuExceptionVector::InvalidOpcode})) return 1;
+                    break;
+                }
                 if ((code_segment_ & 3U) != 0U) {
                     return 1;
                 }
