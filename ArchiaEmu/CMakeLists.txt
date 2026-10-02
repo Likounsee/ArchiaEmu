@@ -91,6 +91,7 @@ add_executable(X86PrivilegedCpuTest
     tools/X86PrivilegedCpuTest.cpp
     src/cpu/Cpu.cpp
     src/cpu/RegisterFile.cpp
+    src/cpu/x86/Privileged.cpp
     src/memory/Memory.cpp
 )
 target_include_directories(X86PrivilegedCpuTest PRIVATE src)
