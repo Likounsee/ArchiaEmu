@@ -4470,6 +4470,36 @@ void TestOperandSizeOverride()
         stageMem.Map(DATA, 0x2000);
         stageMem.Map(STACK, 0x2000);
         Cpu stageCpu = MakeCpu(stageMem);
+        auto stageCode = MovR64(0, 0x1122334455661000ULL);
+        stageCode.insert(stageCode.end(), {0x66, 0x81, 0xC0, 0x34, 0x12});
+        stageCode = Finish(stageCode);
+        CHECK(
+            "66h ADD r/m16,imm16 register form",
+            RunCode(stageCpu, stageMem, stageCode) &&
+            stageCpu.Rax() == 0x1122334455662234ULL);
+    }
+
+    {
+        Memory stageMem;
+        stageMem.Map(CODE, 0x2000);
+        stageMem.Map(DATA, 0x2000);
+        stageMem.Map(STACK, 0x2000);
+        Cpu stageCpu = MakeCpu(stageMem);
+        auto stageCode = MovR64(0, 0x1122334455661000ULL);
+        stageCode.insert(stageCode.end(), {0x66, 0x83, 0xC0, 0x02});
+        stageCode = Finish(stageCode);
+        CHECK(
+            "66h ADD r/m16,imm8 sign-extended register form",
+            RunCode(stageCpu, stageMem, stageCode) &&
+            stageCpu.Rax() == 0x1122334455661002ULL);
+    }
+
+    {
+        Memory stageMem;
+        stageMem.Map(CODE, 0x2000);
+        stageMem.Map(DATA, 0x2000);
+        stageMem.Map(STACK, 0x2000);
+        Cpu stageCpu = MakeCpu(stageMem);
         Write64(stageMem, DATA, 0x112233445566ABCDULL);
         auto stageCode = MovR64(2, DATA);
         stageCode.insert(stageCode.end(), {0x66, 0x8B, 0x0A});
