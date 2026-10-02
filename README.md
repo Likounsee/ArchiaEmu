@@ -23,7 +23,7 @@ The repository currently contains a tested x86-64 guest execution foundation:
 - Guest memory mapping
 - Basic Linux-style syscall handling for `write` and `exit`
 - Dedicated CPU regression/function tests
-- A first `Machine` runtime boundary owning CPU and guest memory
+- A `Machine` runtime boundary owning CPU, paging and the guest bus/memory devices
 
 The CPU implementation and tests are developed incrementally with an emphasis on architectural correctness and regression coverage.
 
@@ -41,7 +41,7 @@ ArchiaEmu
 ├── Memory
 ├── Loaders
 │   └── ELF64 (current implementation)
-├── Bus / Devices (future)
+├── Bus / Devices (current foundation)
 ├── Operating-system interfaces (future)
 └── Platforms / Machines (future)
     ├── PC
@@ -77,7 +77,7 @@ cmake --build ArchiaEmu/build --config Debug
 
 The project currently contains a dedicated CPU regression/function test executable plus a machine architecture test.
 
-The CPU test source currently contains **56 test functions and 172 `CHECK(...)` assertions**.
+The CPU test source currently contains **58 test functions and 176 `CHECK(...)` assertions**.
 
 Coverage includes:
 
@@ -132,6 +132,7 @@ ArchiaEmu is being developed in layers:
 Planned areas include:
 
 - broader x86-64 instruction coverage and architectural audits
+- verified 32-bit address-size override and privileged control-instruction paths
 - more complete memory and virtual-memory semantics
 - bus and device abstractions
 - syscall and operating-system interfaces
