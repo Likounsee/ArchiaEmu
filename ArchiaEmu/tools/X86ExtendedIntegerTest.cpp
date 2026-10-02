@@ -83,6 +83,14 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestEnterLeave() {
+    Memory memory; memory.Map(0x1000,0x3000);
+    Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetStackPointer(0x3000); cpu.WriteRegister64(5,0x123456789ABCDEF0ULL);
+    std::vector<std::uint8_t> code={0xC8,0x08,0x00,0x00,0xF4};
+    if(!Run(memory,cpu,code)) return false;
+    return cpu.ReadRegister64(5)==0x2FF8ULL && cpu.Rsp()==0x2FF0ULL;
+}
+
 static bool TestControlTransferGroups() {
     Memory memory; memory.Map(0x1000, 0x3000);
     Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetStackPointer(0x3000);
@@ -208,6 +216,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestEnterLeave()) { std::cerr << "ENTER failed\n"; return 6; }
     if (!TestControlTransferGroups()) { std::cerr << "control transfer groups failed\n"; return 6; }
     if (!TestSoftwareInterrupts()) { std::cerr << "software interrupts failed\n"; return 6; }
     if (!TestGroupF6Byte()) { std::cerr << "F6 byte group failed\n"; return 6; }
