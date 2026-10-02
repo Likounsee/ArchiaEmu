@@ -4141,14 +4141,10 @@ int Cpu::Run()
                         if (memory) { if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),2)) return 1; } else registers_.Write16(rm,sum);
                         SetAddFlags16(old,src,sum);
                     } else {
-                        const std::uint16_t acc = registers_.Read16(0);
-                        const std::uint16_t diff = static_cast<std::uint16_t>(acc - old);
-                        SetSubFlags16(acc, old, diff);
-                        if (acc == old) {
-                            if (memory) { if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),2)) return 1; } else registers_.Write16(rm,src);
-                        } else {
-                            registers_.Write16(0, old);
-                        }
+                        const std::uint16_t sum = static_cast<std::uint16_t>(old + src);
+                        if (memory) { if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),2)) return 1; } else registers_.Write16(rm, sum);
+                        registers_.Write16(reg, old);
+                        SetAddFlags16(old, src, sum);
                     }
                 } else if (rex.w) {
                     if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
