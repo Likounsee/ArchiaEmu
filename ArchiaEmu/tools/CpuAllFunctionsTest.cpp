@@ -4643,6 +4643,21 @@ void TestOperandSizeOverride()
     }
 }
 
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455664001ULL);
+        code.insert(code.end(), {0x66, 0xC1, 0xE0, 0x01});
+        code = Finish(code);
+        CHECK(
+            "66h C1 SHL r/m16,1 preserves upper bits and flags",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x1122334455668002ULL &&
+            (cpu.Rflags() & 1ULL) == 0);
+    }
+
 void TestOperandSizeOverrideArithmetic()
 {
     {
