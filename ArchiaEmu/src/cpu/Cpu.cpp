@@ -3421,6 +3421,25 @@ int Cpu::Run()
         
         
 
+        case 0xCC: {
+            if (!RaiseException({CpuExceptionKind::SoftwareInterrupt, instruction_address, MemoryFault::None, CpuExceptionVector::Breakpoint})) return 1;
+            break;
+        }
+
+        case 0xCD: {
+            std::uint8_t vector = 0;
+            if (!Fetch8(vector)) return 1;
+            if (!RaiseException({CpuExceptionKind::SoftwareInterrupt, instruction_address, MemoryFault::None, static_cast<CpuExceptionVector>(vector)})) return 1;
+            break;
+        }
+
+        case 0xCE: {
+            if ((rflags_ & OF_MASK) != 0) {
+                if (!RaiseException({CpuExceptionKind::SoftwareInterrupt, instruction_address, MemoryFault::None, CpuExceptionVector::Overflow})) return 1;
+            }
+            break;
+        }
+
         case 0xCF: {
             if (!exception_return_handler_) {
                 return 1;
