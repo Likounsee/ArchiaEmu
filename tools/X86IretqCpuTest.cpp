@@ -101,7 +101,7 @@ int main()
     cpu.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
         handlerCalled = true;
         const auto result =
-            ExceptionReturn64::Read(handlerCpu, memory, gdt);
+            ExceptionReturn64::Read(handlerCpu, ntMemory, gdt);
         if (result.status != ExceptionReturnStatus::Returned) {
             return false;
         }
@@ -164,12 +164,24 @@ int main()
 
     // In IA-32e mode, IRET with NT=1 is a general-protection fault;
     // it must not be accepted as a normal return frame.
-    WriteQword(memory, 0x7000, 0x2000);
-    WriteQword(memory, 0x7008, 0x28);
-    WriteQword(memory, 0x7010, 0x4202); // NT=1, otherwise valid RFLAGS
+    Memory ntMemory;
+    if (!ntMemory.Map(0x1000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
+        !ntMemory.Map(0x2000, 0x1000, MemoryPermission::Read | MemoryPermission::Write | MemoryPermission::Execute) ||
+        !ntMemory.Map(0x7000, 0x1000, MemoryPermission::Read | MemoryPermission::Write)) {
+        return Fail("Failed to map isolated IRETQ NT test memory") ? 0 : 1;
+    }
+
+    const std::uint8_t ntIretq[] = {0x48, 0xCF};
+    if (!ntMemory.Write(0x1000, ntIretq, sizeof(ntIretq))) {
+        return Fail("Failed to write isolated IRETQ NT test") ? 0 : 1;
+    }
+
+    WriteQword(ntMemory, 0x7000, 0x2000);
+    WriteQword(ntMemory, 0x7008, 0x28);
+    WriteQword(ntMemory, 0x7010, 0x4202); // NT=1, otherwise valid RFLAGS
 
     Cpu nestedTaskFlag;
-    nestedTaskFlag.ConnectMemory(&memory);
+    nestedTaskFlag.ConnectMemory(&ntMemory);
     nestedTaskFlag.SetInstructionPointer(0x1000);
     nestedTaskFlag.SetCodeSegment(0x28);
     nestedTaskFlag.SetStackSegment(0x10);
