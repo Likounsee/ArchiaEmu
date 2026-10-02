@@ -31,6 +31,45 @@ int main()
         return Fail("Machine CPU initialization failed") ? 0 : 1;
     }
 
+    // Regression: Machine must wire its CPU to the real paging engine.
+    // Map a four-level x86-64 page walk and fetch HLT through it.
+    if (!bus.Map(0x1000, 0x5000,
+                 MemoryPermission::Read | MemoryPermission::Write) ||
+        !bus.Map(0x9000, 0x1000,
+                 MemoryPermission::Read | MemoryPermission::Execute)) {
+        return Fail("Paging regression memory setup failed") ? 0 : 1;
+    }
+
+    const auto WriteQword = [&](std::uint64_t address, std::uint64_t value) {
+        return bus.Write(address,
+                         reinterpret_cast<const std::uint8_t*>(&value),
+                         sizeof(value));
+    };
+    if (!WriteQword(0x1000, 0x2000 | 0x7) ||
+        !WriteQword(0x2000, 0x3000 | 0x7) ||
+        !WriteQword(0x3000, 0x4000 | 0x7) ||
+        !WriteQword(0x4000, 0x9000 | 0x7)) {
+        return Fail("Paging regression page-table setup failed") ? 0 : 1;
+    }
+
+    const std::uint8_t hlt = 0xF4;
+    if (!bus.Write(0x9000, &hlt, 1)) {
+        return Fail("Paging regression code setup failed") ? 0 : 1;
+    }
+
+    machine.CPU().SetCr3(0x1000);
+    machine.CPU().SetCr4(1ULL << 5);   // PAE.
+    machine.CPU().SetCr0(1ULL << 31);  // PG.
+    machine.CPU().SetCodeSegment(0x8);
+    machine.CPU().SetInstructionPointer(0x400000);
+    if (!bus.Map(0x400000, 0x1000,
+                 MemoryPermission::Read | MemoryPermission::Execute) ||
+        machine.CPU().Run() != 0) {
+        return Fail("Machine CPU did not fetch through its paging engine") ? 0 : 1;
+    }
+
+    machine.CPU().SetCr0(0);
+
     if (!bus.Map(0x400000, 0x1000,
                   MemoryPermission::Read | MemoryPermission::Write)) {
         return Fail("Machine RAM mapping failed") ? 0 : 1;
