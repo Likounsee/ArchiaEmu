@@ -127,6 +127,7 @@ Memory* memory_ = nullptr;
 
     bool Fetch8(std::uint8_t& value);
     bool RaiseException(const CpuException& exception);
+    bool RaiseExceptionForTest(const CpuException& exception) { return RaiseException(exception); }
     bool RaiseMemoryFault();
     bool TranslateMemoryAddress(std::uint64_t address, bool write, bool instruction, std::uint64_t& physical);
     bool ReadMemory(std::uint64_t address, std::uint8_t* data, std::size_t size);
