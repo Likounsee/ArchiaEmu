@@ -22,6 +22,16 @@ void RegisterFile::Write64(
     registers_[index] = value;
 }
 
+std::uint16_t RegisterFile::Read16(std::uint8_t index) const noexcept
+{
+    return static_cast<std::uint16_t>(registers_[index] & 0xFFFFULL);
+}
+
+void RegisterFile::Write16(std::uint8_t index, std::uint16_t value) noexcept
+{
+    registers_[index] = (registers_[index] & ~0xFFFFULL) | value;
+}
+
 std::uint32_t RegisterFile::Read32(std::uint8_t index) const noexcept
 {
     return static_cast<std::uint32_t>(Read64(index));
