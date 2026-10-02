@@ -261,10 +261,12 @@ bool Elf64Loader::Load(const std::string& path)
         segment.memory_size = program_header.memory_size;
         segment.flags = program_header.flags;
 
+        // BSS/tail memory is represented by the mapped guest pages and
+        // must not be materialized in a host vector. Only bytes that
+        // actually exist in the ELF file need to be retained here.
         segment.data.resize(
             static_cast<std::size_t>(
-                program_header.memory_size),
-            0);
+                program_header.file_size));
 
         if (program_header.file_size != 0) {
 
