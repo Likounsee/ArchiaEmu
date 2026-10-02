@@ -4702,6 +4702,16 @@ void TestOperandSizeOverrideArithmetic()
     }
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455661234ULL); Append(code, MovR64(3, 2)); code.insert(code.end(), {0x66, 0xF7, 0xE3}); code = Finish(code);
+        CHECK("66h F7 MUL r/m16 writes DX:AX", RunCode(cpu, mem, code) && cpu.ReadRegister64(0) == 0x1122334455662468ULL && cpu.ReadRegister64(2) == 0x0ULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1122334455660010ULL); Append(code, MovR64(2, 0)); Append(code, MovR64(3, 3)); code.insert(code.end(), {0x66, 0xF7, 0xF3}); code = Finish(code);
+        CHECK("66h F7 DIV r/m16 writes quotient and remainder", RunCode(cpu, mem, code) && cpu.ReadRegister64(0) == 0x1122334455660005ULL && cpu.ReadRegister64(2) == 0x1ULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000); Cpu cpu = MakeCpu(mem);
         auto code = MovR64(0, 0x1122334455660001ULL); code.insert(code.end(), {0x66, 0xF7, 0xD8}); code = Finish(code);
         CHECK("66h F7 NEG r/m16 preserves upper bits", RunCode(cpu, mem, code) && cpu.Rax() == 0x112233445566FFFFULL && (cpu.Rflags() & 1ULL) != 0);
     }
