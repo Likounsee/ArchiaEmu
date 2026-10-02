@@ -6261,6 +6261,18 @@ case 0xD0:
                     return 1;
                 }
             }
+            else if (operand_size_override_) {
+                std::uint8_t reg = 0, rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+                if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
+                const std::uint16_t value = registers_.Read16(reg);
+                if (memory) {
+                    if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return 1;
+                } else {
+                    registers_.Write16(rm, value);
+                }
+            }
             else {
                 if (!DecodeMov32Store(modrm, rex)) {
                     return 1;
@@ -6284,6 +6296,19 @@ case 0xD0:
                     return 1;
                 }
 
+            }
+            else if (operand_size_override_) {
+                std::uint8_t reg = 0, rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+                if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
+                std::uint16_t value = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return 1;
+                } else {
+                    value = registers_.Read16(rm);
+                }
+                registers_.Write16(reg, value);
             }
             else {
                 if (!DecodeMov32Load(modrm, rex)) {
