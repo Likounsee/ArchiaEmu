@@ -4333,6 +4333,35 @@ void TestShift8LargeCount()
         (cpu.ReadRegister64(0) & 0xFFU) == 0);
 }
 
+void TestOperandSizeOverride()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(DATA, 0x2000);
+    mem.Map(STACK, 0x2000);
+
+    Cpu cpu = MakeCpu(mem);
+
+    // 66 B8 34 12 = MOV AX,1234h. The upper RAX bits must survive.
+    auto code = MovR64(0, 0x1122334455667788ULL);
+    code.insert(code.end(), {0x66, 0xB8, 0x34, 0x12});
+
+    // 66 89 D8 = MOV AX, BX.
+    code.insert(code.end(), {0x66, 0xBB, 0xCD, 0xAB});
+    code.insert(code.end(), {0x66, 0x89, 0xD8});
+
+    // 66 8B 0D disp32 = MOV CX, [RIP+disp32] is not supported by the
+    // current address decoder, so exercise the register form above and
+    // a base-register memory form instead.
+    code = Finish(code);
+
+    CHECK(
+        "66h MOV AX/BX 16-bit register width",
+        RunCode(cpu, mem, code) &&
+        cpu.Rax() == 0x112233445566ABCDULL &&
+        cpu.ReadRegister64(1) == 0xAB);
+}
+
 int main()
 {
     TestCpuAudit();
@@ -4348,6 +4377,7 @@ int main()
     std::cout << "=============================================\n\n";
 
     TestAddressSizeOverride();
+    TestOperandSizeOverride();
     TestCanonicalAddressFault();
     TestMemory();
     TestRegisterFile();
