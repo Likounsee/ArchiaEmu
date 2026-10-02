@@ -3539,23 +3539,27 @@ int Cpu::Run()
                 break;
             }
             if (opcode2 == 0x0B) {
-                RaiseException({
+                if (!RaiseException({
                     CpuExceptionKind::InvalidOpcode,
                     instruction_address,
                     MemoryFault::None,
                     CpuExceptionVector::InvalidOpcode
-                });
-                return 1;
+                })) {
+                    return 1;
+                }
+                break;
             }
 
             if (opcode2 != 0xAF) {
-                RaiseException({
+                if (!RaiseException({
                     CpuExceptionKind::InvalidOpcode,
                     instruction_address,
                     MemoryFault::None,
                     CpuExceptionVector::InvalidOpcode
-                });
-                return 1;
+                })) {
+                    return 1;
+                }
+                break;
             }
 
             std::uint8_t modrm = 0;
@@ -6963,14 +6967,15 @@ case 0xD0:
                 << std::dec
                 << '\n';
 
-            RaiseException({
+            if (!RaiseException({
                 CpuExceptionKind::InvalidOpcode,
                 instruction_address,
                 MemoryFault::None,
                 CpuExceptionVector::InvalidOpcode
-            });
-
-            return 1;
+            })) {
+                return 1;
+            }
+            break;
         }
 
         ++instruction_counter;
