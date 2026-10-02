@@ -101,7 +101,7 @@ int main()
     cpu.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
         handlerCalled = true;
         const auto result =
-            ExceptionReturn64::Read(handlerCpu, ntMemory, gdt);
+            ExceptionReturn64::Read(handlerCpu, memory, gdt);
         if (result.status != ExceptionReturnStatus::Returned) {
             return false;
         }
@@ -194,7 +194,7 @@ int main()
     nestedTaskFlag.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
         nestedTaskHandlerCalled = true;
         const auto result =
-            ExceptionReturn64::Read(handlerCpu, memory, gdt);
+            ExceptionReturn64::Read(handlerCpu, ntMemory, gdt);
         nestedTaskStatus = result.status;
         return false;
     });
