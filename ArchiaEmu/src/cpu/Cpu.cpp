@@ -5434,6 +5434,15 @@ case 0xD0:
                     rflags_ = (rflags_ & ~CF_MASK) | (carry ? CF_MASK : 0);
                 }
                 else if (group == 4) {
+                    if (shift >= 16) {
+                        result = 0;
+                        carry = false;
+                        rflags_ &= ~OF_MASK;
+                        SetZeroFlag(true);
+                        SetSignFlag(false);
+                        rflags_ &= ~CF_MASK;
+                        if (EvenParity8(0)) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+                    } else {
                     carry = ((value >> (16 - shift)) & 1U) != 0;
                     result = static_cast<std::uint16_t>(value << shift);
                     if (shift == 1) {
@@ -5444,8 +5453,18 @@ case 0xD0:
                     SetSignFlag((result & 0x8000U) != 0);
                     if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
                     rflags_ = (rflags_ & ~CF_MASK) | (carry ? CF_MASK : 0);
+                    }
                 }
                 else if (group == 5) {
+                    if (shift >= 16) {
+                        result = 0;
+                        carry = false;
+                        rflags_ &= ~OF_MASK;
+                        SetZeroFlag(true);
+                        SetSignFlag(false);
+                        rflags_ &= ~CF_MASK;
+                        if (EvenParity8(0)) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
+                    } else {
                     carry = ((value >> (shift - 1)) & 1U) != 0;
                     result = static_cast<std::uint16_t>(value >> shift);
                     if (shift == 1) {
@@ -5455,6 +5474,7 @@ case 0xD0:
                     SetSignFlag((result & 0x8000U) != 0);
                     if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
                     rflags_ = (rflags_ & ~CF_MASK) | (carry ? CF_MASK : 0);
+                    }
                 }
                 else if (group == 7) {
                     carry = ((value >> (shift - 1)) & 1U) != 0;
