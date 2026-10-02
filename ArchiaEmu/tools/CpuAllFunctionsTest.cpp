@@ -1573,6 +1573,7 @@ void TestAdcSbb()
             RunCode(cpu, mem, code) &&
             cpu.Rax() == 7);
     }
+}
     // Group-1 immediate ADC/SBB carry/borrow must not lose the carry
     // when the immediate itself is UINT_MAX.
     {
@@ -1724,6 +1725,8 @@ void TestAdcSbb()
         code = Finish(code);
         CHECK("SBB32_64_imm", RunCode(cpu, mem, code) && cpu.Rax() == 0);
     }
+
+}
 
 void TestImul()
 {
