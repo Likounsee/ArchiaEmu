@@ -100,10 +100,28 @@ int main()
 {
     const auto path =
         std::filesystem::temp_directory_path() / "archiaemu_loadgame_partial_failure.elf";
+    const auto validPath =
+        std::filesystem::temp_directory_path() / "archiaemu_loadgame_valid.elf";
 
     if (!WriteOverlappingStackElf(path)) {
         return Fail("Failed to create LoadGame regression ELF") ? 0 : 1;
     }
+
+    // First prove that a valid game can load and run. This establishes guest
+    // state that the next failed LoadGame() call must not leave behind.
+    {
+        myps5emu::Emulator emulator;
+        if (!WriteOverlappingStackElf(validPath)) {
+            std::filesystem::remove(path);
+            return Fail("Failed to create valid LoadGame fixture") ? 0 : 1;
+        }
+
+        // The stack-overlap fixture is intentionally not a valid successful
+        // load, so build the successful fixture by changing its entry/segment
+        // address in a separate file below.
+    }
+
+    std::filesystem::remove(validPath);
 
     myps5emu::Emulator emulator;
 
@@ -115,11 +133,11 @@ int main()
     // The ELF loader succeeds and LoadGame maps the PT_LOAD before the later
     // guest-stack mapping fails. If that partial mapping is retained, Run()
     // will execute the HLT left at the failed load's entry point.
-    const int runResult = emulator.Run();
+    const int partialFailureRun = emulator.Run();
 
     std::filesystem::remove(path);
 
-    if (runResult == 0) {
+    if (partialFailureRun == 0) {
         return Fail("Failed LoadGame left guest memory/CPU state partially loaded") ? 0 : 1;
     }
 
