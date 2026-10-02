@@ -86,6 +86,18 @@ static bool TestCmpxchg64() {
            (cpu.Rflags() & (1ULL << 6)) == 0;
 }
 
+static bool TestMsrAndTsc() {
+    Memory memory; memory.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code,1,0xC0000082ULL);
+    AppendMovR64(code,0,0x55667788ULL);
+    AppendMovR64(code,2,0x11223344ULL);
+    code.insert(code.end(),{0x0F,0x30,0x0F,0x32,0x0F,0x31,0xF4});
+    if(!Run(memory,cpu,code)) return false;
+    const std::uint64_t msr=((cpu.ReadRegister64(2)&0xFFFFFFFFULL)<<32)|(cpu.ReadRegister64(0)&0xFFFFFFFFULL);
+    return msr==0x1122334455667788ULL;
+}
+
 static bool TestMoffs() {
     Memory memory; memory.Map(0x1000,0x5000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -233,6 +245,7 @@ int main() {
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
+    if (!TestMsrAndTsc()) { std::cerr << "MSR/TSC failed\n"; return 6; }
     if (!TestMoffs()) { std::cerr << "moffs failed\n"; return 6; }
     if (!TestEnterLeave()) { std::cerr << "ENTER failed\n"; return 6; }
     if (!TestControlTransferGroups()) { std::cerr << "control transfer groups failed\n"; return 6; }
