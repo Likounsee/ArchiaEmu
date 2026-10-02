@@ -2000,6 +2000,7 @@ bool Cpu::DecodeLogic64(
 
         std::uint64_t result = 0;
 
+        (void)lock_prefix; // LOCK is architecturally a bus-serialization prefix; this single-CPU core preserves the encoding.
         switch (opcode) {
 
         case 0x09:
@@ -3379,6 +3380,7 @@ int Cpu::Run()
 
         std::uint8_t opcode = 0;
         std::uint8_t repeat_prefix = 0;
+        bool lock_prefix = false;
 
         if (!Fetch8(opcode)) {
             std::cerr
@@ -3393,11 +3395,13 @@ int Cpu::Run()
         address_size_override_ = false;
         operand_size_override_ = false;
 
-        while (opcode == 0x66 || opcode == 0x67 || opcode == 0xF2 || opcode == 0xF3) {
+        while (opcode == 0x66 || opcode == 0x67 || opcode == 0xF0 || opcode == 0xF2 || opcode == 0xF3) {
             if (opcode == 0x66) {
                 operand_size_override_ = true;
             } else if (opcode == 0x67) {
                 address_size_override_ = true;
+            } else if (opcode == 0xF0) {
+                lock_prefix = true;
             } else {
                 repeat_prefix = opcode;
             }
