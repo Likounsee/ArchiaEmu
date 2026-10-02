@@ -4405,6 +4405,23 @@ void TestOperandSizeOverride()
         stageMem.Map(DATA, 0x2000);
         stageMem.Map(STACK, 0x2000);
         Cpu stageCpu = MakeCpu(stageMem);
+        auto stageCode = MovR64(0, 0x1122334455667788ULL);
+        Append(stageCode, MovR64(3, 0x112233445566ABCDULL));
+        stageCode.insert(stageCode.end(), {0x66, 0x89, 0xD8});
+        stageCode = Finish(stageCode);
+        CHECK(
+            "66h MOV AX,BX preserves upper RAX bits",
+            RunCode(stageCpu, stageMem, stageCode) &&
+            stageCpu.Rax() == 0x112233445566ABCDULL &&
+            stageCpu.ReadRegister64(3) == 0x112233445566ABCDULL);
+    }
+
+    {
+        Memory stageMem;
+        stageMem.Map(CODE, 0x2000);
+        stageMem.Map(DATA, 0x2000);
+        stageMem.Map(STACK, 0x2000);
+        Cpu stageCpu = MakeCpu(stageMem);
         auto stageCode = MovR64(0, 0x112233445566ABCDULL);
         Append(stageCode, MovR64(2, DATA));
         stageCode.insert(stageCode.end(), {0x66, 0x89, 0x02});
