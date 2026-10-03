@@ -105,6 +105,15 @@ int main()
             ? 0 : 1;
     }
 
+    gate.offset = 0x0000800000000000ULL;
+    idt.SetGate(14, gate);
+    if (resolver.Resolve(exception, 0x10, 0x202, 0, 0x5).status !=
+        ExceptionDeliveryStatus::InvalidTarget) {
+        return Fail("Non-canonical exception target was accepted") ? 0 : 1;
+    }
+    gate.offset = 0xFFFF800000004000ULL;
+    idt.SetGate(14, gate);
+
     idt.ClearGate(14);
     if (resolver.Resolve(exception, 0x10, 0x202, 0, 0x5).status !=
         ExceptionDeliveryStatus::NotPresent) {
