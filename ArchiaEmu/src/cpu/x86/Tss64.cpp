@@ -2,6 +2,15 @@
 
 namespace myps5emu::x86 {
 
+namespace {
+bool IsCanonical48(std::uint64_t value) noexcept
+{
+    const std::uint64_t upper = value >> 48U;
+    const bool sign = (value & (1ULL << 47U)) != 0;
+    return upper == (sign ? 0xFFFFULL : 0ULL);
+}
+}
+
 bool Tss64::SetRsp0(std::uint64_t value) noexcept
 {
     rsp0_ = value;
@@ -71,7 +80,7 @@ ExceptionStackSelection ExceptionStackResolver::ResolveIst(
     }
 
     const auto stack_pointer = tss_.Ist(ist);
-    if (stack_pointer == 0) {
+    if (stack_pointer == 0 || !IsCanonical48(stack_pointer)) {
         return {ExceptionStackStatus::Unavailable, 0};
     }
 
