@@ -99,7 +99,7 @@ int main()
         sameCpl.stack.status != ExceptionStackStatus::NoStackSwitch ||
         sameCpl.stack_frame.rsp != 0xB000 ||
         sameCpl.stack_frame.ss != 0x20 ||
-        !sameCpl.stack_frame.has_stack_switch ||
+        sameCpl.stack_frame.has_stack_switch ||
         sameCpl.target_ss != 0x20) {
         return Fail("Same-CPL exception frame did not preserve SS:RSP")
             ? 0 : 1;
