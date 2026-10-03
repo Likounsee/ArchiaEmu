@@ -82,6 +82,14 @@ int main()
         return Fail("IST stack selection during delivery failed") ? 0 : 1;
     }
 
+    gate.ist = 2;
+    tss.SetIst(2, 0x0000800000000000ULL);
+    idt.SetGate(14, gate);
+    if (resolver.Resolve(exception, 0x10, 0x202, 0, 0x5).status !=
+        ExceptionDeliveryStatus::StackUnavailable) {
+        return Fail("Non-canonical IST stack pointer was accepted") ? 0 : 1;
+    }
+
     gate.ist = 7;
     tss.SetIst(7, 0);
     idt.SetGate(14, gate);
