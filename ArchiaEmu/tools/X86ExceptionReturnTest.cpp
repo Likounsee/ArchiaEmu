@@ -88,6 +88,15 @@ int main()
         return Fail("Same-CPL IRETQ frame decode failed") ? 0 : 1;
     }
 
+    if (applied.status != ExceptionReturnStatus::Returned ||
+        cpu.InstructionPointer() != 0x401234 ||
+        cpu.CodeSegment() != 0x28 ||
+        cpu.Rsp() != 0x7600 ||
+        cpu.StackSegment() != 0x10 ||
+        cpu.Rflags() != 0x202) {
+        return Fail("Same-CPL IRETQ apply failed") ? 0 : 1;
+    }
+
     // Same-CPL IRETQ consumes only RIP/CS/RFLAGS. The bytes after the
     // three-qword frame are deliberately left unmapped so an implementation
     // that incorrectly pops SS:RSP will fail this regression.
@@ -108,15 +117,6 @@ int main()
     }
 
         const auto applied = ExceptionReturn64::Apply(cpu, result);
-    if (applied.status != ExceptionReturnStatus::Returned ||
-        cpu.InstructionPointer() != 0x401234 ||
-        cpu.CodeSegment() != 0x28 ||
-        cpu.Rsp() != 0x7600 ||
-        cpu.StackSegment() != 0x10 ||
-        cpu.Rflags() != 0x202) {
-        return Fail("Same-CPL IRETQ apply failed") ? 0 : 1;
-    }
-
     Cpu userCpu;
     userCpu.SetInstructionPointer(0xDEAD);
     userCpu.SetCodeSegment(0x28);
