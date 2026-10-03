@@ -93,6 +93,38 @@ int main()
         return Fail("hardware exception delivery was not accepted") ? 0 : 1;
     }
 
+    // A software INT from CPL3 must honor the selected IDT gate DPL.
+    // The gate below intentionally has DPL=0; no GP gate is installed, so
+    // correct behavior is a failed nested #GP delivery with no state change.
+    IdtGate64 softwareGate{};
+    softwareGate.present = true;
+    softwareGate.selector = static_cast<std::uint16_t>(5U << 3);
+    softwareGate.offset = 0xFFFF800000002000ULL;
+    softwareGate.dpl = 0;
+    if (!idt.SetGate(3, softwareGate)) {
+        return Fail("failed to install software interrupt gate") ? 0 : 1;
+    }
+
+    Cpu softwareCpu;
+    softwareCpu.ConnectMemory(&memory);
+    softwareCpu.SetExceptionArchitecture(&idt, &gdt, &tss);
+    softwareCpu.SetCodeSegment(0x1B);
+    softwareCpu.SetStackSegment(0x23);
+    softwareCpu.SetStackPointer(0x9000);
+    softwareCpu.SetInstructionPointer(0x5000);
+    softwareCpu.SetRflags(0x246);
+
+    if (softwareCpu.DeliverException({
+            CpuExceptionKind::SoftwareInterrupt,
+            0x5000,
+            MemoryFault::None,
+            CpuExceptionVector::Breakpoint}) ||
+        softwareCpu.InstructionPointer() != 0x5000 ||
+        softwareCpu.CodeSegment() != 0x1B ||
+        softwareCpu.Rsp() != 0x9000) {
+        return Fail("software interrupt bypassed IDT DPL") ? 0 : 1;
+    }
+
     if (callback_called ||
         cpu.CodeSegment() != 0x28 ||
         cpu.StackSegment() != 0 ||
