@@ -5953,9 +5953,13 @@ int Cpu::Run()
                         const std::int32_t low =
                             static_cast<std::int32_t>(eax);
 
+                        // Build EDX:EAX as raw bits first. Left-shifting a
+                        // negative signed value is undefined behavior in C++.
+                        const std::uint64_t dividend_bits =
+                            (static_cast<std::uint64_t>(edx) << 32) |
+                            static_cast<std::uint64_t>(eax);
                         const std::int64_t dividend =
-                            (static_cast<std::int64_t>(high) << 32) |
-                            static_cast<std::uint32_t>(low);
+                            static_cast<std::int64_t>(dividend_bits);
 
                         const std::int32_t divisor =
                             static_cast<std::int32_t>(
