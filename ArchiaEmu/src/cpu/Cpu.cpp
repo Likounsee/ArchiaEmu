@@ -5018,14 +5018,20 @@ int Cpu::Run()
                     const std::uint16_t value=registers_.Read16(rm), result=group==0?static_cast<std::uint16_t>(value+1):static_cast<std::uint16_t>(value-1);
                     registers_.Write16(rm,result); SetZeroFlag(result==0); SetSignFlag((result&0x8000U)!=0);
                     if (group==0 ? value==0x7FFFU : value==0x8000U) rflags_|=OF_MASK; else rflags_&=~OF_MASK;
+                    if (((value ^ result) & 0x10U) != 0) rflags_|=AF_MASK; else rflags_&=~AF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_|=PF_MASK; else rflags_&=~PF_MASK;
                 } else if (rex.w) {
                     const std::uint64_t value=registers_.Read64(rm), result=group==0?value+1:value-1;
                     registers_.Write64(rm,result); SetZeroFlag(result==0); SetSignFlag((result>>63)!=0);
                     if (group==0 ? value==0x7FFFFFFFFFFFFFFFULL : value==0x8000000000000000ULL) rflags_|=OF_MASK; else rflags_&=~OF_MASK;
+                    if (((value ^ result) & 0x10ULL) != 0) rflags_|=AF_MASK; else rflags_&=~AF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_|=PF_MASK; else rflags_&=~PF_MASK;
                 } else {
                     const std::uint32_t value=registers_.Read32(rm), result=group==0?value+1U:value-1U;
                     registers_.Write32(rm,result); SetZeroFlag(result==0); SetSignFlag((result>>31)!=0);
                     if (group==0 ? value==0x7FFFFFFFU : value==0x80000000U) rflags_|=OF_MASK; else rflags_&=~OF_MASK;
+                    if (((value ^ result) & 0x10U) != 0) rflags_|=AF_MASK; else rflags_&=~AF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_|=PF_MASK; else rflags_&=~PF_MASK;
                 }
                 if (old_cf) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
                 break;
