@@ -8363,29 +8363,24 @@ case 0xD0:
 
         case 0xC9:
         {
-            
-            
-            
-
-            const std::uint64_t rbp =
-                registers_.Read64(5);
-
-            registers_.SetRsp(rbp);
-
-            std::uint64_t value = 0;
-
-            if (!Pop64(value)) {
-                return 1;
+            if (address_size_override_) {
+                registers_.SetRsp(static_cast<std::uint64_t>(registers_.Read32(5)));
+            } else {
+                registers_.SetRsp(registers_.Read64(5));
             }
 
-            registers_.Write64(5, value);
+            if (operand_size_override_ && !rex.w) {
+                std::uint16_t value = 0;
+                if (!Pop16(value)) return 1;
+                registers_.Write16(5, value);
+            } else {
+                std::uint64_t value = 0;
+                if (!Pop64(value)) return 1;
+                registers_.Write64(5, value);
+            }
 
             break;
         }
-
-        
-        
-        
 
         case 0x6A:
         {
