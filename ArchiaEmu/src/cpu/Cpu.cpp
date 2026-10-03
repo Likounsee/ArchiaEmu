@@ -321,6 +321,22 @@ bool Cpu::RaiseException(const CpuException& exception)
     last_exception_ = exception;
 
     if (exception_idt_ != nullptr &&
+        exception.kind == CpuExceptionKind::SoftwareInterrupt) {
+        const auto& gate = exception_idt_->Gate(
+            static_cast<std::uint8_t>(exception.vector));
+        const std::uint8_t current_cpl =
+            static_cast<std::uint8_t>(code_segment_ & 0x3U);
+        if (current_cpl > gate.dpl) {
+            CpuException generalProtection{};
+            generalProtection.kind = CpuExceptionKind::GeneralProtection;
+            generalProtection.instruction_pointer =
+                exception.instruction_pointer;
+            generalProtection.vector = CpuExceptionVector::GeneralProtection;
+            return RaiseException(generalProtection);
+        }
+    }
+
+    if (exception_idt_ != nullptr &&
         exception_gdt_ != nullptr &&
         exception_tss_ != nullptr &&
         memory_ != nullptr) {
