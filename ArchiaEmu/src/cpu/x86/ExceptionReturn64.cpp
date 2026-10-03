@@ -163,7 +163,10 @@ ExceptionReturnResult ExceptionReturn64::Read(
     // IRETQ pops only RIP, CS and RFLAGS when returning at the same CPL.
     // RSP/SS are part of the frame only for a privilege-level return.
     if (target_cpl == current_cpl) {
-        result.rsp = old_rsp + 24;
+        if (!AddOffset(old_rsp, 24, result.rsp)) {
+            result.status = ExceptionReturnStatus::Unmapped;
+            return result;
+        }
         result.ss = cpu.StackSegment();
         result.status = ExceptionReturnStatus::Returned;
         return result;
