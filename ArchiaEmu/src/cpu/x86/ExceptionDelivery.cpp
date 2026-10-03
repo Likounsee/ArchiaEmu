@@ -69,9 +69,11 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
     result.stack_frame.has_error_code =
         ExceptionFrame64::HasHardwareErrorCode(exception.vector);
     result.stack_frame.error_code = error_code;
-    // In 64-bit mode exception entry always saves SS:RSP in the hardware
-    // frame, even when the target remains at the same CPL.
-    result.stack_frame.has_stack_switch = true;
+    // SS:RSP are pushed only when the interrupt changes CPL or uses
+    // an IST stack. A same-CPL interrupt without IST has the three-qword
+    // RIP/CS/RFLAGS frame (plus an optional error code).
+    result.stack_frame.has_stack_switch =
+        target.segment.dpl < current_cpl || dispatch.gate.ist != 0;
     result.stack_frame.rsp = current_rsp;
     result.stack_frame.ss = current_ss;
     result.frame = ExceptionFrame64::Build(
