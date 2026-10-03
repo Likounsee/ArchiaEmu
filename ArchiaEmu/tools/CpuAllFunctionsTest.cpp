@@ -1483,6 +1483,41 @@ void TestFlags()
             (cpu.Rflags() & (1ULL << 6)) != 0);
     }
 
+    // NEG64 must update AF/PF in addition to CF/OF/SF/ZF.
+    {
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x10);
+        code.insert(code.end(), {0x48, 0xF7, 0xD8}); // NEG RAX
+        code = Finish(code);
+        CHECK(
+            "NEG64 AF + PF",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0xFFFFFFFFFFFFFFF0ULL &&
+            (cpu.Rflags() & (1ULL << 4)) != 0 &&
+            (cpu.Rflags() & (1ULL << 2)) != 0);
+    }
+
+    // INC/DEC preserve CF but must update AF/PF.
+    {
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(1ULL);
+        auto code = MovR64(0, 0x0F);
+        code.push_back(0x48);
+        code.push_back(0xFF);
+        code.push_back(0xC0); // INC RAX
+        code.push_back(0x48);
+        code.push_back(0xFF);
+        code.push_back(0xC8); // DEC RAX
+        code = Finish(code);
+        CHECK(
+            "INC/DEC AF + PF",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x0FULL &&
+            (cpu.Rflags() & 1ULL) != 0 &&
+            (cpu.Rflags() & (1ULL << 4)) != 0 &&
+            (cpu.Rflags() & (1ULL << 2)) != 0);
+    }
+
     // SUB borrow
     {
         Memory mem3;
