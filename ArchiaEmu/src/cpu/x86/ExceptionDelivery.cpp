@@ -4,6 +4,15 @@
 
 namespace myps5emu::x86 {
 
+namespace {
+bool IsCanonical48(std::uint64_t value) noexcept
+{
+    const std::uint64_t upper = value >> 48U;
+    const bool sign = (value & (1ULL << 47U)) != 0;
+    return upper == (sign ? 0xFFFFULL : 0ULL);
+}
+}
+
 ExceptionDeliveryResolver::ExceptionDeliveryResolver(
     const Idt& idt,
     const Gdt64& gdt,
@@ -78,6 +87,11 @@ ExceptionDeliveryResult ExceptionDeliveryResolver::Resolve(
     result.stack_frame.ss = current_ss;
     result.frame = ExceptionFrame64::Build(
         exception, current_cs, current_rflags, error_code);
+    if (!IsCanonical48(dispatch.gate.offset)) {
+        result.status = ExceptionDeliveryStatus::InvalidTarget;
+        return result;
+    }
+
     result.target_rip = dispatch.gate.offset;
     result.target_cs = dispatch.gate.selector;
     // In 64-bit mode a CPL-changing or IST stack switch forces SS to NULL
