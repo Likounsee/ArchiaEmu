@@ -5320,6 +5320,8 @@ int Cpu::Run()
                     SetSignFlag((result & 0x8000U) != 0);
                     if (value != 0) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
                     if (value == 0x8000U) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
+                    const bool auxiliary = ((0U ^ value ^ result) & 0x10U) != 0;
+                    if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
                     if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
                 }
                 else if (rex.w) {
@@ -5369,6 +5371,8 @@ int Cpu::Run()
                     } else {
                         rflags_ &= ~OF_MASK;
                     }
+                    if (((value ^ result) & 0x10ULL) != 0) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
 
                 } else {
 
@@ -5417,6 +5421,8 @@ int Cpu::Run()
                     } else {
                         rflags_ &= ~OF_MASK;
                     }
+                    if (((value ^ result) & 0x10U) != 0) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
+                    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
                 }
 
                 break;
