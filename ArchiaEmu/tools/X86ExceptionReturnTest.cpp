@@ -88,7 +88,26 @@ int main()
         return Fail("Same-CPL IRETQ frame decode failed") ? 0 : 1;
     }
 
-    const auto applied = ExceptionReturn64::Apply(cpu, result);
+    // Same-CPL IRETQ consumes only RIP/CS/RFLAGS. The bytes after the
+    // three-qword frame are deliberately left unmapped so an implementation
+    // that incorrectly pops SS:RSP will fail this regression.
+    Cpu sameCplCpu;
+    sameCplCpu.SetInstructionPointer(0x1111);
+    sameCplCpu.SetCodeSegment(0x28);
+    sameCplCpu.SetStackPointer(0x7F00);
+    sameCplCpu.SetStackSegment(0x10);
+    sameCplCpu.SetRflags(0x202);
+    WriteQword(memory, 0x7F00, 0x401234);
+    WriteQword(memory, 0x7F08, 0x28);
+    WriteQword(memory, 0x7F10, 0x202);
+    result = ExceptionReturn64::Read(sameCplCpu, memory, gdt);
+    if (result.status != ExceptionReturnStatus::Returned ||
+        result.rsp != 0x7F18 ||
+        result.ss != 0x10) {
+        return Fail("Same-CPL IRETQ incorrectly consumed SS:RSP") ? 0 : 1;
+    }
+
+        const auto applied = ExceptionReturn64::Apply(cpu, result);
     if (applied.status != ExceptionReturnStatus::Returned ||
         cpu.InstructionPointer() != 0x401234 ||
         cpu.CodeSegment() != 0x28 ||
@@ -197,6 +216,13 @@ int main()
     if (result.status != ExceptionReturnStatus::InvalidInstructionPointer ||
         userCpu.InstructionPointer() != beforeRip) {
         return Fail("Non-canonical RIP was accepted") ? 0 : 1;
+    }
+
+    // Bit 47 set with a zero-extended upper half is also non-canonical.
+    WriteQword(memory, 0x7100, 0x0000800000000000ULL);
+    result = ExceptionReturn64::Read(userCpu, memory, gdt);
+    if (result.status != ExceptionReturnStatus::InvalidInstructionPointer) {
+        return Fail("Sign-bit non-canonical RIP was accepted") ? 0 : 1;
     }
 
     WriteQword(memory, 0x7100, 0x505678);
