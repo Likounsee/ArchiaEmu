@@ -19,7 +19,8 @@ std::uint64_t ReadU64(const std::array<std::uint8_t, 8>& bytes) noexcept
 bool IsCanonical48(std::uint64_t value) noexcept
 {
     const std::uint64_t upper = value >> 48;
-    return upper == 0 || upper == 0xFFFF;
+    const bool sign = (value & (1ULL << 47U)) != 0;
+    return upper == (sign ? 0xFFFFULL : 0ULL);
 }
 
 bool AddOffset(
@@ -159,8 +160,15 @@ ExceptionReturnResult ExceptionReturn64::Read(
         }
     }
 
-    // In 64-bit mode IRETQ always pops SS:RSP because interrupt/exception
-    // entry always pushed them, even when the return stays at the same CPL.
+    // IRETQ pops only RIP, CS and RFLAGS when returning at the same CPL.
+    // RSP/SS are part of the frame only for a privilege-level return.
+    if (target_cpl == current_cpl) {
+        result.rsp = old_rsp + 24;
+        result.ss = cpu.StackSegment();
+        result.status = ExceptionReturnStatus::Returned;
+        return result;
+    }
+
     if (!AddOffset(old_rsp, 24, address) ||
         !ReadQword(memory, address, result.rsp) ||
         !AddOffset(old_rsp, 32, address) ||
@@ -172,8 +180,7 @@ ExceptionReturnResult ExceptionReturn64::Read(
     result.ss = static_cast<std::uint16_t>(address);
 
     // A 64-bit IRET may restore a NULL SS when returning to CPL0.
-    // For non-CPL3 returns, the NULL selector's RPL must still match
-    // the target CPL; selector 0 therefore only qualifies for CPL0.
+    // For non-CPL0 returns, a NULL SS is invalid.
     if (result.ss == 0) {
         if (target_cpl != 0 || !IsCanonical48(result.rsp)) {
             result.status = ExceptionReturnStatus::InvalidStack;
