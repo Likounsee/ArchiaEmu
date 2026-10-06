@@ -8412,6 +8412,54 @@ case 0xD0:
             break;
         }
 
+        case 0x63:
+        {
+            std::uint8_t modrm = 0;
+            if (!Fetch8(modrm)) return 1;
+
+            if (operand_size_override_ && !rex.w) {
+                std::uint8_t reg = 0, rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+                if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
+
+                std::uint16_t raw = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&raw), sizeof(raw))) return 1;
+                } else {
+                    raw = registers_.Read16(rm);
+                }
+
+                registers_.Write16(
+                    reg,
+                    static_cast<std::uint16_t>(
+                        static_cast<std::int16_t>(raw)));
+            } else {
+                std::uint8_t reg = 0, rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+                if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
+
+                std::uint32_t raw = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&raw), sizeof(raw))) return 1;
+                } else {
+                    raw = registers_.Read32(rm);
+                }
+
+                if (rex.w) {
+                    registers_.Write64(
+                        reg,
+                        static_cast<std::uint64_t>(
+                            static_cast<std::int64_t>(
+                                static_cast<std::int32_t>(raw))));
+                } else {
+                    registers_.Write32(reg, raw);
+                }
+            }
+            break;
+        }
+
         case 0x68:
         {
             if (operand_size_override_) {
