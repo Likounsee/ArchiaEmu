@@ -9301,7 +9301,6 @@ bool Cpu::DecodeShift8Imm(
         }
 
         const bool hasRex = rex.present;
-            rex.present;
 
         std::uint8_t registerIndex = rm;
         bool highByte = false;
