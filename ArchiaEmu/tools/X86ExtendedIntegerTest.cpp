@@ -472,6 +472,44 @@ static bool TestIncDecMemoryAndCmpWidths() {
            cpu.ReadRegister64(3)==0x2222000000000001ULL;
 }
 
+static bool TestImulForms() {
+    Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code,0,6); AppendMovR64(code,3,7);
+    code.insert(code.end(),{0x48,0x0F,0xAF,0xC3});
+    if(!Run(memory,cpu,code) || cpu.Rax()!=42 || (cpu.Rflags()&(CF_MASK|OF_MASK))!=0) return false;
+
+    Memory m2; m2.Map(0x1000,0x3000); Cpu c2; c2.ConnectMemory(&m2);
+    code.clear(); AppendMovR64(code,0,0x7FFFFFFF); AppendMovR64(code,3,2);
+    code.insert(code.end(),{0x0F,0xAF,0xC3});
+    if(!Run(m2,c2,code) || (c2.ReadRegister64(0)&0xFFFFFFFFULL)!=0xFFFFFFFEU ||
+       (c2.Rflags()&(CF_MASK|OF_MASK))!=(CF_MASK|OF_MASK)) return false;
+
+    Memory m3; m3.Map(0x1000,0x3000); Cpu c3; c3.ConnectMemory(&m3);
+    code.clear(); AppendMovR64(code,0,7);
+    code.insert(code.end(),{0x6B,0xC0,0xFE});
+    if(!Run(m3,c3,code) || (c3.Rax()&0xFFFFFFFFULL)!=0xFFFFFFF2U ||
+       (c3.Rflags()&(CF_MASK|OF_MASK))!=0) return false;
+
+    Memory m4; m4.Map(0x1000,0x3000); Cpu c4; c4.ConnectMemory(&m4);
+    code.clear(); AppendMovR64(code,0,0x40000000ULL);
+    code.insert(code.end(),{0x69,0xC0,0x02,0x00,0x00,0x00});
+    if(!Run(m4,c4,code) || (c4.Rax()&0xFFFFFFFFULL)!=0x80000000U ||
+       (c4.Rflags()&(CF_MASK|OF_MASK))!=(CF_MASK|OF_MASK)) return false;
+
+    Memory m5; m5.Map(0x1000,0x3000); Cpu c5; c5.ConnectMemory(&m5);
+    code.clear(); AppendMovR64(code,0,3);
+    code.insert(code.end(),{0x66,0x6B,0xC0,0xFE});
+    if(!Run(m5,c5,code) || (c5.Rax()&0xFFFFU)!=0xFFFAU) return false;
+
+    Memory m6; m6.Map(0x1000,0x3000); Cpu c6; c6.ConnectMemory(&m6);
+    code.clear(); AppendMovR64(code,0,0x4000000000000000ULL);
+    code.insert(code.end(),{0x48,0x6B,0xC0,0x02});
+    if(!Run(m6,c6,code) || c6.Rax()!=0x8000000000000000ULL ||
+       (c6.Rflags()&(CF_MASK|OF_MASK))!=(CF_MASK|OF_MASK)) return false;
+    return true;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -515,7 +553,7 @@ int main() {
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
     if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
-    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }
+    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }\n    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
