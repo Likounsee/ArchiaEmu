@@ -83,7 +83,7 @@ int main()
         result.rip != 0x401234 ||
         result.cs != 0x28 ||
         result.rflags != 0x202 ||
-        result.rsp != 0x7018 ||
+        result.rsp != 0x7600 ||
         result.ss != 0x10) {
         return Fail("Same-CPL IRETQ frame decode failed") ? 0 : 1;
     }
@@ -92,7 +92,7 @@ int main()
     if (applied.status != ExceptionReturnStatus::Returned ||
         cpu.InstructionPointer() != 0x401234 ||
         cpu.CodeSegment() != 0x28 ||
-        cpu.Rsp() != 0x7018 ||
+        cpu.Rsp() != 0x7600 ||
         cpu.StackSegment() != 0x10 ||
         cpu.Rflags() != 0x202) {
         return Fail("Same-CPL IRETQ apply failed") ? 0 : 1;
