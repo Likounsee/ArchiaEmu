@@ -379,7 +379,7 @@ static bool TestFlagsAndLoops() {
     Cpu cpu2; cpu2.ConnectMemory(&memory2);
     std::vector<std::uint8_t> flagsCode = {0xF8, 0xF9, 0xF5, 0xFC, 0xFD};
     if (!Run(memory2, cpu2, flagsCode)) { std::cerr << "flag control execution failed\n"; return false; }
-    if ((cpu2.Rflags() & 1ULL) == 0 || (cpu2.Rflags() & (1ULL << 10)) == 0) { std::cerr << "flag control state failed: RFLAGS=0x" << std::hex << cpu2.Rflags() << std::dec << "\n"; return false; }
+    if ((cpu2.Rflags() & 1ULL) != 0 || (cpu2.Rflags() & (1ULL << 10)) == 0) { std::cerr << "flag control state failed: expected CF=0,DF=1; RFLAGS=0x" << std::hex << cpu2.Rflags() << std::dec << "\n"; return false; }
 
     Memory memory3; memory3.Map(0x1000, 0x2000);
     Cpu cpu3; cpu3.ConnectMemory(&memory3);
