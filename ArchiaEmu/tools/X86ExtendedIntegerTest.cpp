@@ -182,7 +182,12 @@ static bool TestBitScan() {
 static bool TestByteAlu() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code={0xB0,0x10,0xB3,0x05,0x00,0xD8,0x08,0xD8,0x20,0xD8,0x30,0xD8,0x38,0xD8,0xF4};
-    return Run(memory,cpu,code) && (cpu.ReadRegister64(0)&0xFFU)==0x15U;
+    if (!Run(memory,cpu,code) || (cpu.ReadRegister64(0)&0xFFU) != 0x15U) {
+        std::cerr << "byte ALU AL=0x" << std::hex << (cpu.ReadRegister64(0)&0xFFU)
+                  << " BL=0x" << (cpu.ReadRegister64(3)&0xFFU) << std::dec << "\n";
+        return false;
+    }
+    return true;
 }
 
 static bool TestStringIo() {
