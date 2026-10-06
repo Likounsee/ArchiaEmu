@@ -517,8 +517,7 @@ static bool TestMulDivForms() {
     code.insert(code.end(),{0xB8,0xE8,0x03,0xB3,0x0A,0xF6,0xF3});
     code.insert(code.end(),{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB});
     if(!Run(memory,cpu,code)) return false;
-    if((cpu.Rax()&0xFFFFU)!=0x0008U) return false; // -40 / -? final IDIV: -40 / 10 = -4, rem 0 -> FFFC.
-    // Re-run with explicit signed case to avoid relying on prior AX state.
+    if((cpu.Rax()&0xFFFFU)!=0x00FCU) return false; // -40 / 10 = -4, remainder 0.
     Memory signed8; signed8.Map(0x1000,0x3000); Cpu s8; s8.ConnectMemory(&signed8);
     if(!Run(signed8,s8,{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB})) return false;
     if((s8.Rax()&0xFFFFU)!=0x00FCU) return false;
@@ -528,7 +527,7 @@ static bool TestMulDivForms() {
     std::vector<std::uint8_t> v16={0xB8,0xE8,0x03,0x31,0xD2,0xBB,0x1E,0x00,0x66,0xF7,0xF3};
     v16.insert(v16.end(),{0xB8,0x18,0xFC,0xBA,0xFF,0xFF,0xBB,0x1E,0x00,0x66,0xF7,0xFB});
     if(!Run(m16,c16,v16)) return false;
-    if((c16.Rax()&0xFFFFU)!=0xFFF4U || (c16.Rdx()&0xFFFFU)!=0x0000U) return false;
+    if((c16.Rax()&0xFFFFU)!=0xFFDFU || (c16.Rdx()&0xFFFFU)!=0xFFF6U) return false;
 
     // 32-bit DIV: EDX:EAX / EBX = 100000 / 30000.
     Memory m32; m32.Map(0x1000,0x3000); Cpu c32; c32.ConnectMemory(&m32);
