@@ -164,7 +164,7 @@ static bool TestDoubleShift() {
 
 static bool TestBitModify() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
-    std::vector<std::uint8_t> code; AppendMovR64(code,3,0x8ULL);
+    std::vector<std::uint8_t> code; AppendMovR64(code,3,0x8ULL); AppendMovR64(code,1,3ULL);
     code.insert(code.end(),{0x48,0x0F,0xA3,0xCB,0x48,0x0F,0xAB,0xCB,0x48,0x0F,0xB3,0xCB,0x48,0x0F,0xBB,0xCB});
     if(!Run(memory,cpu,code))return false;
     return cpu.ReadRegister64(3)==0x8ULL && (cpu.Rflags()&(1ULL<<0))==0;
