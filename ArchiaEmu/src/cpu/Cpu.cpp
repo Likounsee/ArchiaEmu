@@ -5102,45 +5102,6 @@ int Cpu::Run()
             }
             break;
         }
-        case 0x39:
-        case 0x3A:
-        case 0x3B: {
-            std::uint8_t modrm = 0;
-            if (!Fetch8(modrm)) return 1;
-            if (opcode == 0x3A) {
-                std::uint8_t reg=0, rm=0; bool regHigh=false, rmHigh=false;
-                std::uint64_t address=0; bool memory=false;
-                if (!DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory)) return 1;
-                const std::uint8_t lhs=ReadReg8(reg,regHigh);
-                std::uint8_t rhs=0;
-                if(memory){if(!ReadMemory(address,&rhs,1))return 1;}else rhs=ReadReg8(rm,rmHigh);
-                SetSubFlags8(lhs,rhs,static_cast<std::uint8_t>(lhs-rhs));
-            } else {
-                std::uint8_t reg=0,rm=0; std::uint64_t address=0; bool memory=false;
-                if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
-                if(operand_size_override_ && !rex.w){
-                    std::uint16_t lhs=opcode==0x39?(memory?0:registers_.Read16(rm)):registers_.Read16(reg);
-                    std::uint16_t rhs=opcode==0x39?registers_.Read16(reg):(memory?0:registers_.Read16(rm));
-                    if(opcode==0x39&&memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&lhs),2))return 1;}
-                    if(opcode==0x3B&&memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&rhs),2))return 1;}
-                    SetSubFlags16(lhs,rhs,static_cast<std::uint16_t>(lhs-rhs));
-                } else if(rex.w){
-                    std::uint64_t lhs=opcode==0x39?(memory?0:registers_.Read64(rm)):registers_.Read64(reg);
-                    std::uint64_t rhs=opcode==0x39?registers_.Read64(reg):(memory?0:registers_.Read64(rm));
-                    if(opcode==0x39&&memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&lhs),8))return 1;}
-                    if(opcode==0x3B&&memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&rhs),8))return 1;}
-                    SetSubFlags64(lhs,rhs,lhs-rhs);
-                } else {
-                    std::uint32_t lhs=opcode==0x39?(memory?0:registers_.Read32(rm)):registers_.Read32(reg);
-                    std::uint32_t rhs=opcode==0x39?registers_.Read32(reg):(memory?0:registers_.Read32(rm));
-                    if(opcode==0x39&&memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&lhs),4))return 1;}
-                    if(opcode==0x3B&&memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&rhs),4))return 1;}
-                    SetSubFlags32(lhs,rhs,lhs-rhs);
-                }
-            }
-            break;
-        }
-
         case 0xFE: {
             std::uint8_t modrm=0,reg=0,rm=0;bool regHigh=false,rmHigh=false;std::uint64_t address=0;bool memory=false;
             if(!Fetch8(modrm)||!DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory))return 1;
