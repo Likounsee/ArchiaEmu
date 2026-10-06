@@ -5018,22 +5018,41 @@ int Cpu::Run()
             std::uint8_t modrm=0, reg=0, rm=0; std::uint64_t address=0; bool memory=false;
             if(!Fetch8(modrm) || !DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
             if (operand_size_override_ && !rex.w) {
-                const bool isAdc16 = opcode == 0x13;
-                const bool isSbb16 = opcode == 0x1B;
-                if (!isAdc16 && !isSbb16) return 1;
-                std::uint16_t lhs = registers_.Read16(reg);
+                const bool isAdc16 = opcode == 0x11 || opcode == 0x13;
+                const bool isSbb16 = opcode == 0x19 || opcode == 0x1B;
+                const bool destinationIsRm = opcode == 0x11 || opcode == 0x19;
+                std::uint16_t lhs = 0;
                 std::uint16_t rhs = 0;
-                if (memory) {
-                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rhs), sizeof(rhs))) return 1;
+                if (destinationIsRm) {
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&lhs), sizeof(lhs))) return 1;
+                    } else {
+                        lhs = registers_.Read16(rm);
+                    }
+                    rhs = registers_.Read16(reg);
                 } else {
-                    rhs = registers_.Read16(rm);
+                    lhs = registers_.Read16(reg);
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rhs), sizeof(rhs))) return 1;
+                    } else {
+                        rhs = registers_.Read16(rm);
+                    }
                 }
                 const bool carryIn = (rflags_ & CF_MASK) != 0;
                 const std::uint16_t result = isAdc16
-                    ? static_cast<std::uint16_t>(lhs + rhs + carryIn)
-                    : static_cast<std::uint16_t>(lhs - rhs - carryIn);
+                    ? static_cast<std::uint16_t>(lhs + rhs + (carryIn ? 1U : 0U))
+                    : static_cast<std::uint16_t>(lhs - rhs - (carryIn ? 1U : 0U));
+                if (destinationIsRm) {
+                    if (memory) {
+                        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return 1;
+                    } else {
+                        registers_.Write16(rm, result);
+                    }
+                } else {
+                    registers_.Write16(reg, result);
+                }
                 if (isAdc16) {
-                    const std::uint32_t sum = static_cast<std::uint32_t>(lhs) + rhs + carryIn;
+                    const std::uint32_t sum = static_cast<std::uint32_t>(lhs) + rhs + (carryIn ? 1U : 0U);
                     if (sum > 0xFFFFU) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
                     if (((~(lhs ^ rhs) & (lhs ^ result)) & 0x8000U) != 0) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
                 } else {
@@ -5045,7 +5064,6 @@ int Cpu::Run()
                 SetSignFlag((result & 0x8000U) != 0);
                 if (((lhs ^ rhs ^ result) & 0x10U) != 0) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
                 if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK; else rflags_ &= ~PF_MASK;
-                registers_.Write16(reg, result);
                 break;
             }
             const bool isAdc=(opcode==0x11||opcode==0x13);
