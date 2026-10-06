@@ -108,9 +108,16 @@ static bool TestCmpxchg8b() {
     const std::uint64_t initial=0x1122334455667788ULL; if(!memory.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&initial),8))return false;
     std::vector<std::uint8_t> code; AppendMovR64(code,0,0x55667788ULL); AppendMovR64(code,2,0x11223344ULL); AppendMovR64(code,3,0xAABBCCDDULL); AppendMovR64(code,1,0xEEFF0011ULL);
     code.insert(code.end(),{0x0F,0xC7,0x0C,0x25,0x00,0x18,0x00,0x00});
-    if(!Run(memory,cpu,code))return false;
+    if(!Run(memory,cpu,code)) {
+        std::cerr << "CMPXCHG8B first run failed\n";
+        return false;
+    }
     std::uint64_t out=0;if(!memory.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8))return false;
-    if(out!=0xAABBCCDDEEFF0011ULL || (cpu.Rflags()&(1ULL<<6))==0) return false;
+    if(out!=0xAABBCCDDEEFF0011ULL || (cpu.Rflags()&(1ULL<<6))==0) {
+        std::cerr << "CMPXCHG8B first result=0x" << std::hex << out
+                  << " RFLAGS=0x" << cpu.Rflags() << std::dec << "\n";
+        return false;
+    }
     const std::uint64_t oldLo=0x1122334455667788ULL, oldHi=0x99AABBCCDDEEFF00ULL;
     if(!memory.Write(0x1900,reinterpret_cast<const std::uint8_t*>(&oldLo),8)||!memory.Write(0x1908,reinterpret_cast<const std::uint8_t*>(&oldHi),8))return false;
     Cpu c2; c2.ConnectMemory(&memory);
