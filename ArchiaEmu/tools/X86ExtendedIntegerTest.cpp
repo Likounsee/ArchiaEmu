@@ -421,6 +421,37 @@ static bool TestAdcSbb16Directions() {
            (cpu2.Rflags()&1ULL)==0;
 }
 
+static bool TestIncDecMemoryAndCmpWidths() {
+    Memory memory; memory.Map(0x1000,0x4000);
+    Cpu cpu; cpu.ConnectMemory(&memory);
+    const std::uint32_t v32=0x7FFFFFFFU;
+    const std::uint16_t v16=0x8000U;
+    const std::uint64_t v64=0xFFFFFFFFFFFFFFFFULL;
+    if(!memory.Write(0x2000,reinterpret_cast<const std::uint8_t*>(&v32),sizeof(v32))) return false;
+    if(!memory.Write(0x2010,reinterpret_cast<const std::uint8_t*>(&v16),sizeof(v16))) return false;
+    if(!memory.Write(0x2020,reinterpret_cast<const std::uint8_t*>(&v64),sizeof(v64))) return false;
+
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code,7,0x2000);
+    code.insert(code.end(),{0xFF,0x07,0xFF,0x0F});
+    AppendMovR64(code,7,0x2010);
+    code.insert(code.end(),{0x66,0xFF,0x07,0x66,0xFF,0x0F});
+    AppendMovR64(code,7,0x2020);
+    code.insert(code.end(),{0x48,0xFF,0x07,0x48,0xFF,0x0F});
+    AppendMovR64(code,0,0x1234000000000001ULL);
+    AppendMovR64(code,3,0x2222000000000001ULL);
+    code.insert(code.end(),{0x66,0x39,0xD8,0x66,0x3B,0xD8,0x39,0xD8,0x3B,0xD8,0x48,0x39,0xD8,0x48,0x3B,0xD8});
+    if(!Run(memory,cpu,code)) return false;
+
+    std::uint32_t out32=0; std::uint16_t out16=0; std::uint64_t out64=0;
+    if(!memory.Read(0x2000,reinterpret_cast<std::uint8_t*>(&out32),sizeof(out32))) return false;
+    if(!memory.Read(0x2010,reinterpret_cast<std::uint8_t*>(&out16),sizeof(out16))) return false;
+    if(!memory.Read(0x2020,reinterpret_cast<std::uint8_t*>(&out64),sizeof(out64))) return false;
+    if(out32!=0x7FFFFFFFU || out16!=0x8000U || out64!=0xFFFFFFFFFFFFFFFFULL) return false;
+    return cpu.ReadRegister64(0)==0x1234000000000001ULL &&
+           cpu.ReadRegister64(3)==0x2222000000000001ULL;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -463,7 +494,7 @@ int main() {
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
-    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
+    if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }\n    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
 }
