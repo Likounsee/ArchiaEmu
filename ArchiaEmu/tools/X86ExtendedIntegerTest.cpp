@@ -561,32 +561,38 @@ static bool TestMulDivForms() {
 }
 
 static bool TestDivideFaultsAndBoundaries() {
+    auto expectFault = [](Memory& m, Cpu& cpu, const std::vector<std::uint8_t>& code) {
+        std::vector<std::uint8_t> program = code;
+        program.push_back(0xF4);
+        if (!m.Write(0x1000, program.data(), program.size())) return false;
+        cpu.SetInstructionPointer(0x1000);
+        return cpu.Run() != 0;
+    };
+
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        if (!Run(m,cpu,{0xB0,0x00,0xF6,0xF3})) return false;
+        if (!expectFault(m,cpu,{0xB0,0x00,0xF6,0xF3})) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::vector<std::uint8_t> code={0xB8,0x00,0x01,0xB3,0x01,0xF6,0xF3};
-        if (!Run(m,cpu,code)) return false;
+        if (!expectFault(m,cpu,{0xB8,0x00,0x01,0xB3,0x01,0xF6,0xF3})) return false;
     }
     {
-        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::vector<std::uint8_t> code={0x66,0xB8,0x00,0x00,0x66,0xBA,0x00,0x80,0x66,0xBB,0xFF,0xFF,0x66,0xF7,0xFB};
-        if (!Run(m,cpu,code)) return false;
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        if (!expectFault(m,cpu,{0x66,0xB8,0x00,0x00,0x66,0xBA,0x00,0x80,0x66,0xBB,0xFF,0xFF,0x66,0xF7,0xFB})) return false;
     }
     {
-        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::vector<std::uint8_t> code={0xB8,0x00,0x00,0x00,0x00,0xBA,0x00,0x00,0x00,0x80,0xBB,0xFF,0xFF,0xFF,0xFF,0xF7,0xFB};
-        if (!Run(m,cpu,code)) return false;
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        if (!expectFault(m,cpu,{0xB8,0x00,0x00,0x00,0x00,0xBA,0x00,0x00,0x00,0x80,0xBB,0xFF,0xFF,0xFF,0xFF,0xF7,0xFB})) return false;
     }
     {
-        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code;
-        AppendMovR64(code,0,0); AppendMovR64(code,2,0x8000000000000000ULL);
+        AppendMovR64(code,0,0x8000000000000000ULL);
+        AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
         AppendMovR64(code,3,0xFFFFFFFFFFFFFFFFULL);
         code.insert(code.end(),{0x48,0xF7,0xFB});
-        if (!Run(m,cpu,code)) return false;
+        if (!expectFault(m,cpu,code)) return false;
     }
     return true;
 }
