@@ -3502,6 +3502,74 @@ int Cpu::Run()
             break;
         }
 
+        case 0x00:
+        case 0x08:
+        case 0x20:
+        case 0x28:
+        case 0x30:
+        case 0x38:
+        {
+            std::uint8_t modrm = 0;
+            if (!Fetch8(modrm)) return 1;
+
+            std::uint8_t reg = 0, rm = 0;
+            bool reg_high = false, rm_high = false;
+            std::uint64_t address = 0;
+            bool memory = false;
+            if (!DecodeMemoryOrRegister8(
+                    modrm, rex, reg, reg_high,
+                    rm, rm_high, address, memory)) {
+                return 1;
+            }
+
+            const std::uint8_t lhs =
+                memory ? ([&]() {
+                    std::uint8_t value = 0;
+                    if (!ReadMemory(address, &value, 1)) return std::uint8_t(0);
+                    return value;
+                })() : ReadReg8(rm, rm_high);
+            const std::uint8_t rhs = ReadReg8(reg, reg_high);
+            std::uint8_t result = lhs;
+
+            switch (opcode) {
+            case 0x00:
+                result = static_cast<std::uint8_t>(lhs + rhs);
+                SetAddFlags8(lhs, rhs, result);
+                break;
+            case 0x08:
+                result = static_cast<std::uint8_t>(lhs | rhs);
+                SetLogicFlags8(result);
+                break;
+            case 0x20:
+                result = static_cast<std::uint8_t>(lhs & rhs);
+                SetLogicFlags8(result);
+                break;
+            case 0x28:
+                result = static_cast<std::uint8_t>(lhs - rhs);
+                SetSubFlags8(lhs, rhs, result);
+                break;
+            case 0x30:
+                result = static_cast<std::uint8_t>(lhs ^ rhs);
+                SetLogicFlags8(result);
+                break;
+            case 0x38:
+                result = static_cast<std::uint8_t>(lhs - rhs);
+                SetSubFlags8(lhs, rhs, result);
+                break;
+            default:
+                return 1;
+            }
+
+            if (opcode != 0x38) {
+                if (memory) {
+                    if (!WriteMemory(address, &result, 1)) return 1;
+                } else {
+                    WriteReg8(rm, rm_high, result);
+                }
+            }
+            break;
+        }
+
         case 0x0F: {
             
             
