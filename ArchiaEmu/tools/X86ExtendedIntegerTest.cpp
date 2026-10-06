@@ -514,7 +514,9 @@ int main() {
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
-    if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }\n    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
+    if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
+    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }
+    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
 }
