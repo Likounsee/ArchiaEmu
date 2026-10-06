@@ -12,6 +12,32 @@
 
 namespace {
 
+struct SignedMul64Result {
+    std::uint64_t lo;
+    std::uint64_t hi;
+};
+
+SignedMul64Result MultiplySigned64(std::uint64_t lhs, std::uint64_t rhs)
+{
+    const std::uint32_t lhs_lo = static_cast<std::uint32_t>(lhs);
+    const std::uint32_t lhs_hi = static_cast<std::uint32_t>(lhs >> 32);
+    const std::uint32_t rhs_lo = static_cast<std::uint32_t>(rhs);
+    const std::uint32_t rhs_hi = static_cast<std::uint32_t>(rhs >> 32);
+    const std::uint64_t p0 = static_cast<std::uint64_t>(lhs_lo) * rhs_lo;
+    const std::uint64_t p1 = static_cast<std::uint64_t>(lhs_hi) * rhs_lo;
+    const std::uint64_t p2 = static_cast<std::uint64_t>(lhs_lo) * rhs_hi;
+    const std::uint64_t p3 = static_cast<std::uint64_t>(lhs_hi) * rhs_hi;
+    const std::uint64_t middle =
+        (p0 >> 32) + static_cast<std::uint32_t>(p1) + static_cast<std::uint32_t>(p2);
+    SignedMul64Result result{
+        (p0 & 0xFFFFFFFFULL) | (middle << 32),
+        p3 + (p1 >> 32) + (p2 >> 32) + (middle >> 32)
+    };
+    if ((lhs & 0x8000000000000000ULL) != 0) result.hi -= rhs;
+    if ((rhs & 0x8000000000000000ULL) != 0) result.hi -= lhs;
+    return result;
+}
+
 struct U128DivResult {
     std::uint64_t quotient_hi;
     std::uint64_t quotient_lo;
@@ -3611,9 +3637,13 @@ int Cpu::Run()
                     } else raw = registers_.Read64(rm);
                     const std::int64_t lhs = static_cast<std::int64_t>(registers_.Read64(reg));
                     const std::int64_t rhs = static_cast<std::int64_t>(raw);
-                    const __int128 product = static_cast<__int128>(lhs) * static_cast<__int128>(rhs);
-                    registers_.Write64(reg, static_cast<std::uint64_t>(product));
-                    const bool overflow = product < static_cast<__int128>(std::numeric_limits<std::int64_t>::min()) || product > static_cast<__int128>(std::numeric_limits<std::int64_t>::max());
+                    const SignedMul64Result product =
+                        MultiplySigned64(static_cast<std::uint64_t>(lhs),
+                                         static_cast<std::uint64_t>(rhs));
+                    registers_.Write64(reg, product.lo);
+                    const std::uint64_t expected_hi =
+                        (product.lo & 0x8000000000000000ULL) ? 0xFFFFFFFFFFFFFFFFULL : 0ULL;
+                    const bool overflow = product.hi != expected_hi;
                     if (overflow) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
                 } else {
                     std::uint32_t raw = 0;
@@ -8665,9 +8695,13 @@ case 0xD0:
                     immediate = static_cast<std::int64_t>(static_cast<std::int8_t>(imm));
                 }
                 const std::int64_t rhs = static_cast<std::int64_t>(raw);
-                const __int128 product = static_cast<__int128>(rhs) * immediate;
-                registers_.Write64(reg, static_cast<std::uint64_t>(product));
-                const bool overflow = product < static_cast<__int128>(std::numeric_limits<std::int64_t>::min()) || product > static_cast<__int128>(std::numeric_limits<std::int64_t>::max());
+                const SignedMul64Result product =
+                    MultiplySigned64(static_cast<std::uint64_t>(rhs),
+                                     static_cast<std::uint64_t>(immediate));
+                registers_.Write64(reg, product.lo);
+                const std::uint64_t expected_hi =
+                    (product.lo & 0x8000000000000000ULL) ? 0xFFFFFFFFFFFFFFFFULL : 0ULL;
+                const bool overflow = product.hi != expected_hi;
                 if (overflow) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
             } else {
                 std::uint32_t raw = 0;
