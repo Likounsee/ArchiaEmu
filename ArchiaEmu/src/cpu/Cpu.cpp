@@ -7560,6 +7560,79 @@ case 0xD0:
             break;
         }
 
+        case 0x6C:
+        case 0x6D:
+        case 0x6E:
+        case 0x6F:
+        {
+            const bool input = opcode == 0x6C || opcode == 0x6D;
+            const std::uint8_t width =
+                (opcode == 0x6C || opcode == 0x6E)
+                    ? 1
+                    : (operand_size_override_ ? 2 : 4);
+            const std::uint16_t port =
+                static_cast<std::uint16_t>(registers_.Read32(2) & 0xFFFFU);
+            std::uint64_t count =
+                repeat_prefix == 0
+                    ? 1
+                    : (address_size_override_
+                        ? static_cast<std::uint64_t>(registers_.Read32(1))
+                        : registers_.Read64(1));
+
+            if (repeat_prefix != 0 && count == 0) break;
+
+            const std::int64_t delta =
+                (rflags_ & (1ULL << 10))
+                    ? -static_cast<std::int64_t>(width)
+                    : static_cast<std::int64_t>(width);
+
+            while (count != 0) {
+                const std::uint64_t address =
+                    address_size_override_
+                        ? static_cast<std::uint64_t>(registers_.Read32(7))
+                        : registers_.Read64(7);
+
+                if (input) {
+                    const std::uint32_t value =
+                        io_read_handler_
+                            ? io_read_handler_(*this, port, width)
+                            : 0;
+                    if (!WriteMemory(
+                            address,
+                            reinterpret_cast<const std::uint8_t*>(&value),
+                            width)) return 1;
+                } else {
+                    std::uint32_t value = 0;
+                    if (!ReadMemory(
+                            address,
+                            reinterpret_cast<std::uint8_t*>(&value),
+                            width)) return 1;
+                    if (io_write_handler_ &&
+                        !io_write_handler_(*this, port, value, width)) {
+                        return 1;
+                    }
+                }
+
+                const std::uint64_t next =
+                    static_cast<std::uint64_t>(
+                        static_cast<std::int64_t>(address) + delta);
+                if (address_size_override_) {
+                    registers_.Write32(7, static_cast<std::uint32_t>(next));
+                } else {
+                    registers_.Write64(7, next);
+                }
+
+                --count;
+                if (repeat_prefix == 0) break;
+                if (address_size_override_) {
+                    registers_.Write32(1, static_cast<std::uint32_t>(count));
+                } else {
+                    registers_.Write64(1, count);
+                }
+            }
+            break;
+        }
+
         case 0xA4:
         case 0xA5:
         case 0xA6:
