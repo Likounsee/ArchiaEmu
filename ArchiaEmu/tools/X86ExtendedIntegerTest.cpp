@@ -396,6 +396,18 @@ static bool TestFlagsAndLoops() {
     if (!Run(memory4, cpu4, jrcxzCode)) { std::cerr << "JRCXZ execution failed\n"; return false; } return true;
 }
 
+static bool TestAdcSbb16Directions() {
+    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code,0,0x0010);
+    AppendMovR64(code,3,0x0020);
+    code.insert(code.end(),{0xF9,0x66,0x11,0xD8,0x66,0x19,0xD8});
+    if(!Run(memory,cpu,code)) return false;
+    return cpu.ReadRegister64(0)==0x000000000000000FULL &&
+           cpu.ReadRegister64(3)==0x0000000000000020ULL &&
+           (cpu.Rflags()&1ULL)==0;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -437,6 +449,7 @@ int main() {
     if (!TestGroupF6Byte()) { std::cerr << "F6 byte group failed\n"; return 6; }
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
+    if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
