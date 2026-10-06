@@ -167,7 +167,7 @@ static bool TestBitModify() {
     std::vector<std::uint8_t> code; AppendMovR64(code,3,0x8ULL);
     code.insert(code.end(),{0x48,0x0F,0xA3,0xCB,0x48,0x0F,0xAB,0xCB,0x48,0x0F,0xB3,0xCB,0x48,0x0F,0xBB,0xCB});
     if(!Run(memory,cpu,code))return false;
-    return cpu.ReadRegister64(3)==0x8ULL && (cpu.Rflags()&(1ULL<<0))!=0;
+    return cpu.ReadRegister64(3)==0x8ULL && (cpu.Rflags()&(1ULL<<0))==0;
 }
 
 static bool TestBitScan() {
