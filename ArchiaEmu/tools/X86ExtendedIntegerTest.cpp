@@ -373,7 +373,7 @@ static bool TestFlagsAndLoops() {
     std::vector<std::uint8_t> code;
     AppendMovR64(code, 0, 0x000000000000D500ULL);
     code.insert(code.end(), {0x9E, 0x9F});
-    if (!Run(memory, cpu, code) || ((cpu.Rax() >> 8) & 0xFFU) != 0xF7U) { std::cerr << "SAHF/LAHF failed: AH=0x" << std::hex << ((cpu.Rax() >> 8) & 0xFFU) << std::dec << "\n"; return false; }
+    if (!Run(memory, cpu, code) || ((cpu.Rax() >> 8) & 0xFFU) != 0xD7U) { std::cerr << "SAHF/LAHF failed: AH=0x" << std::hex << ((cpu.Rax() >> 8) & 0xFFU) << std::dec << "\n"; return false; }
 
     Memory memory2; memory2.Map(0x1000, 0x2000);
     Cpu cpu2; cpu2.ConnectMemory(&memory2);
