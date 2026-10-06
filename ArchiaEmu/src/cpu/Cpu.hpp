@@ -16,6 +16,9 @@ class Tss64;
 
 class Memory;
 class Paging;
+class Cpu;
+using IoReadHandler = std::function<std::uint32_t(Cpu&, std::uint16_t, std::uint8_t)>;
+using IoWriteHandler = std::function<bool(Cpu&, std::uint16_t, std::uint32_t, std::uint8_t)>;
 class Cpu {
 public:
     void SetPaging(Paging* paging) noexcept;
