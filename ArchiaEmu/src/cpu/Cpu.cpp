@@ -5161,12 +5161,11 @@ int Cpu::Run()
                 const bool old_cf = (rflags_ & CF_MASK) != 0;
                 const bool word = operand_size_override_ && !rex.w;
                 const bool wide = rex.w;
-                const std::uint8_t rm = static_cast<std::uint8_t>((modrm & 7) | (rex.b ? 8 : 0));
-                const std::uint8_t mod = static_cast<std::uint8_t>((modrm >> 6) & 0x03);
+                std::uint8_t rm = 0;
+                std::uint8_t ignored_reg = 0;
                 std::uint64_t address = 0;
                 bool memory = false;
-                std::uint8_t ignored_reg = 0;
-                if (!DecodeMemoryOrRegister32(modrm, rex, ignored_reg, const_cast<std::uint8_t&>(rm), address, memory)) return 1;
+                if (!DecodeMemoryOrRegister32(modrm, rex, ignored_reg, rm, address, memory)) return 1;
                 if (word) {
                     std::uint16_t value = 0;
                     if (memory) { if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), 2)) return 1; }
