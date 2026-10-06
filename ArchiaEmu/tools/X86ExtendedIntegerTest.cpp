@@ -155,7 +155,7 @@ static bool TestDoubleShift() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code; AppendMovR64(code,0,0x1234); AppendMovR64(code,3,0xABCD);
     code.insert(code.end(),{0x48,0x0F,0xA4,0xD8,0x04,0x48,0x0F,0xAC,0xD8,0x04});
-    if (!Run(memory,cpu,code) || cpu.Rax() != 0x1234ULL) {
+    if (!Run(memory,cpu,code) || cpu.Rax() != 0xD000000000001234ULL) {
         std::cerr << "double shift RAX=0x" << std::hex << cpu.Rax() << std::dec << "\n";
         return false;
     }
