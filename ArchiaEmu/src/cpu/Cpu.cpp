@@ -4483,10 +4483,14 @@ int Cpu::Run()
                         if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),8))return 1;}else registers_.Write64(rm,sum);
                         SetAddFlags64(old,src,sum);
                     } else {
-                        const std::uint64_t acc=registers_.Read64(0), diff=acc-old;
-                        SetSubFlags64(acc,old,diff);
-                        if(acc==old){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),8))return 1;}else registers_.Write64(rm,src);}
-                        else registers_.Write64(0,old);
+                        const std::uint64_t sum = old + src;
+                        registers_.Write64(reg, old);
+                        if (memory) {
+                            if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&sum), 8)) return 1;
+                        } else {
+                            registers_.Write64(rm, sum);
+                        }
+                        SetAddFlags64(old, src, sum);
                     }
                 } else {
                     if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
@@ -4499,10 +4503,14 @@ int Cpu::Run()
                         if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&sum),4))return 1;}else registers_.Write32(rm,sum);
                         SetAddFlags32(old,src,sum);
                     } else {
-                        const std::uint32_t acc=registers_.Read32(0), diff=acc-old;
-                        SetSubFlags32(acc,old,diff);
-                        if(acc==old){if(memory){if(!WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&src),4))return 1;}else registers_.Write32(rm,src);}
-                        else registers_.Write32(0,old);
+                        const std::uint32_t sum = old + src;
+                        registers_.Write32(reg, old);
+                        if (memory) {
+                            if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&sum), 4)) return 1;
+                        } else {
+                            registers_.Write32(rm, sum);
+                        }
+                        SetAddFlags32(old, src, sum);
                     }
                 }
                 break;
