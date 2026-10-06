@@ -14,7 +14,7 @@ int main()
         return 1;
     }
 
-    const std::uint8_t code[] = {0x0B, 0xF4};
+    const std::uint8_t code[] = {0xD6, 0xF4};
     if (!memory.Write(0x1000, code, sizeof(code))) {
         return 1;
     }
