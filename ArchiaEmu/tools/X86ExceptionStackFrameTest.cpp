@@ -48,15 +48,17 @@ int main()
     }
 
     frame.has_stack_switch = false;
-    if (frame.QwordCount() != 3) {
-        std::cerr << "Same-CPL frame size is wrong\n";
+    if (frame.QwordCount() != 5) {
+        std::cerr << "64-bit same-CPL frame size is wrong\n";
         return 1;
     }
 
-    std::array<std::uint8_t, 24> sameCplBytes{};
+    std::array<std::uint8_t, 40> sameCplBytes{};
     if (!frame.Encode(sameCplBytes.data(), sameCplBytes.size()) ||
         sameCplBytes[0] != 0x88 || sameCplBytes[8] != 0x28 ||
-        sameCplBytes[16] != 0x02 || sameCplBytes[17] != 0x02) {
+        sameCplBytes[16] != 0x02 || sameCplBytes[17] != 0x02 ||
+        sameCplBytes[24] != 0x00 || sameCplBytes[25] != 0x90 ||
+        sameCplBytes[32] != 0x30) {
         std::cerr << "Same-CPL frame encoding is wrong\n";
         return 1;
     }
