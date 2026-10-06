@@ -418,7 +418,7 @@ static bool TestAdcSbb16Directions() {
     if(!Run(memory2,cpu2,regCode)) return false;
     return cpu2.ReadRegister64(0)==0x1111000000000001ULL &&
            cpu2.ReadRegister64(3)==0x2222000000000002ULL &&
-           (cpu2.Rflags()&1ULL)!=0;
+           (cpu2.Rflags()&1ULL)==0;
 }
 
 static bool TestCpuid() {
