@@ -79,15 +79,16 @@ int main()
     const auto sameCplWrite =
         ExceptionEntryWriter64::Write(memory, sameCpl);
     if (sameCplWrite.status != ExceptionEntryWriteStatus::Written ||
-        sameCplWrite.new_rsp != 0x9FE0) {
+        sameCplWrite.new_rsp != 0x9FD0) {
         return Fail("Same-CPL exception entry write failed") ? 0 : 1;
     }
 
-    std::array<std::uint8_t, 32> sameBytes{};
+    std::array<std::uint8_t, 48> sameBytes{};
     if (!memory.Read(sameCplWrite.new_rsp, sameBytes.data(), sameBytes.size()) ||
         sameBytes[0] != 0x05 || sameBytes[1] != 0x00 ||
         sameBytes[8] != 0xF0 || sameBytes[9] != 0xDE ||
-        sameBytes[16] != 0x10 || sameBytes[24] != 0x02 || sameBytes[25] != 0x02) {
+        sameBytes[16] != 0x10 || sameBytes[24] != 0x02 || sameBytes[25] != 0x02 ||
+        sameBytes[32] != 0x00 || sameBytes[40] != 0x20 || sameBytes[41] != 0x00) {
         return Fail("Same-CPL exception frame layout is wrong") ? 0 : 1;
     }
 
