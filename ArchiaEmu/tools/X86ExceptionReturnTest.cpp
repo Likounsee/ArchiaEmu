@@ -88,6 +88,7 @@ int main()
         return Fail("Same-CPL IRETQ frame decode failed") ? 0 : 1;
     }
 
+    const auto applied = ExceptionReturn64::Apply(cpu, result);
     if (applied.status != ExceptionReturnStatus::Returned ||
         cpu.InstructionPointer() != 0x401234 ||
         cpu.CodeSegment() != 0x28 ||
@@ -116,7 +117,6 @@ int main()
         return Fail("Same-CPL IRETQ incorrectly consumed SS:RSP") ? 0 : 1;
     }
 
-        const auto applied = ExceptionReturn64::Apply(cpu, result);
     Cpu userCpu;
     userCpu.SetInstructionPointer(0xDEAD);
     userCpu.SetCodeSegment(0x28);
