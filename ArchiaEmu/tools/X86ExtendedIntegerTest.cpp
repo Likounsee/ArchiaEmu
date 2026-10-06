@@ -66,7 +66,7 @@ static bool TestXadd32() {
     AppendMovR64(code, 0, 5);
     AppendMovR64(code, 3, 7);
     code.insert(code.end(), {0x0F, 0xC1, 0xC3});
-    if (!Run(memory, cpu, code) || cpu.Rax() != 5 || cpu.ReadRegister64(3) != 12) {
+    if (!Run(memory, cpu, code) || cpu.Rax() != 7 || cpu.ReadRegister64(3) != 12) {
         std::cerr << "XADD32 values: RAX=0x" << std::hex << cpu.Rax()
                   << " RBX=0x" << cpu.ReadRegister64(3) << std::dec << "\n";
         return false;
