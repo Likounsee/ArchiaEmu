@@ -109,6 +109,8 @@ int main()
     WriteQword(memory, 0x7F00, 0x401234);
     WriteQword(memory, 0x7F08, 0x28);
     WriteQword(memory, 0x7F10, 0x202);
+    WriteQword(memory, 0x7F18, 0x7600);
+    WriteQword(memory, 0x7F20, 0x10);
     result = ExceptionReturn64::Read(sameCplCpu, memory, gdt);
     if (result.status != ExceptionReturnStatus::Returned ||
         result.rsp != 0x7600 ||
