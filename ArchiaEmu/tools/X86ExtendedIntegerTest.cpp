@@ -510,6 +510,57 @@ static bool TestImulForms() {
     return true;
 }
 
+static bool TestMulDivForms() {
+    Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code;
+    // DIV/IDIV 8-bit: AX / BL.
+    code.insert(code.end(),{0xB8,0xE8,0x03,0xB3,0x0A,0xF6,0xF3});
+    code.insert(code.end(),{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB});
+    if(!Run(memory,cpu,code)) return false;
+    if((cpu.Rax()&0xFFFFU)!=0x0008U) return false; // -40 / -? final IDIV: -40 / 10 = -4, rem 0 -> FFFC.
+    // Re-run with explicit signed case to avoid relying on prior AX state.
+    Memory signed8; signed8.Map(0x1000,0x3000); Cpu s8; s8.ConnectMemory(&signed8);
+    if(!Run(signed8,s8,{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB})) return false;
+    if((s8.Rax()&0xFFFFU)!=0x00FCU) return false;
+
+    // 16-bit DIV and IDIV.
+    Memory m16; m16.Map(0x1000,0x3000); Cpu c16; c16.ConnectMemory(&m16);
+    std::vector<std::uint8_t> v16={0xB8,0xE8,0x03,0x31,0xD2,0xBB,0x1E,0x00,0x66,0xF7,0xF3};
+    v16.insert(v16.end(),{0xB8,0x18,0xFC,0xBA,0xFF,0xFF,0xBB,0x1E,0x00,0x66,0xF7,0xFB});
+    if(!Run(m16,c16,v16)) return false;
+    if((c16.Rax()&0xFFFFU)!=0xFFF4U || (c16.Rdx()&0xFFFFU)!=0x0000U) return false;
+
+    // 32-bit DIV: EDX:EAX / EBX = 100000 / 30000.
+    Memory m32; m32.Map(0x1000,0x3000); Cpu c32; c32.ConnectMemory(&m32);
+    std::vector<std::uint8_t> v32; AppendMovR64(v32,0,100000); AppendMovR64(v32,2,0); AppendMovR64(v32,3,30000);
+    v32.insert(v32.end(),{0xF7,0xF3});
+    if(!Run(m32,c32,v32) || (c32.Rax()&0xFFFFFFFFULL)!=3 || (c32.Rdx()&0xFFFFFFFFULL)!=10000) return false;
+
+    // 64-bit IDIV: RDX:RAX / RBX = -100 / 7.
+    Memory m64; m64.Map(0x1000,0x3000); Cpu c64; c64.ConnectMemory(&m64);
+    std::vector<std::uint8_t> v64; AppendMovR64(v64,0,0xFFFFFFFFFFFFFF9CULL); AppendMovR64(v64,2,0xFFFFFFFFFFFFFFFFULL); AppendMovR64(v64,3,7);
+    v64.insert(v64.end(),{0x48,0xF7,0xFB});
+    if(!Run(m64,c64,v64) || c64.Rax()!=0xFFFFFFFFFFFFFFF2ULL || c64.Rdx()!=0xFFFFFFFFFFFFFFFFULL) return false;
+
+    // Quotient overflow must raise #DE.
+    Memory ov; ov.Map(0x1000,0x3000); Cpu co; co.ConnectMemory(&ov);
+    std::vector<std::uint8_t> vo; AppendMovR64(vo,0,0xFFFFFFFFFFFFFFFFULL); AppendMovR64(vo,2,1); AppendMovR64(vo,3,1);
+    vo.insert(vo.end(),{0x48,0xF7,0xF3});
+    vo.push_back(0xF4);
+    if(!ov.Write(0x1000,vo.data(),vo.size())) return false;
+    co.SetInstructionPointer(0x1000);
+    if(co.Run()==0) return false;
+
+    // IDIV minimum signed 64-bit / -1 must raise #DE without signed-overflow UB.
+    Memory min64; min64.Map(0x1000,0x3000); Cpu cm; cm.ConnectMemory(&min64);
+    std::vector<std::uint8_t> vm; AppendMovR64(vm,0,0x8000000000000000ULL); AppendMovR64(vm,2,0xFFFFFFFFFFFFFFFFULL); AppendMovR64(vm,3,0xFFFFFFFFFFFFFFFFULL);
+    vm.insert(vm.end(),{0x48,0xF7,0xFB,0xF4});
+    if(!min64.Write(0x1000,vm.data(),vm.size())) return false;
+    cm.SetInstructionPointer(0x1000);
+    if(cm.Run()==0) return false;
+    return true;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -553,7 +604,7 @@ int main() {
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
     if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
-    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }\n    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }
+    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }\n    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }\n    if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
