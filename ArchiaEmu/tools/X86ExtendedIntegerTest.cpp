@@ -222,6 +222,26 @@ static bool TestXlat() {
     return Run(memory,cpu,{0xD7}) && (cpu.ReadRegister64(0)&0xFFU)==0xA7U;
 }
 
+static bool TestNegWidths() {
+    Memory memory; memory.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&memory);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code,0,0x0000000000000001ULL);
+    code.insert(code.end(),{0xF6,0xD8});
+    AppendMovR64(code,1,0x0000000080000000ULL);
+    code.insert(code.end(),{0xF7,0xDB});
+    AppendMovR64(code,2,0x0000000000008000ULL);
+    code.insert(code.end(),{0x66,0xF7,0xDA});
+    AppendMovR64(code,3,0x0000000000000000ULL);
+    code.insert(code.end(),{0x48,0xF7,0xDB});
+    if(!Run(memory,cpu,code)) return false;
+    if((cpu.ReadRegister64(0)&0xFFU)!=0xFFU) return false;
+    if((cpu.ReadRegister64(1)&0xFFFFFFFFULL)!=0x80000000ULL) return false;
+    if((cpu.ReadRegister64(2)&0xFFFFU)!=0x8000U) return false;
+    if(cpu.ReadRegister64(3)!=0) return false;
+    if((cpu.Rflags()&1ULL)!=0) return false;
+    return true;
+}
+
 static bool TestIncDecByte() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     cpu.SetRflags(cpu.Rflags()|1ULL);
