@@ -397,15 +397,28 @@ static bool TestFlagsAndLoops() {
 }
 
 static bool TestAdcSbb16Directions() {
-    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
-    std::vector<std::uint8_t> code;
-    AppendMovR64(code,0,0xFFFF);
-    AppendMovR64(code,3,0x0000);
-    code.insert(code.end(),{0xF9,0x66,0x11,0xD8,0x66,0x19,0xD8});
-    if(!Run(memory,cpu,code)) return false;
-    return cpu.ReadRegister64(0)==0x000000000000FFFFULL &&
-           cpu.ReadRegister64(3)==0x0000000000000000ULL &&
-           (cpu.Rflags()&1ULL)!=0;
+    Memory memory1; memory1.Map(0x1000,0x1000); Cpu cpu1; cpu1.ConnectMemory(&memory1);
+    std::vector<std::uint8_t> rmCode;
+    AppendMovR64(rmCode,0,0x123400000000FFFFULL);
+    AppendMovR64(rmCode,3,0x5678000000000000ULL);
+    rmCode.insert(rmCode.end(),{0xF9,0x66,0x11,0xD8,0x66,0x19,0xD8});
+    if(!Run(memory1,cpu1,rmCode)) return false;
+    if(cpu1.ReadRegister64(0)!=0x123400000000FFFFULL ||
+       cpu1.ReadRegister64(3)!=0x5678000000000000ULL ||
+       (cpu1.Rflags()&1ULL)==0) return false;
+
+    Memory memory2; memory2.Map(0x1000,0x1000); Cpu cpu2; cpu2.ConnectMemory(&memory2);
+    std::vector<std::uint8_t> regCode;
+    AppendMovR64(regCode,0,0x1111000000000001ULL);
+    AppendMovR64(regCode,3,0x2222000000000002ULL);
+    regCode.insert(regCode.end(),{
+        0xF9,0x66,0x13,0xD8,
+        0xF9,0x66,0x1B,0xD8
+    });
+    if(!Run(memory2,cpu2,regCode)) return false;
+    return cpu2.ReadRegister64(0)==0x1111000000000001ULL &&
+           cpu2.ReadRegister64(3)==0x2222000000000001ULL &&
+           (cpu2.Rflags()&1ULL)!=0;
 }
 
 static bool TestCpuid() {
