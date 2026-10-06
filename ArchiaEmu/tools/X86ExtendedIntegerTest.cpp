@@ -399,13 +399,13 @@ static bool TestFlagsAndLoops() {
 static bool TestAdcSbb16Directions() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code;
-    AppendMovR64(code,0,0x0010);
-    AppendMovR64(code,3,0x0020);
+    AppendMovR64(code,0,0xFFFF);
+    AppendMovR64(code,3,0x0000);
     code.insert(code.end(),{0xF9,0x66,0x11,0xD8,0x66,0x19,0xD8});
     if(!Run(memory,cpu,code)) return false;
-    return cpu.ReadRegister64(0)==0x0000000000000010ULL &&
-           cpu.ReadRegister64(3)==0x0000000000000020ULL &&
-           (cpu.Rflags()&1ULL)==0;
+    return cpu.ReadRegister64(0)==0x000000000000FFFFULL &&
+           cpu.ReadRegister64(3)==0x0000000000000000ULL &&
+           (cpu.Rflags()&1ULL)!=0;
 }
 
 static bool TestCpuid() {
