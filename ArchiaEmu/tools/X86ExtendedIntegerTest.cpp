@@ -81,7 +81,7 @@ static bool TestXadd8() {
     AppendMovR64(code, 0, 5);
     AppendMovR64(code, 3, 7);
     code.insert(code.end(), {0x0F, 0xC0, 0xC3});
-    return Run(memory, cpu, code) && (cpu.ReadRegister64(0) & 0xFFU) == 5 && (cpu.ReadRegister64(3) & 0xFFU) == 12;
+    return Run(memory, cpu, code) && (cpu.ReadRegister64(0) & 0xFFU) == 7 && (cpu.ReadRegister64(3) & 0xFFU) == 12;
 }
 
 static bool TestCmpxchg64() {
