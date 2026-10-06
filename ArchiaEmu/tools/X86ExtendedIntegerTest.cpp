@@ -7,11 +7,11 @@
 using namespace myps5emu;
 
 static void AppendMovR64(std::vector<std::uint8_t>& code, std::uint8_t reg, std::uint64_t value) {
+    code.push_back(static_cast<std::uint8_t>(0x48U | (reg >= 8 ? 0x01U : 0x00U)));
     code.push_back(static_cast<std::uint8_t>(0xB8U + (reg & 7U)));
-    if (reg >= 8) {
-        code.insert(code.end() - 1, 0x41);
+    for (unsigned i = 0; i < 8; ++i) {
+        code.push_back(static_cast<std::uint8_t>(value >> (i * 8U)));
     }
-    for (unsigned i = 0; i < 8; ++i) code.push_back(static_cast<std::uint8_t>(value >> (i * 8U)));
 }
 
 static bool Run(Memory& memory, Cpu& cpu, std::vector<std::uint8_t> code) {
