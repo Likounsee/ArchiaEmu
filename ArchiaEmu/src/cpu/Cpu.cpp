@@ -3581,7 +3581,56 @@ int Cpu::Run()
 
             if (!Fetch8(opcode2)) {
                 return 1;
-            }            if (opcode2 == 0x01) {
+            }            if (opcode2 == 0xAF) {
+                std::uint8_t modrm = 0;
+                if (!Fetch8(modrm)) return 1;
+                std::uint8_t reg = 0, rm = 0;
+                std::uint64_t address = 0;
+                bool memory = false;
+
+                if (operand_size_override_ && !rex.w) {
+                    if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
+                    std::uint16_t raw = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&raw), sizeof(raw))) return 1;
+                    } else raw = registers_.Read16(rm);
+                    const std::int16_t lhs = static_cast<std::int16_t>(registers_.Read16(reg));
+                    const std::int16_t rhs = static_cast<std::int16_t>(raw);
+                    const std::int32_t product = static_cast<std::int32_t>(lhs) * static_cast<std::int32_t>(rhs);
+                    registers_.Write16(reg, static_cast<std::uint16_t>(product));
+                    const bool overflow = product < std::numeric_limits<std::int16_t>::min() || product > std::numeric_limits<std::int16_t>::max();
+                    if (overflow) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
+                    break;
+                }
+
+                if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
+                if (rex.w) {
+                    std::uint64_t raw = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&raw), sizeof(raw))) return 1;
+                    } else raw = registers_.Read64(rm);
+                    const std::int64_t lhs = static_cast<std::int64_t>(registers_.Read64(reg));
+                    const std::int64_t rhs = static_cast<std::int64_t>(raw);
+                    const __int128 product = static_cast<__int128>(lhs) * static_cast<__int128>(rhs);
+                    registers_.Write64(reg, static_cast<std::uint64_t>(product));
+                    const bool overflow = product < static_cast<__int128>(std::numeric_limits<std::int64_t>::min()) || product > static_cast<__int128>(std::numeric_limits<std::int64_t>::max());
+                    if (overflow) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
+                } else {
+                    std::uint32_t raw = 0;
+                    if (memory) {
+                        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&raw), sizeof(raw))) return 1;
+                    } else raw = registers_.Read32(rm);
+                    const std::int32_t lhs = static_cast<std::int32_t>(registers_.Read32(reg));
+                    const std::int32_t rhs = static_cast<std::int32_t>(raw);
+                    const std::int64_t product = static_cast<std::int64_t>(lhs) * static_cast<std::int64_t>(rhs);
+                    registers_.Write32(reg, static_cast<std::uint32_t>(product));
+                    const bool overflow = product < static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min()) || product > static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max());
+                    if (overflow) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
+                }
+                break;
+            }
+
+            if (opcode2 == 0x01) {
                 std::uint8_t modrmTable = 0;
                 if (!Fetch8(modrmTable)) return 1;
                 const std::uint8_t regField = static_cast<std::uint8_t>((modrmTable >> 3) & 0x07U);
@@ -8568,6 +8617,77 @@ case 0xD0:
                 registers_.Write64(5, value);
             }
 
+            break;
+        }
+
+        case 0x69:
+        case 0x6B:
+        {
+            std::uint8_t modrm = 0;
+            if (!Fetch8(modrm)) return 1;
+            std::uint8_t reg = 0, rm = 0;
+            std::uint64_t address = 0;
+            bool memory = false;
+
+            if (operand_size_override_ && !rex.w) {
+                if (!DecodeMemoryOrRegister16(modrm, rex, reg, rm, address, memory)) return 1;
+                std::uint16_t raw = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&raw), sizeof(raw))) return 1;
+                } else raw = registers_.Read16(rm);
+                std::int16_t immediate = 0;
+                if (opcode == 0x69) {
+                    std::uint16_t imm = 0; if (!Fetch16(imm)) return 1;
+                    immediate = static_cast<std::int16_t>(imm);
+                } else {
+                    std::uint8_t imm = 0; if (!Fetch8(imm)) return 1;
+                    immediate = static_cast<std::int16_t>(static_cast<std::int8_t>(imm));
+                }
+                const std::int32_t product = static_cast<std::int32_t>(static_cast<std::int16_t>(raw)) * immediate;
+                registers_.Write16(reg, static_cast<std::uint16_t>(product));
+                const bool overflow = product < std::numeric_limits<std::int16_t>::min() || product > std::numeric_limits<std::int16_t>::max();
+                if (overflow) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
+                break;
+            }
+
+            if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
+            if (rex.w) {
+                std::uint64_t raw = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&raw), sizeof(raw))) return 1;
+                } else raw = registers_.Read64(rm);
+                std::int64_t immediate = 0;
+                if (opcode == 0x69) {
+                    std::uint32_t imm = 0; if (!Fetch32(imm)) return 1;
+                    immediate = static_cast<std::int64_t>(static_cast<std::int32_t>(imm));
+                } else {
+                    std::uint8_t imm = 0; if (!Fetch8(imm)) return 1;
+                    immediate = static_cast<std::int64_t>(static_cast<std::int8_t>(imm));
+                }
+                const std::int64_t rhs = static_cast<std::int64_t>(raw);
+                const __int128 product = static_cast<__int128>(rhs) * immediate;
+                registers_.Write64(reg, static_cast<std::uint64_t>(product));
+                const bool overflow = product < static_cast<__int128>(std::numeric_limits<std::int64_t>::min()) || product > static_cast<__int128>(std::numeric_limits<std::int64_t>::max());
+                if (overflow) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
+            } else {
+                std::uint32_t raw = 0;
+                if (memory) {
+                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&raw), sizeof(raw))) return 1;
+                } else raw = registers_.Read32(rm);
+                std::int32_t immediate = 0;
+                if (opcode == 0x69) {
+                    std::uint32_t imm = 0; if (!Fetch32(imm)) return 1;
+                    immediate = static_cast<std::int32_t>(imm);
+                } else {
+                    std::uint8_t imm = 0; if (!Fetch8(imm)) return 1;
+                    immediate = static_cast<std::int32_t>(static_cast<std::int8_t>(imm));
+                }
+                const std::int32_t rhs = static_cast<std::int32_t>(raw);
+                const std::int64_t product = static_cast<std::int64_t>(rhs) * immediate;
+                registers_.Write32(reg, static_cast<std::uint32_t>(product));
+                const bool overflow = product < static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min()) || product > static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max());
+                if (overflow) rflags_ |= CF_MASK | OF_MASK; else rflags_ &= ~(CF_MASK | OF_MASK);
+            }
             break;
         }
 
