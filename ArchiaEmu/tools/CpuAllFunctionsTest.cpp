@@ -1486,13 +1486,13 @@ void TestFlags()
     // NEG64 must update AF/PF in addition to CF/OF/SF/ZF.
     {
         Cpu cpu = MakeCpu(mem);
-        auto code = MovR64(0, 0x10);
+        auto code = MovR64(0, 0x01);
         code.insert(code.end(), {0x48, 0xF7, 0xD8}); // NEG RAX
         code = Finish(code);
         CHECK(
             "NEG64 AF + PF",
             RunCode(cpu, mem, code) &&
-            cpu.Rax() == 0xFFFFFFFFFFFFFFF0ULL &&
+            cpu.Rax() == 0xFFFFFFFFFFFFFFFFULL &&
             (cpu.Rflags() & (1ULL << 4)) != 0 &&
             (cpu.Rflags() & (1ULL << 2)) != 0);
     }
