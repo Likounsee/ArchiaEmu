@@ -170,7 +170,7 @@ static bool TestStringIo() {
         [](Cpu&,std::uint16_t,std::uint32_t,std::uint8_t){return true;});
     if(!Run(memory,cpu,{0xF3,0x6C}))return false;
     std::uint8_t a=0,b=0;if(!memory.Read(0x2000,&a,1)||!memory.Read(0x2001,&b,1))return false;
-    return a==0x11&&b==0x22&&cpu.Rdi()==0x2002&&cpu.ReadRegister64(1)==0;
+    return a==0x11&&b==0x22&&cpu.ReadRegister64(7)==0x2002&&cpu.ReadRegister64(1)==0;
 }
 
 static bool TestIoPorts() {
