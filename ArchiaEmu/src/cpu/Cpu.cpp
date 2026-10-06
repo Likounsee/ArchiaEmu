@@ -3534,6 +3534,7 @@ int Cpu::Run()
         case 0x28:
         case 0x30:
         case 0x38:
+        case 0x3A:
         {
             std::uint8_t modrm = 0;
             if (!Fetch8(modrm)) return 1;
@@ -3582,11 +3583,15 @@ int Cpu::Run()
                 result = static_cast<std::uint8_t>(lhs - rhs);
                 SetSubFlags8(lhs, rhs, result);
                 break;
+            case 0x3A:
+                result = static_cast<std::uint8_t>(rhs - lhs);
+                SetSubFlags8(rhs, lhs, result);
+                break;
             default:
                 return 1;
             }
 
-            if (opcode != 0x38) {
+            if (opcode != 0x38 && opcode != 0x3A) {
                 if (memory) {
                     if (!WriteMemory(address, &result, 1)) return 1;
                 } else {
@@ -6520,6 +6525,16 @@ case 0xD0:
                     if (!DecodeShiftArithmetic32Imm(modrm, rex, 0, true)) return 1;
                 } else return 1;
             }
+            break;
+        }
+
+        case 0x3C:
+        {
+            std::uint8_t immediate = 0;
+            if (!Fetch8(immediate)) return 1;
+            const std::uint8_t lhs = ReadReg8(0, false);
+            const std::uint8_t result = static_cast<std::uint8_t>(lhs - immediate);
+            SetSubFlags8(lhs, immediate, result);
             break;
         }
 
