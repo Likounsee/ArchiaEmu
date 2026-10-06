@@ -632,6 +632,21 @@ static bool TestOneOperandMulWidths() {
     return true;
 }
 
+static bool TestCmpByteForms() {
+    Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 0, 0x1234);
+    AppendMovR64(code, 3, 0x12);
+    code.insert(code.end(), {0x38, 0xD8, 0x3A, 0xC3, 0x3C, 0x34});
+    if (!Run(m, cpu, code)) return false;
+    if (cpu.ReadRegister64(0) != 0x1234 || cpu.ReadRegister64(3) != 0x12) return false;
+    const std::uint64_t flags = cpu.Rflags();
+    if ((flags & 1ULL) != 0) return false;
+    if ((flags & (1ULL << 6)) == 0) return false;
+    if ((flags & (1ULL << 7)) != 0) return false;
+    return true;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -675,7 +690,12 @@ int main() {
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
     if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
-    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }\n    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }\n    if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }\n    if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }\n    if (!TestDivFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
+    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }
+    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }
+    if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }
+    if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
+    if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
+    if (!TestDivFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
