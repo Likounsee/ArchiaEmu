@@ -4176,7 +4176,7 @@ int Cpu::Run()
                     registers_.Write32(0, static_cast<std::uint32_t>(value));
                     registers_.Write32(2, static_cast<std::uint32_t>(value >> 32U));
                 } else {
-                    const std::uint64_t value = (registers_.Read32(2) << 32U) | registers_.Read32(0);
+                    const std::uint64_t value = (static_cast<std::uint64_t>(registers_.Read32(2)) << 32U) | registers_.Read32(0);
                     switch (msr) {
                     case 0xC0000080U: SetEfer(value); break;
                     case 0xC0000081U: SetMsrStar(value); break;
