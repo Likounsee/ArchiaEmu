@@ -4996,6 +4996,7 @@ int main()
     TestAdcSbb();
     TestDivIdiv();
     TestDivIdiv128();
+    TestIoInstructions();
     TestSyscallDispatch();
     TestMovImmediate();
     std::cout << "\n";
