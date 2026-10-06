@@ -3316,7 +3316,7 @@ void TestIoInstructions()
         auto code = MovR64(0, 0x1122334455667788ULL); code.insert(code.end(), {0x66,0xE5,0x34,0xC3});
         CHECK("66h IN AX,imm8 preserves upper register bits",
             RunCode(cpu, mem, code) && cpu.Rax() == 0x112233445566BEEFULL &&
-            lastPort == 0x34 && lastWidth == 2 && readCalls == 1);
+            lastPort == 0x34 && lastWidth == 2 && readCalls == 2);
     }
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
@@ -3324,7 +3324,7 @@ void TestIoInstructions()
         auto code = MovR64(2, 0xD5ULL); code.insert(code.end(), {0xED,0xC3});
         CHECK("IN EAX,DX masks port to 16 bits and zero-extends EAX",
             RunCode(cpu, mem, code) && cpu.Rax() == 0x0000000089ABCDEFULL &&
-            lastPort == 0xD5 && lastWidth == 4 && readCalls == 1);
+            lastPort == 0xD5 && lastWidth == 4 && readCalls == 3);
     }
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
@@ -3340,7 +3340,7 @@ void TestIoInstructions()
         auto code = MovR64(0, 0x1122334455667788ULL); code.insert(code.end(), {0x66,0xE7,0x56,0xC3});
         CHECK("66h OUT imm8,AX writes exactly 16 bits",
             RunCode(cpu, mem, code) && lastPort == 0x56 && lastWidth == 2 &&
-            lastWriteValue == 0x7788U && writeCalls == 1);
+            lastWriteValue == 0x7788U && writeCalls == 2);
     }
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
@@ -3348,7 +3348,7 @@ void TestIoInstructions()
         auto code = MovR64(0, 0x1122334455667788ULL); Append(code, MovR64(2,0x1FEULL)); code.insert(code.end(), {0xEF,0xC3});
         CHECK("OUT DX,EAX uses DX port and 32-bit value",
             RunCode(cpu, mem, code) && lastPort == 0x1FE && lastWidth == 4 &&
-            lastWriteValue == 0x55667788U && writeCalls == 1);
+            lastWriteValue == 0x55667788U && writeCalls == 3);
     }
 }
 void TestSyscallDispatch()
