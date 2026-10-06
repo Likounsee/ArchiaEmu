@@ -113,7 +113,7 @@ static bool TestCmpxchg8b() {
         return false;
     }
     std::uint64_t out=0;if(!memory.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8))return false;
-    if(out!=0xAABBCCDDEEFF0011ULL || (cpu.Rflags()&(1ULL<<6))==0) {
+    if(out!=0xEEFF0011AABBCCDDULL || (cpu.Rflags()&(1ULL<<6))==0) {
         std::cerr << "CMPXCHG8B first result=0x" << std::hex << out
                   << " RFLAGS=0x" << cpu.Rflags() << std::dec << "\n";
         return false;
