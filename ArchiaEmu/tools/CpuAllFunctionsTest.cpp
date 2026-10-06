@@ -3271,8 +3271,10 @@ void TestCpuAudit()
         code = Finish(code);
 
         CHECK(
-            "AUDIT FF unsupported returns error",
-            !RunCode(cpu, mem, code));
+            "AUDIT FF /6 PUSH r/m64",
+            RunCode(cpu, mem, code) &&
+            cpu.Rsp() == STACK + 0xFF8 &&
+            Read64(mem, STACK + 0xFF8) == 0x1234);
     }
 
     std::cout << "\n";
