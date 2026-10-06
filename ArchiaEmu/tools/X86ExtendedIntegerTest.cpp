@@ -373,27 +373,27 @@ static bool TestFlagsAndLoops() {
     std::vector<std::uint8_t> code;
     AppendMovR64(code, 0, 0x000000000000D500ULL);
     code.insert(code.end(), {0x9E, 0x9F});
-    if (!Run(memory, cpu, code) || ((cpu.Rax() >> 8) & 0xFFU) != 0xF7U) return false;
+    if (!Run(memory, cpu, code) || ((cpu.Rax() >> 8) & 0xFFU) != 0xF7U) { std::cerr << "SAHF/LAHF failed: AH=0x" << std::hex << ((cpu.Rax() >> 8) & 0xFFU) << std::dec << "\n"; return false; }
 
     Memory memory2; memory2.Map(0x1000, 0x2000);
     Cpu cpu2; cpu2.ConnectMemory(&memory2);
     std::vector<std::uint8_t> flagsCode = {0xF8, 0xF9, 0xF5, 0xFC, 0xFD};
-    if (!Run(memory2, cpu2, flagsCode)) return false;
-    if ((cpu2.Rflags() & 1ULL) == 0 || (cpu2.Rflags() & (1ULL << 10)) == 0) return false;
+    if (!Run(memory2, cpu2, flagsCode)) { std::cerr << "flag control execution failed\n"; return false; }
+    if ((cpu2.Rflags() & 1ULL) == 0 || (cpu2.Rflags() & (1ULL << 10)) == 0) { std::cerr << "flag control state failed: RFLAGS=0x" << std::hex << cpu2.Rflags() << std::dec << "\n"; return false; }
 
     Memory memory3; memory3.Map(0x1000, 0x2000);
     Cpu cpu3; cpu3.ConnectMemory(&memory3);
     std::vector<std::uint8_t> loopCode;
     AppendMovR64(loopCode, 1, 2);
     loopCode.insert(loopCode.end(), {0xE2, 0xFE, 0xF4});
-    if (!Run(memory3, cpu3, loopCode) || cpu3.ReadRegister64(1) != 0) return false;
+    if (!Run(memory3, cpu3, loopCode) || cpu3.ReadRegister64(1) != 0) { std::cerr << "LOOP failed: RCX=" << std::hex << cpu3.ReadRegister64(1) << std::dec << " RIP=0x" << std::hex << cpu3.InstructionPointer() << std::dec << "\n"; return false; }
 
     Memory memory4; memory4.Map(0x1000, 0x2000);
     Cpu cpu4; cpu4.ConnectMemory(&memory4);
     std::vector<std::uint8_t> jrcxzCode;
     AppendMovR64(jrcxzCode, 1, 0);
     jrcxzCode.insert(jrcxzCode.end(), {0xE3, 0x01, 0x90, 0xF4});
-    return Run(memory4, cpu4, jrcxzCode);
+    if (!Run(memory4, cpu4, jrcxzCode)) { std::cerr << "JRCXZ execution failed\n"; return false; } return true;
 }
 
 static bool TestCpuid() {
