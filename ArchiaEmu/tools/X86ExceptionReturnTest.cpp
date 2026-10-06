@@ -98,9 +98,8 @@ int main()
         return Fail("Same-CPL IRETQ apply failed") ? 0 : 1;
     }
 
-    // Same-CPL IRETQ consumes only RIP/CS/RFLAGS. The bytes after the
-    // three-qword frame are deliberately left unmapped so an implementation
-    // that incorrectly pops SS:RSP will fail this regression.
+    // In 64-bit mode IRETQ consumes RIP/CS/RFLAGS/SS:RSP even at the same CPL.
+    // The stacked SS:RSP must be restored exactly.
     Cpu sameCplCpu;
     sameCplCpu.SetInstructionPointer(0x1111);
     sameCplCpu.SetCodeSegment(0x28);
@@ -112,7 +111,7 @@ int main()
     WriteQword(memory, 0x7F10, 0x202);
     result = ExceptionReturn64::Read(sameCplCpu, memory, gdt);
     if (result.status != ExceptionReturnStatus::Returned ||
-        result.rsp != 0x7F18 ||
+        result.rsp != 0x7600 ||
         result.ss != 0x10) {
         return Fail("Same-CPL IRETQ incorrectly consumed SS:RSP") ? 0 : 1;
     }
