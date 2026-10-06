@@ -560,6 +560,37 @@ static bool TestMulDivForms() {
     return true;
 }
 
+static bool TestDivideFaultsAndBoundaries() {
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        if (!Run(m,cpu,{0xB0,0x00,0xF6,0xF3})) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB8,0x00,0x01,0xB3,0x01,0xF6,0xF3};
+        if (!Run(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x66,0xB8,0x00,0x00,0x66,0xBA,0x00,0x80,0x66,0xBB,0xFF,0xFF,0x66,0xF7,0xFB};
+        if (!Run(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB8,0x00,0x00,0x00,0x00,0xBA,0x00,0x00,0x00,0x80,0xBB,0xFF,0xFF,0xFF,0xFF,0xF7,0xFB};
+        if (!Run(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0); AppendMovR64(code,2,0x8000000000000000ULL);
+        AppendMovR64(code,3,0xFFFFFFFFFFFFFFFFULL);
+        code.insert(code.end(),{0x48,0xF7,0xFB});
+        if (!Run(m,cpu,code)) return false;
+    }
+    return true;
+}
+
 static bool TestOneOperandMulWidths() {
     Memory m8; m8.Map(0x1000,0x2000); Cpu c8; c8.ConnectMemory(&m8);
     if(!Run(m8,c8,{0xB0,0x10,0xB3,0x10,0xF6,0xE3})) return false;
@@ -638,7 +669,7 @@ int main() {
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
     if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
-    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }\n    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }\n    if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }\n    if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
+    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }\n    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }\n    if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }\n    if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }\n    if (!TestDivFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
