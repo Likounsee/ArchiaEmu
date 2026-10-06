@@ -3279,6 +3279,110 @@ void TestCpuAudit()
     std::cout << "----------- AUDIT FINISHED -----------\n";
 }
 
+
+void TestIoInstructions()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(STACK, 0x2000);
+
+    Cpu cpu = MakeCpu(mem);
+
+    std::uint16_t lastPort = 0;
+    std::uint8_t lastWidth = 0;
+    std::uint32_t lastWriteValue = 0;
+    int readCalls = 0;
+    int writeCalls = 0;
+
+    cpu.SetIoHandlers(
+        [&](Cpu&, std::uint16_t port, std::uint8_t width) -> std::uint32_t {
+            lastPort = port;
+            lastWidth = width;
+            ++readCalls;
+            if (width == 1) return 0xA5U;
+            if (width == 2) return 0xBEEF;
+            return 0x89ABCDEFU;
+        },
+        [&](Cpu&, std::uint16_t port, std::uint32_t value, std::uint8_t width) -> bool {
+            lastPort = port;
+            lastWidth = width;
+            lastWriteValue = value;
+            ++writeCalls;
+            return true;
+        });
+
+    {
+        auto code = std::vector<std::uint8_t>{0xE4, 0x23, 0xF4};
+        CHECK(
+            "IN AL,imm8 dispatches 8-bit read",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0xA5ULL &&
+            lastPort == 0x23 &&
+            lastWidth == 1 &&
+            readCalls == 1);
+    }
+
+    {
+        auto code = MovR64(0, 0x1122334455667788ULL);
+        code.insert(code.end(), {0x66, 0xE5, 0x34, 0xF4});
+        CHECK(
+            "66h IN AX,imm8 preserves upper register bits",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x112233445566BEEFULL &&
+            lastPort == 0x34 &&
+            lastWidth == 2 &&
+            readCalls == 2);
+    }
+
+    {
+        auto code = MovR64(2, 0x00000000000000D5ULL);
+        code.insert(code.end(), {0xED, 0xF4});
+        CHECK(
+            "IN EAX,DX masks port to 16 bits and zero-extends EAX",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x0000000089ABCDEFULL &&
+            lastPort == 0xD5 &&
+            lastWidth == 4 &&
+            readCalls == 3);
+    }
+
+    {
+        auto code = MovR64(0, 0x00000000DEADBEEFULL);
+        code.insert(code.end(), {0xE6, 0x45, 0xF4});
+        CHECK(
+            "OUT imm8,AL dispatches 8-bit write",
+            RunCode(cpu, mem, code) &&
+            lastPort == 0x45 &&
+            lastWidth == 1 &&
+            lastWriteValue == 0xEFU &&
+            writeCalls == 1);
+    }
+
+    {
+        auto code = MovR64(0, 0x1122334455667788ULL);
+        code.insert(code.end(), {0x66, 0xE7, 0x56, 0xF4});
+        CHECK(
+            "66h OUT imm8,AX writes exactly 16 bits",
+            RunCode(cpu, mem, code) &&
+            lastPort == 0x56 &&
+            lastWidth == 2 &&
+            lastWriteValue == 0x7788U &&
+            writeCalls == 2);
+    }
+
+    {
+        auto code = MovR64(2, 0x00000000000001FEULL);
+        code.insert(code.end(), {0xEF, 0xF4});
+        CHECK(
+            "OUT DX,EAX uses DX port and 32-bit value",
+            RunCode(cpu, mem, code) &&
+            lastPort == 0x1FE &&
+            lastWidth == 4 &&
+            lastWriteValue == 0x7788U &&
+            writeCalls == 3);
+    }
+}
+
 void TestSyscallDispatch()
 {
     Memory mem;
