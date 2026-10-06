@@ -560,6 +560,41 @@ static bool TestMulDivForms() {
     return true;
 }
 
+static bool TestOneOperandMulWidths() {
+    Memory m8; m8.Map(0x1000,0x2000); Cpu c8; c8.ConnectMemory(&m8);
+    if(!Run(m8,c8,{0xB0,0x10,0xB3,0x10,0xF6,0xE3})) return false;
+    if((c8.Rax()&0xFFFFU)!=0x0100U || (c8.Rflags()&(1ULL| (1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
+    Memory i8; i8.Map(0x1000,0x2000); Cpu ci8; ci8.ConnectMemory(&i8);
+    if(!Run(i8,ci8,{0xB0,0xFE,0xB3,0x03,0xF6,0xEB})) return false;
+    if((ci8.Rax()&0xFFFFU)!=0xFFFAU || (ci8.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory m16; m16.Map(0x1000,0x2000); Cpu c16; c16.ConnectMemory(&m16);
+    std::vector<std::uint8_t> v16={0xB8,0x00,0x10,0xBB,0x10,0x00,0x66,0xF7,0xE3};
+    if(!Run(m16,c16,v16)) return false;
+    if((c16.Rax()&0xFFFFU)!=0 || (c16.Rdx()&0xFFFFU)!=1) return false;
+
+    Memory m32; m32.Map(0x1000,0x2000); Cpu c32; c32.ConnectMemory(&m32);
+    std::vector<std::uint8_t> v32; AppendMovR64(v32,0,0x10000000ULL); AppendMovR64(v32,3,0x10ULL);
+    v32.insert(v32.end(),{0xF7,0xE3});
+    if(!Run(m32,c32,v32)) return false;
+    if((c32.Rax()&0xFFFFFFFFULL)!=0 || (c32.Rdx()&0xFFFFFFFFULL)!=1) return false;
+
+    Memory m64; m64.Map(0x1000,0x2000); Cpu c64; c64.ConnectMemory(&m64);
+    std::vector<std::uint8_t> v64; AppendMovR64(v64,0,0x0000000100000000ULL); AppendMovR64(v64,3,2);
+    v64.insert(v64.end(),{0x48,0xF7,0xE3});
+    if(!Run(m64,c64,v64)) return false;
+    if(c64.Rax()!=0x0000000200000000ULL || c64.Rdx()!=0) return false;
+
+    Memory i64; i64.Map(0x1000,0x2000); Cpu ci64; ci64.ConnectMemory(&i64);
+    std::vector<std::uint8_t> vi64; AppendMovR64(vi64,0,0xFFFFFFFFFFFFFFFEULL); AppendMovR64(vi64,3,3);
+    vi64.insert(vi64.end(),{0x48,0xF7,0xEB});
+    if(!Run(i64,ci64,vi64)) return false;
+    if(ci64.Rax()!=0xFFFFFFFFFFFFFFFAULL || ci64.Rdx()!=0xFFFFFFFFFFFFFFFFULL) return false;
+    if((ci64.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+    return true;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -603,7 +638,7 @@ int main() {
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
     if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
-    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }\n    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }\n    if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }
+    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }\n    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }\n    if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }\n    if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
