@@ -4939,6 +4939,7 @@ void TestOperandSizeOverrideArithmetic()
         CHECK("66h Group1 ADD r/m16,imm16", RunCode(cpu, mem, code) && cpu.Rax() == 0x1122334455661235ULL);
     }
 }
+}
 
 void TestOperandSizeOverrideLegacyArithmetic()
 {
