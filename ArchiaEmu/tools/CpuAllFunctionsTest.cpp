@@ -3378,7 +3378,7 @@ void TestIoInstructions()
             RunCode(cpu, mem, code) &&
             lastPort == 0x1FE &&
             lastWidth == 4 &&
-            lastWriteValue == 0x7788U &&
+            lastWriteValue == 0x55667788U &&
             writeCalls == 3);
     }
 }
