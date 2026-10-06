@@ -2047,7 +2047,6 @@ bool Cpu::DecodeLogic64(
 
         std::uint64_t result = 0;
 
-        (void)lock_prefix; // LOCK is architecturally a bus-serialization prefix; this single-CPU core preserves the encoding.
         switch (opcode) {
 
         case 0x09:
