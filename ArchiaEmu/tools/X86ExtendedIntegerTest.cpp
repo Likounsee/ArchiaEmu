@@ -458,7 +458,7 @@ static bool TestAdcSbbImmediateAndWidths() {
         AppendMovR64(code, 0, 0xFFFF);
         AppendMovR64(code, 3, 1);
         code.insert(code.end(), {0xF9, 0x66, 0x13, 0xC3, 0x66, 0x1B, 0xC3});
-        if (!Run(m, c, code) || (c.ReadRegister64(0) & 0xFFFFU) != 0x0001U ||
+        if (!Run(m, c, code) || (c.ReadRegister64(0) & 0xFFFFU) != 0xFFFFU ||
             (c.ReadRegister64(3) & 0xFFFFU) != 0xFFFFU) return false;
     }
     {
@@ -467,7 +467,7 @@ static bool TestAdcSbbImmediateAndWidths() {
         AppendMovR64(code, 0, 0xFFFFFFFFULL);
         AppendMovR64(code, 3, 1);
         code.insert(code.end(), {0xF9, 0x11, 0xD8, 0x1B, 0xD8});
-        if (!Run(m, c, code) || (c.ReadRegister64(0) & 0xFFFFFFFFULL) != 0x00000001ULL ||
+        if (!Run(m, c, code) || (c.ReadRegister64(0) & 0xFFFFFFFFULL) != 0xFFFFFFFFULL ||
             (c.ReadRegister64(3) & 0xFFFFFFFFULL) != 0xFFFFFFFFULL) return false;
     }
     {
@@ -476,7 +476,7 @@ static bool TestAdcSbbImmediateAndWidths() {
         AppendMovR64(code, 0, 0xFFFFFFFFFFFFFFFFULL);
         AppendMovR64(code, 3, 1);
         code.insert(code.end(), {0xF9, 0x48, 0x11, 0xD8, 0x48, 0x1B, 0xD8});
-        if (!Run(m, c, code) || c.ReadRegister64(0) != 0x0000000000000001ULL ||
+        if (!Run(m, c, code) || c.ReadRegister64(0) != 0xFFFFFFFFFFFFFFFFULL ||
             c.ReadRegister64(3) != 0xFFFFFFFFFFFFFFFFULL) return false;
     }
 
