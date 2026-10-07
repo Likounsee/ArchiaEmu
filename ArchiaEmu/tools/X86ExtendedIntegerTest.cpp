@@ -512,6 +512,7 @@ static bool TestImulForms() {
 
 static bool TestMulDivForms() {
     Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory);
+    cpu.SetExceptionHandler([](Cpu&, const CpuException& e) { std::cerr << "MULDIV_EXCEPTION_VECTOR=" << static_cast<unsigned>(e.vector) << "\n"; return false; });
     std::vector<std::uint8_t> code;
     // DIV/IDIV 8-bit: AX / BL.
     code.insert(code.end(),{0xB8,0xE8,0x03,0xB3,0x0A,0xF6,0xF3});
