@@ -2296,21 +2296,21 @@ static bool TestGroup1QwordImmediateMemory() {
 }
 
 static bool TestTestRmRegForms() {
-    int block=0; auto fail=[&](int n){std::cerr<<"TEST-r/m,r block "<<n<<" failed\\n";return false;};
+    
     constexpr std::uint64_t CF=1ULL, PF=1ULL<<2, AF=1ULL<<4, ZF=1ULL<<6, SF=1ULL<<7, OF=1ULL<<11;
     // TEST r/m,r must not modify operands; CF/OF/AF are cleared and ZF/SF/PF reflect the result.
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0xF0); AppendMovR64(code,3,0x0F);
         code.insert(code.end(),{0x84,0xD8});
-        if(!Run(m,cpu,code) || cpu.Rax()!=0xF0 || cpu.ReadRegister64(3)!=0x0F) { std::cerr << "TEST byte values mismatch\n"; return fail(++block); }
-        if((cpu.Rflags() & (CF|OF|AF|ZF|SF|PF))!=(ZF|PF)) { std::cerr << "TEST byte flags mismatch flags=0x" << std::hex << cpu.Rflags() << "\n"; return fail(++block); }
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xF0 || cpu.ReadRegister64(3)!=0x0F) return false;
+        if((cpu.Rflags() & (CF|OF|AF|ZF|SF|PF))!=(ZF|PF)) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0x8001); AppendMovR64(code,3,0x8001);
         code.insert(code.end(),{0x66,0x85,0xD8});
-        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x8001U) return fail(++block);
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x8001U) return false;
         if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return fail(++block);
     }
     {
