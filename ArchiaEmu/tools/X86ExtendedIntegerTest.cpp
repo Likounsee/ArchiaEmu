@@ -762,6 +762,29 @@ static bool TestImulForms() {
     code.insert(code.end(),{0x48,0x6B,0xC0,0x02});
     if(!Run(m6,c6,code) || c6.Rax()!=0x8000000000000000ULL ||
        (c6.Rflags()&((1ULL<<0)|(1ULL<<11)))!=((1ULL<<0)|(1ULL<<11))) return false;
+
+    // 64-bit IMUL r64,r/m64,imm32 with REX.R/B and memory source.
+    Memory m7; m7.Map(0x1000,0x4000); Cpu c7; c7.ConnectMemory(&m7);
+    const std::int64_t source = -3;
+    if(!m7.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&source),sizeof(source))) return false;
+    code.clear();
+    AppendMovR64(code,8,0);
+    AppendMovR64(code,11,0x1800);
+    code.insert(code.end(),{0x4D,0x69,0x43,0x08,0x07,0x00,0x00,0x00}); // IMUL R8,[R11+8],7
+    if(!Run(m7,c7,code) || c7.ReadRegister64(8)!=0xFFFFFFFFFFFFFFEBULL) return false;
+    if((c7.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    // 64-bit IMUL r64,r/m64,imm8 with REX.R/B and memory source.
+    Memory m8; m8.Map(0x1000,0x4000); Cpu c8; c8.ConnectMemory(&m8);
+    const std::int64_t source8 = 0x1000000000000000LL;
+    if(!m8.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&source8),sizeof(source8))) return false;
+    code.clear();
+    AppendMovR64(code,9,0);
+    AppendMovR64(code,12,0x1800);
+    code.insert(code.end(),{0x4E,0x6B,0x4C,0xA4,0x10,0x08}); // IMUL R9,[R12+R12*4+16],8
+    if(!Run(m8,c8,code) || c8.ReadRegister64(9)!=0x8000000000000000ULL) return false;
+    if((c8.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
     return true;
 }
 
