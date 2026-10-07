@@ -1394,7 +1394,7 @@ static bool TestGroup1FlagMatrix() {
         if(!Run(m,cpu,code)) return false;
         const auto f=cpu.Rflags();
         if((cpu.ReadRegister64(0)&0xFFU)!=0x7FU) return false;
-        if((f&(CF|PF|AF|SF|OF|ZF))!=(AF|OF)) return false;
+        if((f&(CF|PF|AF|SF|OF|ZF))!=(CF|AF|OF)) return false;
     }
 
     // 16-bit ADC immediate: 0x7fff + 0 + CF -> 0x8000.
@@ -1429,7 +1429,7 @@ static bool TestGroup1FlagMatrix() {
         if((f&(CF|ZF|PF))!=(CF|ZF|PF) || (f&(OF|SF))!=0) return false;
     }
 
-    // 64-bit SBB memory: 0 - 1 - CF -> all ones, borrow and sign set.
+    // 64-bit SBB memory: 0 - 1 - CF -> -2, borrow and sign set.
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         std::uint64_t value=0;
@@ -1441,7 +1441,7 @@ static bool TestGroup1FlagMatrix() {
         std::uint64_t out=0;
         if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out))) return false;
         const auto f=cpu.Rflags();
-        if(out!=0xFFFFFFFFFFFFFFFFULL || (f&(CF|SF))!=(CF|SF) || (f&(ZF|OF))!=0) return false;
+        if(out!=0xFFFFFFFFFFFFFFFEULL || (f&(CF|SF))!=(CF|SF) || (f&(ZF|OF))!=0) return false;
     }
 
     return true;
