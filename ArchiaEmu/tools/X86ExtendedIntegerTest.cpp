@@ -422,7 +422,7 @@ static bool TestGroup1RexExtendedRegisters() {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,8,0xFF);
         code.insert(code.end(),{0x41,0x80,0xC0,0x01}); // ADD R8B,1
-        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x100U) return false;
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x100U) std::cerr << "G1 REX failure 1\n"; std::cerr << "G1 REX failure 2\n"; std::cerr << "G1 REX failure 3\n"; std::cerr << "G1 REX failure 4\n"; std::cerr << "G1 REX failure 5\n"; return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
