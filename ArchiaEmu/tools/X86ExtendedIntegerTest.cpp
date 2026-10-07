@@ -2963,6 +2963,24 @@ static bool TestGroup1ImmediateExtendedCoverage() {
         if ((f & PF) != 0) return false;
     }
 
+    // 8-bit 80 /2 ADC memory with REX.X/B SIB addressing and carry-in.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint8_t value = 0x7F;
+        if (!m.Write(0x1A01, &value, 1)) return false;
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        AppendMovR64(code, 12, 0x80);
+        code.insert(code.end(), {0x4F, 0x80, 0x54, 0xA3, 0x01, 0x7F});
+        if (!Run(m, cpu, code)) return false;
+        std::uint8_t out = 0;
+        if (!m.Read(0x1A01, &out, 1) || out != 0xFFU) return false;
+        const auto f = cpu.Rflags();
+        if ((f & (AF | OF | PF)) != (AF | OF | PF)) return false;
+        if ((f & (CF | ZF)) != 0) return false;
+    }
+
     // REX.B + SIB memory form: 83 /6 XOR byte/word-independent addressing path is
     // exercised here at dword width with an extended base and extended index.
     {
