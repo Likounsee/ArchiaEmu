@@ -2593,7 +2593,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
         AppendMovR64(code, 0, 0);
         code.insert(code.end(), {0x48, 0x81, 0xE8, 0x00, 0x00, 0x00, 0x80});
         if (!Run(m, cpu, code) || cpu.Rax() != 0x0000000080000000ULL) return false;
-        if ((cpu.Rflags() & (CF | SF | OF)) != (CF | SF | OF)) return false;
+        if ((cpu.Rflags() & (CF | SF | OF)) != CF) return false;
     }
 
     // 64-bit 81 /7: CMP must consume the sign-extended imm32 without modifying RAX.
