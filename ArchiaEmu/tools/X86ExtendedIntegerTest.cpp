@@ -1708,6 +1708,16 @@ static bool TestShift32ZeroCount() {
     return cpu.Rflags()==(1ULL | (1ULL<<11) | (1ULL<<6));
 }
 
+static bool TestShift16ExtendedRegister() {
+    Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code,15,0x8000ULL);
+    code.insert(code.end(),{0x66,0x49,0xD1,0xE7}); // SHL R15W,1
+    if(!Run(m,cpu,code) || (cpu.ReadRegister64(15)&0xFFFFU)!=0) return false;
+    if((cpu.Rflags()&1ULL)==0 || (cpu.Rflags()&(1ULL<<11))==0) return false;
+    return true;
+}
+
 static bool TestShift32Parity() {
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -2043,6 +2053,7 @@ int main() {
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestShiftLeft64Parity()) { std::cerr << "64-bit SHL parity failed\n"; return 26; }
+    if (!TestShift16ExtendedRegister()) { std::cerr << "16-bit shift extended register failed\n"; return 34; }
     if (!TestShift32Parity()) { std::cerr << "32-bit shift parity failed\n"; return 30; }
     if (!TestShift32ZeroCount()) { std::cerr << "32-bit shift zero-count failed\n"; return 33; }
     if (!TestShiftLeft64CLFlags()) { std::cerr << "64-bit SHL CL flags failed\n"; return 27; }
