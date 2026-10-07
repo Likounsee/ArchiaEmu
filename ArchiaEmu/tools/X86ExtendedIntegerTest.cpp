@@ -1050,6 +1050,77 @@ static bool TestOneOperandMulWidths() {
     if(!Run(mem64,mem64Cpu,mem64Code) || mem64Cpu.Rax()!=0xFFFFFFFFFFFFFFEBULL ||
        mem64Cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL ||
        (mem64Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory memMul8Overflow; memMul8Overflow.Map(0x1000,0x3000); Cpu memMul8OverflowCpu; memMul8OverflowCpu.ConnectMemory(&memMul8Overflow);
+    const std::uint8_t mul8OverflowOperand = 0x10;
+    if(!memMul8Overflow.Write(0x1800,&mul8OverflowOperand,sizeof(mul8OverflowOperand))) return false;
+    std::vector<std::uint8_t> memMul8OverflowCode;
+    AppendMovR64(memMul8OverflowCode,0,0x10); AppendMovR64(memMul8OverflowCode,7,0x1800);
+    memMul8OverflowCode.insert(memMul8OverflowCode.end(),{0xF6,0x27});
+    if(!Run(memMul8Overflow,memMul8OverflowCpu,memMul8OverflowCode) ||
+       (memMul8OverflowCpu.Rax()&0xFFFFU)!=0x0100U ||
+       (memMul8OverflowCpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
+    Memory memMul16Overflow; memMul16Overflow.Map(0x1000,0x3000); Cpu memMul16OverflowCpu; memMul16OverflowCpu.ConnectMemory(&memMul16Overflow);
+    const std::uint16_t mul16OverflowOperand = 0x10;
+    if(!memMul16Overflow.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&mul16OverflowOperand),sizeof(mul16OverflowOperand))) return false;
+    std::vector<std::uint8_t> memMul16OverflowCode;
+    AppendMovR64(memMul16OverflowCode,0,0x1000); AppendMovR64(memMul16OverflowCode,7,0x1800);
+    memMul16OverflowCode.insert(memMul16OverflowCode.end(),{0x66,0xF7,0x27});
+    if(!Run(memMul16Overflow,memMul16OverflowCpu,memMul16OverflowCode) ||
+       (memMul16OverflowCpu.Rax()&0xFFFFU)!=0U || (memMul16OverflowCpu.ReadRegister64(2)&0xFFFFU)!=1U ||
+       (memMul16OverflowCpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
+    Memory memMul32Overflow; memMul32Overflow.Map(0x1000,0x3000); Cpu memMul32OverflowCpu; memMul32OverflowCpu.ConnectMemory(&memMul32Overflow);
+    const std::uint32_t mul32OverflowOperand = 0x10;
+    if(!memMul32Overflow.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&mul32OverflowOperand),sizeof(mul32OverflowOperand))) return false;
+    std::vector<std::uint8_t> memMul32OverflowCode;
+    AppendMovR64(memMul32OverflowCode,0,0x10000000ULL); AppendMovR64(memMul32OverflowCode,7,0x1800);
+    memMul32OverflowCode.insert(memMul32OverflowCode.end(),{0xF7,0x27});
+    if(!Run(memMul32Overflow,memMul32OverflowCpu,memMul32OverflowCode) ||
+       (memMul32OverflowCpu.Rax()&0xFFFFFFFFULL)!=0U || (memMul32OverflowCpu.ReadRegister64(2)&0xFFFFFFFFULL)!=1U ||
+       (memMul32OverflowCpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
+    Memory memMul64Overflow; memMul64Overflow.Map(0x1000,0x3000); Cpu memMul64OverflowCpu; memMul64OverflowCpu.ConnectMemory(&memMul64Overflow);
+    const std::uint64_t mul64OverflowOperand = 0x100000000ULL;
+    if(!memMul64Overflow.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&mul64OverflowOperand),sizeof(mul64OverflowOperand))) return false;
+    std::vector<std::uint8_t> memMul64OverflowCode;
+    AppendMovR64(memMul64OverflowCode,0,0x100000000ULL); AppendMovR64(memMul64OverflowCode,7,0x1800);
+    memMul64OverflowCode.insert(memMul64OverflowCode.end(),{0x48,0xF7,0x27});
+    if(!Run(memMul64Overflow,memMul64OverflowCpu,memMul64OverflowCode) ||
+       memMul64OverflowCpu.Rax()!=0U || memMul64OverflowCpu.ReadRegister64(2)!=1U ||
+       (memMul64OverflowCpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
+    Memory memImul16Overflow; memImul16Overflow.Map(0x1000,0x3000); Cpu memImul16OverflowCpu; memImul16OverflowCpu.ConnectMemory(&memImul16Overflow);
+    const std::uint16_t imul16OverflowOperand = 0xFFFF;
+    if(!memImul16Overflow.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&imul16OverflowOperand),sizeof(imul16OverflowOperand))) return false;
+    std::vector<std::uint8_t> memImul16OverflowCode;
+    AppendMovR64(memImul16OverflowCode,0,0x8000ULL); AppendMovR64(memImul16OverflowCode,7,0x1800);
+    memImul16OverflowCode.insert(memImul16OverflowCode.end(),{0x66,0xF7,0x2F});
+    if(!Run(memImul16Overflow,memImul16OverflowCpu,memImul16OverflowCode) ||
+       (memImul16OverflowCpu.Rax()&0xFFFFU)!=0x8000U || (memImul16OverflowCpu.ReadRegister64(2)&0xFFFFU)!=0U ||
+       (memImul16OverflowCpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
+    Memory memImul32Overflow; memImul32Overflow.Map(0x1000,0x3000); Cpu memImul32OverflowCpu; memImul32OverflowCpu.ConnectMemory(&memImul32Overflow);
+    const std::uint32_t imul32OverflowOperand = 0xFFFFFFFFU;
+    if(!memImul32Overflow.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&imul32OverflowOperand),sizeof(imul32OverflowOperand))) return false;
+    std::vector<std::uint8_t> memImul32OverflowCode;
+    AppendMovR64(memImul32OverflowCode,0,0x80000000ULL); AppendMovR64(memImul32OverflowCode,7,0x1800);
+    memImul32OverflowCode.insert(memImul32OverflowCode.end(),{0xF7,0x2F});
+    if(!Run(memImul32Overflow,memImul32OverflowCpu,memImul32OverflowCode) ||
+       (memImul32OverflowCpu.Rax()&0xFFFFFFFFULL)!=0x80000000ULL || (memImul32OverflowCpu.ReadRegister64(2)&0xFFFFFFFFULL)!=0U ||
+       (memImul32OverflowCpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
+    Memory memImul64Overflow; memImul64Overflow.Map(0x1000,0x3000); Cpu memImul64OverflowCpu; memImul64OverflowCpu.ConnectMemory(&memImul64Overflow);
+    const std::uint64_t imul64OverflowOperand = 0xFFFFFFFFFFFFFFFFULL;
+    if(!memImul64Overflow.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&imul64OverflowOperand),sizeof(imul64OverflowOperand))) return false;
+    std::vector<std::uint8_t> memImul64OverflowCode;
+    AppendMovR64(memImul64OverflowCode,0,0x8000000000000000ULL); AppendMovR64(memImul64OverflowCode,7,0x1800);
+    memImul64OverflowCode.insert(memImul64OverflowCode.end(),{0x48,0xF7,0x2F});
+    if(!Run(memImul64Overflow,memImul64OverflowCpu,memImul64OverflowCode) ||
+       memImul64OverflowCpu.Rax()!=0x8000000000000000ULL || memImul64OverflowCpu.ReadRegister64(2)!=0U ||
+       (memImul64OverflowCpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
     return true;
 }
 
