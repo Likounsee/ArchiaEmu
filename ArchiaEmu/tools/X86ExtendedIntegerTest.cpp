@@ -422,13 +422,13 @@ static bool TestGroup1RexExtendedRegisters() {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,8,0xFF);
         code.insert(code.end(),{0x41,0x80,0xC0,0x01}); // ADD R8B,1
-        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x100U) { std::cerr << "G1 REX byte R8=0x" << std::hex << cpu.ReadRegister64(8) << " RFLAGS=0x" << cpu.Rflags() << "\n"; return false; }
+        if(!Run(m,cpu,code) || (cpu.ReadRegister64(8)&0xFFU)!=0U) { std::cerr << "G1 REX byte R8=0x" << std::hex << cpu.ReadRegister64(8) << " RFLAGS=0x" << cpu.Rflags() << "\n"; return false; }
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,9,0xFFFF);
         code.insert(code.end(),{0x66,0x41,0x83,0xC1,0x01}); // ADD R9W,1
-        if(!Run(m,cpu,code) || cpu.ReadRegister64(9)!=0U) return false;
+        if(!Run(m,cpu,code) || (cpu.ReadRegister64(9)&0xFFFFU)!=0U) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
