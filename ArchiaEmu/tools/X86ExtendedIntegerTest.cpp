@@ -2125,16 +2125,46 @@ static bool TestBitMemoryForms() {
 
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        const std::uint64_t value=0x1ULL;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        const std::uint64_t first=0x1ULL, second=0x0ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
+           !m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&second),8)) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,7,0x1800);
         AppendMovR64(code,1,66);
         code.insert(code.end(),{0x48,0x0F,0xAB,0x0F}); // BTS [RDI],RCX
         if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)!=0) return false;
         std::uint64_t out=0;
-        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
-        return out==0x1ULL && false;
+        if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),8) || out!=0x4ULL) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t first=0x1ULL, second=0x4ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
+           !m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&second),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        AppendMovR64(code,1,66);
+        code.insert(code.end(),{0x48,0x0F,0xB3,0x0F}); // BTR [RDI],RCX
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),8) || out!=0x0ULL) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t first=0x1ULL, second=0x4ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
+           !m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&second),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        AppendMovR64(code,1,66);
+        code.insert(code.end(),{0x48,0x0F,0xBB,0x0F}); // BTC [RDI],RCX
+        if(!Run(m,cpu) || (cpu.Rflags()&1ULL)==0) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),8) || out!=0x0ULL) return false;
+    }
+    return true;
     }
 }
 
