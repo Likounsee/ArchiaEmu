@@ -532,10 +532,13 @@ static bool TestMulDivForms() {
 
     // 16-bit DIV and IDIV.
     Memory m16; m16.Map(0x1000,0x3000); Cpu c16; c16.ConnectMemory(&m16);
-    std::vector<std::uint8_t> v16={0xB8,0xE8,0x03,0x31,0xD2,0xBB,0x1E,0x00,0x66,0xF7,0xF3};
-    v16.insert(v16.end(),{0xB8,0x18,0xFC,0xBA,0xFF,0xFF,0xBB,0x1E,0x00,0x66,0xF7,0xFB});
-    if (!Run(m16,c16,v16)) { return false; }
-    if ((c16.Rax()&0xFFFFU)!=0xFFDFU || (c16.ReadRegister64(2)&0xFFFFU)!=0xFFF6U) { return false; }
+    std::vector<std::uint8_t> v16;
+    v16.insert(v16.end(),{0xB8,0xE8,0x03,0x31,0xD2,0xBB,0x1E,0x00,0x66,0xF7,0xF3});
+    if (!Run(m16,c16,v16)) { std::cerr << "MULDIV_DIV16_RUN RAX=0x" << std::hex << c16.Rax() << " RDX=0x" << c16.ReadRegister64(2) << std::dec << "\n"; return false; }
+    if ((c16.Rax()&0xFFFFU)!=0x0021U || (c16.ReadRegister64(2)&0xFFFFU)!=0x000AU) { std::cerr << "MULDIV_DIV16_RESULT\n"; return false; }
+    std::vector<std::uint8_t> i16={0xB8,0x18,0xFC,0xBA,0xFF,0xFF,0xBB,0x1E,0x00,0x66,0xF7,0xFB};
+    if (!Run(m16,c16,i16)) { std::cerr << "MULDIV_IDIV16_RUN RAX=0x" << std::hex << c16.Rax() << " RDX=0x" << c16.ReadRegister64(2) << std::dec << "\n"; return false; }
+    if ((c16.Rax()&0xFFFFU)!=0xFFDFU || (c16.ReadRegister64(2)&0xFFFFU)!=0xFFF6U) { std::cerr << "MULDIV_IDIV16_RESULT RAX=0x" << std::hex << c16.Rax() << " RDX=0x" << c16.ReadRegister64(2) << std::dec << "\n"; return false; }
 
     // 32-bit DIV: EDX:EAX / EBX = 100000 / 30000.
     Memory m32; m32.Map(0x1000,0x3000); Cpu c32; c32.ConnectMemory(&m32);
