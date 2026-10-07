@@ -113,6 +113,27 @@ static bool TestCmovccExtendedConditions() {
     return true;
 }
 
+static bool TestCmov16ExtendedMemoryAndFlags() {
+    constexpr std::uint64_t CF = 1ULL;
+    constexpr std::uint64_t PF = 1ULL << 2;
+    constexpr std::uint64_t ZF = 1ULL << 6;
+    constexpr std::uint64_t OF = 1ULL << 11;
+
+    Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+    const std::uint16_t source = 0xBEEF;
+    if (!m.Write(0x1808, reinterpret_cast<const std::uint8_t*>(&source), sizeof(source))) return false;
+
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 8, 0x1234000000000011ULL);
+    AppendMovR64(code, 11, 0x1800);
+    cpu.SetRflags(CF | PF | ZF | OF);
+    code.insert(code.end(), {0x66, 0x4D, 0x0F, 0x44, 0x43, 0x08}); // CMOVZ R8W,[R11+8]
+
+    if (!Run(m, cpu, code)) return false;
+    if (cpu.ReadRegister64(8) != 0x123400000000BEEFULL) return false;
+    return cpu.Rflags() == (CF | PF | ZF | OF);
+}
+
 static bool TestXadd32() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -2852,6 +2873,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
 int main() {
     if (!TestTestImmediateForms()) { std::cerr << "TEST immediate forms failed\n"; return 43; }
     if (!TestSetccExtendedMemoryAndFlags()) { std::cerr << "SETcc extended memory/flags failed\n"; return 44; }
+    if (!TestCmov16ExtendedMemoryAndFlags()) { std::cerr << "CMOV16 extended memory/flags failed\n"; return 45; }
     if (!TestGroup1ImmediateExtendedCoverage()) { std::cerr << "Group1 immediate extended coverage failed\n"; return 99; }
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
