@@ -1768,7 +1768,7 @@ static bool TestShiftRight64Forms() {
         std::vector<std::uint8_t> code;
         AppendMovR64(code,15,0x8000000000000001ULL);
         code.insert(code.end(),{0x49,0xD1,0xEF}); // SHR R15,1
-        if(!Run(m,cpu,code) || cpu.ReadReg64(15)!=0x4000000000000000ULL) return false;
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(15)!=0x4000000000000000ULL) return false;
     }
 
     return true;
