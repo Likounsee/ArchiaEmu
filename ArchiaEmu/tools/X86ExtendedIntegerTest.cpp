@@ -2008,7 +2008,7 @@ static bool TestGroup1ExtendedAddressing() {
 static bool TestDoubleShiftExtendedForms() {
     const std::uint64_t CF = 1ULL;
     const std::uint64_t OF = 1ULL << 11;
-    auto fail = [](int n) { std::cerr << "DSEF block " << n << " failed\\n"; return fail(1); };
+    auto fail = [](int n) { std::cerr << "DSEF block " << n << " failed\\n"; return false; };
 
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
