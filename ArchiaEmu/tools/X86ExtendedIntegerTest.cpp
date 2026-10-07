@@ -652,6 +652,27 @@ static bool TestMulDivForms() {
     if (!min64.Write(0x1000,vm.data(),vm.size())) { return false; }
     cm.SetInstructionPointer(0x1000);
     if (cm.Run()==0) { return false; }
+
+    Memory divMem32; divMem32.Map(0x1000,0x3000); Cpu divMem32Cpu; divMem32Cpu.ConnectMemory(&divMem32);
+    const std::uint32_t div32 = 7;
+    if(!divMem32.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&div32),sizeof(div32))) return false;
+    std::vector<std::uint8_t> divMem32Code;
+    AppendMovR64(divMem32Code,0,100); AppendMovR64(divMem32Code,2,0); AppendMovR64(divMem32Code,7,0x1800);
+    divMem32Code.insert(divMem32Code.end(),{0xF7,0x37});
+    if(!Run(divMem32,divMem32Cpu,divMem32Code) ||
+       (divMem32Cpu.Rax()&0xFFFFFFFFULL)!=14U ||
+       (divMem32Cpu.ReadRegister64(2)&0xFFFFFFFFULL)!=2U) return false;
+
+    Memory idivMem64; idivMem64.Map(0x1000,0x3000); Cpu idivMem64Cpu; idivMem64Cpu.ConnectMemory(&idivMem64);
+    const std::uint64_t idiv64 = 7;
+    if(!idivMem64.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&idiv64),sizeof(idiv64))) return false;
+    std::vector<std::uint8_t> idivMem64Code;
+    AppendMovR64(idivMem64Code,0,0xFFFFFFFFFFFFFF9CULL); AppendMovR64(idivMem64Code,2,0xFFFFFFFFFFFFFFFFULL);
+    AppendMovR64(idivMem64Code,7,0x1800);
+    idivMem64Code.insert(idivMem64Code.end(),{0x48,0xF7,0x3F});
+    if(!Run(idivMem64,idivMem64Cpu,idivMem64Code) ||
+       idivMem64Cpu.Rax()!=0xFFFFFFFFFFFFFFF2ULL ||
+       idivMem64Cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFEULL) return false;
     return true;
 }
 
