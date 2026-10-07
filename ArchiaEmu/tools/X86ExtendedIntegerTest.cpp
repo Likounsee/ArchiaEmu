@@ -2006,7 +2006,7 @@ static bool TestGroup1ExtendedAddressing() {
 
 
 static bool TestDoubleShiftExtendedForms() {
-    auto fail = [](int line) { std::cerr << "DSEF failure line " << line << "\\n"; return false; };
+    auto fail = [](int line) { std::cout << "DSEF failure line " << line << "\\n"; return false; };
     const std::uint64_t CF = 1ULL;
     const std::uint64_t OF = 1ULL << 11;
 
