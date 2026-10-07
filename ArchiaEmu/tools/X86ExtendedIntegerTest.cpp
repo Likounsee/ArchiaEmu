@@ -2583,6 +2583,74 @@ static bool TestSetccExtendedMemoryAndFlags() {
     return cpu.Rflags() == (CF | PF | AF | ZF | SF | OF);
 }
 
+static bool TestJccConditionMatrix() {
+    // Exercise every Jcc condition code with both short and near encodings.
+    // Three flag states cover CF/ZF/PF/SF/OF combinations, including SF != OF.
+    const std::uint64_t CF = 1ULL;
+    const std::uint64_t PF = 1ULL << 2;
+    const std::uint64_t ZF = 1ULL << 6;
+    const std::uint64_t SF = 1ULL << 7;
+    const std::uint64_t OF = 1ULL << 11;
+
+    const std::array<std::uint8_t, 16> shortOpcodes = {
+        0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,
+        0x78,0x79,0x7A,0x7B,0x7C,0x7D,0x7E,0x7F
+    };
+
+    const std::array<std::uint64_t, 3> flagStates = {
+        0,
+        CF | PF | ZF | SF | OF,
+        SF
+    };
+
+    for (const auto flags : flagStates) {
+        for (std::size_t cc = 0; cc < shortOpcodes.size(); ++cc) {
+            const bool expected =
+                (cc == 0) ? ((flags & OF) != 0) :
+                (cc == 1) ? ((flags & OF) == 0) :
+                (cc == 2) ? ((flags & CF) != 0) :
+                (cc == 3) ? ((flags & CF) == 0) :
+                (cc == 4) ? ((flags & ZF) != 0) :
+                (cc == 5) ? ((flags & ZF) == 0) :
+                (cc == 6) ? ((flags & (CF | ZF)) != 0) :
+                (cc == 7) ? ((flags & (CF | ZF)) == 0) :
+                (cc == 8) ? ((flags & SF) != 0) :
+                (cc == 9) ? ((flags & SF) == 0) :
+                (cc == 10) ? ((flags & PF) != 0) :
+                (cc == 11) ? ((flags & PF) == 0) :
+                (cc == 12) ? (((flags & SF) != 0) != ((flags & OF) != 0)) :
+                (cc == 13) ? (((flags & SF) != 0) == ((flags & OF) != 0)) :
+                (cc == 14) ? (((flags & ZF) != 0) || (((flags & SF) != 0) != ((flags & OF) != 0))) :
+                ((flags & ZF) == 0) && (((flags & SF) != 0) == ((flags & OF) != 0));
+
+            Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+            cpu.SetRflags(flags);
+            const std::vector<std::uint8_t> code = {
+                shortOpcodes[cc], 0x03, 0xB0, 0x01, 0xF4, 0xB0,
+                0x02, 0xF4
+            };
+            if (!Run(m, cpu, code) || (cpu.Rax() & 0xFFU) != (expected ? 0x02U : 0x01U)) {
+                return false;
+            }
+            if (cpu.Rflags() != flags) return false;
+
+            Memory mn; mn.Map(0x1000, 0x2000); Cpu cn; cn.ConnectMemory(&mn);
+            cn.SetRflags(flags);
+            const std::vector<std::uint8_t> nearCode = {
+                0x0F, static_cast<std::uint8_t>(0x80 + cc),
+                0x03, 0x00, 0x00, 0x00, 0xB0, 0x01, 0xF4, 0xB0,
+                0x02, 0xF4
+            };
+            if (!Run(mn, cn, nearCode) || (cn.Rax() & 0xFFU) != (expected ? 0x02U : 0x01U)) {
+                return false;
+            }
+            if (cn.Rflags() != flags) return false;
+        }
+    }
+
+    return true;
+}
+
 static bool TestDivisionSignedAndExtendedForms() {
     // IDIV64 register: (-10) / 3 = -3 remainder -1.
     {
@@ -2943,7 +3011,7 @@ int main() {
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     if (!TestRexLowByteAliases()) { std::cerr << "REX low-byte aliases failed\n"; return 41; }
     if (!TestAdcSbbQwordMemoryBoundaries()) { std::cerr << "ADC/SBB qword memory boundaries failed\n"; return 40; }
-    if (!TestDivisionSignedAndExtendedForms()) { std::cerr << "signed/extended division forms failed\n"; return 39; }
+    if (!TestJccConditionMatrix()) { std::cerr << "Jcc condition matrix failed\\n"; return 46; }\n    if (!TestDivisionSignedAndExtendedForms()) { std::cerr << "signed/extended division forms failed\n"; return 39; }
     if (!TestDivisionUnsignedAndQuotientBoundaries()) { std::cerr << "unsigned/quotient division boundaries failed\n"; return 42; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
