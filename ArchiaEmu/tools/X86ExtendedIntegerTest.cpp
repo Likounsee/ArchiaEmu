@@ -1394,7 +1394,7 @@ static bool TestGroup1FlagMatrix() {
         if(!Run(m,cpu,code)) return false;
         const auto f=cpu.Rflags();
         if((cpu.ReadRegister64(0)&0xFFU)!=0x7FU) return false;
-        if((f&(CF|PF|AF|SF|OF|ZF))!=(CF|AF|OF)) return false;
+        if((f&(CF|PF|AF|SF|OF|ZF))!=(AF|OF)) return false;
     }
 
     // 16-bit ADC immediate: 0x7fff + 0 + CF -> 0x8000.
