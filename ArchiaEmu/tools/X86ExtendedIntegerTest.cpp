@@ -3011,7 +3011,8 @@ int main() {
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     if (!TestRexLowByteAliases()) { std::cerr << "REX low-byte aliases failed\n"; return 41; }
     if (!TestAdcSbbQwordMemoryBoundaries()) { std::cerr << "ADC/SBB qword memory boundaries failed\n"; return 40; }
-    if (!TestJccConditionMatrix()) { std::cerr << "Jcc condition matrix failed\\n"; return 46; }\n    if (!TestDivisionSignedAndExtendedForms()) { std::cerr << "signed/extended division forms failed\n"; return 39; }
+    if (!TestJccConditionMatrix()) { std::cerr << "Jcc condition matrix failed\\n"; return 46; }
+    if (!TestDivisionSignedAndExtendedForms()) { std::cerr << "signed/extended division forms failed\\n"; return 39; }
     if (!TestDivisionUnsignedAndQuotientBoundaries()) { std::cerr << "unsigned/quotient division boundaries failed\n"; return 42; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
