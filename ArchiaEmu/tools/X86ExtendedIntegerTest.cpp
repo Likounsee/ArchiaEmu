@@ -1792,7 +1792,7 @@ static bool TestLeaExtendedAddressing() {
         std::vector<std::uint8_t> code;
         AppendMovR64(code,11,0x1800);
         AppendMovR64(code,12,2);
-        code.insert(code.end(),{0x4F,0x8D,0x04,0xA3}); // LEA RAX,[R11+R12*4]
+        code.insert(code.end(),{0x4B,0x8D,0x04,0xA3}); // LEA RAX,[R11+R12*4]
         if(!Run(m,cpu,code) || cpu.Rax()!=0x1808ULL) return false;
     }
     {
@@ -1800,7 +1800,7 @@ static bool TestLeaExtendedAddressing() {
         std::vector<std::uint8_t> code;
         AppendMovR64(code,11,0x1800);
         AppendMovR64(code,12,2);
-        code.insert(code.end(),{0x4F,0x8D,0x44,0xA3,0x08}); // LEA RAX,[R11+R12*4+8]
+        code.insert(code.end(),{0x4B,0x8D,0x44,0xA3,0x08}); // LEA RAX,[R11+R12*4+8]
         if(!Run(m,cpu,code) || cpu.Rax()!=0x1810ULL) return false;
     }
     {
