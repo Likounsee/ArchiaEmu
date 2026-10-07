@@ -2296,7 +2296,7 @@ static bool TestGroup1QwordImmediateMemory() {
 }
 
 static bool TestTestRmRegForms() {
-    int block=0; auto fail=[&](int n){std::cerr<<"TEST-r/m,r block "<<n<<" failed\\n";return false;};
+    int block=0; auto fail=[&](int n){std::cerr<<"TEST-r/m,r block "<<n<<" failed flags=0x"<<std::hex<<cpu.Rflags()<<" rax=0x"<<cpu.Rax()<<" rbx=0x"<<cpu.ReadRegister64(3)<<"\\n";return false;};
     constexpr std::uint64_t CF=1ULL, PF=1ULL<<2, AF=1ULL<<4, ZF=1ULL<<6, SF=1ULL<<7, OF=1ULL<<11;
     // TEST r/m,r must not modify operands; CF/OF/AF are cleared and ZF/SF/PF reflect the result.
     {
