@@ -4609,26 +4609,33 @@ int Cpu::Run()
                     break;
                 }
 
-                std::uint64_t bitIndex=0;
-                std::uint8_t widthBits=32;
-                std::uint8_t widthBytes=4;
+                std::int64_t bitIndex=0;
+                std::int64_t widthBits=32;
+                std::int64_t widthBytes=4;
 
                 if(operand_size_override_ && !rex.w){
                     if(!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory)) return 1;
-                    bitIndex=registers_.Read16(reg);
+                    bitIndex=static_cast<std::int16_t>(registers_.Read16(reg));
                     widthBits=16; widthBytes=2;
                 } else if(rex.w){
                     if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
-                    bitIndex=registers_.Read64(reg);
+                    bitIndex=static_cast<std::int64_t>(registers_.Read64(reg));
                     widthBits=64; widthBytes=8;
                 } else {
                     if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
-                    bitIndex=registers_.Read32(reg);
+                    bitIndex=static_cast<std::int32_t>(registers_.Read32(reg));
                 }
 
-                const std::uint64_t wordOffset=(bitIndex/static_cast<std::uint64_t>(widthBits))*widthBytes;
-                const std::uint8_t bit=static_cast<std::uint8_t>(bitIndex%widthBits);
-                address+=wordOffset;
+                std::int64_t wordIndex=bitIndex/widthBits;
+                std::int64_t bitSigned=bitIndex%widthBits;
+                if(bitSigned<0){
+                    bitSigned+=widthBits;
+                    --wordIndex;
+                }
+                const std::int64_t addressDelta=wordIndex*widthBytes;
+                address=static_cast<std::uint64_t>(
+                    static_cast<std::int64_t>(address)+addressDelta);
+                const std::uint8_t bit=static_cast<std::uint8_t>(bitSigned);
 
                 if(widthBits==16){
                     std::uint16_t value=0;
