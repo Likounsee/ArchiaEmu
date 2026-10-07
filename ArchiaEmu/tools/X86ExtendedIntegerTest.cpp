@@ -1865,11 +1865,9 @@ static bool TestRotate64Forms() {
         if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
     }
     {
-        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        const std::uint64_t value=0x8000000000000000ULL;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(cpu.Rflags()|CF);
-        std::vector<std::uint8_t> code; AppendMovR64(code,8,0x1800);
+        std::vector<std::uint8_t> code; AppendMovR64(code,8,0x8000000000000000ULL);
         code.insert(code.end(),{0x49,0xD1,0xD0}); // RCL R8,1
         if(!Run(m,cpu,code)) return false;
         if(cpu.ReadRegister64(8)!=1ULL || (cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)==0) {
