@@ -3172,6 +3172,33 @@ static bool TestMovImmediateToRmForms() {
 
 
 
+
+static bool TestLahfSahfFlags() {
+    constexpr std::uint64_t CF = 1ULL;
+    constexpr std::uint64_t PF = 1ULL << 2;
+    constexpr std::uint64_t AF = 1ULL << 4;
+    constexpr std::uint64_t ZF = 1ULL << 6;
+    constexpr std::uint64_t SF = 1ULL << 7;
+    constexpr std::uint64_t OF = 1ULL << 11;
+    constexpr std::uint64_t statusMask = CF | PF | AF | ZF | SF;
+
+    Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+    const std::uint64_t initial = CF | PF | AF | ZF | SF | OF;
+    cpu.SetRflags(initial);
+
+    // LAHF copies SF/ZF/AF/PF/CF to AH. Clear AH, then SAHF must restore
+    // the five saved flags while leaving OF untouched.
+    std::vector<std::uint8_t> code = {
+        0x9F,       // LAHF
+        0xB4, 0x00, // MOV AH,0
+        0x9E        // SAHF
+    };
+    if (!Run(m, cpu, code)) return false;
+    const std::uint64_t flags = cpu.Rflags();
+    return (flags & statusMask) == 0 && (flags & OF) != 0;
+}
+
+
 static bool TestPushPopFlagsQword() {
     constexpr std::uint64_t flags =
         1ULL | (1ULL << 2) | (1ULL << 4) | (1ULL << 6) |
@@ -3408,6 +3435,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestLahfSahfFlags()) { std::cerr << "LAHF/SAHF flags failed\\n"; return 59; }
+
     if (!TestPushPopFlagsQword()) { std::cerr << "PUSHFQ/POPFQ failed\\n"; return 58; }
 
     if (!TestNotExtendedForms()) { std::cerr << "NOT extended forms failed\\n"; return 57; }
