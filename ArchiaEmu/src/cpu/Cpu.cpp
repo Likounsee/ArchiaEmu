@@ -4670,6 +4670,7 @@ int Cpu::Run()
 
             if (opcode2 == 0xA4 || opcode2 == 0xA5 || opcode2 == 0xAC || opcode2 == 0xAD) {
                 std::uint8_t modrm=0;if(!Fetch8(modrm))return 1;
+                if (operand_size_override_ && !rex.w && opcode2 == 0xAC) { std::cerr << "[CPU] DSEF16 AC IP=0x" << std::hex << current_instruction_ip_ << " modrm=0x" << static_cast<unsigned>(modrm) << std::dec << "\\n"; }
                 std::uint8_t reg=0,rm=0;std::uint64_t address=0;bool memory=false;
                 if(operand_size_override_&&!rex.w){
                     if(!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory))return 1;
