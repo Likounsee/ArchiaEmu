@@ -4227,6 +4227,28 @@ int Cpu::Run()
 
                 break;
             }
+            if (opcode2 == 0x88 || opcode2 == 0x89 ||
+                opcode2 == 0x8A || opcode2 == 0x8B) {
+                std::int32_t rel = 0;
+                if (!FetchRel32(rel)) return 1;
+
+                bool take = false;
+                switch (opcode2) {
+                case 0x88: take = SignFlag(); break;
+                case 0x89: take = !SignFlag(); break;
+                case 0x8A: take = (rflags_ & PF_MASK) != 0; break;
+                case 0x8B: take = (rflags_ & PF_MASK) == 0; break;
+                default: break;
+                }
+
+                if (take) {
+                    instruction_pointer_ =
+                        static_cast<std::uint64_t>(
+                            static_cast<std::int64_t>(instruction_pointer_) + rel);
+                }
+                break;
+            }
+
             if (opcode2 == 0x8C) {
 
                 std::int32_t rel = 0;
@@ -7846,6 +7868,35 @@ case 0xD0:
                             instruction_pointer_) + rel);
             }
 
+            break;
+        }
+
+        case 0x70:
+        case 0x71:
+        case 0x78:
+        case 0x79:
+        case 0x7A:
+        case 0x7B:
+        {
+            std::int8_t rel = 0;
+            if (!FetchRel8(rel)) return 1;
+
+            bool take = false;
+            switch (opcode) {
+            case 0x70: take = (rflags_ & OF_MASK) != 0; break;
+            case 0x71: take = (rflags_ & OF_MASK) == 0; break;
+            case 0x78: take = SignFlag(); break;
+            case 0x79: take = !SignFlag(); break;
+            case 0x7A: take = (rflags_ & PF_MASK) != 0; break;
+            case 0x7B: take = (rflags_ & PF_MASK) == 0; break;
+            default: break;
+            }
+
+            if (take) {
+                instruction_pointer_ =
+                    static_cast<std::uint64_t>(
+                        static_cast<std::int64_t>(instruction_pointer_) + rel);
+            }
             break;
         }
 
