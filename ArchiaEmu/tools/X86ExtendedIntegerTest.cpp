@@ -665,7 +665,7 @@ static bool TestCpuid() {
     AppendMovR64(code, 0, 0);
     AppendMovR64(code, 1, 0);
     code.insert(code.end(), {0x0F, 0xA2});
-    return Run(memory, cpu, code) && cpu.Rax() >= 1;
+    const bool ran = Run(memory, cpu, code); if (!ran || cpu.Rax() < 1) { std::cerr << "CPUID_RESULT ran=" << ran << " RAX=0x" << std::hex << cpu.Rax() << " RIP=0x" << cpu.InstructionPointer() << std::dec << "\n"; return false; } return true;
 }
 
 int main() {
