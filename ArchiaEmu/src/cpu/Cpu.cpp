@@ -7012,6 +7012,44 @@ case 0xD0:
 
             break;
         }
+        case 0x84:
+        {
+            std::uint8_t modrm=0, reg=0, rm=0;
+            bool regHigh=false, rmHigh=false;
+            std::uint64_t address=0; bool memory=false;
+            if(!Fetch8(modrm) || !DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory)) return 1;
+            const std::uint8_t lhs = memory
+                ? ([&](){ std::uint8_t v=0; if(!ReadMemory(address,&v,1)) return std::uint8_t(0); return v; })()
+                : ReadReg8(rm,rmHigh);
+            const std::uint8_t rhs = ReadReg8(reg,regHigh);
+            SetLogicFlags8(static_cast<std::uint8_t>(lhs & rhs));
+            break;
+        }
+
+        case 0x85:
+        {
+            std::uint8_t modrm=0, reg=0, rm=0;
+            std::uint64_t address=0; bool memory=false;
+            if(!Fetch8(modrm) || !DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+            if(rex.w) {
+                const std::uint64_t lhs = memory
+                    ? ([&](){ std::uint64_t v=0; if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&v),8)) return std::uint64_t(0); return v; })()
+                    : registers_.Read64(rm);
+                SetLogicFlags64(lhs & registers_.Read64(reg));
+            } else if(operand_size_override_) {
+                const std::uint16_t lhs = memory
+                    ? ([&](){ std::uint16_t v=0; if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&v),2)) return std::uint16_t(0); return v; })()
+                    : registers_.Read16(rm);
+                SetLogicFlags16(static_cast<std::uint16_t>(lhs & registers_.Read16(reg)));
+            } else {
+                const std::uint32_t lhs = memory
+                    ? ([&](){ std::uint32_t v=0; if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&v),4)) return std::uint32_t(0); return v; })()
+                    : registers_.Read32(rm);
+                SetLogicFlags32(lhs & registers_.Read32(reg));
+            }
+            break;
+        }
+
         case 0x80: {
             std::uint8_t modrm=0, reg=0, rm=0, immediate=0; std::uint64_t address=0; bool memory=false; bool regHigh=false,rmHigh=false;
             if(!Fetch8(modrm)||!DecodeMemoryOrRegister8(modrm,rex,reg,regHigh,rm,rmHigh,address,memory)||!Fetch8(immediate))return 1;
