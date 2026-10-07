@@ -59,6 +59,60 @@ static bool TestCmovz() {
     return Run(memory, cpu, code) && cpu.Rax() == 0x1122334455667788ULL;
 }
 
+static bool TestCmovccExtendedConditions() {
+    // CF condition with REX.R/B: CMOVC R8, R9.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,8,0x11);
+        AppendMovR64(code,9,0x2233445566778899ULL);
+        code.push_back(0xF9); // STC
+        code.insert(code.end(),{0x4D,0x0F,0x42,0xC1});
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x2233445566778899ULL) return false;
+    }
+
+    // ZF condition must not move when the compare is unequal.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,8,0x11);
+        AppendMovR64(code,9,0x22);
+        code.insert(code.end(),{0x48,0x39,0xC8}); // CMP RAX, R9
+        code.insert(code.end(),{0x4D,0x0F,0x44,0xC1}); // CMOVZ R8,R9
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x11ULL) return false;
+    }
+
+    // OF/SF conditions from a signed overflow boundary.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,8,0x55);
+        AppendMovR64(code,9,0x66);
+        AppendMovR64(code,0,0x80000000ULL);
+        AppendMovR64(code,3,1);
+        code.insert(code.end(),{0x39,0xD8}); // CMP EAX, EBX: INT_MIN - 1
+        code.insert(code.end(),{0x44,0x0F,0x40,0xC9}); // CMOVO R9D,R9D (taken, no value change)
+        code.insert(code.end(),{0x44,0x0F,0x48,0xC1}); // CMOVS R8D,R9D (not taken)
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x55ULL) return false;
+    }
+
+    // PF condition with an extended memory source.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x1122334455667788ULL;
+        if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,8,0);
+        AppendMovR64(code,0,0);
+        code.insert(code.end(),{0x48,0x31,0xC0}); // XOR RAX,RAX -> PF=1
+        AppendMovR64(code,11,0x1800);
+        code.insert(code.end(),{0x4D,0x0F,0x4A,0x43,0x08}); // CMOVP R8,[R11+8]
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=value) return false;
+    }
+
+    return true;
+}
+
 static bool TestXadd32() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -2708,6 +2762,7 @@ int main() {
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
     if (!TestCmovz()) { std::cerr << "CMOVZ failed\n"; return 3; }
+    if (!TestCmovccExtendedConditions()) { std::cerr << "CMOVcc extended conditions failed\n"; return 43; }
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
