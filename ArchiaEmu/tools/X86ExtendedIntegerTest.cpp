@@ -1473,7 +1473,7 @@ static bool TestGroup1RexAndMemory() {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code;
         AppendMovR64(code,9,0);
-        code.insert(code.end(),{0x49,0x83,0xD9,0xFF});
+        code.insert(code.end(),{0xF9,0x49,0x83,0xD9,0x00});
         if(!Run(m,cpu,code) || cpu.ReadRegister64(9)!=0xFFFFFFFFFFFFFFFFULL ||
            (cpu.Rflags()&(1ULL| (1ULL<<7)))!=(1ULL|(1ULL<<7))) return false;
     }
