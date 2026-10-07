@@ -1690,7 +1690,8 @@ static bool TestShiftRight64Forms() {
         code.insert(code.end(),{0x48,0xD1,0xE8}); // SHR RAX,1
         if(!Run(m,cpu,code) || cpu.Rax()!=0x4000000000000000ULL) return false;
         const auto f=cpu.Rflags();
-        if((f&1ULL)==0 || (f&(1ULL<<11))==0 || (f&(1ULL<<7))!=0) return false;
+        if((f&1ULL)==0 || (f&(1ULL<<11))==0 || (f&(1ULL<<7))!=0 ||
+           (f&(1ULL<<2))==0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -1699,7 +1700,8 @@ static bool TestShiftRight64Forms() {
         code.insert(code.end(),{0x48,0xD1,0xF8}); // SAR RAX,1
         if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) return false;
         const auto f=cpu.Rflags();
-        if((f&1ULL)==0 || (f&(1ULL<<11))!=0 || (f&(1ULL<<7))!=0) return false;
+        if((f&1ULL)==0 || (f&(1ULL<<11))!=0 || (f&(1ULL<<7))==0 ||
+           (f&(1ULL<<2))==0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
