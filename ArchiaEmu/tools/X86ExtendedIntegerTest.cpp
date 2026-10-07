@@ -582,19 +582,19 @@ static bool TestDivideFaultsAndBoundaries() {
 
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::cerr << "DIVFAULT_STAGE_1\n"; if (!expectFault(m,cpu,{0xB0,0x00,0xF6,0xF3})) { std::cerr << "DIVFAULT_FAIL_1\n"; return false; }
+if (!expectFault(m,cpu,{0xB0,0x00,0xF6,0xF3})) { return false; }
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::cerr << "DIVFAULT_STAGE_2\n"; if (!expectFault(m,cpu,{0xB8,0x00,0x01,0xB3,0x01,0xF6,0xF3})) { std::cerr << "DIVFAULT_FAIL_2\n"; return false; }
+if (!expectFault(m,cpu,{0xB8,0x00,0x01,0xB3,0x01,0xF6,0xF3})) { return false; }
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::cerr << "DIVFAULT_STAGE_3\n"; if (!expectFault(m,cpu,{0x66,0xB8,0x00,0x00,0x66,0xBA,0x00,0x80,0x66,0xBB,0xFF,0xFF,0x66,0xF7,0xFB})) { std::cerr << "DIVFAULT_FAIL_3\n"; return false; }
+if (!expectFault(m,cpu,{0x66,0xB8,0x00,0x00,0x66,0xBA,0x00,0x80,0x66,0xBB,0xFF,0xFF,0x66,0xF7,0xFB})) { return false; }
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::cerr << "DIVFAULT_STAGE_4\n"; if (!expectFault(m,cpu,{0xB8,0x00,0x00,0x00,0x00,0xBA,0x00,0x00,0x00,0x80,0xBB,0xFF,0xFF,0xFF,0xFF,0xF7,0xFB})) { std::cerr << "DIVFAULT_FAIL_4\n"; return false; }
+if (!expectFault(m,cpu,{0xB8,0x00,0x00,0x00,0x80,0xBA,0xFF,0xFF,0xFF,0xFF,0xBB,0xFF,0xFF,0xFF,0xFF,0xF7,0xFB})) { return false; }
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -603,7 +603,7 @@ static bool TestDivideFaultsAndBoundaries() {
         AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
         AppendMovR64(code,3,0xFFFFFFFFFFFFFFFFULL);
         code.insert(code.end(),{0x48,0xF7,0xFB});
-        std::cerr << "DIVFAULT_STAGE_5\n"; if (!expectFault(m,cpu,code)) { std::cerr << "DIVFAULT_FAIL_5\n"; return false; }
+if (!expectFault(m,cpu,code)) { return false; }
     }
     return true;
 }
@@ -665,7 +665,7 @@ static bool TestCpuid() {
     AppendMovR64(code, 0, 0);
     AppendMovR64(code, 1, 0);
     code.insert(code.end(), {0x0F, 0xA2});
-    const bool ran = Run(memory, cpu, code); if (!ran || cpu.Rax() < 1) { std::cerr << "CPUID_RESULT ran=" << ran << " RAX=0x" << std::hex << cpu.Rax() << " RIP=0x" << cpu.InstructionPointer() << std::dec << "\n"; return false; } return true;
+    return Run(memory, cpu, code) && cpu.Rax() >= 1;
 }
 
 int main() {
@@ -706,8 +706,8 @@ int main() {
     if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }
     if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
     if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
-    std::cerr << "BEFORE_DIV_FAULTS\n"; if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; } std::cerr << "AFTER_DIV_FAULTS\n";
-    std::cerr << "BEFORE_CPUID\n"; if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; } std::cerr << "AFTER_CPUID\n";
+    if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
+    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
 }
