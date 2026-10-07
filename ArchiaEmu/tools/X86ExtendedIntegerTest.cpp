@@ -1712,7 +1712,7 @@ static bool TestShift16ExtendedRegister() {
     Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
     std::vector<std::uint8_t> code;
     AppendMovR64(code,15,0x8000ULL);
-    code.insert(code.end(),{0x66,0x49,0xD1,0xE7}); // SHL R15W,1
+    code.insert(code.end(),{0x66,0x41,0xD1,0xE7}); // SHL R15W,1
     if(!Run(m,cpu,code) || (cpu.ReadRegister64(15)&0xFFFFU)!=0) return false;
     if((cpu.Rflags()&1ULL)==0 || (cpu.Rflags()&(1ULL<<11))==0) return false;
     return true;
