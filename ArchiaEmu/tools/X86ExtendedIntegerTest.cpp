@@ -448,7 +448,7 @@ static bool TestAdcSbbImmediateAndWidths() {
         std::vector<std::uint8_t> code;
         AppendMovR64(code, 0, 0xFF);
         AppendMovR64(code, 3, 0x00);
-        code.insert(code.end(), {0xF9, 0x11, 0xD8, 0x19, 0xD8});
+        code.insert(code.end(), {0xF9, 0x10, 0xD8, 0x18, 0xD8});
         if (!Run(m, c, code) || (c.ReadRegister64(0) & 0xFFU) != 0xFFU ||
             (c.Rflags() & 1ULL) == 0) return false;
     }
