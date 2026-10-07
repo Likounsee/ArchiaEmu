@@ -1667,6 +1667,7 @@ int main() {
     if (!TestGroup1ImmediateWidths()) { std::cerr << "Group1 immediate widths failed\\n"; return 17; }
     if (!TestGroup1FullImmediateForms()) { std::cerr << "Group1 full immediate forms failed\n"; return 20; }
     if (!TestGroup1RexAndMemory()) { std::cerr << "Group1 REX/memory failed\n"; return 19; }
+    if (!TestGroup1ExtendedAddressing()) { std::cerr << "Group1 extended addressing failed\n"; return 21; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
