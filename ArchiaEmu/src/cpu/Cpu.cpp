@@ -4484,25 +4484,102 @@ int Cpu::Run()
             }
 
             if (opcode2 == 0xA3 || opcode2 == 0xAB || opcode2 == 0xB3 || opcode2 == 0xBB) {
-                std::uint8_t modrm=0;if(!Fetch8(modrm))return 1;
-                if(((modrm>>6)&3U)!=3U)return 1;
-                std::uint8_t reg=static_cast<std::uint8_t>((modrm>>3)&7U),rm=static_cast<std::uint8_t>((modrm&7U)|(rex.b?8U:0U));
-                if(rex.r)reg=static_cast<std::uint8_t>(reg+8U);
-                if(operand_size_override_&&!rex.w){
-                    std::uint16_t value=registers_.Read16(rm);const std::uint8_t bit=static_cast<std::uint8_t>(registers_.Read16(reg)&15U);const bool set=((value>>bit)&1U)!=0;
-                    if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;
-                    if(opcode2==0xAB)value|=static_cast<std::uint16_t>(1U<<bit);else if(opcode2==0xB3)value&=static_cast<std::uint16_t>(~(1U<<bit));else if(opcode2==0xBB)value^=static_cast<std::uint16_t>(1U<<bit);
-                    if(opcode2!=0xA3)registers_.Write16(rm,value);
-                }else if(rex.w){
-                    std::uint64_t value=registers_.Read64(rm);const std::uint8_t bit=static_cast<std::uint8_t>(registers_.Read64(reg)&63U);const bool set=((value>>bit)&1ULL)!=0;
-                    if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;
-                    if(opcode2==0xAB)value|=1ULL<<bit;else if(opcode2==0xB3)value&=~(1ULL<<bit);else if(opcode2==0xBB)value^=1ULL<<bit;
-                    if(opcode2!=0xA3)registers_.Write64(rm,value);
-                }else{
-                    std::uint32_t value=registers_.Read32(rm);const std::uint8_t bit=static_cast<std::uint8_t>(registers_.Read32(reg)&31U);const bool set=((value>>bit)&1U)!=0;
-                    if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;
-                    if(opcode2==0xAB)value|=1U<<bit;else if(opcode2==0xB3)value&=~(1U<<bit);else if(opcode2==0xBB)value^=1U<<bit;
-                    if(opcode2!=0xA3)registers_.Write32(rm,value);
+                std::uint8_t modrm=0;
+                if(!Fetch8(modrm)) return 1;
+
+                const std::uint8_t groupOpcode = opcode2;
+                const std::uint8_t mod = static_cast<std::uint8_t>((modrm >> 6) & 3U);
+                std::uint8_t reg=static_cast<std::uint8_t>((modrm >> 3) & 7U);
+                std::uint8_t rm=0;
+                std::uint64_t address=0;
+                bool memory=false;
+
+                if (mod == 3U) {
+                    rm=static_cast<std::uint8_t>((modrm & 7U) | (rex.b ? 8U : 0U));
+                    if(rex.r) reg=static_cast<std::uint8_t>(reg+8U);
+
+                    if(operand_size_override_ && !rex.w){
+                        const std::uint16_t value=registers_.Read16(rm);
+                        const std::uint8_t bit=static_cast<std::uint8_t>(registers_.Read16(reg)&15U);
+                        const bool set=((value>>bit)&1U)!=0;
+                        if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                        std::uint16_t result=value;
+                        if(groupOpcode==0xAB) result|=static_cast<std::uint16_t>(1U<<bit);
+                        else if(groupOpcode==0xB3) result&=static_cast<std::uint16_t>(~(1U<<bit));
+                        else if(groupOpcode==0xBB) result^=static_cast<std::uint16_t>(1U<<bit);
+                        if(groupOpcode!=0xA3) registers_.Write16(rm,result);
+                    } else if(rex.w){
+                        const std::uint64_t value=registers_.Read64(rm);
+                        const std::uint8_t bit=static_cast<std::uint8_t>(registers_.Read64(reg)&63U);
+                        const bool set=((value>>bit)&1ULL)!=0;
+                        if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                        std::uint64_t result=value;
+                        if(groupOpcode==0xAB) result|=1ULL<<bit;
+                        else if(groupOpcode==0xB3) result&=~(1ULL<<bit);
+                        else if(groupOpcode==0xBB) result^=1ULL<<bit;
+                        if(groupOpcode!=0xA3) registers_.Write64(rm,result);
+                    } else {
+                        const std::uint32_t value=registers_.Read32(rm);
+                        const std::uint8_t bit=static_cast<std::uint8_t>(registers_.Read32(reg)&31U);
+                        const bool set=((value>>bit)&1U)!=0;
+                        if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                        std::uint32_t result=value;
+                        if(groupOpcode==0xAB) result|=1U<<bit;
+                        else if(groupOpcode==0xB3) result&=~(1U<<bit);
+                        else if(groupOpcode==0xBB) result^=1U<<bit;
+                        if(groupOpcode!=0xA3) registers_.Write32(rm,result);
+                    }
+                    break;
+                }
+
+                std::uint64_t bitIndex=0;
+                std::uint8_t widthBits=32;
+                std::uint8_t widthBytes=4;
+
+                if(operand_size_override_ && !rex.w){
+                    if(!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory)) return 1;
+                    bitIndex=registers_.Read16(reg);
+                    widthBits=16; widthBytes=2;
+                } else if(rex.w){
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+                    bitIndex=registers_.Read64(reg);
+                    widthBits=64; widthBytes=8;
+                } else {
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+                    bitIndex=registers_.Read32(reg);
+                }
+
+                const std::uint64_t wordOffset=(bitIndex/static_cast<std::uint64_t>(widthBits))*widthBytes;
+                const std::uint8_t bit=static_cast<std::uint8_t>(bitIndex%widthBits);
+                address+=wordOffset;
+
+                if(widthBits==16){
+                    std::uint16_t value=0;
+                    if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),2)) return 1;
+                    const bool set=((value>>bit)&1U)!=0;
+                    if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                    if(groupOpcode==0xAB) value|=static_cast<std::uint16_t>(1U<<bit);
+                    else if(groupOpcode==0xB3) value&=static_cast<std::uint16_t>(~(1U<<bit));
+                    else if(groupOpcode==0xBB) value^=static_cast<std::uint16_t>(1U<<bit);
+                    if(groupOpcode!=0xA3 && !WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),2)) return 1;
+                } else if(widthBits==64){
+                    std::uint64_t value=0;
+                    if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),8)) return 1;
+                    const bool set=((value>>bit)&1ULL)!=0;
+                    if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                    if(groupOpcode==0xAB) value|=1ULL<<bit;
+                    else if(groupOpcode==0xB3) value&=~(1ULL<<bit);
+                    else if(groupOpcode==0xBB) value^=1ULL<<bit;
+                    if(groupOpcode!=0xA3 && !WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),8)) return 1;
+                } else {
+                    std::uint32_t value=0;
+                    if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),4)) return 1;
+                    const bool set=((value>>bit)&1U)!=0;
+                    if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                    if(groupOpcode==0xAB) value|=1U<<bit;
+                    else if(groupOpcode==0xB3) value&=~(1U<<bit);
+                    else if(groupOpcode==0xBB) value^=1U<<bit;
+                    if(groupOpcode!=0xA3 && !WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),4)) return 1;
                 }
                 break;
             }
