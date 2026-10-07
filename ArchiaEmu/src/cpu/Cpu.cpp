@@ -10070,10 +10070,11 @@ bool Cpu::DecodeShiftLeft64CL(std::uint8_t modrm, const RexPrefix& rex)
         result = value >> shift;
     }
     else {
-        
         carry = ((value >> (shift - 1)) & 1ULL) != 0;
-        const std::int64_t signedValue = static_cast<std::int64_t>(value);
-        result = static_cast<std::uint64_t>(signedValue >> shift);
+        result = value >> shift;
+        if ((value & 0x8000000000000000ULL) != 0) {
+            result |= (~0ULL << (64U - shift));
+        }
     }
 
     if (memory) {
@@ -10086,6 +10087,10 @@ bool Cpu::DecodeShiftLeft64CL(std::uint8_t modrm, const RexPrefix& rex)
 
     SetZeroFlag(result == 0);
     SetSignFlag((result & 0x8000000000000000ULL) != 0);
+    if (EvenParity8(static_cast<std::uint8_t>(result)))
+        rflags_ |= PF_MASK;
+    else
+        rflags_ &= ~PF_MASK;
 
     if (carry) {
         rflags_ |= CF_MASK;
