@@ -223,34 +223,57 @@ int main() {
         }
     }
 
-    // Memory destinations must honor the same width and REX.B decoding as
-    // register forms. The base register itself must remain unchanged.
+    // RCR has the same rotate-through-carry count modulus.
     {
-        const std::uint64_t initial = 0x8000000000000000ULL;
-        if (!memory.Write(0x2000, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return 15;
-        const std::uint8_t code[] = {
-            0x49, 0xC1, 0x13, 0x01 // RCL QWORD PTR [R11],1
-        };
+        const std::uint8_t code[] = {0x66, 0xC1, 0xD8, 0x11};
         Cpu cpu;
         cpu.ConnectMemory(&memory);
-        cpu.WriteRegister64(11, 0x2000);
-        cpu.SetRflags(1ULL);
-        if (!Run(memory, cpu, code, sizeof(code))) return 16;
-        std::uint64_t result = 0;
-        if (!memory.Read(0x2000, reinterpret_cast<std::uint8_t*>(&result), sizeof(result)) ||
-            result != 0x0000000000000001ULL ||
-            cpu.ReadRegister64(11) != 0x2000ULL ||
-            (cpu.Rflags() & 1ULL) == 0) {
-            std::cerr << "64-bit RCL memory failed\n";
-            return 17;
+        constexpr std::uint64_t initial = 0x112233445566A55AULL;
+        constexpr std::uint64_t flags = 0x8D5ULL;
+        cpu.WriteRegister64(0, initial);
+        cpu.SetRflags(flags);
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != initial || cpu.Rflags() != flags) {
+            std::cerr << "16-bit RCR count-17 masking failed\n";
+            return 15;
         }
     }
 
     {
-        const std::uint64_t initial = 1;
+        const std::uint8_t code[] = {0xC1, 0xD8, 0x21};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 1ULL);
+        cpu.SetRflags(1ULL);
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x0000000080000000ULL ||
+            (cpu.Rflags() & 1ULL) == 0) {
+            std::cerr << "32-bit RCR count-33 masking failed\n";
+            return 16;
+        }
+    }
+
+    {
+        const std::uint8_t code[] = {0x48, 0xC1, 0xD8, 0x41};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 1ULL);
+        cpu.SetRflags(1ULL);
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x8000000000000000ULL ||
+            (cpu.Rflags() & 1ULL) == 0) {
+            std::cerr << "64-bit RCR count-65 masking failed\n";
+            return 17;
+        }
+    }
+
+    // Memory destinations must honor the same width and REX.B decoding as
+    // register forms. The base register itself must remain unchanged.
+    {
+        const std::uint64_t initial = 0x8000000000000000ULL;
         if (!memory.Write(0x2000, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return 18;
         const std::uint8_t code[] = {
-            0x49, 0xC1, 0x1B, 0x01 // RCR QWORD PTR [R11],1
+            0x49, 0xC1, 0x13, 0x01 // RCL QWORD PTR [R11],1
         };
         Cpu cpu;
         cpu.ConnectMemory(&memory);
@@ -259,17 +282,38 @@ int main() {
         if (!Run(memory, cpu, code, sizeof(code))) return 19;
         std::uint64_t result = 0;
         if (!memory.Read(0x2000, reinterpret_cast<std::uint8_t*>(&result), sizeof(result)) ||
-            result != 0x8000000000000000ULL ||
+            result != 0x0000000000000001ULL ||
             cpu.ReadRegister64(11) != 0x2000ULL ||
             (cpu.Rflags() & 1ULL) == 0) {
-            std::cerr << "64-bit RCR memory failed\n";
+            std::cerr << "64-bit RCL memory failed\n";
             return 20;
         }
     }
 
     {
-        const std::uint16_t initial = 0x8000U;
+        const std::uint64_t initial = 1;
         if (!memory.Write(0x2000, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return 21;
+        const std::uint8_t code[] = {
+            0x49, 0xC1, 0x1B, 0x01 // RCR QWORD PTR [R11],1
+        };
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(11, 0x2000);
+        cpu.SetRflags(1ULL);
+        if (!Run(memory, cpu, code, sizeof(code))) return 22;
+        std::uint64_t result = 0;
+        if (!memory.Read(0x2000, reinterpret_cast<std::uint8_t*>(&result), sizeof(result)) ||
+            result != 0x8000000000000000ULL ||
+            cpu.ReadRegister64(11) != 0x2000ULL ||
+            (cpu.Rflags() & 1ULL) == 0) {
+            std::cerr << "64-bit RCR memory failed\n";
+            return 23;
+        }
+    }
+
+    {
+        const std::uint16_t initial = 0x8000U;
+        if (!memory.Write(0x2000, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return 24;
         const std::uint8_t code[] = {
             0x66, 0x41, 0xC1, 0x13, 0x01 // RCL WORD PTR [R11],1
         };
@@ -277,19 +321,19 @@ int main() {
         cpu.ConnectMemory(&memory);
         cpu.WriteRegister64(11, 0x2000);
         cpu.SetRflags(1ULL);
-        if (!Run(memory, cpu, code, sizeof(code))) return 22;
+        if (!Run(memory, cpu, code, sizeof(code))) return 25;
         std::uint16_t result = 0;
         if (!memory.Read(0x2000, reinterpret_cast<std::uint8_t*>(&result), sizeof(result)) ||
             result != 0x0001U || cpu.ReadRegister64(11) != 0x2000ULL ||
             (cpu.Rflags() & 1ULL) == 0) {
             std::cerr << "16-bit RCL memory failed\n";
-            return 23;
+            return 26;
         }
     }
 
     {
         const std::uint32_t initial = 1U;
-        if (!memory.Write(0x2000, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return 24;
+        if (!memory.Write(0x2000, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return 27;
         const std::uint8_t code[] = {
             0x41, 0xC1, 0x1B, 0x01 // RCR DWORD PTR [R11],1
         };
@@ -297,13 +341,13 @@ int main() {
         cpu.ConnectMemory(&memory);
         cpu.WriteRegister64(11, 0x2000);
         cpu.SetRflags(1ULL);
-        if (!Run(memory, cpu, code, sizeof(code))) return 25;
+        if (!Run(memory, cpu, code, sizeof(code))) return 28;
         std::uint32_t result = 0;
         if (!memory.Read(0x2000, reinterpret_cast<std::uint8_t*>(&result), sizeof(result)) ||
             result != 0x80000000U || cpu.ReadRegister64(11) != 0x2000ULL ||
             (cpu.Rflags() & 1ULL) == 0) {
             std::cerr << "32-bit RCR memory failed\n";
-            return 26;
+            return 29;
         }
     }
 
