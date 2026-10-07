@@ -1210,6 +1210,38 @@ static bool TestCmpByteForms() {
     return true;
 }
 
+static bool TestCmpImmediateForms() {
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        if(!Run(m,cpu,{0xB0,0x05,0x3C,0x07})) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)==0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))==0 || (flags&(1ULL<<11))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x66,0xB8,0x00,0x80,0x66,0x3D,0xFF,0xFF};
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)==0 || (flags&(1ULL<<6))==0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB8,0x00,0x00,0x00,0x80,0x3D,0x01,0x00,0x00,0x00};
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)!=0 || (flags&(1ULL<<6))==0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x48,0xB8,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+                                        0x48,0x3D,0xFF,0xFF,0xFF,0xFF};
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x1ULL) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)!=0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))!=0) return false;
+    }
+    return true;
+}
+
 static bool TestCmpUnequalFlags() {
     Memory m1; m1.Map(0x1000,0x2000); Cpu c1; c1.ConnectMemory(&m1);
     std::vector<std::uint8_t> code1;
@@ -1313,7 +1345,7 @@ int main() {
     if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
     if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
     if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
-    if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
+    if (!TestCmpImmediateForms()) { std::cerr << "immediate CMP forms failed\\n"; return 16; }\n    if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
