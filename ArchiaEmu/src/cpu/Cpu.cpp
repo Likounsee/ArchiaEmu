@@ -2490,6 +2490,10 @@ bool Cpu::DecodeShiftLeft64Imm(
     SetZeroFlag(result == 0);
     SetSignFlag(
         (result & 0x8000000000000000ULL) != 0);
+    if (EvenParity8(static_cast<std::uint8_t>(result)))
+        rflags_ |= PF_MASK;
+    else
+        rflags_ &= ~PF_MASK;
 
     if (carry) {
         rflags_ |= CF_MASK;
@@ -2561,6 +2565,8 @@ bool Cpu::DecodeShiftRight64Imm(
 
     SetZeroFlag(result == 0);
     SetSignFlag((result & 0x8000000000000000ULL) != 0);
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+    else rflags_ &= ~PF_MASK;
     if (carry) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
     if (shift == 1) {
         if ((value & 0x8000000000000000ULL) != 0) rflags_ |= OF_MASK;
@@ -2609,6 +2615,8 @@ bool Cpu::DecodeShiftArithmetic64Imm(
 
     SetZeroFlag(result == 0);
     SetSignFlag((result & 0x8000000000000000ULL) != 0);
+    if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
+    else rflags_ &= ~PF_MASK;
     if (carry) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
     rflags_ &= ~OF_MASK;
     return true;
