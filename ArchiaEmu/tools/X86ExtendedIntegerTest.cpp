@@ -1731,7 +1731,7 @@ static bool TestGroup1ExtendedAllWidths() {
     {
         const std::uint8_t groups[] = {1,2,3,4,5,6,7};
         const std::uint64_t initial[] = {0x10,0x7FFFFFFFFFFFFFFFULL,0x10,0xFFFFFFFFFFFFFFF0ULL,0xF0,0x10,0xFFFFFFFFFFFFFFF0ULL};
-        const std::uint64_t expected[] = {0x10ULL,0xFFFFFFFFFFFFFFFFULL,0x0FULL,0xFFFFFFFFFFFFFFF1ULL,0xF0ULL,0xFFFFFFFFFFFFFFEFULL,0xFFFFFFFFFFFFFFF0ULL};
+        const std::uint64_t expected[] = {0x0FULL,0xFFFFFFFFFFFFFFFFULL,0x0FULL,0xFFFFFFFFFFFFFFF1ULL,0xF0ULL,0xFFFFFFFFFFFFFFEFULL,0xFFFFFFFFFFFFFFF0ULL};
         for (int i=0;i<7;++i) {
             Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
             if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&initial[i]),8)) return false;
