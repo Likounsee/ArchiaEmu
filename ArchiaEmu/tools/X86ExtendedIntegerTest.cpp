@@ -2603,7 +2603,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
         AppendMovR64(code, 0, 0x000000007FFFFFFFULL);
         code.insert(code.end(), {0x48, 0x81, 0xF8, 0x00, 0x00, 0x00, 0x80});
         if (!Run(m, cpu, code) || cpu.Rax() != 0x000000007FFFFFFFULL) return false;
-        if ((cpu.Rflags() & (CF | ZF | SF | OF)) != (CF | ZF | SF | OF)) return false;
+        if ((cpu.Rflags() & (CF | ZF | SF | OF)) != CF) return false;
     }
 
     // 16-bit 83 /0 and /5: immediate is sign-extended to operand width.
