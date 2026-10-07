@@ -2122,6 +2122,7 @@ static bool TestDoubleShiftExtendedForms() {
 
 static bool TestBitMemoryForms() {
     {
+        std::cout << "BITMEM block 1 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t first=0x1ULL, second=0x4ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
@@ -2134,6 +2135,7 @@ static bool TestBitMemoryForms() {
     }
 
     {
+        std::cout << "BITMEM block 2 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t first=0x1ULL, second=0x0ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
@@ -2148,6 +2150,7 @@ static bool TestBitMemoryForms() {
     }
 
     {
+        std::cout << "BITMEM block 3 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t first=0x1ULL, second=0x4ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
@@ -2162,6 +2165,7 @@ static bool TestBitMemoryForms() {
     }
 
     {
+        std::cout << "BITMEM block 4 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t first=0x1ULL, second=0x4ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
@@ -2176,6 +2180,7 @@ static bool TestBitMemoryForms() {
     }
 
     {
+        std::cout << "BITMEM block 5 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint8_t value=0x80U;
         if(!m.Write(0x1807,&value,1)) return false;
@@ -2186,6 +2191,7 @@ static bool TestBitMemoryForms() {
         if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
     }
     {
+        std::cout << "BITMEM block 6 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=0x1ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
@@ -2196,6 +2202,7 @@ static bool TestBitMemoryForms() {
     }
 
     {
+        std::cout << "BITMEM block 7 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=0;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
@@ -2208,6 +2215,7 @@ static bool TestBitMemoryForms() {
     }
 
     {
+        std::cout << "BITMEM block 8 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=2;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
@@ -2220,6 +2228,7 @@ static bool TestBitMemoryForms() {
     }
 
     {
+        std::cout << "BITMEM block 9 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=2;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
@@ -2232,6 +2241,7 @@ static bool TestBitMemoryForms() {
     }
 
     {
+        std::cout << "BITMEM block 10 start" << std::endl;
         Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint32_t value=0x80000000U;
         if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),4)) return false;
