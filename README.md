@@ -153,7 +153,7 @@ This does **not** mean that arbitrary console executables are currently supporte
 
 CMake/CTest is the source of truth for the runnable test suite.
 
-The current branch contains **30 registered CTest targets**, covering:
+The current branch contains **32 registered CTest targets**, covering:
 
 - CPU function/regression testing
 - x86 exceptions and exception return
@@ -171,7 +171,7 @@ The current branch contains **30 registered CTest targets**, covering:
 - ELF64 loading
 - emulator game/loading paths
 
-The main `CpuAllFunctionsTest` currently contains **58 CPU test functions and 218 `CHECK(...)` assertions**. Additional dedicated executables provide focused architectural regression coverage.
+The main `CpuAllFunctionsTest` currently contains **243 `CHECK(...)` assertions**, with additional focused CPU regression executables covering extended instruction and architectural behavior. Additional dedicated executables provide focused architectural regression coverage.
 
 Tests are deliberately kept separate and reproducible so that fixing one architectural area does not silently weaken another.
 
