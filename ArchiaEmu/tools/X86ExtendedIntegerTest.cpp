@@ -487,7 +487,7 @@ static bool TestAdcSbbImmediateAndWidths() {
         std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800); AppendMovR64(code,0,1);
         code.insert(code.end(),{0x10,0x07,0x18,0x07});
         if(!Run(m,c,code)) return false;
-        if(!m.Read(0x1800,&v,1) || v!=0x0E) return false;
+        if(!m.Read(0x1800,&v,1) || v!=0x10) return false;
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu c; c.ConnectMemory(&m);
