@@ -1733,7 +1733,7 @@ static bool TestShift32Parity() {
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::vector<std::uint8_t> code={0xB8,0x81,0x00,0x00,0x00,0xC1,0xF8,0x01};
+        std::vector<std::uint8_t> code={0xB8,0x81,0x00,0x00,0x80,0xC1,0xF8,0x01};
         if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.ReadRegister64(0))!=0xC0U) return false;
         if((cpu.Rflags() & (1ULL<<2))==0) return false;
     }
