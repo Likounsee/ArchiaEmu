@@ -3035,6 +3035,43 @@ static bool TestMovExtendExtendedForms() {
 
 
 
+
+static bool TestShift8MemoryWideCounts() {
+    // For byte shifts with a count equal to the operand width, SAR must
+    // propagate the sign bit instead of collapsing the result to zero.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint8_t value = 0x80U;
+        if (!m.Write(0x1800, &value, sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 7, 0x1800);
+        code.insert(code.end(), {0xC0, 0x3F, 0x08}); // SAR byte [RDI],8
+        if (!Run(m, cpu, code)) return false;
+        std::uint8_t out = 0;
+        if (!m.Read(0x1800, &out, sizeof(out))) return false;
+        if (out != 0xFFU || (cpu.Rflags() & (1ULL << 7)) == 0 ||
+            (cpu.Rflags() & (1ULL << 6)) != 0) return false;
+    }
+
+    // SHR of a byte by its full width still produces zero.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint8_t value = 0x81U;
+        if (!m.Write(0x1800, &value, sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 7, 0x1800);
+        code.insert(code.end(), {0xC0, 0x2F, 0x08}); // SHR byte [RDI],8
+        if (!Run(m, cpu, code)) return false;
+        std::uint8_t out = 0;
+        if (!m.Read(0x1800, &out, sizeof(out))) return false;
+        if (out != 0x00U || (cpu.Rflags() & (1ULL << 6)) == 0 ||
+            (cpu.Rflags() & (1ULL << 7)) != 0) return false;
+    }
+
+    return true;
+}
+
+
 static bool TestPushPopExtendedRegistersAndWidths() {
     // PUSH/POP r64 with REX.B must preserve the full 64-bit value and restore RSP.
     {
@@ -3079,6 +3116,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestShift8MemoryWideCounts()) { std::cerr << "8-bit memory wide-count shifts failed\\n"; return 49; }
+
     if (!TestPushPopExtendedRegistersAndWidths()) { std::cerr << "PUSH/POP extended registers and widths failed\\n"; return 48; }
 
     if (!TestTestImmediateForms()) { std::cerr << "TEST immediate forms failed\n"; return 43; }
