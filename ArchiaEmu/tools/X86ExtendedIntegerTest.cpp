@@ -663,6 +663,35 @@ static bool TestMulDivForms() {
        (divMem32Cpu.Rax()&0xFFFFFFFFULL)!=14U ||
        (divMem32Cpu.ReadRegister64(2)&0xFFFFFFFFULL)!=2U) return false;
 
+    Memory divMem8; divMem8.Map(0x1000,0x3000); Cpu divMem8Cpu; divMem8Cpu.ConnectMemory(&divMem8);
+    const std::uint8_t div8 = 10;
+    if(!divMem8.Write(0x1800,&div8,sizeof(div8))) return false;
+    std::vector<std::uint8_t> divMem8Code;
+    AppendMovR64(divMem8Code,0,1000); AppendMovR64(divMem8Code,7,0x1800);
+    divMem8Code.insert(divMem8Code.end(),{0xF6,0x37});
+    if(!Run(divMem8,divMem8Cpu,divMem8Code) ||
+       (divMem8Cpu.Rax()&0xFFFFU)!=0x0064U) return false;
+
+    Memory idivMem16; idivMem16.Map(0x1000,0x3000); Cpu idivMem16Cpu; idivMem16Cpu.ConnectMemory(&idivMem16);
+    const std::uint16_t idiv16 = 7;
+    if(!idivMem16.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&idiv16),sizeof(idiv16))) return false;
+    std::vector<std::uint8_t> idivMem16Code;
+    AppendMovR64(idivMem16Code,0,0xFFFFFFFFFFFFFF9CULL); AppendMovR64(idivMem16Code,2,0xFFFFFFFFFFFFFFFFULL);
+    AppendMovR64(idivMem16Code,7,0x1800);
+    idivMem16Code.insert(idivMem16Code.end(),{0x66,0xF7,0x3F});
+    if(!Run(idivMem16,idivMem16Cpu,idivMem16Code) ||
+       (idivMem16Cpu.Rax()&0xFFFFU)!=0xFFF2U ||
+       (idivMem16Cpu.ReadRegister64(2)&0xFFFFU)!=0xFFFFU) return false;
+
+    Memory divMem64; divMem64.Map(0x1000,0x3000); Cpu divMem64Cpu; divMem64Cpu.ConnectMemory(&divMem64);
+    const std::uint64_t div64 = 7;
+    if(!divMem64.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&div64),sizeof(div64))) return false;
+    std::vector<std::uint8_t> divMem64Code;
+    AppendMovR64(divMem64Code,0,100); AppendMovR64(divMem64Code,2,0); AppendMovR64(divMem64Code,7,0x1800);
+    divMem64Code.insert(divMem64Code.end(),{0x48,0xF7,0x37});
+    if(!Run(divMem64,divMem64Cpu,divMem64Code) ||
+       divMem64Cpu.Rax()!=14U || divMem64Cpu.ReadRegister64(2)!=2U) return false;
+
     Memory idivMem64; idivMem64.Map(0x1000,0x3000); Cpu idivMem64Cpu; idivMem64Cpu.ConnectMemory(&idivMem64);
     const std::uint64_t idiv64 = 7;
     if(!idivMem64.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&idiv64),sizeof(idiv64))) return false;
