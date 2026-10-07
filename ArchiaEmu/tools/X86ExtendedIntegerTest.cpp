@@ -3124,6 +3124,47 @@ static bool TestShift8MemoryWideCounts() {
 
 
 
+
+static bool TestMovImmediateToRmForms() {
+    // MOV r/m64, imm32 sign-extends under REX.W.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {
+            0x48, 0xC7, 0xC0, 0x00, 0x00, 0x00, 0x80
+        };
+        if (!Run(m, cpu, code) || cpu.Rax() != 0xFFFFFFFF80000000ULL) return false;
+    }
+
+    // MOV r/m16, imm16 with an extended register destination.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        AppendMovR64(code, 9, 0x1122334455667788ULL);
+        code.insert(code.end(), {0x66, 0x41, 0xC7, 0xC1, 0x34, 0x12});
+        if (!Run(m, cpu, code) ||
+            cpu.ReadRegister64(9) != 0x1122334455661234ULL) return false;
+    }
+
+    // MOV r/m32, imm32 with an extended register must zero-extend the result.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        AppendMovR64(code, 11, 0xFFFFFFFF12345678ULL);
+        code.insert(code.end(), {0x41, 0xC7, 0xC3, 0x78, 0x56, 0x34, 0x12});
+        if (!Run(m, cpu, code) || cpu.ReadRegister64(11) != 0x0000000012345678ULL) return false;
+    }
+
+    // MOV r/m64, imm32 to extended memory addressing.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        AppendMovR64(code, 10, 0x1800);
+        code.insert(code.end(), {0x49, 0xC7, 0x02, 0x78, 0x56, 0x34, 0x12});
+        std::uint64_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0x0000000012345678ULL;
+    }
+}
+
+
 static bool TestBswap32ExtendedRegister() {
     Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
     std::vector<std::uint8_t> code;
@@ -3179,6 +3220,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestMovImmediateToRmForms()) { std::cerr << "MOV r/m immediate forms failed\\n"; return 53; }
+
     if (!TestBswap32ExtendedRegister()) { std::cerr << "32-bit extended BSWAP failed\\n"; return 52; }
 
     if (!TestPushImmediateSignExtension()) { std::cerr << "PUSH immediate sign extension failed\\n"; return 51; }
