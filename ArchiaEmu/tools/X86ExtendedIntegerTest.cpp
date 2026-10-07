@@ -797,7 +797,7 @@ static bool TestCmpUnequalFlags() {
     code2.insert(code2.end(),{0x39,0xD8});
     if(!Run(m2,c2,code2)) return false;
     const std::uint64_t f2=c2.Rflags();
-    if((f2&1ULL)!=0 || (f2&(1ULL<<6))!=0 || (f2&(1ULL<<7))==0 || (f2&(1ULL<<11))==0) return false;
+    if((f2&1ULL)!=0 || (f2&(1ULL<<6))!=0 || (f2&(1ULL<<7))!=0 || (f2&(1ULL<<11))==0) return false;
 
     return true;
 }
