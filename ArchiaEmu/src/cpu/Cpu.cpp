@@ -5356,7 +5356,6 @@ int Cpu::Run()
 
             const std::uint8_t group =
                 static_cast<std::uint8_t>((modrm >> 3) & 0x07);
-            if (operand_size_override_) std::cerr << "[CPU] F7 prefix group=" << static_cast<unsigned>(((modrm >> 3) & 0x07)) << " rexw=" << rex.w << " op16=" << operand_size_override_ << " modrm=0x" << std::hex << static_cast<unsigned>(modrm) << std::dec << "\n";
 
             std::uint8_t reg = 0;
             std::uint8_t rm = 0;
@@ -5829,7 +5828,6 @@ int Cpu::Run()
             
             
             if (operand_size_override_ && !rex.w && (group == 6 || group == 7)) {
-                std::cerr << "[CPU] DIV16 path group=" << static_cast<unsigned>(group) << " rexw=" << rex.w << " operand16=" << operand_size_override_ << " rm=" << static_cast<unsigned>(rm) << "\n";
                 std::uint16_t divisorBits = 0;
                 if (memory) {
                     if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&divisorBits), sizeof(divisorBits))) return 1;
