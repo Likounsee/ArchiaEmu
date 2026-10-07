@@ -3167,6 +3167,43 @@ static bool TestMovImmediateToRmForms() {
     }
 }
 
+
+static bool TestXaddExtendedMemoryForms() {
+    // XADD r/m64,r64 with both REX.R and REX.B: memory gets the sum,
+    // while the destination register receives the original memory value.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t initial = 10;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 8, 3);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x4D, 0x0F, 0xC1, 0x03}); // XADD [R11],R8
+        if (!Run(m, cpu, code)) return false;
+        std::uint64_t out = 0;
+        if (!m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 13ULL && cpu.ReadRegister64(8) == 10ULL;
+    }
+
+    // The same memory form must honor a 16-bit operand-size override.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t initial = 0x0010;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 8, 3);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x66, 0x45, 0x0F, 0xC1, 0x03}); // XADD [R11],R8W
+        if (!Run(m, cpu, code)) return false;
+        std::uint16_t out = 0;
+        if (!m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0x0013U && (cpu.ReadRegister64(8) & 0xFFFFU) == 0x0010U;
+    }
+
+    return true;
+}
+
+
 static bool TestBswap32ExtendedRegister() {
     Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
     std::vector<std::uint8_t> code;
@@ -3222,6 +3259,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestXaddExtendedMemoryForms()) { std::cerr << "XADD extended memory forms failed\\n"; return 54; }
+
     if (!TestMovImmediateToRmForms()) { std::cerr << "MOV r/m immediate forms failed\\n"; return 53; }
 
     if (!TestBswap32ExtendedRegister()) { std::cerr << "32-bit extended BSWAP failed\\n"; return 52; }
