@@ -4472,14 +4472,92 @@ int Cpu::Run()
             }
 
             if (opcode2 == 0xBA) {
-                std::uint8_t modrm=0,imm=0;if(!Fetch8(modrm)||!Fetch8(imm))return 1;
-                if(((modrm>>6)&3U)!=3U)return 1;
+                std::uint8_t modrm=0,imm=0;
+                if(!Fetch8(modrm)||!Fetch8(imm)) return 1;
                 const std::uint8_t group=static_cast<std::uint8_t>((modrm>>3)&7U);
-                if(group<4||group>7)return 1;
-                const std::uint8_t rm=static_cast<std::uint8_t>((modrm&7U)|(rex.b?8U:0U));
-                if(rex.w){std::uint64_t value=registers_.Read64(rm);const std::uint8_t bit=static_cast<std::uint8_t>(imm&63U);const bool set=((value>>bit)&1ULL)!=0;if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;if(group==5)value|=1ULL<<bit;else if(group==6)value&=~(1ULL<<bit);else if(group==7)value^=1ULL<<bit;if(group!=4)registers_.Write64(rm,value);}
-                else if(operand_size_override_){std::uint16_t value=registers_.Read16(rm);const std::uint8_t bit=static_cast<std::uint8_t>(imm&15U);const bool set=((value>>bit)&1U)!=0;if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;if(group==5)value|=1U<<bit;else if(group==6)value&=~(1U<<bit);else if(group==7)value^=1U<<bit;if(group!=4)registers_.Write16(rm,value);}
-                else{std::uint32_t value=registers_.Read32(rm);const std::uint8_t bit=static_cast<std::uint8_t>(imm&31U);const bool set=((value>>bit)&1U)!=0;if(set)rflags_|=CF_MASK;else rflags_&=~CF_MASK;if(group==5)value|=1U<<bit;else if(group==6)value&=~(1U<<bit);else if(group==7)value^=1U<<bit;if(group!=4)registers_.Write32(rm,value);}
+                if(group<4||group>7) return 1;
+
+                const std::uint8_t mod=static_cast<std::uint8_t>((modrm>>6)&3U);
+                std::uint8_t rm=static_cast<std::uint8_t>((modrm&7U)|(rex.b?8U:0U));
+
+                if(mod==3U){
+                    if(rex.w){
+                        std::uint64_t value=registers_.Read64(rm);
+                        const std::uint8_t bit=static_cast<std::uint8_t>(imm&63U);
+                        const bool set=((value>>bit)&1ULL)!=0;
+                        if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                        if(group==5) value|=1ULL<<bit;
+                        else if(group==6) value&=~(1ULL<<bit);
+                        else if(group==7) value^=1ULL<<bit;
+                        if(group!=4) registers_.Write64(rm,value);
+                    } else if(operand_size_override_){
+                        std::uint16_t value=registers_.Read16(rm);
+                        const std::uint8_t bit=static_cast<std::uint8_t>(imm&15U);
+                        const bool set=((value>>bit)&1U)!=0;
+                        if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                        if(group==5) value|=static_cast<std::uint16_t>(1U<<bit);
+                        else if(group==6) value&=static_cast<std::uint16_t>(~(1U<<bit));
+                        else if(group==7) value^=static_cast<std::uint16_t>(1U<<bit);
+                        if(group!=4) registers_.Write16(rm,value);
+                    } else {
+                        std::uint32_t value=registers_.Read32(rm);
+                        const std::uint8_t bit=static_cast<std::uint8_t>(imm&31U);
+                        const bool set=((value>>bit)&1U)!=0;
+                        if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                        if(group==5) value|=1U<<bit;
+                        else if(group==6) value&=~(1U<<bit);
+                        else if(group==7) value^=1U<<bit;
+                        if(group!=4) registers_.Write32(rm,value);
+                    }
+                    break;
+                }
+
+                std::uint8_t reg=0;
+                std::uint64_t address=0;
+                bool memory=false;
+                std::uint8_t widthBits=32;
+                std::uint8_t widthBytes=4;
+                if(operand_size_override_ && !rex.w){
+                    if(!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory)) return 1;
+                    widthBits=16; widthBytes=2;
+                } else if(rex.w){
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+                    widthBits=64; widthBytes=8;
+                } else {
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+                }
+
+                const std::uint8_t bit=static_cast<std::uint8_t>(
+                    imm & static_cast<std::uint8_t>(widthBits-1U));
+
+                if(widthBits==16){
+                    std::uint16_t value=0;
+                    if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),2)) return 1;
+                    const bool set=((value>>bit)&1U)!=0;
+                    if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                    if(group==5) value|=static_cast<std::uint16_t>(1U<<bit);
+                    else if(group==6) value&=static_cast<std::uint16_t>(~(1U<<bit));
+                    else if(group==7) value^=static_cast<std::uint16_t>(1U<<bit);
+                    if(group!=4 && !WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),2)) return 1;
+                } else if(widthBits==64){
+                    std::uint64_t value=0;
+                    if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),8)) return 1;
+                    const bool set=((value>>bit)&1ULL)!=0;
+                    if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                    if(group==5) value|=1ULL<<bit;
+                    else if(group==6) value&=~(1ULL<<bit);
+                    else if(group==7) value^=1ULL<<bit;
+                    if(group!=4 && !WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),8)) return 1;
+                } else {
+                    std::uint32_t value=0;
+                    if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&value),4)) return 1;
+                    const bool set=((value>>bit)&1U)!=0;
+                    if(set) rflags_|=CF_MASK; else rflags_&=~CF_MASK;
+                    if(group==5) value|=1U<<bit;
+                    else if(group==6) value&=~(1U<<bit);
+                    else if(group==7) value^=1U<<bit;
+                    if(group!=4 && !WriteMemory(address,reinterpret_cast<const std::uint8_t*>(&value),4)) return 1;
+                }
                 break;
             }
 
