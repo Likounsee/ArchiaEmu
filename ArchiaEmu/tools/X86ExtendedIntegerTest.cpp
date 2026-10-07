@@ -1447,6 +1447,36 @@ static bool TestGroup1FlagMatrix() {
         if((f&(CF|ZF|PF))!=(CF|ZF|PF) || (f&(OF|SF))!=0) return false;
     }
 
+    // 8-bit ADC memory: 0xff + 0 + CF -> 0 with carry, zero, AF and even parity.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint8_t value=0xFF;
+        if(!m.Write(0x1800,&value,1)) return false;
+        cpu.SetRflags(cpu.Rflags() | CF);
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x10,0x0F}); // ADC byte [RDI],CL (CL=0)
+        if(!Run(m,cpu,code)) return false;
+        std::uint8_t out=0;
+        if(!m.Read(0x1800,&out,1) || out!=0) return false;
+        const auto f=cpu.Rflags();
+        if((f&(CF|ZF|PF|AF))!=(CF|ZF|PF|AF) || (f&OF)!=0) return false;
+    }
+
+    // 8-bit SBB memory: 0x00 - 0 - CF -> 0xff with borrow, sign and AF.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint8_t value=0x00;
+        if(!m.Write(0x1800,&value,1)) return false;
+        cpu.SetRflags(cpu.Rflags() | CF);
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x18,0x0F}); // SBB byte [RDI],CL (CL=0)
+        if(!Run(m,cpu,code)) return false;
+        std::uint8_t out=0;
+        if(!m.Read(0x1800,&out,1) || out!=0xFF) return false;
+        const auto f=cpu.Rflags();
+        if((f&(CF|AF|SF|PF))!=(CF|AF|SF|PF) || (f&(ZF|OF))!=0) return false;
+    }
+
     // 64-bit SBB memory: 0 - 1 - CF -> -2, borrow and sign set.
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
