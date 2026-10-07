@@ -550,7 +550,7 @@ static bool TestMulDivForms() {
     Memory m64; m64.Map(0x1000,0x3000); Cpu c64; c64.ConnectMemory(&m64);
     std::vector<std::uint8_t> v64; AppendMovR64(v64,0,0xFFFFFFFFFFFFFF9CULL); AppendMovR64(v64,2,0xFFFFFFFFFFFFFFFFULL); AppendMovR64(v64,3,7);
     v64.insert(v64.end(),{0x48,0xF7,0xFB});
-    if (!Run(m64,c64,v64) || c64.Rax()!=0xFFFFFFFFFFFFFFF2ULL || c64.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) { return false; }
+    if (!Run(m64,c64,v64) || c64.Rax()!=0xFFFFFFFFFFFFFFF2ULL || c64.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) { std::cerr << "MULDIV_IDIV64_RESULT RAX=0x" << std::hex << c64.Rax() << " RDX=0x" << c64.ReadRegister64(2) << std::dec << "\n"; return false; }
 
     // Quotient overflow must raise #DE.
     Memory ov; ov.Map(0x1000,0x3000); Cpu co; co.ConnectMemory(&ov);
