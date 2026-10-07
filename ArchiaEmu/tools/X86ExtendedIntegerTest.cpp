@@ -1644,10 +1644,7 @@ static bool TestGroup1ExtendedAllWidths() {
         std::uint32_t value=5;
         if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
         std::vector<std::uint8_t> code;
-        AppendMovR64(code,11,0x0000000018000000ULL);
-        AppendMovR64(code,12,2);
         // Use a 32-bit address whose low 32 bits point at 0x1808.
-        code.clear();
         AppendMovR64(code,11,0x1800);
         AppendMovR64(code,12,2);
         code.insert(code.end(),{0x67,0x47,0x83,0x04,0xA3,0x01});
@@ -1836,7 +1833,7 @@ int main() {
     if (!TestGroup1ExtendedAllWidths()) { std::cerr << "Group1 extended all widths failed\n"; return 22; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
-    if (!TestShiftRight64Forms()) { std::cerr << "64-bit SHR/SAR forms failed\n"; return 22; }
+    if (!TestShiftRight64Forms()) { std::cerr << "64-bit SHR/SAR forms failed\n"; return 23; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
