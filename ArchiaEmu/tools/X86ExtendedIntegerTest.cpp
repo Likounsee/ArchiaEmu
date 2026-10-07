@@ -551,6 +551,12 @@ static bool TestImulForms() {
     code.insert(code.end(),{0x48,0x0F,0xAF,0xC3});
     if(!Run(memory,cpu,code) || cpu.Rax()!=42 || (cpu.Rflags()&((1ULL<<0)|(1ULL<<11)))!=0) return false;
 
+    Memory signed64; signed64.Map(0x1000,0x3000); Cpu signedCpu; signedCpu.ConnectMemory(&signed64);
+    code.clear(); AppendMovR64(code,0,0xFFFFFFFFFFFFFFFDULL); AppendMovR64(code,3,7);
+    code.insert(code.end(),{0x48,0x0F,0xAF,0xC3});
+    if(!Run(signed64,signedCpu,code) || signedCpu.Rax()!=0xFFFFFFFFFFFFFFEBULL ||
+       (signedCpu.Rflags()&((1ULL<<0)|(1ULL<<11)))!=0) return false;
+
     Memory m2; m2.Map(0x1000,0x3000); Cpu c2; c2.ConnectMemory(&m2);
     code.clear(); AppendMovR64(code,0,0x7FFFFFFF); AppendMovR64(code,3,2);
     code.insert(code.end(),{0x0F,0xAF,0xC3});
@@ -573,6 +579,12 @@ static bool TestImulForms() {
     code.clear(); AppendMovR64(code,0,3);
     code.insert(code.end(),{0x66,0x6B,0xC0,0xFE});
     if(!Run(m5,c5,code) || (c5.Rax()&0xFFFFU)!=0xFFFAU) return false;
+
+    Memory imm16; imm16.Map(0x1000,0x3000); Cpu imm16Cpu; imm16Cpu.ConnectMemory(&imm16);
+    code.clear(); AppendMovR64(code,0,0xFFFDULL);
+    code.insert(code.end(),{0x66,0x69,0xC0,0x07,0x00});
+    if(!Run(imm16,imm16Cpu,code) || (imm16Cpu.Rax()&0xFFFFU)!=0xFFEBU ||
+       (imm16Cpu.Rflags()&((1ULL<<0)|(1ULL<<11)))!=0) return false;
 
     Memory m6; m6.Map(0x1000,0x3000); Cpu c6; c6.ConnectMemory(&m6);
     code.clear(); AppendMovR64(code,0,0x4000000000000000ULL);
