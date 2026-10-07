@@ -2004,6 +2004,62 @@ static bool TestGroup1ExtendedAddressing() {
     }
 }
 
+
+static bool TestDoubleShiftExtendedForms() {
+    const std::uint64_t CF = 1ULL;
+    const std::uint64_t OF = 1ULL << 11;
+
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000001ULL);
+        AppendMovR64(code,3,3);
+        code.insert(code.end(),{0x48,0x0F,0xA4,0xD8,0x01}); // SHLD RAX,RBX,1
+        if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000001ULL);
+        AppendMovR64(code,3,3);
+        code.insert(code.end(),{0x48,0x0F,0xAC,0xD8,0x01}); // SHRD RAX,RBX,1
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) return false;
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x123456789ABCDEF0ULL);
+        AppendMovR64(code,9,0x0FEDCBA987654321ULL);
+        AppendMovR64(code,1,4);
+        code.insert(code.end(),{0x4C,0x0F,0xA5,0xC8}); // SHLD RAX,R9,CL
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x23456789ABCDEF00ULL) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000001ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,15,0x1800);
+        AppendMovR64(code,9,3);
+        code.insert(code.end(),{0x4D,0x0F,0xA4,0x0F,0x01}); // SHLD [R15],R9,1
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2ULL) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        AppendMovR64(*reinterpret_cast<std::vector<std::uint8_t>*>(nullptr),0,0);
+        return false;
+    }
+}
+
 int main() {
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
@@ -2017,6 +2073,7 @@ int main() {
     if (!TestLockPrefix()) { std::cerr << "LOCK prefix failed\n"; return 6; }
     if (!TestPopRm()) { std::cerr << "POP r/m failed\n"; return 6; }
     if (!TestDoubleShift()) { std::cerr << "double shift failed\n"; return 6; }
+    if (!TestDoubleShiftExtendedForms()) { std::cerr << "double shift extended forms failed\n"; return 35; }
     if (!TestBitModify()) { std::cerr << "bit modify failed\n"; return 6; }
     if (!TestBitScan()) { std::cerr << "bit scan failed\n"; return 6; }
     if (!TestByteAlu()) { std::cerr << "byte ALU failed\n"; return 6; }
