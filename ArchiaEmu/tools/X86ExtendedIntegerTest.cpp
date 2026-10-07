@@ -527,19 +527,19 @@ static bool TestMulDivForms() {
     std::vector<std::uint8_t> v16={0xB8,0xE8,0x03,0x31,0xD2,0xBB,0x1E,0x00,0x66,0xF7,0xF3};
     v16.insert(v16.end(),{0xB8,0x18,0xFC,0xBA,0xFF,0xFF,0xBB,0x1E,0x00,0x66,0xF7,0xFB});
     if(!Run(m16,c16,v16)) return false;
-    if((c16.Rax()&0xFFFFU)!=0xFFDFU || (c16.Rdx()&0xFFFFU)!=0xFFF6U) return false;
+    if((c16.Rax()&0xFFFFU)!=0xFFDFU || (c16.ReadRegister64(2)&0xFFFFU)!=0xFFF6U) return false;
 
     // 32-bit DIV: EDX:EAX / EBX = 100000 / 30000.
     Memory m32; m32.Map(0x1000,0x3000); Cpu c32; c32.ConnectMemory(&m32);
     std::vector<std::uint8_t> v32; AppendMovR64(v32,0,100000); AppendMovR64(v32,2,0); AppendMovR64(v32,3,30000);
     v32.insert(v32.end(),{0xF7,0xF3});
-    if(!Run(m32,c32,v32) || (c32.Rax()&0xFFFFFFFFULL)!=3 || (c32.Rdx()&0xFFFFFFFFULL)!=10000) return false;
+    if(!Run(m32,c32,v32) || (c32.Rax()&0xFFFFFFFFULL)!=3 || (c32.ReadRegister64(2)&0xFFFFFFFFULL)!=10000) return false;
 
     // 64-bit IDIV: RDX:RAX / RBX = -100 / 7.
     Memory m64; m64.Map(0x1000,0x3000); Cpu c64; c64.ConnectMemory(&m64);
     std::vector<std::uint8_t> v64; AppendMovR64(v64,0,0xFFFFFFFFFFFFFF9CULL); AppendMovR64(v64,2,0xFFFFFFFFFFFFFFFFULL); AppendMovR64(v64,3,7);
     v64.insert(v64.end(),{0x48,0xF7,0xFB});
-    if(!Run(m64,c64,v64) || c64.Rax()!=0xFFFFFFFFFFFFFFF2ULL || c64.Rdx()!=0xFFFFFFFFFFFFFFFFULL) return false;
+    if(!Run(m64,c64,v64) || c64.Rax()!=0xFFFFFFFFFFFFFFF2ULL || c64.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) return false;
 
     // Quotient overflow must raise #DE.
     Memory ov; ov.Map(0x1000,0x3000); Cpu co; co.ConnectMemory(&ov);
@@ -609,25 +609,25 @@ static bool TestOneOperandMulWidths() {
     Memory m16; m16.Map(0x1000,0x2000); Cpu c16; c16.ConnectMemory(&m16);
     std::vector<std::uint8_t> v16={0xB8,0x00,0x10,0xBB,0x10,0x00,0x66,0xF7,0xE3};
     if(!Run(m16,c16,v16)) return false;
-    if((c16.Rax()&0xFFFFU)!=0 || (c16.Rdx()&0xFFFFU)!=1) return false;
+    if((c16.Rax()&0xFFFFU)!=0 || (c16.ReadRegister64(2)&0xFFFFU)!=1) return false;
 
     Memory m32; m32.Map(0x1000,0x2000); Cpu c32; c32.ConnectMemory(&m32);
     std::vector<std::uint8_t> v32; AppendMovR64(v32,0,0x10000000ULL); AppendMovR64(v32,3,0x10ULL);
     v32.insert(v32.end(),{0xF7,0xE3});
     if(!Run(m32,c32,v32)) return false;
-    if((c32.Rax()&0xFFFFFFFFULL)!=0 || (c32.Rdx()&0xFFFFFFFFULL)!=1) return false;
+    if((c32.Rax()&0xFFFFFFFFULL)!=0 || (c32.ReadRegister64(2)&0xFFFFFFFFULL)!=1) return false;
 
     Memory m64; m64.Map(0x1000,0x2000); Cpu c64; c64.ConnectMemory(&m64);
     std::vector<std::uint8_t> v64; AppendMovR64(v64,0,0x0000000100000000ULL); AppendMovR64(v64,3,2);
     v64.insert(v64.end(),{0x48,0xF7,0xE3});
     if(!Run(m64,c64,v64)) return false;
-    if(c64.Rax()!=0x0000000200000000ULL || c64.Rdx()!=0) return false;
+    if(c64.Rax()!=0x0000000200000000ULL || c64.ReadRegister64(2)!=0) return false;
 
     Memory i64; i64.Map(0x1000,0x2000); Cpu ci64; ci64.ConnectMemory(&i64);
     std::vector<std::uint8_t> vi64; AppendMovR64(vi64,0,0xFFFFFFFFFFFFFFFEULL); AppendMovR64(vi64,3,3);
     vi64.insert(vi64.end(),{0x48,0xF7,0xEB});
     if(!Run(i64,ci64,vi64)) return false;
-    if(ci64.Rax()!=0xFFFFFFFFFFFFFFFAULL || ci64.Rdx()!=0xFFFFFFFFFFFFFFFFULL) return false;
+    if(ci64.Rax()!=0xFFFFFFFFFFFFFFFAULL || ci64.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) return false;
     if((ci64.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
     return true;
 }
@@ -695,7 +695,7 @@ int main() {
     if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }
     if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
     if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
-    if (!TestDivFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
+    if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
