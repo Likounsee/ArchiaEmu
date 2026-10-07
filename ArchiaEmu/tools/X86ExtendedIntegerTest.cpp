@@ -2065,8 +2065,8 @@ static bool TestDoubleShiftExtendedForms() {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0x66,0xB8,0x01,0x80,0xBB,0x03,0x00,
             0x66,0x0F,0xAC,0xD8,0x01};
-        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=2U) return false;
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0xC000U) return false;
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
     }
 
     {
