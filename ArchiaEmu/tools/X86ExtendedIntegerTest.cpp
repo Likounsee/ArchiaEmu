@@ -1581,6 +1581,66 @@ static bool TestCmpUnequalFlags() {
     return true;
 }
 
+static bool TestGroup1ExtendedAllWidths() {
+    auto run64 = [](std::uint64_t initial, std::uint8_t group, std::uint8_t imm,
+                    bool carryIn, std::uint64_t expected, bool writeBack) {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&initial),sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2);
+        if(carryIn) cpu.SetRflags(cpu.Rflags() | 1ULL);
+        code.insert(code.end(),{0x4F,0x83,static_cast<std::uint8_t>(0x04U | (group<<3)),0xA3,imm});
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),sizeof(out))) return false;
+        return writeBack ? out==expected : out==initial;
+    };
+
+    if(!run64(1,0,0x7F,false,0x80,true)) return false;       // ADD
+    if(!run64(0x10,1,0x0F,false,0x1F,true)) return false;    // OR
+    if(!run64(0x7F,2,0x00,true,0x80,true)) return false;     // ADC
+    if(!run64(0x80,3,0x00,true,0x7F,true)) return false;     // SBB
+    if(!run64(0xFF,4,0x0F,false,0x0F,true)) return false;   // AND
+    if(!run64(2,5,0xFF,false,3,true)) return false;          // SUB with sign-extended -1
+    if(!run64(0xF0,6,0x0F,false,0xFF,true)) return false;   // XOR
+    if(!run64(5,7,0x06,false,5,false)) return false;         // CMP
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint8_t initial=0x01;
+        if(!m.Write(0x1808,&initial,1)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x47,0x80,0x04,0xA3,0xFF}); // ADD byte, -1
+        if(!Run(m,cpu,code)) return false;
+        std::uint8_t out=0; if(!m.Read(0x1808,&out,1) || out!=0) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t initial=1;
+        if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&initial),2)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x66,0x47,0x83,0x04,0xA3,0xFF}); // ADD word, -1
+        if(!Run(m,cpu,code)) return false;
+        std::uint16_t out=0; if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),2) || out!=0) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t initial=1;
+        if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&initial),4)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x47,0x83,0x04,0xA3,0xFF}); // ADD dword, -1
+        if(!Run(m,cpu,code)) return false;
+        std::uint32_t out=0; if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),4) || out!=0) return false;
+    }
+
+    return true;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
