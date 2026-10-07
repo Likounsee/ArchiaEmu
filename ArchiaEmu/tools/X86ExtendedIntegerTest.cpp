@@ -689,7 +689,7 @@ static bool TestMulDivForms() {
     AppendMovR64(idivMem8Code,0,0xFFD8ULL); AppendMovR64(idivMem8Code,7,0x1800);
     idivMem8Code.insert(idivMem8Code.end(),{0xF6,0x3F});
     if(!Run(idivMem8,idivMem8Cpu,idivMem8Code) ||
-       (idivMem8Cpu.Rax()&0xFFFFU)!=0xFFFBU) return false;
+       (idivMem8Cpu.Rax()&0xFFFFU)!=0xFBFBU) return false;
 
     Memory idivMem32; idivMem32.Map(0x1000,0x3000); Cpu idivMem32Cpu; idivMem32Cpu.ConnectMemory(&idivMem32);
     const std::uint32_t idiv32 = 7;
