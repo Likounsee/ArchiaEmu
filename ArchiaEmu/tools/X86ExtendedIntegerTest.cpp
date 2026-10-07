@@ -2512,6 +2512,32 @@ static bool TestTestImmediateForms() {
     return true;
 }
 
+static bool TestSetccExtendedMemoryAndFlags() {
+    constexpr std::uint64_t CF = 1ULL;
+    constexpr std::uint64_t PF = 1ULL << 2;
+    constexpr std::uint64_t AF = 1ULL << 4;
+    constexpr std::uint64_t ZF = 1ULL << 6;
+    constexpr std::uint64_t SF = 1ULL << 7;
+    constexpr std::uint64_t OF = 1ULL << 11;
+
+    Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 11, 0x1800);
+    cpu.SetRflags(CF | PF | AF | ZF | SF | OF);
+
+    // REX.B memory destinations must address R11 and SETcc must preserve flags.
+    code.insert(code.end(), {0x41, 0x0F, 0x92, 0x43, 0x00}); // SETC [R11]
+    code.insert(code.end(), {0x41, 0x0F, 0x94, 0x43, 0x01}); // SETZ [R11+1]
+    code.insert(code.end(), {0x41, 0x0F, 0x97, 0x43, 0x02}); // SETA [R11+2]
+    code.insert(code.end(), {0x41, 0x0F, 0x9A, 0x43, 0x03}); // SETP [R11+3]
+
+    if (!Run(m, cpu, code)) return false;
+    std::uint8_t values[4] = {};
+    if (!m.Read(0x1800, values, sizeof(values))) return false;
+    if (values[0] != 1 || values[1] != 1 || values[2] != 0 || values[3] != 1) return false;
+    return cpu.Rflags() == (CF | PF | AF | ZF | SF | OF);
+}
+
 static bool TestDivisionSignedAndExtendedForms() {
     // IDIV64 register: (-10) / 3 = -3 remainder -1.
     {
@@ -2801,6 +2827,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
 
 int main() {
     if (!TestTestImmediateForms()) { std::cerr << "TEST immediate forms failed\n"; return 43; }
+    if (!TestSetccExtendedMemoryAndFlags()) { std::cerr << "SETcc extended memory/flags failed\n"; return 44; }
     if (!TestGroup1ImmediateExtendedCoverage()) { std::cerr << "Group1 immediate extended coverage failed\n"; return 99; }
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
