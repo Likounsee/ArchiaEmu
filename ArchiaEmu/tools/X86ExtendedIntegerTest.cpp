@@ -1176,6 +1176,39 @@ static bool TestCmpUnequalFlags() {
     const std::uint64_t f2=c2.Rflags();
     if((f2&1ULL)!=0 || (f2&(1ULL<<6))!=0 || (f2&(1ULL<<7))!=0 || (f2&(1ULL<<11))==0) return false;
 
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t lhs = 5;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&lhs),sizeof(lhs))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,7); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x66,0x39,0x07});
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)==0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))==0 || (flags&(1ULL<<11))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t lhs = 0x80000000U;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&lhs),sizeof(lhs))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,1); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x39,0x07});
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)!=0 || (flags&(1ULL<<6))==0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))==0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t lhs = 5;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&lhs),sizeof(lhs))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,7); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x39,0x07});
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)==0 || (flags&(1ULL<<6))==0 || (flags&(1ULL<<7))==0 || (flags&(1ULL<<11))!=0) return false;
+    }
     return true;
 }
 
