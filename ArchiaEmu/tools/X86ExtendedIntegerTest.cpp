@@ -1829,7 +1829,7 @@ static bool TestLeaExtendedAddressing() {
         std::vector<std::uint8_t> code;
         AppendMovR64(code,11,0x1800);
         AppendMovR64(code,12,2);
-        code.insert(code.end(),{0x67,0x47,0x8D,0x04,0xA3}); // LEA EAX,[R11D+R12D*4]
+        code.insert(code.end(),{0x67,0x43,0x8D,0x04,0xA3}); // LEA EAX,[R11D+R12D*4]
         if(!Run(m,cpu,code) || cpu.Rax()!=0x1808ULL) return false;
     }
     return true;
