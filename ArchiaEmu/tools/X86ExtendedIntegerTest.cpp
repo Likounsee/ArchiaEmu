@@ -1700,6 +1700,14 @@ static bool TestGroup1ExtendedAllWidths() {
     return true;
 }
 
+static bool TestShift32ZeroCount() {
+    Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+    cpu.SetRflags(1ULL | (1ULL<<11) | (1ULL<<6));
+    std::vector<std::uint8_t> code={0xB8,0xEF,0xCD,0xAB,0x89,0xB9,0x00,0x00,0x00,0x00,0xD3,0xE0};
+    if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=0x89ABCDEFU) return false;
+    return cpu.Rflags()==(1ULL | (1ULL<<11) | (1ULL<<6));
+}
+
 static bool TestShift32Parity() {
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -2036,6 +2044,7 @@ int main() {
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestShiftLeft64Parity()) { std::cerr << "64-bit SHL parity failed\n"; return 26; }
     if (!TestShift32Parity()) { std::cerr << "32-bit shift parity failed\n"; return 30; }
+    if (!TestShift32ZeroCount()) { std::cerr << "32-bit shift zero-count failed\n"; return 33; }
     if (!TestShiftLeft64CLFlags()) { std::cerr << "64-bit SHL CL flags failed\n"; return 27; }
     if (!TestShiftRight64Forms()) { std::cerr << "64-bit SHR/SAR forms failed\n"; return 23; }
     if (!TestLeaExtendedAddressing()) { std::cerr << "LEA extended addressing failed\n"; return 24; }
