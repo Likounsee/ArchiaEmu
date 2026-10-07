@@ -10081,7 +10081,12 @@ bool Cpu::DecodeShift8Imm(
         }
 
         if (!isRotate && count >= 8) {
-            const std::uint8_t result = 0;
+            // For an 8-bit shift count >= operand width, SHL/SHR produce
+            // zero while SAR propagates the original sign bit.
+            const std::uint8_t result =
+                group == 7
+                    ? static_cast<std::uint8_t>((value & 0x80U) ? 0xFFU : 0x00U)
+                    : 0x00U;
             std::uint64_t newValue = oldValue;
             if (highByte) {
                 newValue = (newValue & ~(0xFFULL << 8)) |
@@ -10090,8 +10095,8 @@ bool Cpu::DecodeShift8Imm(
                 newValue = (newValue & ~0xFFULL) | result;
             }
             registers_.Write64(registerIndex, newValue);
-            SetZeroFlag(true);
-            SetSignFlag(false);
+            SetZeroFlag(result == 0);
+            SetSignFlag((result & 0x80U) != 0);
             rflags_ &= ~CF_MASK;
             rflags_ &= ~OF_MASK;
             return true;
