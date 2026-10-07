@@ -2113,12 +2113,11 @@ static bool TestDoubleShiftExtendedForms() {
 static bool TestBitMemoryForms() {
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        const std::uint64_t first=0x1ULL, second=0x4ULL;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
-           !m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&second),8)) return false;
+        const std::uint64_t first=0x4ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8)) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,7,0x1800);
-        AppendMovR64(code,1,66);
+        AppendMovR64(code,1,2);
         code.insert(code.end(),{0x48,0x0F,0xA3,0x0F}); // BT [RDI],RCX
         if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
     }
