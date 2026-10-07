@@ -504,7 +504,7 @@ static bool TestAdcSbbImmediateAndWidths() {
     }
     {
         Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
-        if (!Run(m, c, {0xB0, 0x01, 0x1C, 0x01}) ||
+        if (!Run(m, c, {0xB0, 0x00, 0x1C, 0x01}) ||
             (c.ReadRegister64(0) & 0xFFU) != 0xFFU || (c.Rflags() & 1ULL) == 0) return false;
     }
     return true;
