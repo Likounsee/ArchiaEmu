@@ -1000,6 +1000,47 @@ static bool TestOneOperandMulWidths() {
     if(!Run(mem16,mem16Cpu,mem16Code) || (mem16Cpu.Rax()&0xFFFFU)!=21U ||
        (mem16Cpu.ReadRegister64(2)&0xFFFFU)!=0U) return false;
 
+    Memory mem8; mem8.Map(0x1000,0x3000); Cpu mem8Cpu; mem8Cpu.ConnectMemory(&mem8);
+    const std::uint8_t mul8Operand = 7;
+    if(!mem8.Write(0x1800,&mul8Operand,sizeof(mul8Operand))) return false;
+    std::vector<std::uint8_t> mem8Code;
+    AppendMovR64(mem8Code,0,3); AppendMovR64(mem8Code,7,0x1800);
+    mem8Code.insert(mem8Code.end(),{0xF6,0x27});
+    if(!Run(mem8,mem8Cpu,mem8Code) || (mem8Cpu.Rax()&0xFFFFU)!=21U ||
+       (mem8Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory mem32; mem32.Map(0x1000,0x3000); Cpu mem32Cpu; mem32Cpu.ConnectMemory(&mem32);
+    const std::uint32_t mul32Operand = 7;
+    if(!mem32.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&mul32Operand),sizeof(mul32Operand))) return false;
+    std::vector<std::uint8_t> mem32Code;
+    AppendMovR64(mem32Code,0,3); AppendMovR64(mem32Code,7,0x1800);
+    mem32Code.insert(mem32Code.end(),{0xF7,0x27});
+    if(!Run(mem32,mem32Cpu,mem32Code) || (mem32Cpu.Rax()&0xFFFFFFFFULL)!=21U ||
+       (mem32Cpu.ReadRegister64(2)&0xFFFFFFFFULL)!=0U ||
+       (mem32Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory memSigned16; memSigned16.Map(0x1000,0x3000); Cpu memSigned16Cpu; memSigned16Cpu.ConnectMemory(&memSigned16);
+    const std::uint16_t imul16Operand = 3;
+    if(!memSigned16.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&imul16Operand),sizeof(imul16Operand))) return false;
+    std::vector<std::uint8_t> memSigned16Code;
+    AppendMovR64(memSigned16Code,0,0xFFFEULL); AppendMovR64(memSigned16Code,7,0x1800);
+    memSigned16Code.insert(memSigned16Code.end(),{0x66,0xF7,0x2F});
+    if(!Run(memSigned16,memSigned16Cpu,memSigned16Code) ||
+       (memSigned16Cpu.Rax()&0xFFFFU)!=0xFFFAU ||
+       (memSigned16Cpu.ReadRegister64(2)&0xFFFFU)!=0xFFFFU ||
+       (memSigned16Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory memSigned32; memSigned32.Map(0x1000,0x3000); Cpu memSigned32Cpu; memSigned32Cpu.ConnectMemory(&memSigned32);
+    const std::uint32_t imul32Operand = 3;
+    if(!memSigned32.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&imul32Operand),sizeof(imul32Operand))) return false;
+    std::vector<std::uint8_t> memSigned32Code;
+    AppendMovR64(memSigned32Code,0,0xFFFFFFFEULL); AppendMovR64(memSigned32Code,7,0x1800);
+    memSigned32Code.insert(memSigned32Code.end(),{0xF7,0x2F});
+    if(!Run(memSigned32,memSigned32Cpu,memSigned32Code) ||
+       (memSigned32Cpu.Rax()&0xFFFFFFFFULL)!=0xFFFFFFFAULL ||
+       (memSigned32Cpu.ReadRegister64(2)&0xFFFFFFFFULL)!=0xFFFFFFFFULL ||
+       (memSigned32Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
     Memory mem64; mem64.Map(0x1000,0x3000); Cpu mem64Cpu; mem64Cpu.ConnectMemory(&mem64);
     const std::uint64_t imul64Operand = 7;
     if(!mem64.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&imul64Operand),sizeof(imul64Operand))) return false;
