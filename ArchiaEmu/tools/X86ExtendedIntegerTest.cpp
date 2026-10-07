@@ -2583,7 +2583,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
         AppendMovR64(code, 0, 0x0000000080000000ULL);
         code.insert(code.end(), {0x48, 0x81, 0xC0, 0xFF, 0xFF, 0xFF, 0xFF});
         if (!Run(m, cpu, code) || cpu.Rax() != 0x000000007FFFFFFFULL) return false;
-        if ((cpu.Rflags() & (CF | ZF | SF | OF)) != 0) return false;
+        if ((cpu.Rflags() & (ZF | SF | OF)) != 0 || (cpu.Rflags() & CF) == 0) return false;
     }
 
     // 64-bit 81 /5: SUB with a negative imm32 (sign extension matters).
@@ -2615,7 +2615,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
             0x66, 0x83, 0xE8, 0x01
         };
         if (!Run(m, cpu, code) || (cpu.Rax() & 0xFFFFU) != 0xFFFEU) return false;
-        if ((cpu.Rflags() & (CF | SF)) != (CF | SF)) return false;
+        if ((cpu.Rflags() & (CF | SF)) != SF) return false;
     }
 
     // 32-bit 83 /6: XOR must zero-extend the destination register.
@@ -2650,7 +2650,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
         std::vector<std::uint8_t> code;
         AppendMovR64(code, 11, 0x1800);
         AppendMovR64(code, 12, 0x80);
-        code.insert(code.end(), {0x45, 0x83, 0x34, 0xA3, 0x00, 0x00});
+        code.insert(code.end(), {0x45, 0x83, 0x34, 0xA3, 0x00});
         if (!Run(m, cpu, code)) return false;
         std::uint32_t out = 0;
         if (!m.Read(0x1A00, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
