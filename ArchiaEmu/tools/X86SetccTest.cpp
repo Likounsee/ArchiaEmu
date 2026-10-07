@@ -7,7 +7,8 @@
 using namespace myps5emu;
 
 static bool Run(Memory& memory, std::uint64_t flags, std::uint64_t initialRax,
-                 const std::array<std::uint8_t,3>& code, std::uint64_t& resultRax)
+                 const std::array<std::uint8_t,3>& code, std::uint64_t& resultRax,
+                 std::uint64_t& resultFlags)
 {
     if (!memory.Write(0x1000, code.data(), code.size())) return false;
     const std::uint8_t hlt = 0xF4;
@@ -19,6 +20,7 @@ static bool Run(Memory& memory, std::uint64_t flags, std::uint64_t initialRax,
     cpu.SetRflags(flags);
     if (cpu.Run() != 0) return false;
     resultRax = cpu.ReadRegister64(0);
+    resultFlags = cpu.Rflags();
     return true;
 }
 
@@ -28,16 +30,17 @@ int main()
     if (!memory.Map(0x1000,0x1000,MemoryPermission::Read|MemoryPermission::Write|MemoryPermission::Execute) ||
         !memory.Map(0x2000,0x1000,MemoryPermission::Read|MemoryPermission::Write)) return 1;
     std::uint64_t result = 0;
+    std::uint64_t resultFlags = 0;
     // SETE AH: no REX, rm=4 means AH.
-    if (!Run(memory,1ULL<<6,0x1234000000000000ULL,{0x0F,0x94,0xC4},result)) return 2;
-    if (result != 0x1234000000000100ULL) return 3;
+    if (!Run(memory,1ULL<<6,0x1234000000000000ULL,{0x0F,0x94,0xC4},result,resultFlags)) return 2;
+    if (result != 0x1234000000000100ULL || resultFlags != (1ULL<<6)) return 3;
     // SETP AH: PF=1 must set AH and preserve the rest.
-    if (!Run(memory,1ULL<<2,0x1234000000000000ULL,{0x0F,0x9A,0xC4},result)) return 4;
-    if (result != 0x1234000000000100ULL) return 5;
+    if (!Run(memory,1ULL<<2,0x1234000000000000ULL,{0x0F,0x9A,0xC4},result,resultFlags)) return 4;
+    if (result != 0x1234000000000100ULL || resultFlags != (1ULL<<2)) return 5;
     // SETE byte memory form.
-    if (!Run(memory,1ULL<<6,0x2000,{0x0F,0x94,0x00},result)) return 6;
+    if (!Run(memory,1ULL<<6,0x2000,{0x0F,0x94,0x00},result,resultFlags)) return 6;
     std::uint8_t value=0;
-    if (!memory.Read(0x2000,&value,1) || value != 1) return 7;
+    if (!memory.Read(0x2000,&value,1) || value != 1 || resultFlags != (1ULL<<6)) return 7;
 
     // Exercise every SETcc condition in the architectural condition-code
     // matrix using AL as the byte destination.
@@ -67,9 +70,10 @@ int main()
     }};
     for (const auto& test : cases) {
         if (!Run(memory, test.flags, 0xAABBCCDDEEFF0000ULL,
-                 {0x0F, static_cast<std::uint8_t>(0x90U + test.cc), 0xC0}, result)) return 8;
+                 {0x0F, static_cast<std::uint8_t>(0x90U + test.cc), 0xC0},
+                 result,resultFlags)) return 8;
         const std::uint64_t expected = 0xAABBCCDDEEFF0000ULL | (test.expected ? 1ULL : 0ULL);
-        if (result != expected) return 9;
+        if (result != expected || resultFlags != test.flags) return 9;
     }
 
     std::cout << "x86 SETcc test: PASS\n";
