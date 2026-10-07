@@ -37,8 +37,17 @@ static bool TestMovsxd() {
         std::cerr << "MOVSXD 32-bit form failed: RAX=0x" << std::hex << c2.Rax() << std::dec << "\n";
         return false;
     }
+    Memory m3; m3.Map(0x1000, 0x4000); Cpu c3; c3.ConnectMemory(&m3);
+    const std::uint32_t signedValue = 0xFFFFFFFFU;
+    if (!m3.Write(0x1A08, reinterpret_cast<const std::uint8_t*>(&signedValue), sizeof(signedValue))) return false;
+    std::vector<std::uint8_t> code3;
+    AppendMovR64(code3, 11, 0x1800);
+    AppendMovR64(code3, 12, 0x80);
+    code3.insert(code3.end(), {0x4F, 0x63, 0x44, 0xA3, 0x08});
+    if (!Run(m3, c3, code3) || c3.ReadRegister64(8) != 0xFFFFFFFFFFFFFFFFULL) return false;
     return true;
 }
+
 
 static bool TestBswap() {
     Memory memory; memory.Map(0x1000, 0x1000);
