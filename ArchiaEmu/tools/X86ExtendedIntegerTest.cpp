@@ -724,6 +724,25 @@ static bool TestOneOperandMulWidths() {
     if(!Run(i64,ci64,vi64)) return false;
     if(ci64.Rax()!=0xFFFFFFFFFFFFFFFAULL || ci64.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) return false;
     if((ci64.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory mem16; mem16.Map(0x1000,0x3000); Cpu mem16Cpu; mem16Cpu.ConnectMemory(&mem16);
+    const std::uint16_t mul16Operand = 7;
+    if(!mem16.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&mul16Operand),sizeof(mul16Operand))) return false;
+    std::vector<std::uint8_t> mem16Code;
+    AppendMovR64(mem16Code,0,3); AppendMovR64(mem16Code,7,0x1800);
+    mem16Code.insert(mem16Code.end(),{0x66,0xF7,0x27});
+    if(!Run(mem16,mem16Cpu,mem16Code) || (mem16Cpu.Rax()&0xFFFFU)!=21U ||
+       (mem16Cpu.ReadRegister64(2)&0xFFFFU)!=0U) return false;
+
+    Memory mem64; mem64.Map(0x1000,0x3000); Cpu mem64Cpu; mem64Cpu.ConnectMemory(&mem64);
+    const std::uint64_t imul64Operand = 7;
+    if(!mem64.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&imul64Operand),sizeof(imul64Operand))) return false;
+    std::vector<std::uint8_t> mem64Code;
+    AppendMovR64(mem64Code,0,0xFFFFFFFFFFFFFFFDULL); AppendMovR64(mem64Code,7,0x1800);
+    mem64Code.insert(mem64Code.end(),{0x48,0xF7,0x2F});
+    if(!Run(mem64,mem64Cpu,mem64Code) || mem64Cpu.Rax()!=0xFFFFFFFFFFFFFFEBULL ||
+       mem64Cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL ||
+       (mem64Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
     return true;
 }
 
