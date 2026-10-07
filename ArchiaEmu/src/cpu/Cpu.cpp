@@ -3714,7 +3714,9 @@ int Cpu::Run()
 
             if (!Fetch8(opcode2)) {
                 return 1;
-            }            if (opcode2 == 0xAF) {
+            }
+            if (operand_size_override_ && instruction_address >= 0x1000 && instruction_address < 0x1010) { std::cerr << "[CPU] DSEF16 0F opcode2=0x" << std::hex << static_cast<unsigned>(opcode2) << " REX.W=" << rex.w << " IP=0x" << instruction_address << std::dec << "\\n"; }
+            if (opcode2 == 0xAF) {
                 std::uint8_t modrm = 0;
                 if (!Fetch8(modrm)) return 1;
                 std::uint8_t reg = 0, rm = 0;
