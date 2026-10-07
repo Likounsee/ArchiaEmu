@@ -3174,6 +3174,35 @@ static bool TestMovImmediateToRmForms() {
 
 
 
+
+static bool TestAccumulatorSignExtensionForms() {
+    // 66 98 is CBW: sign-extend AL into AX.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {0xB0, 0x80, 0x66, 0x98, 0xF4};
+        if (!Run(m, cpu, code) || (cpu.Rax() & 0xFFFFULL) != 0xFF80ULL) return false;
+    }
+
+    // 98 without REX.W is CWDE: sign-extend AX into EAX.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {0x66, 0xB8, 0x00, 0x80, 0x98, 0xF4};
+        if (!Run(m, cpu, code) || cpu.Rax() != 0x00000000FFFF8000ULL) return false;
+    }
+
+    // REX.W + 98 is CDQE: sign-extend EAX into RAX.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {
+            0xB8, 0x00, 0x00, 0x00, 0x80, 0x48, 0x98, 0xF4
+        };
+        if (!Run(m, cpu, code) || cpu.Rax() != 0xFFFFFFFF80000000ULL) return false;
+    }
+
+    return true;
+}
+
+
 static bool TestPushPopFlagsWord() {
     constexpr std::uint64_t flags =
         0x2ULL | 1ULL | (1ULL << 2) | (1ULL << 4) |
@@ -3457,6 +3486,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestAccumulatorSignExtensionForms()) { std::cerr << "accumulator sign extension forms failed\\n"; return 61; }
+
     if (!TestPushPopFlagsWord()) { std::cerr << "16-bit PUSHF/POPF failed\\n"; return 60; }
 
     if (!TestLahfSahfFlags()) { std::cerr << "LAHF/SAHF flags failed\\n"; return 59; }
