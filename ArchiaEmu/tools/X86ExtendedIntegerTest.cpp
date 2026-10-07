@@ -1041,6 +1041,26 @@ static bool TestOneOperandMulWidths() {
        (memSigned32Cpu.ReadRegister64(2)&0xFFFFFFFFULL)!=0xFFFFFFFFULL ||
        (memSigned32Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
 
+    Memory memMul64; memMul64.Map(0x1000,0x3000); Cpu memMul64Cpu; memMul64Cpu.ConnectMemory(&memMul64);
+    const std::uint64_t mul64Operand = 2;
+    if(!memMul64.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&mul64Operand),sizeof(mul64Operand))) return false;
+    std::vector<std::uint8_t> memMul64Code;
+    AppendMovR64(memMul64Code,0,0x100000000ULL); AppendMovR64(memMul64Code,7,0x1800);
+    memMul64Code.insert(memMul64Code.end(),{0x48,0xF7,0x27});
+    if(!Run(memMul64,memMul64Cpu,memMul64Code) ||
+       memMul64Cpu.Rax()!=0x200000000ULL || memMul64Cpu.ReadRegister64(2)!=0 ||
+       (memMul64Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory memImul8; memImul8.Map(0x1000,0x3000); Cpu memImul8Cpu; memImul8Cpu.ConnectMemory(&memImul8);
+    const std::uint8_t imul8Operand = 3;
+    if(!memImul8.Write(0x1800,&imul8Operand,sizeof(imul8Operand))) return false;
+    std::vector<std::uint8_t> memImul8Code;
+    AppendMovR64(memImul8Code,0,0xFE); AppendMovR64(memImul8Code,7,0x1800);
+    memImul8Code.insert(memImul8Code.end(),{0xF6,0x2F});
+    if(!Run(memImul8,memImul8Cpu,memImul8Code) ||
+       (memImul8Cpu.Rax()&0xFFFFU)!=0xFFFAU ||
+       (memImul8Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
     Memory mem64; mem64.Map(0x1000,0x3000); Cpu mem64Cpu; mem64Cpu.ConnectMemory(&mem64);
     const std::uint64_t imul64Operand = 7;
     if(!mem64.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&imul64Operand),sizeof(imul64Operand))) return false;
@@ -1198,19 +1218,3 @@ int main() {
     if (!TestControlTransferGroups()) { std::cerr << "control transfer groups failed\n"; return 6; }
     if (!TestSoftwareInterrupts()) { std::cerr << "software interrupts failed\n"; return 6; }
     if (!TestGroupF6Byte()) { std::cerr << "F6 byte group failed\n"; return 6; }
-    if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
-    if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
-    if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
-    if (!TestAdcSbbImmediateAndWidths()) { std::cerr << "ADC/SBB immediate and widths failed\n"; return 8; }
-    if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
-    if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }
-    if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }
-    if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }
-    if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
-    if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
-    if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
-    if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
-    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
-    std::cout << "x86 extended integer instruction test: PASS\n";
-    return 0;
-}
