@@ -1682,6 +1682,16 @@ static bool TestGroup1ExtendedAllWidths() {
     return true;
 }
 
+static bool TestShiftLeft64Parity() {
+    Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code,0,1);
+    code.insert(code.end(),{0x48,0xD1,0xE0}); // SHL RAX,1
+    if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return false;
+    // 0x02 has odd parity, so PF must be clear.
+    return (cpu.Rflags()&(1ULL<<2))==0;
+}
+
 static bool TestShiftRight64Forms() {
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -1933,6 +1943,7 @@ int main() {
     if (!TestGroup1ExtendedAllWidths()) { std::cerr << "Group1 extended all widths failed\n"; return 22; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
+    if (!TestShiftLeft64Parity()) { std::cerr << "64-bit SHL parity failed\n"; return 26; }
     if (!TestShiftRight64Forms()) { std::cerr << "64-bit SHR/SAR forms failed\n"; return 23; }
     if (!TestLeaExtendedAddressing()) { std::cerr << "LEA extended addressing failed\n"; return 24; }
     if (!TestRotate64Forms()) { std::cerr << "64-bit rotate forms failed\n"; return 25; }
