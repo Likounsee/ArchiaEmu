@@ -2455,7 +2455,7 @@ static bool TestDivisionSignedAndExtendedForms() {
         AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
         AppendMovR64(code,11,0x1800);
         AppendMovR64(code,12,2);
-        code.insert(code.end(),{0x4D,0xF7,0x7C,0xA3,0x08}); // IDIV qword [R11+R12*4+8]
+        code.insert(code.end(),{0x4F,0xF7,0x7C,0xA3,0x08}); // IDIV qword [R11+R12*4+8]
         if(!Run(m,cpu,code) ||
            cpu.Rax()!=0xFFFFFFFFFFFFFFFDULL ||
            cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) return false;
