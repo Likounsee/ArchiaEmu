@@ -2445,6 +2445,22 @@ static bool TestDivisionSignedAndExtendedForms() {
            cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) return false;
     }
 
+    // IDIV64 memory with REX.X/B SIB addressing: [R11 + R12*4 + 8].
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::int64_t divisor=3;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&divisor),sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xFFFFFFFFFFFFFFF6ULL);
+        AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x4D,0xF7,0x7C,0xA3,0x08}); // IDIV qword [R11+R12*4+8]
+        if(!Run(m,cpu,code) ||
+           cpu.Rax()!=0xFFFFFFFFFFFFFFFDULL ||
+           cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) return false;
+    }
+
     // IDIV32 negative dividend: EDX:EAX = -10, divisor 3.
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
