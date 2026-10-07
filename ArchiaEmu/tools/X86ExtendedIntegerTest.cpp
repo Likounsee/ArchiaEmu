@@ -871,7 +871,7 @@ if (!expectFault(m,cpu,{0xB8,0x00,0x00,0x00,0x80,0xBA,0xFF,0xFF,0xFF,0xFF,0xBB,0
     return true;
 }
 
-static bool TestOneOperandMulWidths {
+static bool TestOneOperandMulWidths() {
     Memory m8; m8.Map(0x1000,0x2000); Cpu c8; c8.ConnectMemory(&m8);
     if(!Run(m8,c8,{0xB0,0x10,0xB3,0x10,0xF6,0xE3})) return false;
     if((c8.Rax()&0xFFFFU)!=0x0100U || (c8.Rflags()&(1ULL| (1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
