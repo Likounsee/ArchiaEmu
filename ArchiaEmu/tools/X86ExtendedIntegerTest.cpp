@@ -3189,7 +3189,8 @@ static bool TestPushPopFlagsQword() {
         0x9D              // POPFQ
     };
     if (!Run(m, cpu, code)) return false;
-    return cpu.Rflags() == flags && cpu.Rsp() == 0x3000ULL;
+    // Bit 1 of RFLAGS is reserved and reads back as one after POPFQ.
+    return cpu.Rflags() == (flags | 0x2ULL) && cpu.Rsp() == 0x3000ULL;
 }
 
 
