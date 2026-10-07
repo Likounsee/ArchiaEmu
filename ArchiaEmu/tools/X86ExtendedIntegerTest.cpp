@@ -416,6 +416,26 @@ static bool TestFlagsAndLoops() {
     if (!Run(memory4, cpu4, jrcxzCode)) { std::cerr << "JRCXZ execution failed\n"; return false; } return true;
 }
 
+static bool TestImulImmediateMemoryForms() {
+    // IMUL r64, r/m64, imm32 sign-extension from memory.
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=3; if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,8,0x1800);
+        code.insert(code.end(),{0x4C,0x69,0x4C,0x24,0x00,0xFE,0xFF,0xFF,0xFF}); // IMUL R9,[RSP],-2
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(9)!=static_cast<std::uint64_t>(-6)) return false;
+    }
+    // IMUL r32, r/m32, imm8 with REX.B memory addressing.
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t value=7; if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),4)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,10,0x1800);
+        code.insert(code.end(),{0x45,0x6B,0x4A,0x00,0xFE}); // IMUL R9D,[R10],-2
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.ReadRegister64(9))!=static_cast<std::uint32_t>(-14)) return false;
+    }
+    return true;
+}
+
 static bool TestImulImmediateExtendedRegisters() {
     // IMUL r16, r/m16, imm8 with REX.R/B.
     {
