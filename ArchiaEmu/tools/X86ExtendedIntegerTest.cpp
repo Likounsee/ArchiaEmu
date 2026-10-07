@@ -2291,7 +2291,7 @@ static bool TestGroup1QwordImmediateMemory() {
         if (!Run(m,cpu,code)) return false;
         std::uint64_t out=0;
         if (!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
-        if (out!=tc.expected) return false;
+        if (out!=tc.expected) { std::cerr << "G1 qword group=" << static_cast<unsigned>(tc.group) << " out=0x" << std::hex << out << " expected=0x" << tc.expected << std::dec << std::endl; return false; }
     }
     return true;
 }
