@@ -1826,6 +1826,17 @@ static bool TestLeaExtendedAddressing() {
     return true;
 }
 
+static bool TestRotate64ZeroCount() {
+    Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+    cpu.SetRflags(1ULL | (1ULL<<11) | (1ULL<<6));
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code,0,0x0123456789ABCDEFULL);
+    AppendMovR64(code,1,0);
+    code.insert(code.end(),{0x48,0xD3,0xC0}); // ROL RAX,CL where CL=0
+    if(!Run(m,cpu,code) || cpu.Rax()!=0x0123456789ABCDEFULL) return false;
+    return cpu.Rflags()==(1ULL | (1ULL<<11) | (1ULL<<6));
+}
+
 static bool TestRotate64Forms() {
     const std::uint64_t CF=1ULL, OF=1ULL<<11;
     {
@@ -1959,6 +1970,7 @@ int main() {
     if (!TestShiftLeft64CLFlags()) { std::cerr << "64-bit SHL CL flags failed\n"; return 27; }
     if (!TestShiftRight64Forms()) { std::cerr << "64-bit SHR/SAR forms failed\n"; return 23; }
     if (!TestLeaExtendedAddressing()) { std::cerr << "LEA extended addressing failed\n"; return 24; }
+    if (!TestRotate64ZeroCount()) { std::cerr << "64-bit rotate zero-count failed\n"; return 28; }
     if (!TestRotate64Forms()) { std::cerr << "64-bit rotate forms failed\n"; return 25; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
