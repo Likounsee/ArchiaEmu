@@ -1740,6 +1740,37 @@ static bool TestShiftRight64Forms() {
         return m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) &&
                out==0xC000000000000000ULL;
     }
+    {
+        // SAR r64,CL must consume CL and preserve the sign.
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,1,4);
+        AppendMovR64(code,0,0x8000000000000000ULL);
+        code.insert(code.end(),{0x48,0xD3,0xF8}); // SAR RAX,CL
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xF800000000000000ULL) return false;
+    }
+
+    {
+        // A zero shift count must leave the operand and flags untouched.
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000001ULL);
+        AppendMovR64(code,1,0);
+        code.insert(code.end(),{0x48,0xD3,0xE8}); // SHR RAX,CL (CL=0)
+        const std::uint64_t before=cpu.Rflags();
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x8000000000000001ULL) return false;
+        if(cpu.Rflags()!=before) return false;
+    }
+
+    {
+        // Extended register form: R15 with REX.B.
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,15,0x8000000000000001ULL);
+        code.insert(code.end(),{0x49,0xD1,0xEF}); // SHR R15,1
+        if(!Run(m,cpu,code) || cpu.ReadReg64(15)!=0x4000000000000000ULL) return false;
+    }
+
     return true;
 }
 
