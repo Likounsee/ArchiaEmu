@@ -756,6 +756,14 @@ static bool TestMulDivForms() {
     if(!Run(divMem64,divMem64Cpu,divMem64Code) ||
        divMem64Cpu.Rax()!=14U || divMem64Cpu.ReadRegister64(2)!=2U) return false;
 
+    Memory divMem64Ext; divMem64Ext.Map(0x1000,0x3000); Cpu divMem64ExtCpu; divMem64ExtCpu.ConnectMemory(&divMem64Ext);
+    if(!divMem64Ext.Write(0x1900,reinterpret_cast<const std::uint8_t*>(&div64),sizeof(div64))) return false;
+    std::vector<std::uint8_t> divMem64ExtCode;
+    AppendMovR64(divMem64ExtCode,0,100); AppendMovR64(divMem64ExtCode,2,0); AppendMovR64(divMem64ExtCode,15,0x1900);
+    divMem64ExtCode.insert(divMem64ExtCode.end(),{0x49,0xF7,0x37});
+    if(!Run(divMem64Ext,divMem64ExtCpu,divMem64ExtCode) ||
+       divMem64ExtCpu.Rax()!=14U || divMem64ExtCpu.ReadRegister64(2)!=2U) return false;
+
     Memory idivMem64; idivMem64.Map(0x1000,0x3000); Cpu idivMem64Cpu; idivMem64Cpu.ConnectMemory(&idivMem64);
     const std::uint64_t idiv64 = 7;
     if(!idivMem64.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&idiv64),sizeof(idiv64))) return false;
@@ -766,6 +774,16 @@ static bool TestMulDivForms() {
     if(!Run(idivMem64,idivMem64Cpu,idivMem64Code) ||
        idivMem64Cpu.Rax()!=0xFFFFFFFFFFFFFFF2ULL ||
        idivMem64Cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFEULL) return false;
+    Memory idivMem64Ext; idivMem64Ext.Map(0x1000,0x3000); Cpu idivMem64ExtCpu; idivMem64ExtCpu.ConnectMemory(&idivMem64Ext);
+    if(!idivMem64Ext.Write(0x1900,reinterpret_cast<const std::uint8_t*>(&idiv64),sizeof(idiv64))) return false;
+    std::vector<std::uint8_t> idivMem64ExtCode;
+    AppendMovR64(idivMem64ExtCode,0,0xFFFFFFFFFFFFFF9CULL); AppendMovR64(idivMem64ExtCode,2,0xFFFFFFFFFFFFFFFFULL);
+    AppendMovR64(idivMem64ExtCode,15,0x1900);
+    idivMem64ExtCode.insert(idivMem64ExtCode.end(),{0x49,0xF7,0x3F});
+    if(!Run(idivMem64Ext,idivMem64ExtCpu,idivMem64ExtCode) ||
+       idivMem64ExtCpu.Rax()!=0xFFFFFFFFFFFFFFF2ULL ||
+       idivMem64ExtCpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFEULL) return false;
+
     return true;
 }
 
