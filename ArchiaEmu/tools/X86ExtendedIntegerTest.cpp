@@ -1383,7 +1383,7 @@ static bool TestGroup1FlagMatrix() {
         if(!Run(m,cpu,code)) return false;
         const auto f=cpu.Rflags();
         if((cpu.ReadRegister64(0)&0xFFU)!=0x80U) return false;
-        if((f&(CF|PF|AF|SF|OF))!=(PF|AF|SF|OF) || (f&ZF)!=0) return false;
+        if((f&(CF|PF|AF|SF|OF))!=(AF|SF|OF) || (f&ZF)!=0) return false;
     }
 
     // 8-bit SBB: 0x80 - 0 - CF -> 0x7f, signed overflow, AF set, PF clear.
@@ -1728,6 +1728,7 @@ int main() {
     if (!TestGroup1FullImmediateForms()) { std::cerr << "Group1 full immediate forms failed\n"; return 20; }
     if (!TestGroup1RexAndMemory()) { std::cerr << "Group1 REX/memory failed\n"; return 19; }
     if (!TestGroup1ExtendedAddressing()) { std::cerr << "Group1 extended addressing failed\n"; return 21; }
+    if (!TestGroup1ExtendedAllWidths()) { std::cerr << "Group1 extended all widths failed\n"; return 22; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
