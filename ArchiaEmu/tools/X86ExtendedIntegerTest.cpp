@@ -127,7 +127,7 @@ static bool TestCmov16ExtendedMemoryAndFlags() {
     AppendMovR64(code, 8, 0x1234000000000011ULL);
     AppendMovR64(code, 11, 0x1800);
     cpu.SetRflags(CF | PF | ZF | OF);
-    code.insert(code.end(), {0x66, 0x4D, 0x0F, 0x44, 0x43, 0x08}); // CMOVZ R8W,[R11+8]
+    code.insert(code.end(), {0x66, 0x45, 0x0F, 0x44, 0x43, 0x08}); // CMOVZ R8W,[R11+8]
 
     if (!Run(m, cpu, code)) return false;
     if (cpu.ReadRegister64(8) != 0x123400000000BEEFULL) return false;
