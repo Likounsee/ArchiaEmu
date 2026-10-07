@@ -582,19 +582,19 @@ static bool TestDivideFaultsAndBoundaries() {
 
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        if (!expectFault(m,cpu,{0xB0,0x00,0xF6,0xF3})) return false;
+        std::cerr << "DIVFAULT_STAGE_1\n"; if (!expectFault(m,cpu,{0xB0,0x00,0xF6,0xF3})) { std::cerr << "DIVFAULT_FAIL_1\n"; return false; }
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        if (!expectFault(m,cpu,{0xB8,0x00,0x01,0xB3,0x01,0xF6,0xF3})) return false;
+        std::cerr << "DIVFAULT_STAGE_2\n"; if (!expectFault(m,cpu,{0xB8,0x00,0x01,0xB3,0x01,0xF6,0xF3})) { std::cerr << "DIVFAULT_FAIL_2\n"; return false; }
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        if (!expectFault(m,cpu,{0x66,0xB8,0x00,0x00,0x66,0xBA,0x00,0x80,0x66,0xBB,0xFF,0xFF,0x66,0xF7,0xFB})) return false;
+        std::cerr << "DIVFAULT_STAGE_3\n"; if (!expectFault(m,cpu,{0x66,0xB8,0x00,0x00,0x66,0xBA,0x00,0x80,0x66,0xBB,0xFF,0xFF,0x66,0xF7,0xFB})) { std::cerr << "DIVFAULT_FAIL_3\n"; return false; }
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        if (!expectFault(m,cpu,{0xB8,0x00,0x00,0x00,0x00,0xBA,0x00,0x00,0x00,0x80,0xBB,0xFF,0xFF,0xFF,0xFF,0xF7,0xFB})) return false;
+        std::cerr << "DIVFAULT_STAGE_4\n"; if (!expectFault(m,cpu,{0xB8,0x00,0x00,0x00,0x00,0xBA,0x00,0x00,0x00,0x80,0xBB,0xFF,0xFF,0xFF,0xFF,0xF7,0xFB})) { std::cerr << "DIVFAULT_FAIL_4\n"; return false; }
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -603,7 +603,7 @@ static bool TestDivideFaultsAndBoundaries() {
         AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
         AppendMovR64(code,3,0xFFFFFFFFFFFFFFFFULL);
         code.insert(code.end(),{0x48,0xF7,0xFB});
-        if (!expectFault(m,cpu,code)) return false;
+        std::cerr << "DIVFAULT_STAGE_5\n"; if (!expectFault(m,cpu,code)) { std::cerr << "DIVFAULT_FAIL_5\n"; return false; }
     }
     return true;
 }
