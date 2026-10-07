@@ -1774,6 +1774,34 @@ static bool TestShiftRight64Forms() {
     return true;
 }
 
+static bool TestLeaExtendedAddressing() {
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x4F,0x8D,0x04,0xA3}); // LEA RAX,[R11+R12*4]
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x1808ULL) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x4F,0x8D,0x44,0xA3,0x08}); // LEA RAX,[R11+R12*4+8]
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x1810ULL) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x67,0x47,0x8D,0x04,0xA3}); // LEA EAX,[R11D+R12D*4]
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x1808ULL) return false;
+    }
+    return true;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -1865,6 +1893,7 @@ int main() {
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestShiftRight64Forms()) { std::cerr << "64-bit SHR/SAR forms failed\n"; return 23; }
+    if (!TestLeaExtendedAddressing()) { std::cerr << "LEA extended addressing failed\n"; return 24; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
