@@ -1382,9 +1382,6 @@ static bool TestCmpUnequalFlags() {
         const std::uint64_t flags=cpu.Rflags();
         if((flags&1ULL)==0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))==0 || (flags&(1ULL<<11))!=0) return false;
     }
-    return true;
-}
-
     // CMP AF/PF unequal coverage.
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -1406,6 +1403,9 @@ static bool TestCmpUnequalFlags() {
         if((f&1ULL)==0 || (f&(1ULL<<6))!=0 || (f&(1ULL<<7))==0 || (f&(1ULL<<11))!=0) return false;
         if((f&(1ULL<<4))==0 || (f&(1ULL<<2))==0) return false;
     }
+
+    return true;
+}
 
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
