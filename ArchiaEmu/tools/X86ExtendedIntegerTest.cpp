@@ -2269,6 +2269,33 @@ static bool TestBitMemoryForms() {
     return true;
 }
 
+static bool TestGroup1QwordImmediateMemory() {
+    struct Case { std::uint8_t group; std::uint64_t initial; std::uint64_t expected; };
+    const Case cases[] = {
+        {0, 0x10ULL, 0x0FULL},                         // ADD
+        {1, 0x7FFFFFFFFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL}, // OR
+        {2, 0x10ULL, 0x0FULL},                         // ADC, CF clear
+        {3, 0xFFFFFFFFFFFFFFF0ULL, 0xFFFFFFFFFFFFFFF1ULL}, // SBB
+        {4, 0xF0ULL, 0xF0ULL},                         // AND
+        {5, 0x10ULL, 0x11ULL},                         // SUB
+        {6, 0x10ULL, 0xFFFFFFFFFFFFFFEFULL},           // XOR
+        {7, 0x10ULL, 0x10ULL}                          // CMP
+    };
+    for (const auto& tc : cases) {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&tc.initial),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x81,0x07,0xFF,0xFF,0xFF,0xFF});
+        code[3]=static_cast<std::uint8_t>(0x07U | (tc.group<<3));
+        if (!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if (!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
+        if (out!=tc.expected) return false;
+    }
+    return true;
+}
+
 int main() {
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
@@ -2317,6 +2344,7 @@ int main() {
     if (!TestGroup1RexAndMemory()) { std::cerr << "Group1 REX/memory failed\n"; return 19; }
     if (!TestGroup1ExtendedAddressing()) { std::cerr << "Group1 extended addressing failed\n"; return 21; }
     if (!TestGroup1ExtendedAllWidths()) { std::cerr << "Group1 extended all widths failed\n"; return 22; }
+    if (!TestGroup1QwordImmediateMemory()) { std::cerr << "Group1 qword immediate memory failed\n"; return 37; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestShiftLeft64Parity()) { std::cerr << "64-bit SHL parity failed\n"; return 26; }
