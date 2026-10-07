@@ -8393,22 +8393,9 @@ case 0xD0:
                 }
             }
             else {
-                std::uint8_t reg = 0;
-                std::uint8_t rm = 0;
-                std::uint64_t address = 0;
-                bool memory = false;
-                if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return 1;
-
-                const std::uint32_t lhs = registers_.Read32(reg);
-                std::uint32_t rhs = 0;
-                if (memory) {
-                    if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&rhs), sizeof(rhs))) return 1;
-                } else {
-                    rhs = registers_.Read32(rm);
+                if (!DecodeCmp32(0x3B, modrm, rex)) {
+                    return 1;
                 }
-
-                const std::uint32_t result = lhs - rhs;
-                SetSubFlags32(lhs, rhs, result);
             }
 
             break;
