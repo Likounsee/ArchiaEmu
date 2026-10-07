@@ -2526,6 +2526,92 @@ else {
 
     return true;
 }
+bool Cpu::DecodeShiftRight64Imm(
+    std::uint8_t modrm,
+    const RexPrefix& rex,
+    std::uint8_t count,
+    bool fetchCountAfterAddress)
+{
+    if (!rex.w) return false;
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return false;
+    if (fetchCountAfterAddress && !Fetch8(count)) return false;
+    const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+    if (group != 5) return false;
+    const std::uint8_t shift = static_cast<std::uint8_t>(count & 0x3F);
+    if (shift == 0) return true;
+
+    std::uint64_t value = 0;
+    if (memory) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return false;
+    } else {
+        value = registers_.Read64(rm);
+    }
+
+    const bool carry = ((value >> (shift - 1)) & 1ULL) != 0;
+    const std::uint64_t result = value >> shift;
+
+    if (memory) {
+        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return false;
+    } else {
+        registers_.Write64(rm, result);
+    }
+
+    SetZeroFlag(result == 0);
+    SetSignFlag((result & 0x8000000000000000ULL) != 0);
+    if (carry) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+    if (shift == 1) {
+        if ((value & 0x8000000000000000ULL) != 0) rflags_ |= OF_MASK;
+        else rflags_ &= ~OF_MASK;
+    } else {
+        rflags_ &= ~OF_MASK;
+    }
+    return true;
+}
+
+bool Cpu::DecodeShiftArithmetic64Imm(
+    std::uint8_t modrm,
+    const RexPrefix& rex,
+    std::uint8_t count,
+    bool fetchCountAfterAddress)
+{
+    if (!rex.w) return false;
+    std::uint8_t reg = 0, rm = 0;
+    std::uint64_t address = 0;
+    bool memory = false;
+    if (!DecodeMemoryOrRegister32(modrm, rex, reg, rm, address, memory)) return false;
+    if (fetchCountAfterAddress && !Fetch8(count)) return false;
+    const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+    if (group != 7) return false;
+    const std::uint8_t shift = static_cast<std::uint8_t>(count & 0x3F);
+    if (shift == 0) return true;
+
+    std::uint64_t value = 0;
+    if (memory) {
+        if (!ReadMemory(address, reinterpret_cast<std::uint8_t*>(&value), sizeof(value))) return false;
+    } else {
+        value = registers_.Read64(rm);
+    }
+
+    const bool carry = ((value >> (shift - 1)) & 1ULL) != 0;
+    const std::int64_t signedValue = static_cast<std::int64_t>(value);
+    const std::uint64_t result = static_cast<std::uint64_t>(signedValue >> shift);
+
+    if (memory) {
+        if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return false;
+    } else {
+        registers_.Write64(rm, result);
+    }
+
+    SetZeroFlag(result == 0);
+    SetSignFlag((result & 0x8000000000000000ULL) != 0);
+    if (carry) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
+    rflags_ &= ~OF_MASK;
+    return true;
+}
+
 bool Cpu::DecodeShiftLeft32Imm(
     std::uint8_t modrm,
     const RexPrefix& rex,
@@ -6372,7 +6458,16 @@ case 0xD0:
                         return 1;
                     }
                 }
-                else if (!DecodeShiftLeft64CL(modrm, rex)) {
+                else if (group64 == 4) {
+                    if (!DecodeShiftLeft64CL(modrm, rex)) return 1;
+                }
+                else if (group64 == 5) {
+                    if (!DecodeShiftRight64Imm(modrm, rex, clCount)) return 1;
+                }
+                else if (group64 == 7) {
+                    if (!DecodeShiftArithmetic64Imm(modrm, rex, clCount)) return 1;
+                }
+                else {
                     return 1;
                 }
             }
@@ -6438,10 +6533,16 @@ case 0xD0:
                         return 1;
                     }
                 }
-                else if (!DecodeShiftLeft64Imm(
-                        modrm,
-                        rex,
-                        1)) {
+                else if (group64 == 4) {
+                    if (!DecodeShiftLeft64Imm(modrm, rex, 1)) return 1;
+                }
+                else if (group64 == 5) {
+                    if (!DecodeShiftRight64Imm(modrm, rex, 1)) return 1;
+                }
+                else if (group64 == 7) {
+                    if (!DecodeShiftArithmetic64Imm(modrm, rex, 1)) return 1;
+                }
+                else {
                     return 1;
                 }
 
@@ -6510,7 +6611,13 @@ case 0xD0:
                 const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
                 if (group <= 3) {
                     if (!DecodeRotate64Imm(modrm, rex, 0, true)) return 1;
-                } else if (!DecodeShiftLeft64Imm(modrm, rex, 0, true)) return 1;
+                } else if (group == 4) {
+                    if (!DecodeShiftLeft64Imm(modrm, rex, 0, true)) return 1;
+                } else if (group == 5) {
+                    if (!DecodeShiftRight64Imm(modrm, rex, 0, true)) return 1;
+                } else if (group == 7) {
+                    if (!DecodeShiftArithmetic64Imm(modrm, rex, 0, true)) return 1;
+                } else return 1;
             }
             else {
                 const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
