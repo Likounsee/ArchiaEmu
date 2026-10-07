@@ -1271,7 +1271,7 @@ static bool TestGroup1ImmediateWidths() {
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0x48,0xB8,0x01,0,0,0,0,0,0,0,0x48,0x83,0xC0,0xFF};
-        if(!Run(m,cpu,code) || cpu.Rax()!=0 || (cpu.Rflags()&(1ULL<<6))==0 || (cpu.Rflags()&1ULL)!=0) return false;
+        if(!Run(m,cpu,code) || cpu.Rax()!=0 || (cpu.Rflags()&(1ULL<<6))==0 || (cpu.Rflags()&1ULL)==0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
