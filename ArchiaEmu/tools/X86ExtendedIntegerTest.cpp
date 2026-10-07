@@ -3565,6 +3565,15 @@ static bool TestHighByteRegisterAliases() {
         if (!Run(m, cpu, code) || cpu.Rax() != 0x123456789ABCFF80ULL) return false;
     }
 
+    // MOVZX 16-bit form must also read the legacy AH register.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0x123456789ABC80AAULL);
+        code.insert(code.end(), {0x66, 0x0F, 0xB6, 0xC4}); // MOVZX AX, AH
+        if (!Run(m, cpu, code) || cpu.Rax() != 0x123456789ABC0080ULL) return false;
+    }
+
     // A REX prefix suppresses high-byte aliases: rm=4 becomes SPL.
     // Use REX.R to place the zero-extended result in R8D.
     {
