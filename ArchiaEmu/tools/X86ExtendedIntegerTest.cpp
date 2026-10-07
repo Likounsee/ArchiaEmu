@@ -3019,10 +3019,15 @@ static bool TestMovExtendExtendedForms() {
     code.insert(code.end(), {0x47, 0x0F, 0xBE, 0x4C, 0xA3, 0x07});
 
     if (!Run(m, cpu, code)) return false;
-    if (cpu.ReadRegister64(9) != 0x00000000FFFFFF80ULL) return false;
-    if (cpu.ReadRegister64(10) != 0x0000000000007F01ULL) return false;
-    if (cpu.ReadRegister64(8) != 0x00000000FFFFFFFEULL) return false;
-    return cpu.ReadRegister64(9) == 0x00000000FFFFFF80ULL;
+    const auto r9 = cpu.ReadRegister64(9);
+    const auto r10 = cpu.ReadRegister64(10);
+    const auto r8 = cpu.ReadRegister64(8);
+    if (r9 != 0x00000000FFFFFF80ULL || r10 != 0x0000000000007F01ULL || r8 != 0x00000000FFFFFFFEULL) {
+        std::cerr << "MOVZX/MOVSX values: R9=0x" << std::hex << r9
+                  << " R10=0x" << r10 << " R8=0x" << r8 << std::dec << "\\n";
+        return false;
+    }
+    return true;
 }
 
 
