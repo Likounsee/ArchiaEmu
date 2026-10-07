@@ -3170,6 +3170,50 @@ static bool TestMovImmediateToRmForms() {
 
 
 
+
+static bool TestNotExtendedForms() {
+    constexpr std::uint64_t sentinelFlags =
+        (1ULL << 0) | (1ULL << 2) | (1ULL << 4) | (1ULL << 6) |
+        (1ULL << 7) | (1ULL << 11);
+
+    // NOT R12 is a 64-bit REX.B form and must not modify arithmetic flags.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 12, 0x0123456789ABCDEFULL);
+        cpu.SetRflags(sentinelFlags);
+        code.insert(code.end(), {0x49, 0xF7, 0xD4}); // NOT R12
+        if (!Run(m, cpu, code) ||
+            cpu.ReadRegister64(12) != 0xFEDCBA9876543210ULL ||
+            cpu.Rflags() != sentinelFlags) return false;
+    }
+
+    // NOT R13D must use REX.B and zero-extend the 32-bit result.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 13, 0x0000000012345678ULL);
+        code.insert(code.end(), {0x41, 0xF7, 0xD5}); // NOT R13D
+        if (!Run(m, cpu, code) ||
+            cpu.ReadRegister64(13) != 0x00000000EDCBA987ULL) return false;
+    }
+
+    // NOT r/m16 with an extended memory base.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t value = 0x0F0FU;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x66, 0x41, 0xF7, 0x13}); // NOT WORD PTR [R11]
+        std::uint16_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0xF0F0U;
+    }
+}
+
+
 static bool TestXchgExtendedMemoryForms() {
     // XCHG r/m64,r64 with REX.R/B swaps the full 64-bit values.
     {
@@ -3341,6 +3385,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestNotExtendedForms()) { std::cerr << "NOT extended forms failed\\n"; return 57; }
+
     if (!TestXchgExtendedMemoryForms()) { std::cerr << "XCHG extended memory forms failed\\n"; return 56; }
 
     if (!TestCmpxchgExtendedMemoryForms()) { std::cerr << "CMPXCHG extended memory forms failed\\n"; return 55; }
