@@ -1156,6 +1156,30 @@ static bool TestCmpByteForms() {
     if ((flags & 1ULL) != 0) return false;
     if ((flags & (1ULL << 6)) == 0) return false;
     if ((flags & (1ULL << 7)) != 0) return false;
+
+    {
+        Memory mem; mem.Map(0x1000, 0x3000); Cpu c; c.ConnectMemory(&mem);
+        const std::uint8_t lhs = 5;
+        if (!mem.Write(0x1800, &lhs, sizeof(lhs))) return false;
+        std::vector<std::uint8_t> v;
+        AppendMovR64(v, 0, 5); AppendMovR64(v, 7, 0x1800);
+        v.insert(v.end(), {0x38, 0x07});
+        if (!Run(mem, c, v)) return false;
+        if ((c.Rflags() & (1ULL << 6)) == 0 || (c.Rflags() & 1ULL) != 0) return false;
+    }
+
+    {
+        Memory mem; mem.Map(0x1000, 0x3000); Cpu c; c.ConnectMemory(&mem);
+        const std::uint8_t rhs = 7;
+        if (!mem.Write(0x1800, &rhs, sizeof(rhs))) return false;
+        std::vector<std::uint8_t> v;
+        AppendMovR64(v, 0, 5); AppendMovR64(v, 7, 0x1800);
+        v.insert(v.end(), {0x3A, 0x07});
+        if (!Run(mem, c, v)) return false;
+        const std::uint64_t f = c.Rflags();
+        if ((f & 1ULL) == 0 || (f & (1ULL << 6)) != 0 || (f & (1ULL << 7)) == 0) return false;
+    }
+
     return true;
 }
 
