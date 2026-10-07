@@ -672,6 +672,36 @@ static bool TestMulDivForms() {
     if(!Run(divMem8,divMem8Cpu,divMem8Code) ||
        (divMem8Cpu.Rax()&0xFFFFU)!=0x0064U) return false;
 
+    Memory divMem16; divMem16.Map(0x1000,0x3000); Cpu divMem16Cpu; divMem16Cpu.ConnectMemory(&divMem16);
+    const std::uint16_t div16 = 7;
+    if(!divMem16.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&div16),sizeof(div16))) return false;
+    std::vector<std::uint8_t> divMem16Code;
+    AppendMovR64(divMem16Code,0,100); AppendMovR64(divMem16Code,2,0); AppendMovR64(divMem16Code,7,0x1800);
+    divMem16Code.insert(divMem16Code.end(),{0x66,0xF7,0x37});
+    if(!Run(divMem16,divMem16Cpu,divMem16Code) ||
+       (divMem16Cpu.Rax()&0xFFFFU)!=14U ||
+       (divMem16Cpu.ReadRegister64(2)&0xFFFFU)!=2U) return false;
+
+    Memory idivMem8; idivMem8.Map(0x1000,0x3000); Cpu idivMem8Cpu; idivMem8Cpu.ConnectMemory(&idivMem8);
+    const std::uint8_t idiv8 = 7;
+    if(!idivMem8.Write(0x1800,&idiv8,sizeof(idiv8))) return false;
+    std::vector<std::uint8_t> idivMem8Code;
+    AppendMovR64(idivMem8Code,0,0xFFD8ULL); AppendMovR64(idivMem8Code,7,0x1800);
+    idivMem8Code.insert(idivMem8Code.end(),{0xF6,0x3F});
+    if(!Run(idivMem8,idivMem8Cpu,idivMem8Code) ||
+       (idivMem8Cpu.Rax()&0xFFFFU)!=0xFFFBU) return false;
+
+    Memory idivMem32; idivMem32.Map(0x1000,0x3000); Cpu idivMem32Cpu; idivMem32Cpu.ConnectMemory(&idivMem32);
+    const std::uint32_t idiv32 = 7;
+    if(!idivMem32.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&idiv32),sizeof(idiv32))) return false;
+    std::vector<std::uint8_t> idivMem32Code;
+    AppendMovR64(idivMem32Code,0,0xFFFFFFFFFFFFFF9CULL); AppendMovR64(idivMem32Code,2,0xFFFFFFFFFFFFFFFFULL);
+    AppendMovR64(idivMem32Code,7,0x1800);
+    idivMem32Code.insert(idivMem32Code.end(),{0xF7,0x3F});
+    if(!Run(idivMem32,idivMem32Cpu,idivMem32Code) ||
+       (idivMem32Cpu.Rax()&0xFFFFFFFFULL)!=0xFFFFFFF2ULL ||
+       (idivMem32Cpu.ReadRegister64(2)&0xFFFFFFFFULL)!=0xFFFFFFFEULL) return false;
+
     Memory idivMem16; idivMem16.Map(0x1000,0x3000); Cpu idivMem16Cpu; idivMem16Cpu.ConnectMemory(&idivMem16);
     const std::uint16_t idiv16 = 7;
     if(!idivMem16.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&idiv16),sizeof(idiv16))) return false;
