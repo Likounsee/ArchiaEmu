@@ -769,7 +769,8 @@ int main() {
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
-    if (!TestAdcSbbImmediateAndWidths()) { std::cerr << "ADC/SBB immediate and widths failed\n"; return 8; }\n    if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
+    if (!TestAdcSbbImmediateAndWidths()) { std::cerr << "ADC/SBB immediate and widths failed\n"; return 8; }
+    if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
     if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }
     if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }
     if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }
