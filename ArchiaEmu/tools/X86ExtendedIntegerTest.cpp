@@ -441,6 +441,75 @@ static bool TestAdcSbb16Directions() {
            (cpu2.Rflags()&1ULL)==0;
 }
 
+static bool TestAdcSbbImmediateAndWidths() {
+    // Register forms across byte/word/dword/qword, both ModRM directions.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0xFF);
+        AppendMovR64(code, 3, 0x00);
+        code.insert(code.end(), {0xF9, 0x11, 0xD8, 0x19, 0xD8});
+        if (!Run(m, c, code) || (c.ReadRegister64(0) & 0xFFU) != 0xFFU ||
+            (c.Rflags() & 1ULL) == 0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0xFFFF);
+        AppendMovR64(code, 3, 1);
+        code.insert(code.end(), {0xF9, 0x66, 0x13, 0xC3, 0x66, 0x1B, 0xC3});
+        if (!Run(m, c, code) || (c.ReadRegister64(0) & 0xFFFFU) != 0xFFFFU ||
+            (c.ReadRegister64(3) & 0xFFFFU) != 0xFFFFU) return false;
+    }
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0xFFFFFFFFULL);
+        AppendMovR64(code, 3, 1);
+        code.insert(code.end(), {0xF9, 0x11, 0xD8, 0x1B, 0xD8});
+        if (!Run(m, c, code) || (c.ReadRegister64(0) & 0xFFFFFFFFULL) != 0xFFFFFFFFULL ||
+            (c.ReadRegister64(3) & 0xFFFFFFFFULL) != 0xFFFFFFFFULL) return false;
+    }
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0xFFFFFFFFFFFFFFFFULL);
+        AppendMovR64(code, 3, 1);
+        code.insert(code.end(), {0xF9, 0x48, 0x11, 0xD8, 0x48, 0x1B, 0xD8});
+        if (!Run(m, c, code) || c.ReadRegister64(0) != 0xFFFFFFFFFFFFFFFFULL ||
+            c.ReadRegister64(3) != 0xFFFFFFFFFFFFFFFFULL) return false;
+    }
+
+    // Accumulator immediate forms: ADC/SBB byte, word, dword and sign-extended qword.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
+        if (!Run(m, c, {0xB0, 0xFF, 0xF9, 0x14, 0x00}) ||
+            (c.ReadRegister64(0) & 0xFFU) != 0x00U || (c.Rflags() & 1ULL) == 0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
+        if (!Run(m, c, {0x66, 0xB8, 0xFF, 0xFF, 0xF9, 0x15, 0x00, 0x00}) ||
+            (c.ReadRegister64(0) & 0xFFFFU) != 0x0000U || (c.Rflags() & 1ULL) == 0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
+        if (!Run(m, c, {0xB8, 0xFF, 0xFF, 0xFF, 0xFF, 0xF9, 0x15, 0x00, 0x00, 0x00, 0x00}) ||
+            (c.ReadRegister64(0) & 0xFFFFFFFFULL) != 0x00000000ULL || (c.Rflags() & 1ULL) == 0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
+        if (!Run(m, c, {0x48, 0xB8, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                         0xF9, 0x15, 0x00, 0x00, 0x00, 0x00}) ||
+            c.ReadRegister64(0) != 0x0000000000000000ULL || (c.Rflags() & 1ULL) == 0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
+        if (!Run(m, c, {0xB0, 0x00, 0xF9, 0x1C, 0x00}) ||
+            (c.ReadRegister64(0) & 0xFFU) != 0xFFU || (c.Rflags() & 1ULL) == 0) return false;
+    }
+    return true;
+}
+
 static bool TestIncDecMemoryAndCmpWidths() {
     Memory memory; memory.Map(0x1000,0x4000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -700,7 +769,7 @@ int main() {
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
-    if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
+    if (!TestAdcSbbImmediateAndWidths()) { std::cerr << "ADC/SBB immediate and widths failed\n"; return 8; }\n    if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
     if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }
     if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }
     if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }
