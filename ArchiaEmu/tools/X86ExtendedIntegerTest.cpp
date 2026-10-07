@@ -505,7 +505,7 @@ static bool TestFlagsAndLoops() {
     std::vector<std::uint8_t> loop32;
     AppendMovR64(loop32, 1, 0x0000000100000002ULL);
     loop32.insert(loop32.end(), {0x67, 0xE2, 0xFD, 0xF4});
-    if (!Run(memory7, cpu7, loop32) || cpu7.ReadRegister64(1) != 0x0000000100000000ULL) return false;
+    if (!Run(memory7, cpu7, loop32) || cpu7.ReadRegister64(1) != 0ULL) return false;
 
     Memory memory8; memory8.Map(0x1000, 0x2000);
     Cpu cpu8; cpu8.ConnectMemory(&memory8);
@@ -513,7 +513,7 @@ static bool TestFlagsAndLoops() {
     std::vector<std::uint8_t> loope32;
     AppendMovR64(loope32, 1, 0x0000000100000002ULL);
     loope32.insert(loope32.end(), {0x67, 0xE1, 0xFD, 0xF4});
-    if (!Run(memory8, cpu8, loope32) || cpu8.ReadRegister64(1) != 0x0000000100000000ULL) return false;
+    if (!Run(memory8, cpu8, loope32) || cpu8.ReadRegister64(1) != 0ULL) return false;
     if (cpu8.Rflags() != (1ULL << 6)) return false;
 
     Memory memory9; memory9.Map(0x1000, 0x2000);
@@ -521,7 +521,7 @@ static bool TestFlagsAndLoops() {
     std::vector<std::uint8_t> loopne32;
     AppendMovR64(loopne32, 1, 0x0000000100000002ULL);
     loopne32.insert(loopne32.end(), {0x67, 0xE0, 0xFD, 0xF4});
-    if (!Run(memory9, cpu9, loopne32) || cpu9.ReadRegister64(1) != 0x0000000100000000ULL) return false;
+    if (!Run(memory9, cpu9, loopne32) || cpu9.ReadRegister64(1) != 0ULL) return false;
 
     Memory memory6; memory6.Map(0x1000, 0x2000);
     Cpu cpu6; cpu6.ConnectMemory(&memory6);
