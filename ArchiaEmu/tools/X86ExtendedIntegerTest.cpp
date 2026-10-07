@@ -3173,6 +3173,28 @@ static bool TestMovImmediateToRmForms() {
 
 
 
+
+static bool TestPushPopFlagsWord() {
+    constexpr std::uint64_t flags =
+        0x2ULL | 1ULL | (1ULL << 2) | (1ULL << 4) |
+        (1ULL << 6) | (1ULL << 7) | (1ULL << 11);
+
+    Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+    cpu.SetStackPointer(0x3000);
+    cpu.SetRflags(flags);
+
+    // 66 9C/66 9D operate on the low 16 bits of RFLAGS in long mode.
+    std::vector<std::uint8_t> code = {
+        0x66, 0x9C,       // PUSHF (word)
+        0x31, 0xC0,       // XOR EAX,EAX
+        0x66, 0x9D        // POPF (word)
+    };
+    if (!Run(m, cpu, code)) return false;
+    return (cpu.Rflags() & 0xFFFFULL) == flags &&
+           cpu.Rsp() == 0x3000ULL;
+}
+
+
 static bool TestLahfSahfFlags() {
     constexpr std::uint64_t CF = 1ULL;
     constexpr std::uint64_t PF = 1ULL << 2;
@@ -3435,6 +3457,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestPushPopFlagsWord()) { std::cerr << "16-bit PUSHF/POPF failed\\n"; return 60; }
+
     if (!TestLahfSahfFlags()) { std::cerr << "LAHF/SAHF flags failed\\n"; return 59; }
 
     if (!TestPushPopFlagsQword()) { std::cerr << "PUSHFQ/POPFQ failed\\n"; return 58; }
