@@ -2650,11 +2650,11 @@ static bool TestGroup1ImmediateExtendedCoverage() {
         std::vector<std::uint8_t> code;
         AppendMovR64(code, 11, 0x1800);
         AppendMovR64(code, 12, 0x80);
-        code.insert(code.end(), {0x45, 0x83, 0x34, 0xA3, 0x00});
+        code.insert(code.end(), {0x45, 0x83, 0x34, 0xA3, 0xFF});
         if (!Run(m, cpu, code)) return false;
         std::uint32_t out = 0;
         if (!m.Read(0x1A00, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
-        return out == 0xFFFFFF00U;
+        return out == 0x00000000U;
     }
 }
 
