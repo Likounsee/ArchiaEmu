@@ -1379,7 +1379,7 @@ static bool TestGroup1FlagMatrix() {
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(cpu.Rflags() | CF);
-        std::vector<std::uint8_t> code={0xB0,0x7F,0xB3,0x00,0x10,0xC3};
+        std::vector<std::uint8_t> code={0xB0,0x7F,0xB3,0x00,0x10,0xD8};
         if(!Run(m,cpu,code)) return false;
         const auto f=cpu.Rflags();
         if((cpu.ReadRegister64(0)&0xFFU)!=0x80U) return false;
@@ -1390,7 +1390,7 @@ static bool TestGroup1FlagMatrix() {
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(cpu.Rflags() | CF);
-        std::vector<std::uint8_t> code={0xB0,0x80,0xB3,0x00,0x18,0xC3};
+        std::vector<std::uint8_t> code={0xB0,0x80,0xB3,0x00,0x18,0xD8};
         if(!Run(m,cpu,code)) return false;
         const auto f=cpu.Rflags();
         if((cpu.ReadRegister64(0)&0xFFU)!=0x7FU) return false;
