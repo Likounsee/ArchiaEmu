@@ -159,6 +159,69 @@ int main() {
         }
     }
 
+    // A zero effective count must leave both the operand and all flags intact.
+    {
+        const std::uint8_t code[] = {0x66, 0xC1, 0xD0, 0x00};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        constexpr std::uint64_t initial = 0x112233445566A55AULL;
+        constexpr std::uint64_t flags = 0x8D5ULL;
+        cpu.WriteRegister64(0, initial);
+        cpu.SetRflags(flags);
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != initial || cpu.Rflags() != flags) {
+            std::cerr << "16-bit RCL zero-count failed\n";
+            return 11;
+        }
+    }
+
+    // For RCL16, a count of 17 is equivalent to zero because the rotate
+    // width includes CF (17 bits). This must also preserve flags.
+    {
+        const std::uint8_t code[] = {0x66, 0xC1, 0xD0, 0x11};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        constexpr std::uint64_t initial = 0x112233445566A55AULL;
+        constexpr std::uint64_t flags = 0x8D5ULL;
+        cpu.WriteRegister64(0, initial);
+        cpu.SetRflags(flags);
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != initial || cpu.Rflags() != flags) {
+            std::cerr << "16-bit RCL count-17 masking failed\n";
+            return 12;
+        }
+    }
+
+    // For RCL32, count 33 is equivalent to one.
+    {
+        const std::uint8_t code[] = {0xC1, 0xD0, 0x21};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x0000000080000000ULL);
+        cpu.SetRflags(0);
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x0000000000000000ULL ||
+            (cpu.Rflags() & (1ULL << 0)) == 0) {
+            std::cerr << "32-bit RCL count-33 masking failed\n";
+            return 13;
+        }
+    }
+
+    // For RCL64, count 65 is equivalent to one.
+    {
+        const std::uint8_t code[] = {0x48, 0xC1, 0xD0, 0x41};
+        Cpu cpu;
+        cpu.ConnectMemory(&memory);
+        cpu.WriteRegister64(0, 0x8000000000000000ULL);
+        cpu.SetRflags(0);
+        if (!Run(memory, cpu, code, sizeof(code)) ||
+            cpu.ReadRegister64(0) != 0x0000000000000000ULL ||
+            (cpu.Rflags() & (1ULL << 0)) == 0) {
+            std::cerr << "64-bit RCL count-65 masking failed\n";
+            return 14;
+        }
+    }
+
     std::cout << "x86 rotate-through-carry test: PASS\n";
     return 0;
 }
