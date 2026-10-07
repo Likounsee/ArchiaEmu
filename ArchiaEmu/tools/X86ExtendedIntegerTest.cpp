@@ -1436,7 +1436,8 @@ int main() {
     if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
     if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
     if (!TestCmpImmediateForms()) { std::cerr << "immediate CMP forms failed\n"; return 16; }
-    if (!TestGroup1ImmediateWidths()) { std::cerr << "Group1 immediate widths failed\\n"; return 17; }\n    if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
+    if (!TestGroup1ImmediateWidths()) { std::cerr << "Group1 immediate widths failed\\n"; return 17; }
+    if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
