@@ -3168,6 +3168,48 @@ static bool TestMovImmediateToRmForms() {
 }
 
 
+
+static bool TestCmpxchgExtendedMemoryForms() {
+    // Successful CMPXCHG r/m64,r64 with REX.R/B stores the source register.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint64_t value = 0x1122334455667788ULL;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, value);
+        AppendMovR64(code, 8, 0xAABBCCDDEEFF0011ULL);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x4D, 0x0F, 0xB1, 0x03}); // CMPXCHG [R11],R8
+        std::uint64_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0xAABBCCDDEEFF0011ULL &&
+               cpu.Rax() == value &&
+               (cpu.Rflags() & (1ULL << 6)) != 0;
+    }
+
+    // Failed comparison loads memory into RAX and leaves memory unchanged.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value = 0x1122334455667788ULL;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0xCAFEBABEDEADBEEFULL);
+        AppendMovR64(code, 9, 0xAABBCCDDEEFF0011ULL);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x4D, 0x0F, 0xB1, 0x0B}); // CMPXCHG [R11],R9
+        std::uint64_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == value &&
+               cpu.Rax() == value &&
+               (cpu.Rflags() & (1ULL << 6)) == 0;
+    }
+
+    return true;
+}
+
+
 static bool TestXaddExtendedMemoryForms() {
     // XADD r/m64,r64 with both REX.R and REX.B: memory gets the sum,
     // while the destination register receives the original memory value.
@@ -3259,6 +3301,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestCmpxchgExtendedMemoryForms()) { std::cerr << "CMPXCHG extended memory forms failed\\n"; return 55; }
+
     if (!TestXaddExtendedMemoryForms()) { std::cerr << "XADD extended memory forms failed\\n"; return 54; }
 
     if (!TestMovImmediateToRmForms()) { std::cerr << "MOV r/m immediate forms failed\\n"; return 53; }
