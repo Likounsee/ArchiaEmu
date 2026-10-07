@@ -2415,6 +2415,93 @@ static bool TestTestRmRegForms() {
     return true;
 }
 
+
+static bool TestDivisionSignedAndExtendedForms() {
+    // IDIV64 register: (-10) / 3 = -3 remainder -1.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xFFFFFFFFFFFFFFF6ULL);
+        AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
+        AppendMovR64(code,10,3);
+        code.insert(code.end(),{0x49,0xF7,0xFA}); // IDIV R10
+        if(!Run(m,cpu,code) ||
+           cpu.Rax()!=0xFFFFFFFFFFFFFFFDULL ||
+           cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) return false;
+    }
+
+    // IDIV64 memory with REX.B + disp8 addressing.
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::int64_t divisor=3;
+        if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&divisor),sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xFFFFFFFFFFFFFFF6ULL);
+        AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
+        AppendMovR64(code,11,0x1800);
+        code.insert(code.end(),{0x49,0x7B,0x08}); // IDIV qword [R11+8]
+        if(!Run(m,cpu,code) ||
+           cpu.Rax()!=0xFFFFFFFFFFFFFFFDULL ||
+           cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) return false;
+    }
+
+    // IDIV32 negative dividend: EDX:EAX = -10, divisor 3.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xFFFFFFF6ULL);
+        AppendMovR64(code,2,0xFFFFFFFFULL);
+        AppendMovR64(code,10,3);
+        code.insert(code.end(),{0x41,0xF7,0xFA}); // IDIV R10D
+        if(!Run(m,cpu,code) ||
+           static_cast<std::uint32_t>(cpu.Rax())!=0xFFFFFFFDULL ||
+           static_cast<std::uint32_t>(cpu.ReadRegister64(2))!=0xFFFFFFFFU) return false;
+    }
+
+    // IDIV16 negative dividend: DX:AX = -10, divisor 3.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xFFF6ULL);
+        AppendMovR64(code,2,0xFFFFULL);
+        AppendMovR64(code,10,3);
+        code.insert(code.end(),{0x66,0x41,0xF7,0xFA}); // IDIV R10W
+        if(!Run(m,cpu,code) ||
+           (cpu.Rax()&0xFFFFU)!=0xFFFDU ||
+           (cpu.ReadRegister64(2)&0xFFFFU)!=0xFFFFU) return false;
+    }
+
+    // IDIV8 negative AX dividend: -10 / 3 = -3, remainder -1.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xFFF6ULL);
+        AppendMovR64(code,10,3);
+        code.insert(code.end(),{0x41,0xF6,0xFA}); // IDIV R10B
+        if(!Run(m,cpu,code) ||
+           (cpu.Rax()&0xFFU)!=0xFDU ||
+           ((cpu.Rax()>>8)&0xFFU)!=0xFFU) return false;
+    }
+
+    // 64-bit quotient overflow must raise #DE and leave destination registers unchanged.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        bool seen=false;
+        cpu.SetExceptionHandler([&](Cpu&, const CpuException& e) {
+            seen = e.vector == CpuExceptionVector::DivideError;
+            return true;
+        });
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0);
+        AppendMovR64(code,2,1);
+        AppendMovR64(code,10,1);
+        code.insert(code.end(),{0x49,0xF7,0xF2}); // DIV R10; RDX >= divisor => overflow
+        if(!Run(m,cpu,code) || !seen || cpu.Rax()!=0 || cpu.ReadRegister64(2)!=1) return false;
+    }
+
+    return true;
+}
+
 int main() {
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
@@ -2481,6 +2568,7 @@ int main() {
     if (!TestRotate64ZeroCount()) { std::cerr << "64-bit rotate zero-count failed\n"; return 28; }
     if (!TestRotate64Forms()) { std::cerr << "64-bit rotate forms failed\n"; return 25; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
+    if (!TestDivisionSignedAndExtendedForms()) { std::cerr << "signed/extended division forms failed\n"; return 39; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
 }
