@@ -91,8 +91,8 @@ static bool TestCmovccExtendedConditions() {
         AppendMovR64(code,0,0x80000000ULL);
         AppendMovR64(code,3,1);
         code.insert(code.end(),{0x39,0xD8}); // CMP EAX, EBX: INT_MIN - 1
-        code.insert(code.end(),{0x44,0x0F,0x40,0xC1}); // CMOVO R8D,R9D (taken)
-        code.insert(code.end(),{0x44,0x0F,0x48,0xC1}); // CMOVS R8D,R9D (not taken)
+        code.insert(code.end(),{0x45,0x0F,0x40,0xC1}); // CMOVO R8D,R9D (taken)
+        code.insert(code.end(),{0x45,0x0F,0x48,0xC1}); // CMOVS R8D,R9D (not taken)
         if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x66ULL) return false;
     }
 
