@@ -762,6 +762,15 @@ if (!expectFault(m,cpu,{0xB8,0x00,0x00,0x00,0x80,0xBA,0xFF,0xFF,0xFF,0xFF,0xBB,0
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000000ULL);
+        AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
+        AppendMovR64(code,3,0xFFFFFFFFFFFFFFFFULL);
+        code.insert(code.end(),{0x48,0xF7,0xFB});
+        if (!expectFault(m,cpu,code)) { return false; }
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint8_t zero = 0;
         if (!m.Write(0x1800,&zero,sizeof(zero))) return false;
         std::vector<std::uint8_t> code;
