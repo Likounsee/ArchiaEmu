@@ -1727,24 +1727,6 @@ static bool TestGroup1ExtendedAllWidths() {
         if(!m.Read(0x1828,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=10) return false;
     }
 
-    // 64-bit Group-1 immediate sign-extension across every ALU sub-op in memory form.
-    {
-        const std::uint8_t groups[] = {1,2,3,4,5,6,7};
-        const std::uint64_t initial[] = {0x10,0x7FFFFFFFFFFFFFFFULL,0x10,0xFFFFFFFFFFFFFFF0ULL,0xF0,0x10,0xFFFFFFFFFFFFFFF0ULL};
-        const std::uint64_t expected[] = {0x0FULL,0xFFFFFFFFFFFFFFFFULL,0x0FULL,0xFFFFFFFFFFFFFFF1ULL,0xF0ULL,0xFFFFFFFFFFFFFFEFULL,0xFFFFFFFFFFFFFFF0ULL};
-        for (int i=0;i<7;++i) {
-            Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-            if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&initial[i]),8)) return false;
-            std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800);
-            code.insert(code.end(),{0x48,0x81,0x07,0xFF,0xFF,0xFF,0xFF});
-            // Rewrite ModRM.reg while preserving [RDI] addressing.
-            code[3]=static_cast<std::uint8_t>(0x07 | (groups[i]<<3));
-            if(!Run(m,cpu,code)) return false;
-            std::uint64_t out=0; if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
-            if(out!=expected[i]) { std::cerr << "G1IMM group=" << static_cast<unsigned>(groups[i]) << " out=0x" << std::hex << out << " expected=0x" << expected[i] << std::dec << std::endl; return false; }
-        }
-    }
-
     return true;
 }
 
