@@ -3169,6 +3169,46 @@ static bool TestMovImmediateToRmForms() {
 
 
 
+
+static bool TestXchgExtendedMemoryForms() {
+    // XCHG r/m64,r64 with REX.R/B swaps the full 64-bit values.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t initial = 0x1122334455667788ULL;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 8, 0xAABBCCDDEEFF0011ULL);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x4D, 0x87, 0x03}); // XCHG [R11],R8
+        std::uint64_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0xAABBCCDDEEFF0011ULL &&
+               cpu.ReadRegister64(8) == initial;
+    }
+
+    // XCHG r/m16,r16 must preserve the surrounding bits in both registers.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t initial = 0xBEEF;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 9, 0x123456789ABCDEF0ULL);
+        AppendMovR64(code, 8, 0x0000000000001357ULL);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x66, 0x45, 0x87, 0x03}); // XCHG [R11],R8W
+        std::uint16_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0x1357U &&
+               (cpu.ReadRegister64(8) & 0xFFFFU) == 0xBEEFU &&
+               cpu.ReadRegister64(8) == 0x000000000000BEEFU;
+    }
+
+    return true;
+}
+
+
 static bool TestCmpxchgExtendedMemoryForms() {
     // Successful CMPXCHG r/m64,r64 with REX.R/B stores the source register.
     {
@@ -3301,6 +3341,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestXchgExtendedMemoryForms()) { std::cerr << "XCHG extended memory forms failed\\n"; return 56; }
+
     if (!TestCmpxchgExtendedMemoryForms()) { std::cerr << "CMPXCHG extended memory forms failed\\n"; return 55; }
 
     if (!TestXaddExtendedMemoryForms()) { std::cerr << "XADD extended memory forms failed\\n"; return 54; }
