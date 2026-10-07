@@ -3562,8 +3562,60 @@ static bool TestHighByteRegisterAliases() {
     return true;
 }
 
+
+static bool TestBitScanWidthsAndMemory() {
+    // BSF 16-bit register form.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 3, 0x0000000000008000ULL);
+        code.insert(code.end(), {0x66, 0x0F, 0xBC, 0xC3}); // BSF AX,BX
+        if (!Run(m, cpu, code) || (cpu.Rax() & 0xFFFFU) != 15U) return false;
+        if ((cpu.Rflags() & (1ULL << 6)) != 0) return false;
+    }
+
+    // BSR 32-bit register form must zero-extend the destination.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 3, 0xFFFFFFFF00100000ULL);
+        code.insert(code.end(), {0x0F, 0xBD, 0xC3}); // BSR EAX,EBX
+        if (!Run(m, cpu, code) || cpu.Rax() != 20ULL) return false;
+        if ((cpu.Rflags() & (1ULL << 6)) != 0) return false;
+    }
+
+    // BSF 64-bit memory form with REX.R/X/B and SIB addressing.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value = 0x1000000000000000ULL;
+        if (!m.Write(0x1810, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        AppendMovR64(code, 12, 2);
+        code.insert(code.end(), {0x4F, 0x0F, 0xBC, 0x44, 0xA3, 0x10}); // BSF R8,[R11+R12*4+0x10]
+        if (!Run(m, cpu, code) || cpu.ReadRegister64(8) != 60ULL) return false;
+        if ((cpu.Rflags() & (1ULL << 6)) != 0) return false;
+    }
+
+    // Zero source sets ZF and leaves the destination register unchanged.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t zero = 0;
+        if (!m.Write(0x1820, reinterpret_cast<const std::uint8_t*>(&zero), sizeof(zero))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 9, 0x123456789ABCDEF0ULL);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x4F, 0x0F, 0xBC, 0x4B, 0x20}); // BSF R9,[R11+0x20]
+        if (!Run(m, cpu, code)) return false;
+        return cpu.ReadRegister64(9) == 0x123456789ABCDEF0ULL &&
+               (cpu.Rflags() & (1ULL << 6)) != 0;
+    }
+
+    return true;
+}
+
 int main() {
-    if (!TestHighByteRegisterAliases()) { std::cerr << "high-byte register aliases failed\n"; return 63; }
+    if (!TestBitScanWidthsAndMemory()) { std::cerr << "BSF/BSR width and memory coverage failed\\n"; return 64; }\n    if (!TestHighByteRegisterAliases()) { std::cerr << "high-byte register aliases failed\n"; return 63; }
     if (!TestAccumulatorDoubleWidthSignExtension()) { std::cerr << "CWD/CDQ/CQO failed\\n"; return 62; }
 
     if (!TestAccumulatorSignExtensionForms()) { std::cerr << "accumulator sign extension forms failed\\n"; return 61; }
