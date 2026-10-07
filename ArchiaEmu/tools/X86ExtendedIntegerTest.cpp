@@ -1235,9 +1235,9 @@ static bool TestCmpImmediateForms() {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0x48,0xB8,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
                                         0x48,0x3D,0xFF,0xFF,0xFF,0xFF};
-        if(!Run(m,cpu,code) || cpu.Rax()!=0x1ULL) return false;
+        if(!Run(m,cpu,code)) return false;
         const std::uint64_t flags=cpu.Rflags();
-        if((flags&1ULL)!=0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))!=0) return false;
+        if((flags&1ULL)==0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))!=0) return false;
     }
     return true;
 }
