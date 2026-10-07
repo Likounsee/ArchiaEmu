@@ -2998,12 +2998,41 @@ static bool TestGroup1ImmediateExtendedCoverage() {
     }
 }
 
+static bool TestMovExtendExtendedForms() {
+    Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+
+    const std::uint16_t wordA = 0x80FF;
+    const std::uint16_t wordB = 0x7F01;
+    const std::uint8_t byteA = 0xFE;
+    const std::uint8_t byteB = 0x80;
+    if (!m.Write(0x1A02, reinterpret_cast<const std::uint8_t*>(&wordA), sizeof(wordA)) ||
+        !m.Write(0x1A04, reinterpret_cast<const std::uint8_t*>(&wordB), sizeof(wordB)) ||
+        !m.Write(0x1A06, &byteA, 1) ||
+        !m.Write(0x1A07, &byteB, 1)) return false;
+
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 11, 0x1800);
+    AppendMovR64(code, 12, 0x80);
+    code.insert(code.end(), {0x4F, 0x0F, 0xB7, 0x4C, 0xA3, 0x02});
+    code.insert(code.end(), {0x4F, 0x0F, 0xBF, 0x54, 0xA3, 0x04});
+    code.insert(code.end(), {0x47, 0x0F, 0xB6, 0x44, 0xA3, 0x06});
+    code.insert(code.end(), {0x47, 0x0F, 0xBE, 0x4C, 0xA3, 0x07});
+
+    if (!Run(m, cpu, code)) return false;
+    if (cpu.ReadRegister64(9) != 0xFFFFFFFFFFFFFF80ULL) return false;
+    if (cpu.ReadRegister64(10) != 0x0000000000007F01ULL) return false;
+    if (cpu.ReadRegister64(8) != 0x00000000FFFFFFFEULL) return false;
+    return cpu.ReadRegister64(9) == 0xFFFFFFFFFFFFFF80ULL;
+}
+
+
 int main() {
     if (!TestTestImmediateForms()) { std::cerr << "TEST immediate forms failed\n"; return 43; }
     if (!TestSetccExtendedMemoryAndFlags()) { std::cerr << "SETcc extended memory/flags failed\n"; return 44; }
     if (!TestCmov16ExtendedMemoryAndFlags()) { std::cerr << "CMOV16 extended memory/flags failed\n"; return 45; }
     if (!TestGroup1ImmediateExtendedCoverage()) { std::cerr << "Group1 immediate extended coverage failed\n"; return 99; }
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
+    if (!TestMovExtendExtendedForms()) { std::cerr << "MOVZX/MOVSX extended forms failed\n"; return 47; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
     if (!TestCmovz()) { std::cerr << "CMOVZ failed\n"; return 3; }
     if (!TestCmovccExtendedConditions()) { std::cerr << "CMOVcc extended conditions failed\n"; return 43; }
