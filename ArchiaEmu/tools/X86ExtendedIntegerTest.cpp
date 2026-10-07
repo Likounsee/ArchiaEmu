@@ -2317,8 +2317,8 @@ static bool TestTestRmRegForms() {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0x80000001ULL); AppendMovR64(code,3,0xFFFFFFFFULL);
         code.insert(code.end(),{0x85,0xD8});
-        if(!Run(m,cpu,code) || cpu.ReadRegister64(0)!=0x80000001ULL) return false;
-        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(0)!=0x80000001ULL) { std::cerr << "TEST32 reg result failure rax=0x" << std::hex << cpu.Rax() << " flags=0x" << cpu.Rflags() << "\n"; return false; }
+        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) { std::cerr << "TEST32 reg flags failure flags=0x" << std::hex << cpu.Rflags() << "\n"; return false; }
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
