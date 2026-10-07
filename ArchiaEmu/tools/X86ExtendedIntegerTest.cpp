@@ -1696,9 +1696,9 @@ static bool TestShiftLeft64CLFlags() {
     Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
     std::vector<std::uint8_t> code;
     AppendMovR64(code,1,1);
-    AppendMovR64(code,0,1);
+    AppendMovR64(code,0,0x8000000000000000ULL);
     code.insert(code.end(),{0x48,0xD3,0xE0}); // SHL RAX,CL
-    if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return false;
+    if(!Run(m,cpu,code) || cpu.Rax()!=0ULL) return false;
     if((cpu.Rflags()&(1ULL<<2))!=0) return false;
     if((cpu.Rflags()&1ULL)==0) return false;
     return true;
