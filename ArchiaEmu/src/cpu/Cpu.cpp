@@ -4006,31 +4006,32 @@ int Cpu::Run()
                 std::uint8_t modrmMovzx = 0;
                 if (!Fetch8(modrmMovzx)) return 1;
 
-                if (operand_size_override_ && !rex.w) {
-                    std::uint8_t regIndex = 0;
-                    bool regHighByte = false;
-                    std::uint8_t rmRegisterIndex = 0;
-                    bool rmHighByte = false;
-                    std::uint64_t address = 0;
-                    bool memory = false;
-                    if (!DecodeMemoryOrRegister8(
-                            modrmMovzx, rex,
-                            regIndex, regHighByte,
-                            rmRegisterIndex, rmHighByte,
-                            address, memory)) return 1;
-                    std::uint8_t value = 0;
-                    if (memory) {
-                        if (!ReadMemory(address, &value, sizeof(value))) return 1;
-                    } else {
-                        value = ReadReg8(rmRegisterIndex, rmHighByte);
-                    }
-                    registers_.Write16(regIndex, value);
+                std::uint8_t regIndex = 0;
+                bool regHighByte = false;
+                std::uint8_t rmRegisterIndex = 0;
+                bool rmHighByte = false;
+                std::uint64_t address = 0;
+                bool memory = false;
+
+                if (!DecodeMemoryOrRegister8(
+                        modrmMovzx, rex,
+                        regIndex, regHighByte,
+                        rmRegisterIndex, rmHighByte,
+                        address, memory)) return 1;
+
+                std::uint8_t value = 0;
+                if (memory) {
+                    if (!ReadMemory(address, &value, sizeof(value))) return 1;
+                } else {
+                    value = ReadReg8(rmRegisterIndex, rmHighByte);
                 }
-                else if (rex.w) {
-                    if (!DecodeMovzx64Reg32(modrmMovzx, rex)) return 1;
-                }
-                else {
-                    if (!DecodeMovzx32Reg32(modrmMovzx, rex)) return 1;
+
+                if (rex.w) {
+                    registers_.Write64(regIndex, static_cast<std::uint64_t>(value));
+                } else if (operand_size_override_) {
+                    registers_.Write16(regIndex, static_cast<std::uint16_t>(value));
+                } else {
+                    registers_.Write32(regIndex, static_cast<std::uint32_t>(value));
                 }
                 break;
             }
@@ -4084,28 +4085,41 @@ int Cpu::Run()
             if (opcode2 == 0xBE) {
                 std::uint8_t modrmMovsx = 0;
                 if (!Fetch8(modrmMovsx)) return 1;
-                if (operand_size_override_ && !rex.w) {
-                    std::uint8_t regIndex = 0;
-                    bool regHighByte = false;
-                    std::uint8_t rmRegisterIndex = 0;
-                    bool rmHighByte = false;
-                    std::uint64_t address = 0;
-                    bool memory = false;
-                    if (!DecodeMemoryOrRegister8(
-                            modrmMovsx, rex,
-                            regIndex, regHighByte,
-                            rmRegisterIndex, rmHighByte,
-                            address, memory)) return 1;
-                    std::uint8_t raw = 0;
-                    if (memory) {
-                        if (!ReadMemory(address, &raw, sizeof(raw))) return 1;
-                    } else {
-                        raw = ReadReg8(rmRegisterIndex, rmHighByte);
-                    }
-                    const std::int8_t value = static_cast<std::int8_t>(raw);
-                    registers_.Write16(regIndex, static_cast<std::uint16_t>(static_cast<std::int16_t>(value)));
+
+                std::uint8_t regIndex = 0;
+                bool regHighByte = false;
+                std::uint8_t rmRegisterIndex = 0;
+                bool rmHighByte = false;
+                std::uint64_t address = 0;
+                bool memory = false;
+
+                if (!DecodeMemoryOrRegister8(
+                        modrmMovsx, rex,
+                        regIndex, regHighByte,
+                        rmRegisterIndex, rmHighByte,
+                        address, memory)) return 1;
+
+                std::uint8_t raw = 0;
+                if (memory) {
+                    if (!ReadMemory(address, &raw, sizeof(raw))) return 1;
+                } else {
+                    raw = ReadReg8(rmRegisterIndex, rmHighByte);
                 }
-                else if (!DecodeMovsx32Reg8(modrmMovsx, rex)) return 1;
+
+                const std::int8_t value = static_cast<std::int8_t>(raw);
+                if (rex.w) {
+                    registers_.Write64(
+                        regIndex,
+                        static_cast<std::uint64_t>(static_cast<std::int64_t>(value)));
+                } else if (operand_size_override_) {
+                    registers_.Write16(
+                        regIndex,
+                        static_cast<std::uint16_t>(static_cast<std::int16_t>(value)));
+                } else {
+                    registers_.Write32(
+                        regIndex,
+                        static_cast<std::uint32_t>(static_cast<std::int32_t>(value)));
+                }
                 break;
             }
 
