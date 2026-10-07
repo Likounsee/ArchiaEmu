@@ -2088,10 +2088,10 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x45,0x0F,0xA4,0x0F,0x01}); // SHLD [R15D],R9D,1
-        if(!Run(m,cpu,code)) return false;
+        if(!Run(m,cpu,code)) { std::cerr << "SHLD32 memory Run failed\\n"; return false; }
         std::uint32_t out=0;
-        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2U) return false;
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2U) { std::cerr << "SHLD32 memory out=0x" << std::hex << out << "\\n"; return false; }
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) { std::cerr << "SHLD32 memory flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
     }
 
     {
