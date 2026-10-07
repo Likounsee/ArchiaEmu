@@ -2102,10 +2102,10 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x66,0x45,0x0F,0xAC,0x0F,0x01}); // SHRD word [R15],R9W,1
-        if(!Run(m,cpu,code)) return false;
+        if(!Run(m,cpu,code)) { std::cerr << "SHRD16 memory Run failed\\n"; return false; }
         std::uint16_t out=0;
-        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0xC000U) return false;
-        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0xC000U) { std::cerr << "SHRD16 memory out=0x" << std::hex << out << "\\n"; return false; }
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) { std::cerr << "SHRD16 memory flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
     }
 }
 
