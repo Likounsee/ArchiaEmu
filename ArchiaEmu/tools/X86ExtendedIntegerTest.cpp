@@ -433,6 +433,15 @@ static bool TestImulImmediateMemoryForms() {
         code.insert(code.end(),{0x45,0x6B,0x4A,0x00,0xFE}); // IMUL R9D,[R10],-2
         if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.ReadRegister64(9))!=static_cast<std::uint32_t>(-14)) return false;
     }
+    // 64-bit DIV memory with REX.B addressing.
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t d=7; if(!m.Write(0x1900,reinterpret_cast<const std::uint8_t*>(&d),8)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,0,100); AppendMovR64(code,2,0); AppendMovR64(code,10,0x1900);
+        code.insert(code.end(),{0x49,0xF7,0xF2}); // DIV R10
+        if(!Run(m,cpu,code) || cpu.Rax()!=14U || cpu.ReadRegister64(2)!=2U) return false;
+    }
+
     return true;
 }
 
