@@ -1741,7 +1741,7 @@ static bool TestGroup1ExtendedAllWidths() {
             code[3]=static_cast<std::uint8_t>(0x07 | (groups[i]<<3));
             if(!Run(m,cpu,code)) return false;
             std::uint64_t out=0; if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
-            if(out!=expected[i]) { std::cerr << "G1IMM group=" << static_cast<unsigned>(groups[i]) << " out=0x" << std::hex << out << " expected=0x" << expected[i] << std::dec << "\\n"; return false; }
+            if(out!=expected[i]) { std::cerr << "G1IMM group=" << static_cast<unsigned>(groups[i]) << " out=0x" << std::hex << out << " expected=0x" << expected[i] << std::dec << std::endl; return false; }
         }
     }
 
