@@ -3171,6 +3171,28 @@ static bool TestMovImmediateToRmForms() {
 
 
 
+
+static bool TestPushPopFlagsQword() {
+    constexpr std::uint64_t flags =
+        1ULL | (1ULL << 2) | (1ULL << 4) | (1ULL << 6) |
+        (1ULL << 7) | (1ULL << 11);
+
+    Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+    cpu.SetStackPointer(0x3000);
+    cpu.SetRflags(flags);
+
+    // PUSHFQ saves the full flags word; POPFQ must restore it after a
+    // flag-changing instruction.
+    std::vector<std::uint8_t> code = {
+        0x9C,             // PUSHFQ
+        0x31, 0xC0,       // XOR EAX,EAX
+        0x9D              // POPFQ
+    };
+    if (!Run(m, cpu, code)) return false;
+    return cpu.Rflags() == flags && cpu.Rsp() == 0x3000ULL;
+}
+
+
 static bool TestNotExtendedForms() {
     constexpr std::uint64_t sentinelFlags =
         (1ULL << 0) | (1ULL << 2) | (1ULL << 4) | (1ULL << 6) |
@@ -3385,6 +3407,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestPushPopFlagsQword()) { std::cerr << "PUSHFQ/POPFQ failed\\n"; return 58; }
+
     if (!TestNotExtendedForms()) { std::cerr << "NOT extended forms failed\\n"; return 57; }
 
     if (!TestXchgExtendedMemoryForms()) { std::cerr << "XCHG extended memory forms failed\\n"; return 56; }
