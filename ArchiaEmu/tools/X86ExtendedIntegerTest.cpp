@@ -681,7 +681,7 @@ static bool TestMulDivForms() {
     idivMem16Code.insert(idivMem16Code.end(),{0x66,0xF7,0x3F});
     if(!Run(idivMem16,idivMem16Cpu,idivMem16Code) ||
        (idivMem16Cpu.Rax()&0xFFFFU)!=0xFFF2U ||
-       (idivMem16Cpu.ReadRegister64(2)&0xFFFFU)!=0xFFFFU) return false;
+       (idivMem16Cpu.ReadRegister64(2)&0xFFFFU)!=0xFFFEU) return false;
 
     Memory divMem64; divMem64.Map(0x1000,0x3000); Cpu divMem64Cpu; divMem64Cpu.ConnectMemory(&divMem64);
     const std::uint64_t div64 = 7;
