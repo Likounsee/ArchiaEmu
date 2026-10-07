@@ -768,6 +768,15 @@ static bool TestOneOperandMulWidths() {
     if(!Run(m64,c64,v64)) return false;
     if(c64.Rax()!=0x0000000200000000ULL || c64.ReadRegister64(2)!=0) return false;
 
+    Memory min32; min32.Map(0x1000,0x2000); Cpu min32Cpu; min32Cpu.ConnectMemory(&min32);
+    std::vector<std::uint8_t> min32Code;
+    AppendMovR64(min32Code,0,0x80000000ULL); AppendMovR64(min32Code,3,0xFFFFFFFFULL);
+    min32Code.insert(min32Code.end(),{0xF7,0xEB});
+    if(!Run(min32,min32Cpu,min32Code) ||
+       (min32Cpu.Rax()&0xFFFFFFFFULL)!=0x80000000ULL ||
+       (min32Cpu.ReadRegister64(2)&0xFFFFFFFFULL)!=0U ||
+       (min32Cpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
     Memory i64; i64.Map(0x1000,0x2000); Cpu ci64; ci64.ConnectMemory(&i64);
     std::vector<std::uint8_t> vi64; AppendMovR64(vi64,0,0xFFFFFFFFFFFFFFFEULL); AppendMovR64(vi64,3,3);
     vi64.insert(vi64.end(),{0x48,0xF7,0xEB});
