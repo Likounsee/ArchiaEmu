@@ -484,28 +484,38 @@ static bool TestAdcSbbImmediateAndWidths() {
     {
         Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
         if (!Run(m, c, {0xB0, 0xFF, 0xF9, 0x14, 0x00}) ||
-            (c.ReadRegister64(0) & 0xFFU) != 0x00U || (c.Rflags() & 1ULL) == 0) return false;
+            (c.ReadRegister64(0) & 0xFFU) != 0x00U || (c.Rflags() & 1ULL) == 0) {
+            std::cerr << "ADC/SBB immediate byte ADC failed RAX=0x" << std::hex << c.ReadRegister64(0) << " RFLAGS=0x" << c.Rflags() << std::dec << "\\n"; return false;
+        }
     }
     {
         Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
         if (!Run(m, c, {0x66, 0xB8, 0xFF, 0xFF, 0xF9, 0x15, 0x00, 0x00}) ||
-            (c.ReadRegister64(0) & 0xFFFFU) != 0x0000U || (c.Rflags() & 1ULL) == 0) return false;
+            (c.ReadRegister64(0) & 0xFFFFU) != 0x0000U || (c.Rflags() & 1ULL) == 0) {
+            std::cerr << "ADC/SBB immediate word ADC failed RAX=0x" << std::hex << c.ReadRegister64(0) << " RFLAGS=0x" << c.Rflags() << std::dec << "\\n"; return false;
+        }
     }
     {
         Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
         if (!Run(m, c, {0xB8, 0xFF, 0xFF, 0xFF, 0xFF, 0xF9, 0x15, 0x00, 0x00, 0x00, 0x00}) ||
-            (c.ReadRegister64(0) & 0xFFFFFFFFULL) != 0x00000000ULL || (c.Rflags() & 1ULL) == 0) return false;
+            (c.ReadRegister64(0) & 0xFFFFFFFFULL) != 0x00000000ULL || (c.Rflags() & 1ULL) == 0) {
+            std::cerr << "ADC/SBB immediate dword ADC failed RAX=0x" << std::hex << c.ReadRegister64(0) << " RFLAGS=0x" << c.Rflags() << std::dec << "\\n"; return false;
+        }
     }
     {
         Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
         if (!Run(m, c, {0x48, 0xB8, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                          0xF9, 0x15, 0x00, 0x00, 0x00, 0x00}) ||
-            c.ReadRegister64(0) != 0x0000000000000000ULL || (c.Rflags() & 1ULL) == 0) return false;
+            c.ReadRegister64(0) != 0x0000000000000000ULL || (c.Rflags() & 1ULL) == 0) {
+            std::cerr << "ADC/SBB immediate qword ADC failed RAX=0x" << std::hex << c.ReadRegister64(0) << " RFLAGS=0x" << c.Rflags() << std::dec << "\\n"; return false;
+        }
     }
     {
         Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
         if (!Run(m, c, {0xB0, 0x00, 0x1C, 0x01}) ||
-            (c.ReadRegister64(0) & 0xFFU) != 0xFFU || (c.Rflags() & 1ULL) == 0) return false;
+            (c.ReadRegister64(0) & 0xFFU) != 0xFFU || (c.Rflags() & 1ULL) == 0) {
+            std::cerr << "ADC/SBB immediate byte SBB failed RAX=0x" << std::hex << c.ReadRegister64(0) << " RFLAGS=0x" << c.Rflags() << std::dec << "\\n"; return false;
+        }
     }
     return true;
 }
