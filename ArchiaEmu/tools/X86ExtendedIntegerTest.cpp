@@ -2554,6 +2554,19 @@ static bool TestAdcSbbQwordMemoryBoundaries() {
     return true;
 }
 
+
+static bool TestRexLowByteAliases() {
+    Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code,4,0x1122334455667788ULL);
+    code.push_back(0xB0); code.push_back(0x5A);
+    code.insert(code.end(),{0x40,0x88,0xC4});
+    code.insert(code.end(),{0x40,0x8A,0xC4});
+    if(!Run(m,cpu,code)) return false;
+    if(cpu.ReadRegister64(4)!=0x112233445566775AULL) return false;
+    return (cpu.Rax()&0xFFU)==0x5AU;
+}
+
 int main() {
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
@@ -2620,6 +2633,7 @@ int main() {
     if (!TestRotate64ZeroCount()) { std::cerr << "64-bit rotate zero-count failed\n"; return 28; }
     if (!TestRotate64Forms()) { std::cerr << "64-bit rotate forms failed\n"; return 25; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
+    if (!TestRexLowByteAliases()) { std::cerr << "REX low-byte aliases failed\n"; return 41; }
     if (!TestAdcSbbQwordMemoryBoundaries()) { std::cerr << "ADC/SBB qword memory boundaries failed\n"; return 40; }
     if (!TestDivisionSignedAndExtendedForms()) { std::cerr << "signed/extended division forms failed\n"; return 39; }
     std::cout << "x86 extended integer instruction test: PASS\n";
