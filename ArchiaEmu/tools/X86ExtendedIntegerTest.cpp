@@ -707,7 +707,7 @@ int main() {
     if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
     if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
     if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
-    if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
+    std::cerr << "BEFORE_CPUID\n"; if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; } std::cerr << "AFTER_CPUID\n";
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
 }
