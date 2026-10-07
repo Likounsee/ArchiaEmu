@@ -2521,6 +2521,51 @@ static bool TestDivisionSignedAndExtendedForms() {
 }
 
 
+static bool TestDivisionUnsignedAndQuotientBoundaries() {
+    // DIV64 register: RDX:RAX = 0x1:0 / 2 -> quotient 0, remainder 1.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0);
+        AppendMovR64(code,2,1);
+        AppendMovR64(code,10,2);
+        code.insert(code.end(),{0x49,0xF7,0xF2}); // DIV R10
+        if(!Run(m,cpu,code) || cpu.Rax()!=0 ||
+           cpu.ReadRegister64(2)!=1) return false;
+    }
+
+    // DIV64 memory with REX.X/B SIB: 2^60 / 2 -> 2^59, exact remainder 0.
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t divisor=2;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&divisor),sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x1000000000000000ULL);
+        AppendMovR64(code,2,0);
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x4F,0xF7,0x74,0xA3,0x08}); // DIV qword [R11+R12*4+8]
+        if(!Run(m,cpu,code) ||
+           cpu.Rax()!=0x0800000000000000ULL ||
+           cpu.ReadRegister64(2)!=0) return false;
+    }
+
+    // IDIV64 register: -1 / -2 -> quotient 0, remainder -1.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xFFFFFFFFFFFFFFFFULL);
+        AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
+        AppendMovR64(code,10,0xFFFFFFFFFFFFFFFEULL);
+        code.insert(code.end(),{0x49,0xF7,0xFA}); // IDIV R10
+        if(!Run(m,cpu,code) ||
+           cpu.Rax()!=0 ||
+           cpu.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) return false;
+    }
+
+    return true;
+}
+
 static bool TestAdcSbbQwordMemoryBoundaries() {
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -2728,6 +2773,7 @@ int main() {
     if (!TestRexLowByteAliases()) { std::cerr << "REX low-byte aliases failed\n"; return 41; }
     if (!TestAdcSbbQwordMemoryBoundaries()) { std::cerr << "ADC/SBB qword memory boundaries failed\n"; return 40; }
     if (!TestDivisionSignedAndExtendedForms()) { std::cerr << "signed/extended division forms failed\n"; return 39; }
+    if (!TestDivisionUnsignedAndQuotientBoundaries()) { std::cerr << "unsigned/quotient division boundaries failed\n"; return 42; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
 }
