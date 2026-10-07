@@ -340,6 +340,16 @@ Memory* memory_ = nullptr;
         const RexPrefix& rex,
         std::uint8_t count,
         bool fetchCountAfterAddress = false);
+    bool DecodeShiftRight64Imm(
+        std::uint8_t modrm,
+        const RexPrefix& rex,
+        std::uint8_t count,
+        bool fetchCountAfterAddress = false);
+    bool DecodeShiftArithmetic64Imm(
+        std::uint8_t modrm,
+        const RexPrefix& rex,
+        std::uint8_t count,
+        bool fetchCountAfterAddress = false);
     bool DecodeShiftLeft32Imm(
         std::uint8_t modrm,
         const RexPrefix& rex,
