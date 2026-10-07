@@ -9819,12 +9819,24 @@ bool Cpu::DecodeShift8Memory(
     }
 
     if (!isRotate && maskedCount >= 8) {
-        std::uint8_t result = 0;
+        std::uint8_t value = 0;
+        if (!ReadMemory(address, &value, sizeof(value))) {
+            return false;
+        }
+
+        // For an 8-bit shift count >= operand width, SHL/SHR produce zero
+        // while SAR propagates the original sign bit across the result.
+        const std::uint8_t result =
+            group == 7
+                ? static_cast<std::uint8_t>((value & 0x80U) ? 0xFFU : 0x00U)
+                : 0x00U;
+
         if (!WriteMemory(address, &result, sizeof(result))) {
             return false;
         }
-        SetZeroFlag(true);
-        SetSignFlag(false);
+
+        SetZeroFlag(result == 0);
+        SetSignFlag((result & 0x80U) != 0);
         rflags_ &= ~CF_MASK;
         rflags_ &= ~OF_MASK;
         return true;
