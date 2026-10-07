@@ -2222,16 +2222,18 @@ static bool TestBitMemoryForms() {
 
     {
         Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
-        const std::uint32_t value=0x80000000U;
-        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),4)) return false;
+        const std::uint32_t value=0x80000000U, next=0U;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),4) ||
+           !m.Write(0x1814,reinterpret_cast<const std::uint8_t*>(&next),4)) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,11,0x1800);
         AppendMovR64(code,12,4);
         AppendMovR64(code,9,32);
-        code.insert(code.end(),{0x47,0x0F,0xAB,0x0C,0xA3}); // BTS [R11+R12*4],ECX
+        code.insert(code.end(),{0x47,0x0F,0xAB,0x0C,0xA3}); // BTS [R11+R12*4],ECX (bit 32 -> next dword)
         if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)!=0) return false;
         std::uint32_t out=0;
-        if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),4) || out!=0x80000001U) return false;
+        if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),4) || out!=0x80000000U) return false;
+        if(!m.Read(0x1814,reinterpret_cast<std::uint8_t*>(&out),4) || out!=1U) return false;
     }
 
     return true;
