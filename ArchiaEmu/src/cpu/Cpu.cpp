@@ -5103,7 +5103,6 @@ int Cpu::Run()
             if(!Fetch8(modrm) || !DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
             if (operand_size_override_ && !rex.w) {
                 const bool isAdc16 = opcode == 0x11 || opcode == 0x13;
-                const bool isSbb16 = opcode == 0x19 || opcode == 0x1B;
                 const bool destinationIsRm = opcode == 0x11 || opcode == 0x19;
                 std::uint16_t lhs = 0;
                 std::uint16_t rhs = 0;
