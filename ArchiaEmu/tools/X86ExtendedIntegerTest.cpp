@@ -2470,6 +2470,48 @@ static bool TestTestRmRegForms() {
 }
 
 
+static bool TestTestImmediateForms() {
+    constexpr std::uint64_t CF=1ULL, PF=1ULL<<2, AF=1ULL<<4, ZF=1ULL<<6, SF=1ULL<<7, OF=1ULL<<11;
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(CF|OF|AF);
+        std::vector<std::uint8_t> code={0xB0,0x00,0xA8,0x00};
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFU)!=0) return false;
+        if((cpu.Rflags()&(CF|OF|AF|ZF|PF))!=(ZF|PF)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x66,0xB8,0x00,0x80,0x66,0xA9,0x00,0x80};
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x8000U) return false;
+        if((cpu.Rflags()&(SF|ZF))!=SF || (cpu.Rflags()&PF)!=PF) return false;
+        if((cpu.Rflags()&(CF|OF|AF))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB8,0x00,0x00,0x00,0x80,0xA9,0x00,0x00,0x00,0x80};
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x0000000080000000ULL) return false;
+        if((cpu.Rflags()&SF)==0 || (cpu.Rflags()&ZF)!=0 || (cpu.Rflags()&CF)!=0 ||
+           (cpu.Rflags()&OF)!=0 || (cpu.Rflags()&AF)!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xFFFFFFFF00000000ULL);
+        code.insert(code.end(),{0x48,0xA9,0x00,0x00,0x00,0x80});
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xFFFFFFFF00000000ULL) return false;
+        if((cpu.Rflags()&SF)==0 || (cpu.Rflags()&ZF)!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x000000007FFFFFFFULL);
+        code.insert(code.end(),{0x48,0xA9,0x00,0x00,0x00,0x80});
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x000000007FFFFFFFULL) return false;
+        if((cpu.Rflags()&(ZF|SF))!=ZF) return false;
+    }
+    return true;
+}
+
 static bool TestDivisionSignedAndExtendedForms() {
     // IDIV64 register: (-10) / 3 = -3 remainder -1.
     {
@@ -2758,6 +2800,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
 }
 
 int main() {
+    if (!TestTestImmediateForms()) { std::cerr << "TEST immediate forms failed\n"; return 43; }
     if (!TestGroup1ImmediateExtendedCoverage()) { std::cerr << "Group1 immediate extended coverage failed\n"; return 99; }
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
