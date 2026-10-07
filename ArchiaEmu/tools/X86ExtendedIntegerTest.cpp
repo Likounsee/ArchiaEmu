@@ -807,6 +807,42 @@ static bool TestOneOperandMulWidths() {
        (min32Cpu.ReadRegister64(2)&0xFFFFFFFFULL)!=0U ||
        (min32Cpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
 
+    Memory signed16; signed16.Map(0x1000,0x2000); Cpu signed16Cpu; signed16Cpu.ConnectMemory(&signed16);
+    std::vector<std::uint8_t> signed16Code;
+    AppendMovR64(signed16Code,0,0xFFFEULL); AppendMovR64(signed16Code,3,3);
+    signed16Code.insert(signed16Code.end(),{0x66,0xF7,0xEB});
+    if(!Run(signed16,signed16Cpu,signed16Code) ||
+       (signed16Cpu.Rax()&0xFFFFU)!=0xFFFAU ||
+       (signed16Cpu.ReadRegister64(2)&0xFFFFU)!=0xFFFFU ||
+       (signed16Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory signed32; signed32.Map(0x1000,0x2000); Cpu signed32Cpu; signed32Cpu.ConnectMemory(&signed32);
+    std::vector<std::uint8_t> signed32Code;
+    AppendMovR64(signed32Code,0,0xFFFFFFFEULL); AppendMovR64(signed32Code,3,3);
+    signed32Code.insert(signed32Code.end(),{0xF7,0xEB});
+    if(!Run(signed32,signed32Cpu,signed32Code) ||
+       (signed32Cpu.Rax()&0xFFFFFFFFULL)!=0xFFFFFFFAULL ||
+       (signed32Cpu.ReadRegister64(2)&0xFFFFFFFFULL)!=0xFFFFFFFFULL ||
+       (signed32Cpu.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory signed16Overflow; signed16Overflow.Map(0x1000,0x2000); Cpu signed16OverflowCpu; signed16OverflowCpu.ConnectMemory(&signed16Overflow);
+    std::vector<std::uint8_t> signed16OverflowCode;
+    AppendMovR64(signed16OverflowCode,0,0x8000ULL); AppendMovR64(signed16OverflowCode,3,0xFFFFULL);
+    signed16OverflowCode.insert(signed16OverflowCode.end(),{0x66,0xF7,0xEB});
+    if(!Run(signed16Overflow,signed16OverflowCpu,signed16OverflowCode) ||
+       (signed16OverflowCpu.Rax()&0xFFFFU)!=0x8000U ||
+       (signed16OverflowCpu.ReadRegister64(2)&0xFFFFU)!=0U ||
+       (signed16OverflowCpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
+    Memory signed32Overflow; signed32Overflow.Map(0x1000,0x2000); Cpu signed32OverflowCpu; signed32OverflowCpu.ConnectMemory(&signed32Overflow);
+    std::vector<std::uint8_t> signed32OverflowCode;
+    AppendMovR64(signed32OverflowCode,0,0x80000000ULL); AppendMovR64(signed32OverflowCode,3,0xFFFFFFFFULL);
+    signed32OverflowCode.insert(signed32OverflowCode.end(),{0xF7,0xEB});
+    if(!Run(signed32Overflow,signed32OverflowCpu,signed32OverflowCode) ||
+       (signed32OverflowCpu.Rax()&0xFFFFFFFFULL)!=0x80000000ULL ||
+       (signed32OverflowCpu.ReadRegister64(2)&0xFFFFFFFFULL)!=0U ||
+       (signed32OverflowCpu.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
+
     Memory i64; i64.Map(0x1000,0x2000); Cpu ci64; ci64.ConnectMemory(&i64);
     std::vector<std::uint8_t> vi64; AppendMovR64(vi64,0,0xFFFFFFFFFFFFFFFEULL); AppendMovR64(vi64,3,3);
     vi64.insert(vi64.end(),{0x48,0xF7,0xEB});
