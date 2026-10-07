@@ -2066,7 +2066,7 @@ static bool TestDoubleShiftExtendedForms() {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0x66,0xB8,0x01,0x80,0xBB,0x03,0x00,
             0x66,0x0F,0xAC,0xD8,0x01};
-        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0xC000U) { const auto& ex=cpu.LastException(); std::cerr << "DSEF block 13 RAX=0x" << std::hex << cpu.Rax() << " RFLAGS=0x" << cpu.Rflags() << " RIP=0x" << cpu.InstructionPointer() << " exception=" << static_cast<unsigned>(ex.vector) << std::dec << "\\n"; return fail(13); }
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0xC000U) { const auto& ex=cpu.LastException(); std::cerr << "DSEF block 13 RAX=0x" << std::hex << cpu.Rax() << " RFLAGS=0x" << cpu.Rflags() << " RIP=0x" << cpu.InstructionPointer() << " CR2=0x" << cpu.Cr2() << " exception=" << static_cast<unsigned>(ex.vector) << " error=0x" << ex.error_code << std::dec << "\\n"; return fail(13); }
         if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return fail(14);
     }
 
