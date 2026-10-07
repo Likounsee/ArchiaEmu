@@ -1638,6 +1638,50 @@ static bool TestGroup1ExtendedAllWidths() {
         std::uint32_t out=0; if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),4) || out!=0) return false;
     }
 
+    {
+        // 32-bit address-size override with extended SIB base/index.
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint32_t value=5;
+        if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x0000000018000000ULL);
+        AppendMovR64(code,12,2);
+        // Use a 32-bit address whose low 32 bits point at 0x1808.
+        code.clear();
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x67,0x47,0x83,0x04,0xA3,0x01});
+        if(!Run(m,cpu,code)) return false;
+        std::uint32_t out=0;
+        if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=6) return false;
+    }
+
+    {
+        // SIB disp8 addressing: [R11 + R12*4 + 8].
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint64_t value=7;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x4F,0x83,0x44,0xA3,0x08,0x01});
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=8) return false;
+    }
+
+    {
+        // SIB disp32 addressing: [R11 + R12*4 + 0x20].
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint64_t value=9;
+        if(!m.Write(0x1828,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x4F,0x83,0x84,0xA3,0x20,0x00,0x00,0x00,0x01});
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1828,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=10) return false;
+    }
+
     return true;
 }
 
