@@ -3123,6 +3123,18 @@ static bool TestShift8MemoryWideCounts() {
 }
 
 
+
+static bool TestBswap32ExtendedRegister() {
+    Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 8, 0x11223344AABBCCDDULL);
+    code.insert(code.end(), {0x41, 0x0F, 0xC8}); // BSWAP R8D
+    if (!Run(m, cpu, code)) return false;
+    // 32-bit BSWAP writes a 32-bit result and therefore zero-extends to 64 bits.
+    return cpu.ReadRegister64(8) == 0x00000000DDCCBBAAULL;
+}
+
+
 static bool TestPushPopExtendedRegistersAndWidths() {
     // PUSH/POP r64 with REX.B must preserve the full 64-bit value and restore RSP.
     {
@@ -3167,6 +3179,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestBswap32ExtendedRegister()) { std::cerr << "32-bit extended BSWAP failed\\n"; return 52; }
+
     if (!TestPushImmediateSignExtension()) { std::cerr << "PUSH immediate sign extension failed\\n"; return 51; }
 
     if (!TestShift8RegisterWideCounts()) { std::cerr << "8-bit register wide-count shifts failed\\n"; return 50; }
