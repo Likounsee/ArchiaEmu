@@ -416,6 +416,24 @@ static bool TestFlagsAndLoops() {
     if (!Run(memory4, cpu4, jrcxzCode)) { std::cerr << "JRCXZ execution failed\n"; return false; } return true;
 }
 
+static bool TestImulImmediateExtendedRegisters() {
+    // IMUL r16, r/m16, imm8 with REX.R/B.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,8,7); AppendMovR64(code,9,6);
+        code.insert(code.end(),{0x66,0x45,0x6B,0xC1,0xFE}); // IMUL R8W,R9W,-2
+        if(!Run(m,cpu,code) || (cpu.ReadRegister64(8)&0xFFFFU)!=static_cast<std::uint64_t>(static_cast<std::uint16_t>(-12))) return false;
+    }
+    // IMUL r32, r/m32, imm8 with REX.R/B and sign-extended immediate.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,10,7); AppendMovR64(code,11,6);
+        code.insert(code.end(),{0x45,0x6B,0xD3,0xFE}); // IMUL R10D,R11D,-2
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.ReadRegister64(10))!=static_cast<std::uint32_t>(-12)) return false;
+    }
+    return true;
+}
+
 static bool TestGroup1RexExtendedRegisters() {
     // Group-1 immediate forms must honor REX.B for R8..R15 and all operand sizes.
     {
