@@ -77,7 +77,7 @@ static bool TestCmovccExtendedConditions() {
         std::vector<std::uint8_t> code;
         AppendMovR64(code,8,0x11);
         AppendMovR64(code,9,0x22);
-        code.insert(code.end(),{0x48,0x39,0xC8}); // CMP RAX, R9
+        code.insert(code.end(),{0x4C,0x39,0xC8}); // CMP RAX, R9
         code.insert(code.end(),{0x4D,0x0F,0x44,0xC1}); // CMOVZ R8,R9
         if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x11ULL) return false;
     }
@@ -91,9 +91,9 @@ static bool TestCmovccExtendedConditions() {
         AppendMovR64(code,0,0x80000000ULL);
         AppendMovR64(code,3,1);
         code.insert(code.end(),{0x39,0xD8}); // CMP EAX, EBX: INT_MIN - 1
-        code.insert(code.end(),{0x44,0x0F,0x40,0xC9}); // CMOVO R9D,R9D (taken, no value change)
+        code.insert(code.end(),{0x44,0x0F,0x40,0xC1}); // CMOVO R8D,R9D (taken)
         code.insert(code.end(),{0x44,0x0F,0x48,0xC1}); // CMOVS R8D,R9D (not taken)
-        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x55ULL) return false;
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x66ULL) return false;
     }
 
     // PF condition with an extended memory source.
