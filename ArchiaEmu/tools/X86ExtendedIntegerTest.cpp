@@ -480,6 +480,40 @@ static bool TestAdcSbbImmediateAndWidths() {
             c.ReadRegister64(3) != 0xFFFFFFFFFFFFFFFFULL) return false;
     }
 
+    // Memory ModRM forms across widths.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu c; c.ConnectMemory(&m);
+        std::uint8_t v=0x10; if(!m.Write(0x1800,&v,1)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800); AppendMovR64(code,0,1);
+        code.insert(code.end(),{0x10,0x07,0x18,0x07});
+        if(!Run(m,c,code)) return false;
+        if(!m.Read(0x1800,&v,1) || v!=0x0E) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu c; c.ConnectMemory(&m);
+        std::uint16_t v=0x0010; if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&v),2)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800); AppendMovR64(code,0,1);
+        code.insert(code.end(),{0x66,0x11,0x07,0x66,0x19,0x07});
+        if(!Run(m,c,code)) return false;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&v),2) || v!=0x0010) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu c; c.ConnectMemory(&m);
+        std::uint32_t v=0x00000010U; if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&v),4)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800); AppendMovR64(code,0,1);
+        code.insert(code.end(),{0x11,0x07,0x19,0x07});
+        if(!Run(m,c,code)) return false;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&v),4) || v!=0x00000010U) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu c; c.ConnectMemory(&m);
+        std::uint64_t v=0x0000000000000010ULL; if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&v),8)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800); AppendMovR64(code,0,1);
+        code.insert(code.end(),{0x48,0x11,0x07,0x48,0x19,0x07});
+        if(!Run(m,c,code)) return false;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&v),8) || v!=0x0000000000000010ULL) return false;
+    }
+
     // Accumulator immediate forms: ADC/SBB byte, word, dword and sign-extended qword.
     {
         Memory m; m.Map(0x1000, 0x2000); Cpu c; c.ConnectMemory(&m);
