@@ -2627,7 +2627,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
         code.clear();
         AppendMovR64(code, 0, 0x12340000000000FFULL);
         code.insert(code.end(), {0x83, 0xF0, 0xFF});
-        if (!Run(m, cpu, code) || cpu.Rax() != 0x0000000012340000ULL) return false;
+        if (!Run(m, cpu, code) || cpu.Rax() != 0x00000000FFFFFF00ULL) return false;
     }
 
     // 8-bit 80 /2: ADC with CF and AF/PF boundary behavior.
