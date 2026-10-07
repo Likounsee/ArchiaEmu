@@ -1366,6 +1366,87 @@ static bool TestGroup1ImmediateWidths() {
     return true;
 }
 
+
+static bool TestGroup1FlagMatrix() {
+    const std::uint64_t CF = 1ULL;
+    const std::uint64_t PF = 1ULL << 2;
+    const std::uint64_t AF = 1ULL << 4;
+    const std::uint64_t ZF = 1ULL << 6;
+    const std::uint64_t SF = 1ULL << 7;
+    const std::uint64_t OF = 1ULL << 11;
+
+    // 8-bit ADC: 0x7f + 0 + CF -> 0x80, signed overflow, AF set, PF set.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(cpu.Rflags() | CF);
+        std::vector<std::uint8_t> code={0xB0,0x7F,0xB3,0x00,0x10,0xC3};
+        if(!Run(m,cpu,code)) return false;
+        const auto f=cpu.Rflags();
+        if((cpu.ReadRegister64(0)&0xFFU)!=0x80U) return false;
+        if((f&(CF|PF|AF|SF|OF))!=(PF|AF|SF|OF) || (f&ZF)!=0) return false;
+    }
+
+    // 8-bit SBB: 0x80 - 0 - CF -> 0x7f, signed overflow, AF set, PF clear.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(cpu.Rflags() | CF);
+        std::vector<std::uint8_t> code={0xB0,0x80,0xB3,0x00,0x18,0xC3};
+        if(!Run(m,cpu,code)) return false;
+        const auto f=cpu.Rflags();
+        if((cpu.ReadRegister64(0)&0xFFU)!=0x7FU) return false;
+        if((f&(CF|PF|AF|SF|OF|ZF))!=(AF|OF)) return false;
+    }
+
+    // 16-bit ADC immediate: 0x7fff + 0 + CF -> 0x8000.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(cpu.Rflags() | CF);
+        std::vector<std::uint8_t> code={0x66,0xB8,0xFF,0x7F,0x66,0x83,0xD0,0x00};
+        if(!Run(m,cpu,code)) return false;
+        const auto f=cpu.Rflags();
+        if((cpu.Rax()&0xFFFFU)!=0x8000U || (f&(OF|SF))!=(OF|SF) || (f&ZF)!=0) return false;
+    }
+
+    // 32-bit SBB immediate: 0x80000000 - 0 - CF -> 0x7fffffff.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(cpu.Rflags() | CF);
+        std::vector<std::uint8_t> code={0xB8,0x00,0x00,0x00,0x80,0x83,0xD8,0x00};
+        if(!Run(m,cpu,code)) return false;
+        const auto f=cpu.Rflags();
+        if((cpu.Rax()&0xFFFFFFFFULL)!=0x7FFFFFFFULL || (f&(OF|AF|PF))!=(OF|AF|PF) || (f&(CF|SF|ZF))!=0) return false;
+    }
+
+    // 64-bit ADC immediate: 0xffff...ffff + 0 + CF -> 1 with carry, no signed overflow.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(cpu.Rflags() | CF);
+        std::vector<std::uint8_t> code={0x48,0xB8,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+                                        0x48,0x83,0xD0,0x00};
+        if(!Run(m,cpu,code)) return false;
+        const auto f=cpu.Rflags();
+        if(cpu.Rax()!=0x0000000000000000ULL) return false;
+        if((f&(CF|ZF|PF))!=(CF|ZF|PF) || (f&(OF|SF))!=0) return false;
+    }
+
+    // 64-bit SBB memory: 0 - 1 - CF -> all ones, borrow and sign set.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint64_t value=0;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        cpu.SetRflags(cpu.Rflags() | CF);
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x81,0x1F,0x01,0x00,0x00,0x00});
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out))) return false;
+        const auto f=cpu.Rflags();
+        if(out!=0xFFFFFFFFFFFFFFFFULL || (f&(CF|SF))!=(CF|SF) || (f&(ZF|OF))!=0) return false;
+    }
+
+    return true;
+}
+
 static bool TestCmpUnequalFlags() {
     Memory m1; m1.Map(0x1000,0x2000); Cpu c1; c1.ConnectMemory(&m1);
     std::vector<std::uint8_t> code1;
@@ -1493,6 +1574,7 @@ int main() {
     if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
     if (!TestCmpImmediateForms()) { std::cerr << "immediate CMP forms failed\n"; return 16; }
     if (!TestGroup1ImmediateWidths()) { std::cerr << "Group1 immediate widths failed\\n"; return 17; }
+    if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
