@@ -516,7 +516,7 @@ static bool TestMulDivForms() {
     // DIV/IDIV 8-bit: AX / BL.
     code.insert(code.end(),{0xB8,0xE8,0x03,0xB3,0x0A,0xF6,0xF3});
     code.insert(code.end(),{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB});
-    if (!Run(memory,cpu,code)) { std::cerr << "MULDIV_STAGE_1\n"; return false; }
+    if (!Run(memory,cpu,code)) { std::cerr << "MULDIV_STAGE_1 RAX=0x" << std::hex << cpu.Rax() << " RIP=0x" << cpu.InstructionPointer() << " RFLAGS=0x" << cpu.Rflags() << std::dec << "\n"; return false; }
     if ((cpu.Rax()&0xFFFFU)!=0x00FCU) { std::cerr << "MULDIV_STAGE_2\n"; return false; } // -40 / 10 = -4, remainder 0.
     Memory signed8; signed8.Map(0x1000,0x3000); Cpu s8; s8.ConnectMemory(&signed8);
     if(!Run(signed8,s8,{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB})) return false;
