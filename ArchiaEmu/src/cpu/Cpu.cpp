@@ -5126,14 +5126,6 @@ int Cpu::Run()
                 const std::uint16_t result = isAdc16
                     ? static_cast<std::uint16_t>(lhs + rhs + (carryIn ? 1U : 0U))
                     : static_cast<std::uint16_t>(lhs - rhs - (carryIn ? 1U : 0U));
-                if (modrm == 0xC3) {
-                    std::cerr << "[ADC/SBB16] opcode=0x" << std::hex
-                              << static_cast<unsigned>(opcode)
-                              << " lhs=0x" << lhs
-                              << " rhs=0x" << rhs
-                              << " cfIn=" << carryIn
-                              << " result=0x" << result << std::dec << "\\n";
-                }
                 if (destinationIsRm) {
                     if (memory) {
                         if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return 1;
