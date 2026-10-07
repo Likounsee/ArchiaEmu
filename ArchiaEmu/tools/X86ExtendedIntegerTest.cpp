@@ -2160,7 +2160,7 @@ static bool TestBitMemoryForms() {
         AppendMovR64(code,7,0x1800);
         AppendMovR64(code,1,66);
         code.insert(code.end(),{0x48,0x0F,0xBB,0x0F}); // BTC [RDI],RCX
-        if(!Run(m,cpu) || (cpu.Rflags()&1ULL)==0) return false;
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
         std::uint64_t out=0;
         if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),8) || out!=0x0ULL) return false;
     }
@@ -2173,7 +2173,7 @@ static bool TestBitMemoryForms() {
         AppendMovR64(code,7,0x1808);
         AppendMovR64(code,1,0xFFFFFFFFFFFFFFFFULL); // signed bit offset -1
         code.insert(code.end(),{0x48,0x0F,0xA3,0x0F}); // BT [RDI],RCX
-        if(!Run(m,cpu) || (cpu.Rflags()&1ULL)==0) return false;
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -2230,7 +2230,7 @@ static bool TestBitMemoryForms() {
         AppendMovR64(code,12,4);
         AppendMovR64(code,9,32);
         code.insert(code.end(),{0x47,0x0F,0xAB,0x0C,0xA3}); // BTS [R11+R12*4],ECX
-        if(!Run(m,cpu) || (cpu.Rflags()&1ULL)!=0) return false;
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)!=0) return false;
         std::uint32_t out=0;
         if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),4) || out!=0x80000001U) return false;
     }
