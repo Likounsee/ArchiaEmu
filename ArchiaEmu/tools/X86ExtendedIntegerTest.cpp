@@ -1239,6 +1239,31 @@ static bool TestCmpImmediateForms() {
         const std::uint64_t flags=cpu.Rflags();
         if((flags&1ULL)==0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))!=0) return false;
     }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x66,0xB8,0x00,0x00,0x66,0x83,0xF8,0xFF};
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)==0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint32_t value=1;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x83,0x3F,0x02});
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)==0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))==0 || (flags&(1ULL<<11))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x48,0xB8,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x48,0x83,0xF8,0xFF};
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&1ULL)==0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))!=0) return false;
+    }
     return true;
 }
 
