@@ -618,7 +618,7 @@ static bool TestOneOperandMulWidths() {
     if((ci8.Rax()&0xFFFFU)!=0xFFFAU || (ci8.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
 
     Memory m16; m16.Map(0x1000,0x2000); Cpu c16; c16.ConnectMemory(&m16);
-    std::vector<std::uint8_t> v16={0xB8,0x00,0x10,0xBB,0x10,0x00,0x66,0xF7,0xE3};
+    std::vector<std::uint8_t> v16; AppendMovR64(v16,0,0x1000ULL); AppendMovR64(v16,3,0x10ULL); v16.insert(v16.end(),{0x66,0xF7,0xE3});
     if(!Run(m16,c16,v16)) return false;
     if((c16.Rax()&0xFFFFU)!=0 || (c16.ReadRegister64(2)&0xFFFFU)!=1) return false;
 
