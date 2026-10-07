@@ -8834,39 +8834,7 @@ case 0xD0:
         
         
 
-        case TEST_RM32_R32:
-        {
-            std::uint8_t modrm = 0;
 
-            if (!Fetch8(modrm)) {
-                return 1;
-            }
-
-            if (operand_size_override_) {
-                if (!DecodeTest16(modrm, rex)) return 1;
-            }
-            else if (rex.w) {
-
-                if (!DecodeTest64(
-                        modrm,
-                        rex)) {
-                    return 1;
-                }
-            }
-            else {
-
-                if (!DecodeTest32(
-                        modrm,
-                        rex)) {
-                    return 1;
-                }
-            }
-
-            break;
-        }
-
-        
-        
         
 
         
