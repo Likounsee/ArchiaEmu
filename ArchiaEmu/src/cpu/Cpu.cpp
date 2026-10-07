@@ -5356,6 +5356,7 @@ int Cpu::Run()
 
             const std::uint8_t group =
                 static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+            if (operand_size_override_) std::cerr << "[CPU] F7 prefix group=" << static_cast<unsigned>(((modrm >> 3) & 0x07)) << " rexw=" << rex.w << " op16=" << operand_size_override_ << " modrm=0x" << std::hex << static_cast<unsigned>(modrm) << std::dec << "\n";
 
             std::uint8_t reg = 0;
             std::uint8_t rm = 0;
