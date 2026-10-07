@@ -3037,6 +3037,32 @@ static bool TestMovExtendExtendedForms() {
 
 
 
+
+static bool TestPushImmediateSignExtension() {
+    // In 64-bit mode, PUSH imm8 sign-extends its immediate to the stack width.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetStackPointer(0x3000);
+        std::vector<std::uint8_t> code = {0x6A, 0x80, 0x41, 0x58}; // PUSH -128; POP R8
+        if (!Run(m, cpu, code) || cpu.ReadRegister64(8) != 0xFFFFFFFFFFFFFF80ULL ||
+            cpu.Rsp() != 0x3000ULL) return false;
+    }
+
+    // PUSH imm32 is also sign-extended to 64 bits.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetStackPointer(0x3000);
+        std::vector<std::uint8_t> code = {
+            0x68, 0xFF, 0xFF, 0xFF, 0xFF, 0x41, 0x59
+        }; // PUSH -1; POP R9
+        if (!Run(m, cpu, code) || cpu.ReadRegister64(9) != 0xFFFFFFFFFFFFFFFFULL ||
+            cpu.Rsp() != 0x3000ULL) return false;
+    }
+
+    return true;
+}
+
+
 static bool TestShift8RegisterWideCounts() {
     // SAR byte register with count == width must sign-fill the byte.
     {
@@ -3141,6 +3167,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestPushImmediateSignExtension()) { std::cerr << "PUSH immediate sign extension failed\\n"; return 51; }
+
     if (!TestShift8RegisterWideCounts()) { std::cerr << "8-bit register wide-count shifts failed\\n"; return 50; }
 
     if (!TestShift8MemoryWideCounts()) { std::cerr << "8-bit memory wide-count shifts failed\\n"; return 49; }
