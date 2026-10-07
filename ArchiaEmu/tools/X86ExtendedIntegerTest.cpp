@@ -2638,7 +2638,7 @@ static bool TestGroup1ImmediateExtendedCoverage() {
         if (!Run(m, cpu, code) || (cpu.Rax() & 0xFFU) != 0x80U) return false;
         const auto f = cpu.Rflags();
         if ((f & (AF | SF | OF)) != (AF | SF | OF) || (f & ZF) != 0) return false;
-        if ((f & PF) == 0) return false;
+        if ((f & PF) != 0) return false;
     }
 
     // REX.B + SIB memory form: 83 /6 XOR byte/word-independent addressing path is
