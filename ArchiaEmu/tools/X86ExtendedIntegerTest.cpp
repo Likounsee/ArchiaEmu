@@ -3034,7 +3034,53 @@ static bool TestMovExtendExtendedForms() {
 }
 
 
+
+static bool TestPushPopExtendedRegistersAndWidths() {
+    // PUSH/POP r64 with REX.B must preserve the full 64-bit value and restore RSP.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetStackPointer(0x3000);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 8, 0x1122334455667788ULL);
+        code.insert(code.end(), {0x41, 0x50, 0x41, 0x58}); // PUSH R8; POP R8
+        if (!Run(m, cpu, code) || cpu.ReadRegister64(8) != 0x1122334455667788ULL ||
+            cpu.Rsp() != 0x3000ULL) return false;
+    }
+
+    // PUSH/POP r16 with operand-size override must adjust the stack by 2 bytes.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetStackPointer(0x3000);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 9, 0x1234);
+        code.insert(code.end(), {0x66, 0x41, 0x51, 0x66, 0x41, 0x59}); // PUSH R9W; POP R9W
+        if (!Run(m, cpu, code) || (cpu.ReadRegister64(9) & 0xFFFFU) != 0x1234U ||
+            cpu.Rsp() != 0x3000ULL) return false;
+    }
+
+    // PUSH/POP r/m64 with an extended base exercises REX.B and ModRM memory decoding.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetStackPointer(0x3000);
+        const std::uint64_t value = 0xAABBCCDDEEFF0011ULL;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 10, 0x1800);
+        code.insert(code.end(), {0x41, 0xFF, 0x32}); // PUSH QWORD PTR [R10]
+        code.insert(code.end(), {0x41, 0x8F, 0x02}); // POP QWORD PTR [R10]
+        std::uint64_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == value && cpu.Rsp() == 0x3000ULL;
+    }
+
+    return true;
+}
+
+
 int main() {
+    if (!TestPushPopExtendedRegistersAndWidths()) { std::cerr << "PUSH/POP extended registers and widths failed\\n"; return 48; }
+
     if (!TestTestImmediateForms()) { std::cerr << "TEST immediate forms failed\n"; return 43; }
     if (!TestSetccExtendedMemoryAndFlags()) { std::cerr << "SETcc extended memory/flags failed\n"; return 44; }
     if (!TestCmov16ExtendedMemoryAndFlags()) { std::cerr << "CMOV16 extended memory/flags failed\n"; return 45; }
