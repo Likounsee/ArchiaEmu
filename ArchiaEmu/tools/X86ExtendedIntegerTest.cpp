@@ -1448,6 +1448,32 @@ static bool TestGroup1FlagMatrix() {
 }
 
 
+
+static bool TestGroup1FullImmediateForms() {
+    // 64-bit 81 /4: imm32 is sign-extended before AND.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x48,0xB8,0xAA,0xAA,0xAA,0xAA,0x55,0x55,0x55,0x55,
+                                        0x48,0x81,0xE0,0xFF,0xFF,0xFF,0xFF};
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xAAAAAAAA00000000ULL) return false;
+    }
+    // 32-bit 81 /6: full imm32 XOR.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB8,0xF0,0x0F,0xF0,0x0F,0x81,0xF0,0x0F,0xF0,0x0F,0xF0};
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFFFFFULL)!=0x00000000ULL ||
+           (cpu.Rflags()&(1ULL<<6))==0) return false;
+    }
+    // 16-bit 81 /7: CMP full imm16, unequal with borrow.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x66,0xB8,0x34,0x12,0x66,0x81,0xF8,0x35,0x12};
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x1234U ||
+           (cpu.Rflags()&1ULL)==0 || (cpu.Rflags()&(1ULL<<6))!=0) return false;
+    }
+    return true;
+}
+
 static bool TestGroup1RexAndMemory() {
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -1607,6 +1633,7 @@ int main() {
     if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
     if (!TestCmpImmediateForms()) { std::cerr << "immediate CMP forms failed\n"; return 16; }
     if (!TestGroup1ImmediateWidths()) { std::cerr << "Group1 immediate widths failed\\n"; return 17; }
+    if (!TestGroup1FullImmediateForms()) { std::cerr << "Group1 full immediate forms failed\n"; return 20; }
     if (!TestGroup1RexAndMemory()) { std::cerr << "Group1 REX/memory failed\n"; return 19; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
