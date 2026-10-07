@@ -2008,7 +2008,6 @@ static bool TestGroup1ExtendedAddressing() {
 static bool TestDoubleShiftExtendedForms() {
     const std::uint64_t CF = 1ULL;
     const std::uint64_t OF = 1ULL << 11;
-    auto fail = [](int n) { std::cerr << "DSEF block " << n << " failed\\n"; return false; };
 
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -2016,8 +2015,8 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,0,0x8000000000000001ULL);
         AppendMovR64(code,3,3);
         code.insert(code.end(),{0x48,0x0F,0xA4,0xD8,0x01}); // SHLD RAX,RBX,1
-        if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return fail(2);
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return fail(3);
+        if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
     }
 
     {
@@ -2026,8 +2025,8 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,0,0x8000000000000001ULL);
         AppendMovR64(code,3,3);
         code.insert(code.end(),{0x48,0x0F,0xAC,0xD8,0x01}); // SHRD RAX,RBX,1
-        if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) return fail(4);
-        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return fail(5);
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) return false;
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
     }
 
     {
@@ -2037,37 +2036,37 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,9,0x0FEDCBA987654321ULL);
         AppendMovR64(code,1,4);
         code.insert(code.end(),{0x4C,0x0F,0xA5,0xC8}); // SHLD RAX,R9,CL
-        if(!Run(m,cpu,code) || cpu.Rax()!=0x23456789ABCDEF00ULL) return fail(6);
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x23456789ABCDEF00ULL) return false;
     }
 
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=0x8000000000000001ULL;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return fail(7);
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x4D,0x0F,0xA4,0x0F,0x01}); // SHLD [R15],R9,1
-        if(!Run(m,cpu,code)) return fail(8);
+        if(!Run(m,cpu,code)) return false;
         std::uint64_t out=0;
-        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2ULL) return fail(9);
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return fail(10);
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2ULL) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
     }
 
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0xB8,0x01,0x00,0x00,0x80,0xBB,0x03,0x00,0x00,0x00,
             0x0F,0xA4,0xD8,0x01};
-        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=2U) return fail(11);
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return fail(12);
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=2U) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
     }
 
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::vector<std::uint8_t> code={0x66,0xB8,0x01,0x80,0xBB,0x03,0x00,
+        std::vector<std::uint8_t> code={0x66,0xB8,0x01,0x80,0x66,0xBB,0x03,0x00,
             0x66,0x0F,0xAC,0xD8,0x01};
-        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0xC000U) { const auto& ex=cpu.LastException(); std::cerr << "DSEF block 13 RAX=0x" << std::hex << cpu.Rax() << " RFLAGS=0x" << cpu.Rflags() << " RIP=0x" << cpu.InstructionPointer() << " CR2=0x" << cpu.Cr2() << " exception=" << static_cast<unsigned>(ex.vector) << " error=0x" << ex.page_fault_error << std::dec << "\\n"; return fail(13); }
-        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return fail(14);
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0xC000U) return false;
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
     }
 
     {
@@ -2077,36 +2076,36 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,0,0x123456789ABCDEF0ULL);
         AppendMovR64(code,1,0);
         code.insert(code.end(),{0x48,0x0F,0xA5,0xC8});
-        if(!Run(m,cpu,code) || cpu.Rax()!=0x123456789ABCDEF0ULL) return fail(15);
-        if (cpu.Rflags()!=(CF|OF|(1ULL<<6))) return fail(7); return true;
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x123456789ABCDEF0ULL) return false;
+        if (cpu.Rflags()!=(CF|OF|(1ULL<<6))) return false; return true;
     }
 
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint32_t value=0x80000001U;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return fail(16);
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x45,0x0F,0xA4,0x0F,0x01}); // SHLD [R15D],R9D,1
-        if(!Run(m,cpu,code)) return fail(17);
+        if(!Run(m,cpu,code)) return false;
         std::uint32_t out=0;
-        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2U) return fail(18);
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return fail(19);
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2U) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
     }
 
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint16_t value=0x8001U;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return fail(20);
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x66,0x45,0x0F,0xAC,0x0F,0x01}); // SHRD word [R15],R9W,1
-        if(!Run(m,cpu,code)) return fail(21);
+        if(!Run(m,cpu,code)) return false;
         std::uint16_t out=0;
-        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0xC000U) return fail(22);
-        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return fail(23);
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0xC000U) return false;
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
     }
 }
 
