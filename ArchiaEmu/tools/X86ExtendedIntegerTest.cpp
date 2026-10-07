@@ -3547,6 +3547,24 @@ static bool TestHighByteRegisterAliases() {
         if (cpu.Rax() != 0x0000000000000080ULL) return false;
     }
 
+    // MOVSX must apply the same high-byte/SPL decoding for signed extension.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0xFFFFFFFFFFFF80AAULL);
+        code.insert(code.end(), {0x0F, 0xBE, 0xC4}); // MOVSX EAX, AH
+        if (!Run(m, cpu, code) || cpu.Rax() != 0x00000000FFFFFF80ULL) return false;
+    }
+
+    // Operand-size override keeps only the sign-extended 16-bit result.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0x123456789ABC80AAULL);
+        code.insert(code.end(), {0x66, 0x0F, 0xBE, 0xC4}); // MOVSX AX, AH
+        if (!Run(m, cpu, code) || cpu.Rax() != 0x123456789ABCFF80ULL) return false;
+    }
+
     // A REX prefix suppresses high-byte aliases: rm=4 becomes SPL.
     // Use REX.R to place the zero-extended result in R8D.
     {
