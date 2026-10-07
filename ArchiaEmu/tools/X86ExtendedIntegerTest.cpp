@@ -515,10 +515,21 @@ static bool TestMulDivForms() {
     cpu.SetExceptionHandler([](Cpu&, const CpuException& e) { std::cerr << "MULDIV_EXCEPTION_VECTOR=" << static_cast<unsigned>(e.vector) << "\n"; return false; });
     std::vector<std::uint8_t> code;
     // DIV/IDIV 8-bit: AX / BL.
-    code.insert(code.end(),{0xB8,0xE8,0x03,0xB3,0x0A,0xF6,0xF3});
-    code.insert(code.end(),{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB});
-    if (!Run(memory,cpu,code)) { std::cerr << "MULDIV_STAGE_1 RAX=0x" << std::hex << cpu.Rax() << " RIP=0x" << cpu.InstructionPointer() << " RFLAGS=0x" << cpu.Rflags() << std::dec << "\n"; return false; }
-    if ((cpu.Rax()&0xFFFFU)!=0x00FCU) { std::cerr << "MULDIV_STAGE_2\n"; return false; } // -40 / 10 = -4, remainder 0.
+    if (!Run(memory,cpu,{0xB8,0xE8,0x03,0xB3,0x0A})) {
+        std::cerr << "MULDIV_STAGE_MOV8\n";
+        return false;
+    }
+    if ((cpu.ReadRegister64(3) & 0xFFU) != 0x0AU) {
+        std::cerr << "MULDIV_STAGE_BL=0x" << std::hex << (cpu.ReadRegister64(3) & 0xFFU) << "\n";
+        return false;
+    }
+    if (!Run(memory,cpu,{0xF6,0xF3})) {
+        std::cerr << "MULDIV_STAGE_DIV8 RAX=0x" << std::hex << cpu.Rax() << " RBX=0x" << cpu.ReadRegister64(3) << " RIP=0x" << cpu.InstructionPointer() << std::dec << "\n";
+        return false;
+    }
+    if ((cpu.Rax() & 0xFFFFU) != 0x0064U) return false;
+    if (!Run(memory,cpu,{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB})) return false;
+    if((cpu.Rax()&0xFFFFU)!=0x00FCU) return false; // -40 / 10 = -4, remainder 0.
     Memory signed8; signed8.Map(0x1000,0x3000); Cpu s8; s8.ConnectMemory(&signed8);
     if(!Run(signed8,s8,{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB})) return false;
     if ((s8.Rax()&0xFFFFU)!=0x00FCU) { std::cerr << "MULDIV_STAGE_3\n"; return false; }
