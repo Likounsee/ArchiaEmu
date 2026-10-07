@@ -2596,8 +2596,10 @@ bool Cpu::DecodeShiftArithmetic64Imm(
     }
 
     const bool carry = ((value >> (shift - 1)) & 1ULL) != 0;
-    const std::int64_t signedValue = static_cast<std::int64_t>(value);
-    const std::uint64_t result = static_cast<std::uint64_t>(signedValue >> shift);
+    std::uint64_t result = value >> shift;
+    if ((value & 0x8000000000000000ULL) != 0) {
+        result |= (~0ULL << (64U - shift));
+    }
 
     if (memory) {
         if (!WriteMemory(address, reinterpret_cast<const std::uint8_t*>(&result), sizeof(result))) return false;
