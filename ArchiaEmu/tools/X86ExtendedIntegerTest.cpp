@@ -1802,6 +1802,45 @@ static bool TestLeaExtendedAddressing() {
     return true;
 }
 
+static bool TestRotate64Forms() {
+    const std::uint64_t CF=1ULL, OF=1ULL<<11;
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000001ULL);
+        code.insert(code.end(),{0x48,0xD1,0xC0}); // ROL RAX,1
+        if(!Run(m,cpu,code) || cpu.Rax()!=3ULL) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000001ULL);
+        code.insert(code.end(),{0x48,0xD1,0xC8}); // ROR RAX,1
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) return false;
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000000ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        cpu.SetRflags(cpu.Rflags()|CF);
+        std::vector<std::uint8_t> code; AppendMovR64(code,8,0x1800);
+        code.insert(code.end(),{0x49,0xD1,0xD0}); // RCL R8,1
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=1ULL) return false;
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)==0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,1,1);
+        AppendMovR64(code,0,1);
+        code.insert(code.end(),{0x48,0xD3,0xC0}); // ROL RAX,CL
+        if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return false;
+    }
+    return true;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -1894,6 +1933,7 @@ int main() {
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestShiftRight64Forms()) { std::cerr << "64-bit SHR/SAR forms failed\n"; return 23; }
     if (!TestLeaExtendedAddressing()) { std::cerr << "LEA extended addressing failed\n"; return 24; }
+    if (!TestRotate64Forms()) { std::cerr << "64-bit rotate forms failed\n"; return 25; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
