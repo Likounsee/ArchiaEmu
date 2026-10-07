@@ -4910,14 +4910,6 @@ int Cpu::Run()
                 opcode == 0x14
                     ? static_cast<std::uint8_t>(lhs + immediate + (cfIn ? 1U : 0U))
                     : static_cast<std::uint8_t>(lhs - immediate - (cfIn ? 1U : 0U));
-            if (opcode == 0x1C) {
-                std::cerr << "[SBB8IMM] lhs=0x" << std::hex
-                          << static_cast<unsigned>(lhs)
-                          << " imm=0x" << static_cast<unsigned>(immediate)
-                          << " cfIn=" << cfIn
-                          << " result=0x" << static_cast<unsigned>(result)
-                          << std::dec << "\\n";
-            }
 
             WriteReg8(0, false, result);
 
