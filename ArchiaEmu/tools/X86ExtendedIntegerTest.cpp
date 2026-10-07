@@ -3615,7 +3615,8 @@ static bool TestBitScanWidthsAndMemory() {
 }
 
 int main() {
-    if (!TestBitScanWidthsAndMemory()) { std::cerr << "BSF/BSR width and memory coverage failed\\n"; return 64; }\n    if (!TestHighByteRegisterAliases()) { std::cerr << "high-byte register aliases failed\n"; return 63; }
+    if (!TestBitScanWidthsAndMemory()) { std::cerr << "BSF/BSR width and memory coverage failed\\n"; return 64; }
+    if (!TestHighByteRegisterAliases()) { std::cerr << "high-byte register aliases failed\n"; return 63; }
     if (!TestAccumulatorDoubleWidthSignExtension()) { std::cerr << "CWD/CDQ/CQO failed\\n"; return 62; }
 
     if (!TestAccumulatorSignExtensionForms()) { std::cerr << "accumulator sign extension forms failed\\n"; return 61; }
