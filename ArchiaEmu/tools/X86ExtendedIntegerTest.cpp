@@ -2006,136 +2006,124 @@ static bool TestGroup1ExtendedAddressing() {
 
 
 static bool TestDoubleShiftExtendedForms() {
-    auto fail = [](int line) { std::cout << "DSEF failure line " << line << "\\n"; return false; };
     const std::uint64_t CF = 1ULL;
     const std::uint64_t OF = 1ULL << 11;
 
     {
-        std::cout << "DSEF block 1 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code;
         AppendMovR64(code,0,0x8000000000000001ULL);
         AppendMovR64(code,3,3);
         code.insert(code.end(),{0x48,0x0F,0xA4,0xD8,0x01}); // SHLD RAX,RBX,1
-        if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return fail(__LINE__);
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return fail(__LINE__);
+        if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
     }
 
     {
-        std::cout << "DSEF block 2 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code;
         AppendMovR64(code,0,0x8000000000000001ULL);
         AppendMovR64(code,3,3);
         code.insert(code.end(),{0x48,0x0F,0xAC,0xD8,0x01}); // SHRD RAX,RBX,1
-        if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) return fail(__LINE__);
-        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return fail(__LINE__);
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) return false;
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
     }
 
     {
-        std::cout << "DSEF block 3 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code;
         AppendMovR64(code,0,0x123456789ABCDEF0ULL);
         AppendMovR64(code,9,0x0FEDCBA987654321ULL);
         AppendMovR64(code,1,4);
         code.insert(code.end(),{0x4C,0x0F,0xA5,0xC8}); // SHLD RAX,R9,CL
-        if(!Run(m,cpu,code) || cpu.Rax()!=0x23456789ABCDEF00ULL) return fail(__LINE__);
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x23456789ABCDEF00ULL) return false;
     }
 
     {
-        std::cout << "DSEF block 4 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=0x8000000000000001ULL;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return fail(__LINE__);
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x4D,0x0F,0xA4,0x0F,0x01}); // SHLD [R15],R9,1
-        if(!Run(m,cpu,code)) return fail(__LINE__);
+        if(!Run(m,cpu,code)) return false;
         std::uint64_t out=0;
-        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2ULL) return fail(__LINE__);
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return fail(__LINE__);
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2ULL) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
     }
 
     {
-        std::cout << "DSEF block 5 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0xB8,0x01,0x00,0x00,0x80,0xBB,0x03,0x00,0x00,0x00,
             0x0F,0xA4,0xD8,0x01};
-        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=2U) return fail(__LINE__);
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return fail(__LINE__);
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=2U) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
     }
 
     {
-        std::cout << "DSEF block 6 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0x66,0xB8,0x01,0x80,0x66,0xBB,0x03,0x00,
             0x66,0x0F,0xAC,0xD8,0x01};
-        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0xC000U) return fail(__LINE__);
-        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return fail(__LINE__);
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0xC000U) return false;
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
     }
 
     {
-        std::cout << "DSEF block 7 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(CF|OF|(1ULL<<6));
         std::vector<std::uint8_t> code;
         AppendMovR64(code,0,0x123456789ABCDEF0ULL);
         AppendMovR64(code,1,0);
         code.insert(code.end(),{0x48,0x0F,0xA5,0xC8});
-        if(!Run(m,cpu,code) || cpu.Rax()!=0x123456789ABCDEF0ULL) return fail(__LINE__);
-        if (cpu.Rflags()!=(CF|OF|(1ULL<<6))) return fail(__LINE__); return true;
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x123456789ABCDEF0ULL) return false;
+        if (cpu.Rflags()!=(CF|OF|(1ULL<<6))) return false; return true;
     }
 
     {
-        std::cout << "DSEF block 8 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint32_t value=0x80000001U;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return fail(__LINE__);
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x45,0x0F,0xA4,0x0F,0x01}); // SHLD [R15D],R9D,1
-        if(!Run(m,cpu,code)) { std::cerr << "SHLD32 memory Run failed\\n"; return fail(__LINE__); }
+        if(!Run(m,cpu,code)) { std::cerr << "SHLD32 memory Run failed\\n"; return false; }
         std::uint32_t out=0;
-        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2U) { std::cerr << "SHLD32 memory out=0x" << std::hex << out << "\\n"; return fail(__LINE__); }
-        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) { std::cerr << "SHLD32 memory flags=0x" << std::hex << cpu.Rflags() << "\\n"; return fail(__LINE__); }
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2U) { std::cerr << "SHLD32 memory out=0x" << std::hex << out << "\\n"; return false; }
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) { std::cerr << "SHLD32 memory flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
     }
 
     {
-        std::cout << "DSEF block 9 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint16_t value=0x8001U;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return fail(__LINE__);
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x66,0x45,0x0F,0xAC,0x0F,0x01}); // SHRD word [R15],R9W,1
-        if(!Run(m,cpu,code)) { std::cerr << "SHRD16 memory Run failed\\n"; return fail(__LINE__); }
+        if(!Run(m,cpu,code)) { std::cerr << "SHRD16 memory Run failed\\n"; return false; }
         std::uint16_t out=0;
-        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0xC000U) { std::cerr << "SHRD16 memory out=0x" << std::hex << out << "\\n"; return fail(__LINE__); }
-        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) { std::cerr << "SHRD16 memory flags=0x" << std::hex << cpu.Rflags() << "\\n"; return fail(__LINE__); }
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0xC000U) { std::cerr << "SHRD16 memory out=0x" << std::hex << out << "\\n"; return false; }
+        if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) { std::cerr << "SHRD16 memory flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
     }
 }
 
 
 static bool TestBitMemoryForms() {
     {
-        std::cout << "BITMEM block 1 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t first=0x1ULL, second=0x4ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
            !m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&second),8)) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,7,0x1800);
-        AppendMovR64(code,1,65);
+        AppendMovR64(code,1,66);
         code.insert(code.end(),{0x48,0x0F,0xA3,0x0F}); // BT [RDI],RCX
         if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
     }
 
     {
-        std::cout << "BITMEM block 2 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t first=0x1ULL, second=0x0ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
@@ -2150,7 +2138,6 @@ static bool TestBitMemoryForms() {
     }
 
     {
-        std::cout << "BITMEM block 3 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t first=0x1ULL, second=0x4ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
@@ -2165,7 +2152,6 @@ static bool TestBitMemoryForms() {
     }
 
     {
-        std::cout << "BITMEM block 4 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t first=0x1ULL, second=0x4ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
@@ -2180,7 +2166,6 @@ static bool TestBitMemoryForms() {
     }
 
     {
-        std::cout << "BITMEM block 5 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint8_t value=0x80U;
         if(!m.Write(0x1807,&value,1)) return false;
@@ -2191,7 +2176,6 @@ static bool TestBitMemoryForms() {
         if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
     }
     {
-        std::cout << "BITMEM block 6 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=0x1ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
@@ -2202,7 +2186,6 @@ static bool TestBitMemoryForms() {
     }
 
     {
-        std::cout << "BITMEM block 7 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=0;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
@@ -2215,7 +2198,6 @@ static bool TestBitMemoryForms() {
     }
 
     {
-        std::cout << "BITMEM block 8 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=2;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
@@ -2228,7 +2210,6 @@ static bool TestBitMemoryForms() {
     }
 
     {
-        std::cout << "BITMEM block 9 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=2;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
@@ -2241,7 +2222,6 @@ static bool TestBitMemoryForms() {
     }
 
     {
-        std::cout << "BITMEM block 10 start" << std::endl;
         Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint32_t value=0x80000000U;
         if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),4)) return false;
