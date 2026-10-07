@@ -2176,7 +2176,7 @@ static bool TestBitMemoryForms() {
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        const std::uint64_t value=0x1ULL;
+        const std::uint64_t value=0x2ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,7,0x1800);
