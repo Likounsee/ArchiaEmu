@@ -2295,6 +2295,41 @@ static bool TestGroup1QwordImmediateMemory() {
     return true;
 }
 
+static bool TestTestRmRegForms() {
+    // TEST r/m,r must not modify operands; CF/OF/AF are cleared and ZF/SF/PF reflect the result.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,0,0xF0); AppendMovR64(code,3,0x0F);
+        code.insert(code.end(),{0x84,0xD8});
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xF0 || cpu.ReadRegister64(3)!=0x0F) return false;
+        if((cpu.Rflags() & (CF_MASK|OF_MASK|AF_MASK|ZF_MASK|SF_MASK|PF_MASK))!=ZF_MASK|PF_MASK) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,0,0x8001); AppendMovR64(code,3,0x8001);
+        code.insert(code.end(),{0x66,0x85,0xD8});
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x8001U) return false;
+        if((cpu.Rflags()&(ZF_MASK|SF_MASK|PF_MASK))!=(SF_MASK|PF_MASK) || (cpu.Rflags()&(CF_MASK|OF_MASK|AF_MASK))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,0,0x80000001ULL); AppendMovR64(code,3,0xFFFFFFFFULL);
+        code.insert(code.end(),{0x85,0xD8});
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(0)!=0x80000001ULL) return false;
+        if((cpu.Rflags()&(ZF_MASK|SF_MASK|PF_MASK))!=SF_MASK || (cpu.Rflags()&(CF_MASK|OF_MASK|AF_MASK))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000001ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800); AppendMovR64(code,0,0xFFFFFFFFFFFFFFFFULL);
+        code.insert(code.end(),{0x48,0x85,0x07});
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xFFFFFFFFFFFFFFFFULL) return false;
+        if((cpu.Rflags()&(ZF_MASK|SF_MASK|PF_MASK))!=SF_MASK || (cpu.Rflags()&(CF_MASK|OF_MASK|AF_MASK))!=0) return false;
+    }
+    return true;
+}
+
 int main() {
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
@@ -2344,6 +2379,7 @@ int main() {
     if (!TestGroup1ExtendedAddressing()) { std::cerr << "Group1 extended addressing failed\n"; return 21; }
     if (!TestGroup1ExtendedAllWidths()) { std::cerr << "Group1 extended all widths failed\n"; return 22; }
     if (!TestGroup1QwordImmediateMemory()) { std::cerr << "Group1 qword immediate memory failed\n"; return 37; }
+    if (!TestTestRmRegForms()) { std::cerr << "TEST r/m,r forms failed\n"; return 38; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestShiftLeft64Parity()) { std::cerr << "64-bit SHL parity failed\n"; return 26; }
