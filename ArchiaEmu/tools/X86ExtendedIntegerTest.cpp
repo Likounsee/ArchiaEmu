@@ -1682,6 +1682,28 @@ static bool TestGroup1ExtendedAllWidths() {
     return true;
 }
 
+static bool TestShift32Parity() {
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB8,0x03,0x00,0x00,0x00,0xC1,0xE0,0x01};
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(0)!=6ULL) return false;
+        if((cpu.Rflags() & (1ULL<<2))==0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB8,0x01,0x00,0x00,0x00,0xC1,0xE8,0x01};
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(0)!=0ULL) return false;
+        if((cpu.Rflags() & (1ULL<<2))==0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB8,0x81,0x00,0x00,0x00,0xC1,0xF8,0x01};
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.ReadRegister64(0))!=0xC0U) return false;
+        if((cpu.Rflags() & (1ULL<<2))==0) return false;
+    }
+    return true;
+}
+
 static bool TestShiftLeft64Parity() {
     Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
     std::vector<std::uint8_t> code;
@@ -1977,6 +1999,7 @@ int main() {
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestShiftLeft64Parity()) { std::cerr << "64-bit SHL parity failed\n"; return 26; }
+    if (!TestShift32Parity()) { std::cerr << "32-bit shift parity failed\n"; return 30; }
     if (!TestShiftLeft64CLFlags()) { std::cerr << "64-bit SHL CL flags failed\n"; return 27; }
     if (!TestShiftRight64Forms()) { std::cerr << "64-bit SHR/SAR forms failed\n"; return 23; }
     if (!TestLeaExtendedAddressing()) { std::cerr << "LEA extended addressing failed\n"; return 24; }
