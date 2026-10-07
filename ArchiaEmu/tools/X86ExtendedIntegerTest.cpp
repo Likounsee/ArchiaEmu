@@ -2175,8 +2175,6 @@ static bool TestBitMemoryForms() {
         code.insert(code.end(),{0x48,0x0F,0xA3,0x0F}); // BT [RDI],RCX
         if(!Run(m,cpu) || (cpu.Rflags()&1ULL)==0) return false;
     }
-    return true;
-    }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=0x1ULL;
