@@ -2011,6 +2011,7 @@ static bool TestDoubleShiftExtendedForms() {
     const std::uint64_t OF = 1ULL << 11;
 
     {
+        std::cout << "DSEF block 1 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code;
         AppendMovR64(code,0,0x8000000000000001ULL);
@@ -2021,6 +2022,7 @@ static bool TestDoubleShiftExtendedForms() {
     }
 
     {
+        std::cout << "DSEF block 2 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code;
         AppendMovR64(code,0,0x8000000000000001ULL);
@@ -2031,6 +2033,7 @@ static bool TestDoubleShiftExtendedForms() {
     }
 
     {
+        std::cout << "DSEF block 3 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code;
         AppendMovR64(code,0,0x123456789ABCDEF0ULL);
@@ -2041,6 +2044,7 @@ static bool TestDoubleShiftExtendedForms() {
     }
 
     {
+        std::cout << "DSEF block 4 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=0x8000000000000001ULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return fail(__LINE__);
@@ -2055,6 +2059,7 @@ static bool TestDoubleShiftExtendedForms() {
     }
 
     {
+        std::cout << "DSEF block 5 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0xB8,0x01,0x00,0x00,0x80,0xBB,0x03,0x00,0x00,0x00,
             0x0F,0xA4,0xD8,0x01};
@@ -2063,6 +2068,7 @@ static bool TestDoubleShiftExtendedForms() {
     }
 
     {
+        std::cout << "DSEF block 6 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0x66,0xB8,0x01,0x80,0x66,0xBB,0x03,0x00,
             0x66,0x0F,0xAC,0xD8,0x01};
@@ -2071,6 +2077,7 @@ static bool TestDoubleShiftExtendedForms() {
     }
 
     {
+        std::cout << "DSEF block 7 start" << std::endl;
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(CF|OF|(1ULL<<6));
         std::vector<std::uint8_t> code;
@@ -2082,6 +2089,7 @@ static bool TestDoubleShiftExtendedForms() {
     }
 
     {
+        std::cout << "DSEF block 8 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint32_t value=0x80000001U;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return fail(__LINE__);
@@ -2096,6 +2104,7 @@ static bool TestDoubleShiftExtendedForms() {
     }
 
     {
+        std::cout << "DSEF block 9 start" << std::endl;
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint16_t value=0x8001U;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return fail(__LINE__);
