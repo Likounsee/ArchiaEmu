@@ -7468,15 +7468,14 @@ case 0xD0:
 
                 SetZeroFlag(result == 0);
                 SetSignFlag((result & 0x8000000000000000ULL) != 0);
-                const std::uint64_t max = std::numeric_limits<std::uint64_t>::max();
                 const bool carryOut =
-                    lhs > max - immediate ||
-                    (carryIn && lhs == max - immediate);
+                    result < lhs ||
+                    (carryIn && result == lhs);
                 if (carryOut) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
                 const bool overflow =
                     ((~(lhs ^ immediate) & (lhs ^ result)) & 0x8000000000000000ULL) != 0;
                 const bool auxiliary =
-                    ((lhs ^ immediate ^ result) & 0x10ULL) != 0;
+                    ((lhs & 0x0FULL) + (immediate & 0x0FULL) + (carryIn ? 1ULL : 0ULL)) > 0x0FULL;
                 if (overflow) rflags_ |= OF_MASK; else rflags_ &= ~OF_MASK;
                 if (auxiliary) rflags_ |= AF_MASK; else rflags_ &= ~AF_MASK;
                 if (EvenParity8(static_cast<std::uint8_t>(result))) rflags_ |= PF_MASK;
