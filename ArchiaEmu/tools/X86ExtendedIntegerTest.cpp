@@ -2109,6 +2109,35 @@ static bool TestDoubleShiftExtendedForms() {
     }
 }
 
+
+static bool TestBitMemoryForms() {
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t first=0x1ULL, second=0x4ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&first),8) ||
+           !m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&second),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        AppendMovR64(code,1,65);
+        code.insert(code.end(),{0x48,0x0F,0xA3,0x0F}); // BT [RDI],RCX
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x1ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        AppendMovR64(code,1,66);
+        code.insert(code.end(),{0x48,0x0F,0xAB,0x0F}); // BTS [RDI],RCX
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)!=0) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
+        return out==0x1ULL && false;
+    }
+}
+
 int main() {
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
@@ -2124,6 +2153,7 @@ int main() {
     if (!TestDoubleShift()) { std::cerr << "double shift failed\n"; return 6; }
     if (!TestDoubleShiftExtendedForms()) { std::cerr << "double shift extended forms failed\n"; return 35; }
     if (!TestBitModify()) { std::cerr << "bit modify failed\n"; return 6; }
+    if (!TestBitMemoryForms()) { std::cerr << "bit memory forms failed\n"; return 36; }
     if (!TestBitScan()) { std::cerr << "bit scan failed\n"; return 6; }
     if (!TestByteAlu()) { std::cerr << "byte ALU failed\n"; return 6; }
     if (!TestStringIo()) { std::cerr << "string I/O failed\n"; return 6; }
