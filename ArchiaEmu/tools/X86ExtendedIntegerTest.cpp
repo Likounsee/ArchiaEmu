@@ -2304,7 +2304,7 @@ static bool TestTestRmRegForms() {
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0xF0); AppendMovR64(code,3,0x0F);
         code.insert(code.end(),{0x84,0xD8});
         if(!Run(m,cpu,code) || cpu.Rax()!=0xF0 || cpu.ReadRegister64(3)!=0x0F) { std::cerr << "TEST byte values mismatch\n"; return fail(++block); }
-        if((cpu.Rflags() & (CF|OF|AF|ZF|SF|PF))!=(ZF|PF)) return fail(++block);
+        if((cpu.Rflags() & (CF|OF|AF|ZF|SF|PF))!=(ZF|PF)) { std::cerr << "TEST byte flags mismatch\n"; return fail(++block); }
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
