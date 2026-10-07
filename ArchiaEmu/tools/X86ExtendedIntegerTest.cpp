@@ -1267,6 +1267,71 @@ static bool TestCmpImmediateForms() {
     return true;
 }
 
+static bool TestGroup1ImmediateWidths() {
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x48,0xB8,0x01,0,0,0,0,0,0,0,0x48,0x83,0xC0,0xFF};
+        if(!Run(m,cpu,code) || cpu.Rax()!=0 || (cpu.Rflags()&(1ULL<<6))==0 || (cpu.Rflags()&1ULL)!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB8,0,0,0,0,0x83,0xE8,0xFF};
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFFFFFULL)!=1ULL ||
+           (cpu.Rflags()&1ULL)==0 || (cpu.Rflags()&(1ULL<<6))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x66,0xB8,0xF0,0xF0,0x66,0x83,0xE0,0xFF};
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFULL)!=0xF0F0ULL ||
+           (cpu.Rflags()&1ULL)!=0 || (cpu.Rflags()&(1ULL<<11))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0x48,0xB8,0x00,0,0,0,0,0,0,0,0x48,0x83,0xF0,0xFF};
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xFFFFFFFFFFFFFFFFULL ||
+           (cpu.Rflags()&(1ULL<<7))==0 || (cpu.Rflags()&(1ULL<<6))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(cpu.Rflags()|1ULL);
+        std::vector<std::uint8_t> code={0x48,0xB8,0,0,0,0,0,0,0,0,0x48,0x83,0xD0,0xFF};
+        if(!Run(m,cpu,code) || cpu.Rax()!=0 ||
+           (cpu.Rflags()&(1ULL<<6))==0 || (cpu.Rflags()&1ULL)==0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(cpu.Rflags()|1ULL);
+        std::vector<std::uint8_t> code={0xB8,0,0,0,0,0x83,0xD8,0xFF};
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFFFFFULL)!=0 ||
+           (cpu.Rflags()&(1ULL<<6))==0 || (cpu.Rflags()&1ULL)==0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint64_t value=1;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x81,0x07,0xFF,0xFF,0xFF,0xFF});
+        if(!Run(m,cpu,code) || cpu.Rax()!=0 || (cpu.Rflags()&(1ULL<<6))==0) return false;
+        std::uint64_t out=1;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out))) return false;
+        if(out!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint16_t value=2;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x66,0x81,0x2F,0x01,0x00});
+        if(!Run(m,cpu,code)) return false;
+        std::uint16_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out))) return false;
+        return out==1 && (cpu.Rflags()&1ULL)==0;
+    }
+    return true;
+}
+
 static bool TestCmpUnequalFlags() {
     Memory m1; m1.Map(0x1000,0x2000); Cpu c1; c1.ConnectMemory(&m1);
     std::vector<std::uint8_t> code1;
@@ -1371,7 +1436,7 @@ int main() {
     if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
     if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
     if (!TestCmpImmediateForms()) { std::cerr << "immediate CMP forms failed\n"; return 16; }
-    if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
+    if (!TestGroup1ImmediateWidths()) { std::cerr << "Group1 immediate widths failed\\n"; return 17; }\n    if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
