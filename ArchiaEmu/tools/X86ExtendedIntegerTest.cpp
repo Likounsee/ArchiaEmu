@@ -3175,6 +3175,43 @@ static bool TestMovImmediateToRmForms() {
 
 
 
+
+static bool TestAccumulatorDoubleWidthSignExtension() {
+    // 66 99 is CWD: sign-extend AX into DX.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {
+            0x66, 0xB8, 0x00, 0x80,
+            0x66, 0x99, 0xF4
+        };
+        if (!Run(m, cpu, code) || (cpu.Rax() & 0xFFFFULL) != 0x8000ULL ||
+            (cpu.ReadRegister64(2) & 0xFFFFULL) != 0xFFFFULL) return false;
+    }
+
+    // 99 is CDQ: sign-extend EAX into EDX.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {
+            0xB8, 0x00, 0x00, 0x00, 0x80,
+            0x99, 0xF4
+        };
+        if (!Run(m, cpu, code) || (cpu.ReadRegister64(2) & 0xFFFFFFFFULL) != 0xFFFFFFFFULL) return false;
+    }
+
+    // REX.W + 99 is CQO: sign-extend RAX into RDX.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {
+            0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80,
+            0x48, 0x99, 0xF4
+        };
+        if (!Run(m, cpu, code) || cpu.ReadRegister64(2) != 0xFFFFFFFFFFFFFFFFULL) return false;
+    }
+
+    return true;
+}
+
+
 static bool TestAccumulatorSignExtensionForms() {
     // 66 98 is CBW: sign-extend AL into AX.
     {
@@ -3486,6 +3523,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestAccumulatorDoubleWidthSignExtension()) { std::cerr << "CWD/CDQ/CQO failed\\n"; return 62; }
+
     if (!TestAccumulatorSignExtensionForms()) { std::cerr << "accumulator sign extension forms failed\\n"; return 61; }
 
     if (!TestPushPopFlagsWord()) { std::cerr << "16-bit PUSHF/POPF failed\\n"; return 60; }
