@@ -1209,7 +1209,7 @@ static bool TestCmpUnequalFlags() {
         code.insert(code.end(),{0x66,0x39,0x07});
         if(!Run(m,cpu,code)) return false;
         const std::uint64_t flags=cpu.Rflags();
-        if((flags&1ULL)==0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))==0 || (flags&(1ULL<<11))!=0) return false;
+        if((flags&1ULL)!=0 || (flags&(1ULL<<6))!=0 || (flags&(1ULL<<7))!=0 || (flags&(1ULL<<11))!=0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
