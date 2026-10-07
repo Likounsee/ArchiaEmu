@@ -2286,12 +2286,11 @@ static bool TestGroup1QwordImmediateMemory() {
         if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&tc.initial),8)) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,7,0x1800);
-        code.insert(code.end(),{0x48,0x81,0x07,0xFF,0xFF,0xFF,0xFF});
-        code[2]=static_cast<std::uint8_t>(0x07U | (tc.group<<3));
+        code.insert(code.end(),{0x48,0x81,static_cast<std::uint8_t>(0x07U | (tc.group<<3)),0xFF,0xFF,0xFF,0xFF});
         if (!Run(m,cpu,code)) return false;
         std::uint64_t out=0;
         if (!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
-        if (out!=tc.expected) { std::cerr << "G1 qword group=" << static_cast<unsigned>(tc.group) << " out=0x" << std::hex << out << " expected=0x" << tc.expected << std::dec << std::endl; return false; }
+        if (out!=tc.expected) return false;
     }
     return true;
 }
