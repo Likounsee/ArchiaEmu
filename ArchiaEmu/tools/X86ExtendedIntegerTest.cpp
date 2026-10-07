@@ -3036,6 +3036,31 @@ static bool TestMovExtendExtendedForms() {
 
 
 
+
+static bool TestShift8RegisterWideCounts() {
+    // SAR byte register with count == width must sign-fill the byte.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {0xB0, 0x80, 0xB1, 0x08, 0xD2, 0xF8};
+        if (!Run(m, cpu, code)) return false; // SAR AL,CL
+        if ((cpu.ReadRegister64(0) & 0xFFU) != 0xFFU) return false;
+        if ((cpu.Rflags() & (1ULL << 7)) == 0 || (cpu.Rflags() & (1ULL << 6)) != 0) return false;
+    }
+
+    // SAR byte register with a positive value and count >= width produces zero.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {0xB0, 0x7F, 0xB1, 0x08, 0xD2, 0xF8};
+        if (!Run(m, cpu, code)) return false;
+        return (cpu.ReadRegister64(0) & 0xFFU) == 0x00U &&
+               (cpu.Rflags() & (1ULL << 6)) != 0 &&
+               (cpu.Rflags() & (1ULL << 7)) == 0;
+    }
+
+    return true;
+}
+
+
 static bool TestShift8MemoryWideCounts() {
     // For byte shifts with a count equal to the operand width, SAR must
     // propagate the sign bit instead of collapsing the result to zero.
@@ -3116,6 +3141,8 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 
 
 int main() {
+    if (!TestShift8RegisterWideCounts()) { std::cerr << "8-bit register wide-count shifts failed\\n"; return 50; }
+
     if (!TestShift8MemoryWideCounts()) { std::cerr << "8-bit memory wide-count shifts failed\\n"; return 49; }
 
     if (!TestPushPopExtendedRegistersAndWidths()) { std::cerr << "PUSH/POP extended registers and widths failed\\n"; return 48; }
