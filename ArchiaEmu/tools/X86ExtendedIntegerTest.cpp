@@ -1591,6 +1591,38 @@ static bool TestCpuid() {
     return Run(memory, cpu, code) && cpu.Rax() >= 1;
 }
 
+
+static bool TestGroup1ExtendedAddressing() {
+    // REX.X/REX.B SIB addressing: [R11 + R12*4].
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value = 5;
+        if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x4F,0x83,0x04,0xA3,0x01});
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),sizeof(out))) return false;
+        return out==6;
+    }
+
+    // 64-bit RIP-relative addressing for Group1 /0.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value = 5;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code={
+            0x48,0x83,0x05,0xF9,0x07,0x00,0x00,0x01
+        };
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out))) return false;
+        return out==6;
+    }
+}
+
 int main() {
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
