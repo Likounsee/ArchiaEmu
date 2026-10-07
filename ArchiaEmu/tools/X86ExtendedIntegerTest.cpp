@@ -512,63 +512,59 @@ static bool TestImulForms() {
 
 static bool TestMulDivForms() {
     Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory);
-    cpu.SetExceptionHandler([](Cpu&, const CpuException& e) { std::cerr << "MULDIV_EXCEPTION_VECTOR=" << static_cast<unsigned>(e.vector) << "\n"; return false; });
     std::vector<std::uint8_t> code;
     // DIV/IDIV 8-bit: AX / BL.
-    if (!Run(memory,cpu,{0xB8,0xE8,0x03,0xB3,0x0A})) {
-        std::cerr << "MULDIV_STAGE_MOV8\n";
-        return false;
+    {
+        std::vector<std::uint8_t> v8;
+        AppendMovR64(v8, 0, 0x03E8ULL);
+        AppendMovR64(v8, 3, 0x0AULL);
+        v8.insert(v8.end(), {0xF6, 0xF3});
+        if (!Run(memory, cpu, v8) || (cpu.Rax() & 0xFFFFU) != 0x0064U) return false;
     }
-    if ((cpu.ReadRegister64(3) & 0xFFU) != 0x0AU) {
-        std::cerr << "MULDIV_STAGE_BL=0x" << std::hex << (cpu.ReadRegister64(3) & 0xFFU) << "\n";
-        return false;
+    {
+        Memory signed8; signed8.Map(0x1000,0x3000); Cpu s8; s8.ConnectMemory(&signed8);
+        std::vector<std::uint8_t> v8;
+        AppendMovR64(v8, 0, 0xFFD8ULL);
+        AppendMovR64(v8, 3, 0x0AULL);
+        v8.insert(v8.end(), {0xF6, 0xFB});
+        if (!Run(signed8, s8, v8) || (s8.Rax() & 0xFFFFU) != 0x00FCU) return false;
     }
-    if (!Run(memory,cpu,{0xF6,0xF3})) {
-        std::cerr << "MULDIV_STAGE_DIV8 RAX=0x" << std::hex << cpu.Rax() << " RBX=0x" << cpu.ReadRegister64(3) << " RIP=0x" << cpu.InstructionPointer() << std::dec << "\n";
-        return false;
-    }
-    if ((cpu.Rax() & 0xFFFFU) != 0x0064U) return false;
-    if (!Run(memory,cpu,{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB})) return false;
-    if((cpu.Rax()&0xFFFFU)!=0x00FCU) return false; // -40 / 10 = -4, remainder 0.
-    Memory signed8; signed8.Map(0x1000,0x3000); Cpu s8; s8.ConnectMemory(&signed8);
-    if(!Run(signed8,s8,{0xB8,0xD8,0xFF,0xB3,0x0A,0xF6,0xFB})) return false;
-    if ((s8.Rax()&0xFFFFU)!=0x00FCU) { std::cerr << "MULDIV_STAGE_3\n"; return false; }
 
     // 16-bit DIV and IDIV.
     Memory m16; m16.Map(0x1000,0x3000); Cpu c16; c16.ConnectMemory(&m16);
     std::vector<std::uint8_t> v16={0xB8,0xE8,0x03,0x31,0xD2,0xBB,0x1E,0x00,0x66,0xF7,0xF3};
     v16.insert(v16.end(),{0xB8,0x18,0xFC,0xBA,0xFF,0xFF,0xBB,0x1E,0x00,0x66,0xF7,0xFB});
-    if (!Run(m16,c16,v16)) { std::cerr << "MULDIV_STAGE_4\n"; return false; }
-    if ((c16.Rax()&0xFFFFU)!=0xFFDFU || (c16.ReadRegister64(2)&0xFFFFU)!=0xFFF6U) { std::cerr << "MULDIV_STAGE_5\n"; return false; }
+    if (!Run(m16,c16,v16)) { return false; }
+    if ((c16.Rax()&0xFFFFU)!=0xFFDFU || (c16.ReadRegister64(2)&0xFFFFU)!=0xFFF6U) { return false; }
 
     // 32-bit DIV: EDX:EAX / EBX = 100000 / 30000.
     Memory m32; m32.Map(0x1000,0x3000); Cpu c32; c32.ConnectMemory(&m32);
     std::vector<std::uint8_t> v32; AppendMovR64(v32,0,100000); AppendMovR64(v32,2,0); AppendMovR64(v32,3,30000);
     v32.insert(v32.end(),{0xF7,0xF3});
-    if (!Run(m32,c32,v32) || (c32.Rax()&0xFFFFFFFFULL)!=3 || (c32.ReadRegister64(2)&0xFFFFFFFFULL)!=10000) { std::cerr << "MULDIV_STAGE_6\n"; return false; }
+    if (!Run(m32,c32,v32) || (c32.Rax()&0xFFFFFFFFULL)!=3 || (c32.ReadRegister64(2)&0xFFFFFFFFULL)!=10000) { return false; }
 
     // 64-bit IDIV: RDX:RAX / RBX = -100 / 7.
     Memory m64; m64.Map(0x1000,0x3000); Cpu c64; c64.ConnectMemory(&m64);
     std::vector<std::uint8_t> v64; AppendMovR64(v64,0,0xFFFFFFFFFFFFFF9CULL); AppendMovR64(v64,2,0xFFFFFFFFFFFFFFFFULL); AppendMovR64(v64,3,7);
     v64.insert(v64.end(),{0x48,0xF7,0xFB});
-    if (!Run(m64,c64,v64) || c64.Rax()!=0xFFFFFFFFFFFFFFF2ULL || c64.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) { std::cerr << "MULDIV_STAGE_7\n"; return false; }
+    if (!Run(m64,c64,v64) || c64.Rax()!=0xFFFFFFFFFFFFFFF2ULL || c64.ReadRegister64(2)!=0xFFFFFFFFFFFFFFFFULL) { return false; }
 
     // Quotient overflow must raise #DE.
     Memory ov; ov.Map(0x1000,0x3000); Cpu co; co.ConnectMemory(&ov);
     std::vector<std::uint8_t> vo; AppendMovR64(vo,0,0xFFFFFFFFFFFFFFFFULL); AppendMovR64(vo,2,1); AppendMovR64(vo,3,1);
     vo.insert(vo.end(),{0x48,0xF7,0xF3});
     vo.push_back(0xF4);
-    if (!ov.Write(0x1000,vo.data(),vo.size())) { std::cerr << "MULDIV_STAGE_8\n"; return false; }
+    if (!ov.Write(0x1000,vo.data(),vo.size())) { return false; }
     co.SetInstructionPointer(0x1000);
-    if (co.Run()==0) { std::cerr << "MULDIV_STAGE_9\n"; return false; }
+    if (co.Run()==0) { return false; }
 
     // IDIV minimum signed 64-bit / -1 must raise #DE without signed-overflow UB.
     Memory min64; min64.Map(0x1000,0x3000); Cpu cm; cm.ConnectMemory(&min64);
     std::vector<std::uint8_t> vm; AppendMovR64(vm,0,0x8000000000000000ULL); AppendMovR64(vm,2,0xFFFFFFFFFFFFFFFFULL); AppendMovR64(vm,3,0xFFFFFFFFFFFFFFFFULL);
     vm.insert(vm.end(),{0x48,0xF7,0xFB,0xF4});
-    if (!min64.Write(0x1000,vm.data(),vm.size())) { std::cerr << "MULDIV_STAGE_10\n"; return false; }
+    if (!min64.Write(0x1000,vm.data(),vm.size())) { return false; }
     cm.SetInstructionPointer(0x1000);
-    if (cm.Run()==0) { std::cerr << "MULDIV_STAGE_11\n"; return false; }
+    if (cm.Run()==0) { return false; }
     return true;
 }
 
