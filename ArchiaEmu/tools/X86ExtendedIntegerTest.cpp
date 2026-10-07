@@ -762,12 +762,39 @@ if (!expectFault(m,cpu,{0xB8,0x00,0x00,0x00,0x80,0xBA,0xFF,0xFF,0xFF,0xFF,0xBB,0
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint8_t zero = 0;
+        if (!m.Write(0x1800,&zero,sizeof(zero))) return false;
         std::vector<std::uint8_t> code;
-        AppendMovR64(code,0,0x8000000000000000ULL);
-        AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL);
-        AppendMovR64(code,3,0xFFFFFFFFFFFFFFFFULL);
-        code.insert(code.end(),{0x48,0xF7,0xFB});
-if (!expectFault(m,cpu,code)) { return false; }
+        AppendMovR64(code,0,1); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0xF6,0x37});
+        if (!expectFault(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t zero = 0;
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&zero),sizeof(zero))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,1); AppendMovR64(code,2,0); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x66,0xF7,0x37});
+        if (!expectFault(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t zero = 0;
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&zero),sizeof(zero))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,1); AppendMovR64(code,2,0); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0xF7,0x37});
+        if (!expectFault(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t zero = 0;
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&zero),sizeof(zero))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,1); AppendMovR64(code,2,0); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0xF7,0x37});
+        if (!expectFault(m,cpu,code)) return false;
     }
     return true;
 }
