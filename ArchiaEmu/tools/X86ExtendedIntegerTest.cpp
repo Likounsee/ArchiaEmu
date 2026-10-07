@@ -2015,7 +2015,7 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,0,0x8000000000000001ULL);
         AppendMovR64(code,3,3);
         code.insert(code.end(),{0x48,0x0F,0xA4,0xD8,0x01}); // SHLD RAX,RBX,1
-        if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) { std::cerr << "SHLD64 imm register failed\n"; return false; }
+        if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return false;
         if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
     }
 
@@ -2025,7 +2025,7 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,0,0x8000000000000001ULL);
         AppendMovR64(code,3,3);
         code.insert(code.end(),{0x48,0x0F,0xAC,0xD8,0x01}); // SHRD RAX,RBX,1
-        if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) { std::cerr << "SHRD64 imm register failed\n"; return false; }
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) return false;
         if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
     }
 
@@ -2036,7 +2036,7 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,9,0x0FEDCBA987654321ULL);
         AppendMovR64(code,1,4);
         code.insert(code.end(),{0x4C,0x0F,0xA5,0xC8}); // SHLD RAX,R9,CL
-        if(!Run(m,cpu,code) || cpu.Rax()!=0x23456789ABCDEF00ULL) { std::cerr << "SHLD64 CL register failed\n"; return false; }
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x23456789ABCDEF00ULL) return false;
     }
 
     {
@@ -2047,7 +2047,7 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x4D,0x0F,0xA4,0x0F,0x01}); // SHLD [R15],R9,1
-        if(!Run(m,cpu,code)) { std::cerr << "SHLD64 memory failed\n"; return false; }
+        if(!Run(m,cpu,code)) return false;
         std::uint64_t out=0;
         if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2ULL) return false;
         if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
@@ -2055,9 +2055,9 @@ static bool TestDoubleShiftExtendedForms() {
 
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::vector<std::uint8_t> code={0xB8,0x01,0x80,0x00,0x00,0xBB,0x03,0x00,0x00,0x00,
+        std::vector<std::uint8_t> code={0xB8,0x01,0x00,0x00,0x80,0xBB,0x03,0x00,0x00,0x00,
             0x0F,0xA4,0xD8,0x01};
-        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=2U) { std::cerr << "SHLD32 register failed\n"; return false; }
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=2U) return false;
         if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
     }
 
@@ -2076,7 +2076,7 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,0,0x123456789ABCDEF0ULL);
         AppendMovR64(code,1,0);
         code.insert(code.end(),{0x48,0x0F,0xA5,0xC8});
-        if(!Run(m,cpu,code) || cpu.Rax()!=0x123456789ABCDEF0ULL) { std::cerr << "SHRD64 zero-count failed\n"; return false; }
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x123456789ABCDEF0ULL) return false;
         return cpu.Rflags()==(CF|OF|(1ULL<<6));
     }
 
@@ -2088,7 +2088,7 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x45,0x0F,0xA4,0x0F,0x01}); // SHLD [R15D],R9D,1
-        if(!Run(m,cpu,code)) { std::cerr << "SHLD32 memory failed\n"; return false; }
+        if(!Run(m,cpu,code)) return false;
         std::uint32_t out=0;
         if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=2U) return false;
         if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
@@ -2102,7 +2102,7 @@ static bool TestDoubleShiftExtendedForms() {
         AppendMovR64(code,15,0x1800);
         AppendMovR64(code,9,3);
         code.insert(code.end(),{0x66,0x45,0x0F,0xAC,0x0F,0x01}); // SHRD word [R15],R9W,1
-        if(!Run(m,cpu,code)) { std::cerr << "SHRD16 memory failed\n"; return false; }
+        if(!Run(m,cpu,code)) return false;
         std::uint16_t out=0;
         if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0xC000U) return false;
         if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) return false;
