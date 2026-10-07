@@ -8393,7 +8393,7 @@ case 0xD0:
                 }
             }
             else {
-                if (!DecodeCmp32(opcode, modrm, rex)) {
+                if (!DecodeCmp32(0x3B, modrm, rex)) {
                     return 1;
                 }
             }
