@@ -3019,10 +3019,10 @@ static bool TestMovExtendExtendedForms() {
     code.insert(code.end(), {0x47, 0x0F, 0xBE, 0x4C, 0xA3, 0x07});
 
     if (!Run(m, cpu, code)) return false;
-    if (cpu.ReadRegister64(9) != 0xFFFFFFFFFFFFFF80ULL) return false;
+    if (cpu.ReadRegister64(9) != 0x00000000FFFFFF80ULL) return false;
     if (cpu.ReadRegister64(10) != 0x0000000000007F01ULL) return false;
     if (cpu.ReadRegister64(8) != 0x00000000FFFFFFFEULL) return false;
-    return cpu.ReadRegister64(9) == 0xFFFFFFFFFFFFFF80ULL;
+    return cpu.ReadRegister64(9) == 0x00000000FFFFFF80ULL;
 }
 
 
