@@ -2520,6 +2520,40 @@ static bool TestDivisionSignedAndExtendedForms() {
     return true;
 }
 
+
+static bool TestAdcSbbQwordMemoryBoundaries() {
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x7FFFFFFFFFFFFFFFULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        cpu.SetRflags(cpu.Rflags() | 1ULL);
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x81,0x17,0x00,0x00,0x00,0x00}); // ADC qword [RDI],0
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) ||
+           out!=0x8000000000000000ULL) return false;
+        const auto f=cpu.Rflags();
+        if((f&(1ULL|(1ULL<<4)|(1ULL<<7)|(1ULL<<11)))!=((1ULL<<4)|(1ULL<<7)|(1ULL<<11))) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint64_t value=0;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        cpu.SetRflags(cpu.Rflags() | 1ULL);
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x81,0x1F,0x00,0x00,0x00,0x00}); // SBB qword [RDI],0
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) ||
+           out!=0xFFFFFFFFFFFFFFFFULL) return false;
+        const auto f=cpu.Rflags();
+        if((f&(1ULL|(1ULL<<2)|(1ULL<<4)|(1ULL<<7)))!=(1ULL|(1ULL<<2)|(1ULL<<4)|(1ULL<<7))) return false;
+        if((f&((1ULL<<6)|(1ULL<<11)))!=0) return false;
+    }
+    return true;
+}
+
 int main() {
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
@@ -2586,6 +2620,7 @@ int main() {
     if (!TestRotate64ZeroCount()) { std::cerr << "64-bit rotate zero-count failed\n"; return 28; }
     if (!TestRotate64Forms()) { std::cerr << "64-bit rotate forms failed\n"; return 25; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
+    if (!TestAdcSbbQwordMemoryBoundaries()) { std::cerr << "ADC/SBB qword memory boundaries failed\n"; return 40; }
     if (!TestDivisionSignedAndExtendedForms()) { std::cerr << "signed/extended division forms failed\n"; return 39; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
