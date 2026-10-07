@@ -805,10 +805,73 @@ if (!expectFault(m,cpu,{0xB8,0x00,0x00,0x00,0x80,0xBA,0xFF,0xFF,0xFF,0xFF,0xBB,0
         code.insert(code.end(),{0x48,0xF7,0x37});
         if (!expectFault(m,cpu,code)) return false;
     }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint8_t divisor = 1;
+        if (!m.Write(0x1800,&divisor,sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x0100); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0xF6,0x37});
+        if (!expectFault(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t divisor = 1;
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&divisor),sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0); AppendMovR64(code,2,1); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x66,0xF7,0x37});
+        if (!expectFault(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t divisor = 1;
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&divisor),sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0); AppendMovR64(code,2,1); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0xF7,0x37});
+        if (!expectFault(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t divisor = 1;
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&divisor),sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0); AppendMovR64(code,2,1); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0xF7,0x37});
+        if (!expectFault(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t divisor = 0xFFFF;
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&divisor),sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000); AppendMovR64(code,2,0xFFFF); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x66,0xF7,0x3F});
+        if (!expectFault(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t divisor = 0xFFFFFFFFU;
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&divisor),sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x80000000ULL); AppendMovR64(code,2,0xFFFFFFFFULL); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0xF7,0x3F});
+        if (!expectFault(m,cpu,code)) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t divisor = 0xFFFFFFFFFFFFFFFFULL;
+        if (!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&divisor),sizeof(divisor))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000000ULL); AppendMovR64(code,2,0xFFFFFFFFFFFFFFFFULL); AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0xF7,0x3F});
+        if (!expectFault(m,cpu,code)) return false;
+    }
     return true;
 }
 
-static bool TestOneOperandMulWidths() {
+static bool TestOneOperandMulWidths {
     Memory m8; m8.Map(0x1000,0x2000); Cpu c8; c8.ConnectMemory(&m8);
     if(!Run(m8,c8,{0xB0,0x10,0xB3,0x10,0xF6,0xE3})) return false;
     if((c8.Rax()&0xFFFFU)!=0x0100U || (c8.Rflags()&(1ULL| (1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
