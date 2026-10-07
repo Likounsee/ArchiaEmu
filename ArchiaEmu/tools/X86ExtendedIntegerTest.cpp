@@ -1685,6 +1685,67 @@ static bool TestGroup1ExtendedAllWidths() {
     return true;
 }
 
+static bool TestShiftRight64Forms() {
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000001ULL);
+        code.insert(code.end(),{0x48,0xD1,0xE8}); // SHR RAX,1
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x4000000000000000ULL) return false;
+        const auto f=cpu.Rflags();
+        if((f&1ULL)==0 || (f&(1ULL<<11))==0 || (f&(1ULL<<7))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000001ULL);
+        code.insert(code.end(),{0x48,0xD1,0xF8}); // SAR RAX,1
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xC000000000000000ULL) return false;
+        const auto f=cpu.Rflags();
+        if((f&1ULL)==0 || (f&(1ULL<<11))!=0 || (f&(1ULL<<7))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xF000000000000001ULL);
+        code.insert(code.end(),{0x48,0xC1,0xE8,0x04}); // SHR RAX,4
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x0F00000000000000ULL) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,1,1);
+        AppendMovR64(code,0,0x8000000000000000ULL);
+        code.insert(code.end(),{0x48,0xD3,0xE8}); // SHR RAX,CL
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x4000000000000000ULL) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000001ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0xD1,0x2F}); // SHR qword [RDI],1
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        return m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) &&
+               out==0x4000000000000000ULL;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000001ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0xC1,0x3F,0x01}); // SAR qword [RDI],1
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        return m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) &&
+               out==0xC000000000000000ULL;
+    }
+    return true;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -1775,6 +1836,7 @@ int main() {
     if (!TestGroup1ExtendedAllWidths()) { std::cerr << "Group1 extended all widths failed\n"; return 22; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
     if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
+    if (!TestShiftRight64Forms()) { std::cerr << "64-bit SHR/SAR forms failed\n"; return 22; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
