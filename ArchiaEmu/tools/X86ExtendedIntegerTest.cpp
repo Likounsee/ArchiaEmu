@@ -488,7 +488,26 @@ static bool TestFlagsAndLoops() {
     std::vector<std::uint8_t> jrcxzCode;
     AppendMovR64(jrcxzCode, 1, 0);
     jrcxzCode.insert(jrcxzCode.end(), {0xE3, 0x01, 0x90, 0xF4});
-    if (!Run(memory4, cpu4, jrcxzCode)) { std::cerr << "JRCXZ execution failed\n"; return false; } return true;
+    if (!Run(memory4, cpu4, jrcxzCode)) { std::cerr << "JRCXZ execution failed\\n"; return false; }
+
+    Memory memory5; memory5.Map(0x1000, 0x2000);
+    Cpu cpu5; cpu5.ConnectMemory(&memory5);
+    const std::uint64_t preservedFlags = (1ULL << 0) | (1ULL << 2) | (1ULL << 6) | (1ULL << 7) | (1ULL << 11);
+    cpu5.SetRflags(preservedFlags);
+    std::vector<std::uint8_t> address32Zero;
+    AppendMovR64(address32Zero, 1, 0x0000000100000000ULL);
+    address32Zero.insert(address32Zero.end(), {0x67, 0xE3, 0x03, 0xB0, 0x01, 0xF4, 0xB0, 0x02, 0xF4});
+    if (!Run(memory5, cpu5, address32Zero) || (cpu5.Rax() & 0xFFU) != 0x02U) return false;
+    if (cpu5.Rflags() != preservedFlags) return false;
+
+    Memory memory6; memory6.Map(0x1000, 0x2000);
+    Cpu cpu6; cpu6.ConnectMemory(&memory6);
+    std::vector<std::uint8_t> address32NonZero;
+    AppendMovR64(address32NonZero, 1, 0x0000000100000001ULL);
+    address32NonZero.insert(address32NonZero.end(), {0x67, 0xE3, 0x03, 0xB0, 0x01, 0xF4, 0xB0, 0x02, 0xF4});
+    if (!Run(memory6, cpu6, address32NonZero) || (cpu6.Rax() & 0xFFU) != 0x01U) return false;
+
+    return true;
 }
 
 static bool TestImulImmediateMemoryForms() {
