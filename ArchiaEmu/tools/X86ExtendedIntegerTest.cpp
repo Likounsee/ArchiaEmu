@@ -2496,7 +2496,9 @@ static bool TestDivisionSignedAndExtendedForms() {
         AppendMovR64(code,2,1);
         AppendMovR64(code,10,1);
         code.insert(code.end(),{0x49,0xF7,0xF2}); // DIV R10; RDX >= divisor => overflow
-        if(!Run(m,cpu,code) || !seen || cpu.Rax()!=0 || cpu.ReadRegister64(2)!=1) return false;
+        if(!m.Write(0x1000,code.data(),code.size())) return false;
+        cpu.SetInstructionPointer(0x1000);
+        if(cpu.Run()==0 || !seen || cpu.Rax()!=0 || cpu.ReadRegister64(2)!=1) return false;
     }
 
     return true;
