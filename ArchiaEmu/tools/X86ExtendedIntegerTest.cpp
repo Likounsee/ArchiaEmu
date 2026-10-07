@@ -3563,7 +3563,7 @@ static bool TestHighByteRegisterAliases() {
 }
 
 int main() {
-    if (!TestAccumulatorDoubleWidthSignExtension()) { std::cerr << "CWD/CDQ/CQO failed\\n"; return 62; }
+    if (!TestHighByteRegisterAliases()) { std::cerr << "high-byte register aliases failed\n"; return 63; }\n    if (!TestAccumulatorDoubleWidthSignExtension()) { std::cerr << "CWD/CDQ/CQO failed\\n"; return 62; }
 
     if (!TestAccumulatorSignExtensionForms()) { std::cerr << "accumulator sign extension forms failed\\n"; return 61; }
 
