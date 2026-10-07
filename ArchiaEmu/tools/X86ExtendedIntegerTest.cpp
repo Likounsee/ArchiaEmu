@@ -2303,31 +2303,31 @@ static bool TestTestRmRegForms() {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0xF0); AppendMovR64(code,3,0x0F);
         code.insert(code.end(),{0x84,0xD8});
-        if(!Run(m,cpu,code) || cpu.Rax()!=0xF0 || cpu.ReadRegister64(3)!=0x0F) std::cerr << "TEST form failure 1\\n"; return false;
-        if((cpu.Rflags() & (CF|OF|AF|ZF|SF|PF))!=(ZF|PF)) std::cerr << "TEST form failure 2\\n"; return false;
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xF0 || cpu.ReadRegister64(3)!=0x0F) return false;
+        if((cpu.Rflags() & (CF|OF|AF|ZF|SF|PF))!=(ZF|PF)) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0x8001); AppendMovR64(code,3,0x8001);
         code.insert(code.end(),{0x66,0x85,0xD8});
-        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x8001U) std::cerr << "TEST form failure 3\\n"; return false;
-        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) std::cerr << "TEST form failure 4\\n"; return false;
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x8001U) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0x80000001ULL); AppendMovR64(code,3,0xFFFFFFFFULL);
         code.insert(code.end(),{0x85,0xD8});
-        if(!Run(m,cpu,code) || cpu.ReadRegister64(0)!=0x80000001ULL) std::cerr << "TEST form failure 5\\n"; return false;
-        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) std::cerr << "TEST form failure 6\\n"; return false;
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(0)!=0x80000001ULL) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=0x8000000000000001ULL;
-        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) std::cerr << "TEST form failure 7\\n"; return false;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
         std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800); AppendMovR64(code,0,0xFFFFFFFFFFFFFFFFULL);
         code.insert(code.end(),{0x48,0x85,0x07});
-        if(!Run(m,cpu,code) || cpu.Rax()!=0xFFFFFFFFFFFFFFFFULL) std::cerr << "TEST form failure 8\\n"; return false;
-        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) std::cerr << "TEST form failure 9\\n"; return false;
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xFFFFFFFFFFFFFFFFULL) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
     return true;
 }
