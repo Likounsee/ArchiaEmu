@@ -4516,15 +4516,14 @@ int Cpu::Run()
                 std::uint64_t address=0;
                 bool memory=false;
                 std::uint8_t widthBits=32;
-                std::uint8_t widthBytes=4;
                 if(operand_size_override_ && !rex.w){
-                    if(!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory)) return 1;
-                    widthBits=16; widthBytes=2;
+                    if(!DecodeMemoryOrRegister16(modrm,rex,reg,rm,address,memory) || !memory) return 1;
+                    widthBits=16;
                 } else if(rex.w){
-                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
-                    widthBits=64; widthBytes=8;
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory) || !memory) return 1;
+                    widthBits=64;
                 } else {
-                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory)) return 1;
+                    if(!DecodeMemoryOrRegister32(modrm,rex,reg,rm,address,memory) || !memory) return 1;
                 }
 
                 const std::uint8_t bit=static_cast<std::uint8_t>(
