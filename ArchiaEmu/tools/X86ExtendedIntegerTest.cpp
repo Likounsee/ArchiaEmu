@@ -784,19 +784,43 @@ static bool TestOneOperandMulWidths() {
     Memory m16; m16.Map(0x1000,0x2000); Cpu c16; c16.ConnectMemory(&m16);
     std::vector<std::uint8_t> v16; AppendMovR64(v16,0,0x1000ULL); AppendMovR64(v16,3,0x10ULL); v16.insert(v16.end(),{0x66,0xF7,0xE3});
     if(!Run(m16,c16,v16)) return false;
-    if((c16.Rax()&0xFFFFU)!=0 || (c16.ReadRegister64(2)&0xFFFFU)!=1) return false;
+    if((c16.Rax()&0xFFFFU)!=0 || (c16.ReadRegister64(2)&0xFFFFU)!=1 ||
+       (c16.Rflags()&(1ULL|(1ULL<<11)))==0) return false;
+
+    Memory m16NoOverflow; m16NoOverflow.Map(0x1000,0x2000); Cpu c16NoOverflow; c16NoOverflow.ConnectMemory(&m16NoOverflow);
+    std::vector<std::uint8_t> v16NoOverflow; AppendMovR64(v16NoOverflow,0,3); AppendMovR64(v16NoOverflow,3,7);
+    v16NoOverflow.insert(v16NoOverflow.end(),{0x66,0xF7,0xE3});
+    if(!Run(m16NoOverflow,c16NoOverflow,v16NoOverflow) ||
+       (c16NoOverflow.Rax()&0xFFFFU)!=21U || (c16NoOverflow.ReadRegister64(2)&0xFFFFU)!=0U ||
+       (c16NoOverflow.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
 
     Memory m32; m32.Map(0x1000,0x2000); Cpu c32; c32.ConnectMemory(&m32);
     std::vector<std::uint8_t> v32; AppendMovR64(v32,0,0x10000000ULL); AppendMovR64(v32,3,0x10ULL);
     v32.insert(v32.end(),{0xF7,0xE3});
     if(!Run(m32,c32,v32)) return false;
-    if((c32.Rax()&0xFFFFFFFFULL)!=0 || (c32.ReadRegister64(2)&0xFFFFFFFFULL)!=1) return false;
+    if((c32.Rax()&0xFFFFFFFFULL)!=0 || (c32.ReadRegister64(2)&0xFFFFFFFFULL)!=1 ||
+       (c32.Rflags()&(1ULL|(1ULL<<11)))==0) return false;
+
+    Memory m32NoOverflow; m32NoOverflow.Map(0x1000,0x2000); Cpu c32NoOverflow; c32NoOverflow.ConnectMemory(&m32NoOverflow);
+    std::vector<std::uint8_t> v32NoOverflow; AppendMovR64(v32NoOverflow,0,3); AppendMovR64(v32NoOverflow,3,7);
+    v32NoOverflow.insert(v32NoOverflow.end(),{0xF7,0xE3});
+    if(!Run(m32NoOverflow,c32NoOverflow,v32NoOverflow) ||
+       (c32NoOverflow.Rax()&0xFFFFFFFFULL)!=21U || (c32NoOverflow.ReadRegister64(2)&0xFFFFFFFFULL)!=0U ||
+       (c32NoOverflow.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
 
     Memory m64; m64.Map(0x1000,0x2000); Cpu c64; c64.ConnectMemory(&m64);
     std::vector<std::uint8_t> v64; AppendMovR64(v64,0,0x0000000100000000ULL); AppendMovR64(v64,3,2);
     v64.insert(v64.end(),{0x48,0xF7,0xE3});
     if(!Run(m64,c64,v64)) return false;
-    if(c64.Rax()!=0x0000000200000000ULL || c64.ReadRegister64(2)!=0) return false;
+    if(c64.Rax()!=0x0000000200000000ULL || c64.ReadRegister64(2)!=0 ||
+       (c64.Rflags()&(1ULL|(1ULL<<11)))!=0) return false;
+
+    Memory m64Overflow; m64Overflow.Map(0x1000,0x2000); Cpu c64Overflow; c64Overflow.ConnectMemory(&m64Overflow);
+    std::vector<std::uint8_t> v64Overflow; AppendMovR64(v64Overflow,0,0x100000000ULL); AppendMovR64(v64Overflow,3,0x100000000ULL);
+    v64Overflow.insert(v64Overflow.end(),{0x48,0xF7,0xE3});
+    if(!Run(m64Overflow,c64Overflow,v64Overflow) ||
+       c64Overflow.Rax()!=0x0000000000000000ULL || c64Overflow.ReadRegister64(2)!=0x0000000000000001ULL ||
+       (c64Overflow.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
 
     Memory min32; min32.Map(0x1000,0x2000); Cpu min32Cpu; min32Cpu.ConnectMemory(&min32);
     std::vector<std::uint8_t> min32Code;
