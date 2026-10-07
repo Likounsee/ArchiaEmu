@@ -416,6 +416,42 @@ static bool TestFlagsAndLoops() {
     if (!Run(memory4, cpu4, jrcxzCode)) { std::cerr << "JRCXZ execution failed\n"; return false; } return true;
 }
 
+static bool TestGroup1RexExtendedRegisters() {
+    // Group-1 immediate forms must honor REX.B for R8..R15 and all operand sizes.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,8,0xFF);
+        code.insert(code.end(),{0x41,0x80,0xC0,0x01}); // ADD R8B,1
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x100U) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,9,0xFFFF);
+        code.insert(code.end(),{0x66,0x41,0x83,0xC1,0x01}); // ADD R9W,1
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(9)!=0x10000U) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,10,0xFFFFFFFFU);
+        code.insert(code.end(),{0x41,0x83,0xC2,0x01}); // ADD R10D,1
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(10)!=0x100000000ULL) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,11,0);
+        code.insert(code.end(),{0x49,0x83,0xC3,0xFF}); // ADD R11,-1 (sign-extended imm8)
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(11)!=0xFFFFFFFFFFFFFFFFULL) return false;
+    }
+    // REX.R + REX.B register-to-register form: ADD R8D,R9D.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code; AppendMovR64(code,8,5); AppendMovR64(code,9,7);
+        code.insert(code.end(),{0x45,0x01,0xC8});
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=12U || cpu.ReadRegister64(9)!=7U) return false;
+    }
+    return true;
+}
+
 static bool TestAdcSbb16Directions() {
     Memory memory1; memory1.Map(0x1000,0x1000); Cpu cpu1; cpu1.ConnectMemory(&memory1);
     std::vector<std::uint8_t> rmCode;
@@ -2365,6 +2401,7 @@ int main() {
     if (!TestGroupF6Byte()) { std::cerr << "F6 byte group failed\n"; return 6; }
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
+    if (!TestGroup1RexExtendedRegisters()) { std::cerr << "Group-1 REX extended registers failed\n"; return 8; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
     if (!TestAdcSbbImmediateAndWidths()) { std::cerr << "ADC/SBB immediate and widths failed\n"; return 8; }
     if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
