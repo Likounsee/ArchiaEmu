@@ -2522,12 +2522,12 @@ static bool TestDivisionSignedAndExtendedForms() {
 
 
 static bool TestDivisionUnsignedAndQuotientBoundaries() {
-    // DIV64 register: RDX:RAX = 0x1:0 / 2 -> quotient 0, remainder 1.
+    // DIV64 register: RDX:RAX = 0x0:1 / 2 -> quotient 0, remainder 1.
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code;
-        AppendMovR64(code,0,0);
-        AppendMovR64(code,2,1);
+        AppendMovR64(code,0,1);
+        AppendMovR64(code,2,0);
         AppendMovR64(code,10,2);
         code.insert(code.end(),{0x49,0xF7,0xF2}); // DIV R10
         if(!Run(m,cpu,code) || cpu.Rax()!=0 ||
