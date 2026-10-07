@@ -2567,7 +2567,99 @@ static bool TestRexLowByteAliases() {
     return (cpu.Rax()&0xFFU)==0x5AU;
 }
 
+
+static bool TestGroup1ImmediateExtendedCoverage() {
+    const std::uint64_t CF = 1ULL;
+    const std::uint64_t ZF = 1ULL << 6;
+    const std::uint64_t SF = 1ULL << 7;
+    const std::uint64_t OF = 1ULL << 11;
+    const std::uint64_t AF = 1ULL << 4;
+    const std::uint64_t PF = 1ULL << 2;
+
+    // 64-bit 81 /0: ADD with sign-extended imm32 and REX.W.
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0x0000000080000000ULL);
+        code.insert(code.end(), {0x48, 0x81, 0xC0, 0xFF, 0xFF, 0xFF, 0xFF});
+        if (!Run(m, cpu, code) || cpu.Rax() != 0x000000007FFFFFFFULL) return false;
+        if ((cpu.Rflags() & (CF | ZF | SF | OF)) != 0) return false;
+    }
+
+    // 64-bit 81 /5: SUB with a negative imm32 (sign extension matters).
+    {
+        Memory m; m.Map(0x1000, 0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0);
+        code.insert(code.end(), {0x48, 0x81, 0xE8, 0x00, 0x00, 0x00, 0x80});
+        if (!Run(m, cpu, code) || cpu.Rax() != 0x0000000080000000ULL) return false;
+        if ((cpu.Rflags() & (CF | SF | OF)) != (CF | SF | OF)) return false;
+    }
+
+    // 64-bit 81 /7: CMP must consume the sign-extended imm32 without modifying RAX.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0x000000007FFFFFFFULL);
+        code.insert(code.end(), {0x48, 0x81, 0xF8, 0x00, 0x00, 0x00, 0x80});
+        if (!Run(m, cpu, code) || cpu.Rax() != 0x000000007FFFFFFFULL) return false;
+        if ((cpu.Rflags() & (CF | ZF | SF | OF)) != (CF | ZF | SF | OF)) return false;
+    }
+
+    // 16-bit 83 /0 and /5: immediate is sign-extended to operand width.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {
+            0x66, 0xB8, 0x00, 0x00,
+            0x66, 0x83, 0xC0, 0xFF,
+            0x66, 0x83, 0xE8, 0x01
+        };
+        if (!Run(m, cpu, code) || (cpu.Rax() & 0xFFFFU) != 0xFFFEU) return false;
+        if ((cpu.Rflags() & (CF | SF)) != (CF | SF)) return false;
+    }
+
+    // 32-bit 83 /6: XOR must zero-extend the destination register.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code = {
+            0x48, 0xB8, 0xFFFF0000000000FFULL & 0xFF,
+        };
+        code.clear();
+        AppendMovR64(code, 0, 0x12340000000000FFULL);
+        code.insert(code.end(), {0x83, 0xF0, 0xFF});
+        if (!Run(m, cpu, code) || cpu.Rax() != 0x0000000012340000ULL) return false;
+    }
+
+    // 8-bit 80 /2: ADC with CF and AF/PF boundary behavior.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(cpu.Rflags() | CF);
+        std::vector<std::uint8_t> code = {0xB0, 0x7F, 0x80, 0xD0, 0x00};
+        if (!Run(m, cpu, code) || (cpu.Rax() & 0xFFU) != 0x80U) return false;
+        const auto f = cpu.Rflags();
+        if ((f & (AF | SF | OF)) != (AF | SF | OF) || (f & ZF) != 0) return false;
+        if ((f & PF) == 0) return false;
+    }
+
+    // REX.B + SIB memory form: 83 /6 XOR byte/word-independent addressing path is
+    // exercised here at dword width with an extended base and extended index.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t value = 0xFFFFFFFFU;
+        if (!m.Write(0x1A00, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        AppendMovR64(code, 12, 0x80);
+        code.insert(code.end(), {0x45, 0x83, 0x34, 0xA3, 0x00, 0x00});
+        if (!Run(m, cpu, code)) return false;
+        std::uint32_t out = 0;
+        if (!m.Read(0x1A00, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0xFFFFFF00U;
+    }
+}
+
 int main() {
+    if (!TestGroup1ImmediateExtendedCoverage()) { std::cerr << "Group1 immediate extended coverage failed\n"; return 99; }
     if (!TestMovsxd()) { std::cerr << "MOVSXD failed\n"; return 1; }
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
     if (!TestCmovz()) { std::cerr << "CMOVZ failed\n"; return 3; }
