@@ -3522,6 +3522,46 @@ static bool TestPushPopExtendedRegistersAndWidths() {
 }
 
 
+
+static bool TestHighByteRegisterAliases() {
+    // Without any REX prefix, ModRM byte-register fields 4..7 select
+    // AH/CH/DH/BH. Verify both MOV and MOVZX consume the legacy high-byte
+    // aliases rather than the low-byte SPL/BPL/SIL/DIL aliases.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0x112233445566AA77ULL);
+        code.insert(code.end(), {0x8A, 0xC4}); // MOV AL, AH
+        code.insert(code.end(), {0x88, 0xC4}); // MOV AH, AL
+        if (!Run(m, cpu, code)) return false;
+        if (cpu.Rax() != 0x112233445566AAAAULL) return false;
+    }
+
+    // MOVZX r32,r/m8 with rm=AH must zero-extend AH into the destination.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0xFFFFFFFFFFFF80FFULL);
+        code.insert(code.end(), {0x0F, 0xB6, 0xC4}); // MOVZX EAX, AH
+        if (!Run(m, cpu, code)) return false;
+        if (cpu.Rax() != 0x0000000000000080ULL) return false;
+    }
+
+    // A REX prefix suppresses high-byte aliases: rm=4 becomes SPL.
+    // Use REX.R to place the zero-extended result in R8D.
+    {
+        Memory m; m.Map(0x1000, 0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 4, 0x123456789ABCDE80ULL); // RSP low byte = 0x80
+        AppendMovR64(code, 0, 0x0000000000000055ULL); // RAX high byte = 0
+        code.insert(code.end(), {0x44, 0x0F, 0xB6, 0xC4}); // MOVZX R8D, SPL
+        if (!Run(m, cpu, code)) return false;
+        return cpu.ReadRegister64(8) == 0x0000000000000080ULL;
+    }
+
+    return true;
+}
+
 int main() {
     if (!TestAccumulatorDoubleWidthSignExtension()) { std::cerr << "CWD/CDQ/CQO failed\\n"; return 62; }
 
