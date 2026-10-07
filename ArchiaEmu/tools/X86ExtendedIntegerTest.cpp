@@ -2166,6 +2166,53 @@ static bool TestBitMemoryForms() {
     }
     return true;
     }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x1ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x0F,0xBA,0x27,0x01}); // BT [RDI],1
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x0F,0xBA,0x2F,0x01}); // BTS [RDI],1
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)!=0) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8) || out!=2ULL) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=2;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x0F,0xBA,0x37,0x01}); // BTR [RDI],1
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8) || out!=0) return false;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=2;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0x0F,0xBA,0x3F,0x01}); // BTC [RDI],1
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8) || out!=0) return false;
+    }
+
+    return true;
 }
 
 int main() {
