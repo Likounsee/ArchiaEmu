@@ -782,6 +782,32 @@ static bool TestCmpByteForms() {
     return true;
 }
 
+static bool TestCmpUnequalFlags() {
+    Memory m1; m1.Map(0x1000,0x2000); Cpu c1; c1.ConnectMemory(&m1);
+    std::vector<std::uint8_t> code1;
+    AppendMovR64(code1,0,5); AppendMovR64(code1,3,7);
+    code1.insert(code1.end(),{0x39,0xD8});
+    if(!Run(m1,c1,code1)) return false;
+    const std::uint64_t f1=c1.Rflags();
+    if((f1&1ULL)==0 || (f1&(1ULL<<6))!=0 || (f1&(1ULL<<7))==0 || (f1&(1ULL<<11))!=0) return false;
+
+    Memory m2; m2.Map(0x1000,0x2000); Cpu c2; c2.ConnectMemory(&m2);
+    std::vector<std::uint8_t> code2;
+    AppendMovR64(code2,0,0x80000000ULL); AppendMovR64(code2,3,1);
+    code2.insert(code2.end(),{0x39,0xD8});
+    if(!Run(m2,c2,code2)) return false;
+    const std::uint64_t f2=c2.Rflags();
+    if((f2&1ULL)!=0 || (f2&(1ULL<<6))!=0 || (f2&(1ULL<<7))==0 || (f2&(1ULL<<11))==0) return false;
+
+    Memory m3; m3.Map(0x1000,0x2000); Cpu c3; c3.ConnectMemory(&m3);
+    std::vector<std::uint8_t> code3;
+    AppendMovR64(code3,0,0x0000000000000001ULL); AppendMovR64(code3,3,0x0000000000000002ULL);
+    code3.insert(code3.end(),{0x48,0x39,0xD8});
+    if(!Run(m3,c3,code3)) return false;
+    const std::uint64_t f3=c3.Rflags();
+    return (f3&1ULL)!=0 && (f3&(1ULL<<6))==0 && (f3&(1ULL<<7))!=0 && (f3&(1ULL<<11))==0;
+}
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -832,6 +858,7 @@ int main() {
     if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
     if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
     if (!TestDivideFaultsAndBoundaries()) { std::cerr << "DIV/IDIV faults failed\n"; return 13; }
+    if (!TestCmpUnequalFlags()) { std::cerr << "unequal CMP flags failed\n"; return 15; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     std::cout << "x86 extended integer instruction test: PASS\n";
     return 0;
