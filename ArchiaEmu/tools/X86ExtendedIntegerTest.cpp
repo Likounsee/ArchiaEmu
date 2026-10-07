@@ -1385,6 +1385,28 @@ static bool TestCmpUnequalFlags() {
     return true;
 }
 
+    // CMP AF/PF unequal coverage.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x10); AppendMovR64(code,3,0x01);
+        code.insert(code.end(),{0x39,0xD8});
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t f=cpu.Rflags();
+        if((f&1ULL)!=0 || (f&(1ULL<<6))!=0 || (f&(1ULL<<7))!=0 || (f&(1ULL<<11))!=0) return false;
+        if((f&(1ULL<<4))==0 || (f&(1ULL<<2))==0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x00); AppendMovR64(code,3,0x01);
+        code.insert(code.end(),{0x39,0xD8});
+        if(!Run(m,cpu,code)) return false;
+        const std::uint64_t f=cpu.Rflags();
+        if((f&1ULL)==0 || (f&(1ULL<<6))!=0 || (f&(1ULL<<7))==0 || (f&(1ULL<<11))!=0) return false;
+        if((f&(1ULL<<4))==0 || (f&(1ULL<<2))==0) return false;
+    }
+
 static bool TestCpuid() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
