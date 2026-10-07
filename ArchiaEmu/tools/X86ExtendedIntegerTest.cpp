@@ -781,7 +781,8 @@ static bool TestImulForms() {
     code.clear();
     AppendMovR64(code,9,0);
     AppendMovR64(code,12,0x1800);
-    code.insert(code.end(),{0x4E,0x6B,0x4C,0xA4,0x10,0x08}); // IMUL R9,[R12+R12*4+16],8
+    AppendMovR64(code,13,1);
+    code.insert(code.end(),{0x4F,0x6B,0x4C,0xAC,0x10,0x08}); // IMUL R9,[R12+R13*4+16],8
     if(!Run(m8,c8,code) || c8.ReadRegister64(9)!=0x8000000000000000ULL) return false;
     if((c8.Rflags()&(1ULL|(1ULL<<11)))!=(1ULL|(1ULL<<11))) return false;
 
