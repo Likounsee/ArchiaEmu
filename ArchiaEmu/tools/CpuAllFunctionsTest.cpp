@@ -2252,8 +2252,9 @@ void TestAdcSbb()
 
         CHECK("ADC16_REX_RB",
               RunCode(cpu, mem, code) &&
-              cpu.ReadRegister64(8) == 0x7FFFULL &&
-              (cpu.Rflags() & 1ULL) != 0);
+              cpu.ReadRegister64(8) == 0x8000ULL &&
+              (cpu.Rflags() & (1ULL << 11)) != 0 &&
+              (cpu.Rflags() & 1ULL) == 0);
     }
 
     {
@@ -2341,7 +2342,7 @@ void TestAdcSbb()
         mem.Map(STACK, 0x2000);
 
         constexpr std::uint64_t address = DATA + 0x1A0;
-        const std::uint64_t initial = 0x8000000000000000ULL;
+        const std::uint64_t initial = 0x7FFFFFFFFFFFFFFFULL;
         Write64(mem, address, initial);
 
         Cpu cpu = MakeCpu(mem);
@@ -2349,14 +2350,15 @@ void TestAdcSbb()
         cpu.SetRflags(1);
 
         auto code = std::vector<std::uint8_t>{
-            0x49, 0x83, 0x1D, 0x98, 0x01, 0x00, 0x00, 0xFF, // SBB QWORD PTR [R13+disp32],-1
+            0x49, 0x83, 0x9D, 0xA0, 0x01, 0x00, 0x00, 0xFF, // SBB QWORD PTR [R13+1A0h],-1
             0xF4
         };
 
         CHECK("SBB64_group1_memory_imm8_disp32",
               RunCode(cpu, mem, code) &&
               Read64(mem, address) == 0x8000000000000000ULL &&
-              (cpu.Rflags() & 1ULL) != 0);
+              (cpu.Rflags() & (1ULL << 11)) != 0 &&
+              (cpu.Rflags() & 1ULL) == 0);
     }
 
 }
