@@ -3868,6 +3868,35 @@ void TestHlt()
 }
 
 // ============== SETcc ==============
+void TestRotateRexAndOperandWidths()
+{
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0x81);
+        const std::vector<std::uint8_t> code = {0x41, 0xD0, 0xC0, 0xF4}; // ROL R8B,1
+        CHECK("ROL R8B,1 uses REX.B", RunCode(cpu, mem, code) &&
+              (cpu.ReadRegister64(8) & 0xFFULL) == 0x03ULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(9, 0x123456789ABCDEF0ULL);
+        const std::vector<std::uint8_t> code = {0x49, 0xC1, 0xC9, 0x04, 0xF4}; // ROR R9,4
+        CHECK("ROR R9,4 uses REX.WB", RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(9) == 0x0123456789ABCDEFULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x1122334455668001ULL);
+        const std::vector<std::uint8_t> code = {0x66, 0xC1, 0xC8, 0x04, 0xF4}; // ROR AX,4
+        CHECK("ROR AX,4 uses operand-size override and preserves upper RAX",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0x1122334455661800ULL);
+    }
+}
+
 void TestMovxByteRexAndHighByteRules()
 {
     {
@@ -6027,6 +6056,7 @@ int main()
 
     TestLea32();
     TestHlt();
+    TestRotateRexAndOperandWidths();
     TestMovxByteRexAndHighByteRules();
     TestCmpxchgOperandWidths();
     TestSetccMemory();
