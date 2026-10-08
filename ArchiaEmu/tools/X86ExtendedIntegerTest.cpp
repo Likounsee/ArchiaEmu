@@ -3052,6 +3052,18 @@ static bool TestTestRmRegForms() {
            cpu.ReadRegister64(11)!=0x00000000FFFFFFFFULL) return false;
         if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t value=0x80000000U;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),4)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        AppendMovR64(code,8,0x80000000ULL);
+        code.insert(code.end(),{0x4F,0x85,0x44,0xA3,0x10}); // TEST R8D,[R11+R12*4+0x10]
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x80000000ULL) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
+    }
     return true;
 }
 
