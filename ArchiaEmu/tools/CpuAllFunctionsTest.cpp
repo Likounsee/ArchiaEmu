@@ -2359,15 +2359,21 @@ void TestAdcSbb()
         };
 
         const bool ran = RunCode(cpu, mem, code);
-        if (!ran) {
-            std::cout << "[DEBUG] SBB64_group1_memory_imm8_disp32 LastMemoryFault="
-                      << static_cast<unsigned>(cpu.LastMemoryFault()) << "\n";
+        const std::uint64_t actual = Read64(mem, address);
+        const bool overflow = (cpu.Rflags() & (1ULL << 11)) != 0;
+        const bool carry = (cpu.Rflags() & 1ULL) != 0;
+        if (!ran || actual != 0x8000000000000000ULL || !overflow || carry) {
+            std::cout << "[DEBUG] SBB64_group1_memory_imm8_disp32"
+                      << " ran=" << ran
+                      << " actual=0x" << std::hex << actual
+                      << " rflags=0x" << cpu.Rflags()
+                      << std::dec << "\n";
         }
         CHECK("SBB64_group1_memory_imm8_disp32",
               ran &&
-              Read64(mem, address) == 0x8000000000000000ULL &&
-              (cpu.Rflags() & (1ULL << 11)) != 0 &&
-              (cpu.Rflags() & 1ULL) == 0);
+              actual == 0x8000000000000000ULL &&
+              overflow &&
+              !carry);
     }
 
 }
