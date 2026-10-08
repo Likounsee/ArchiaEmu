@@ -7878,7 +7878,7 @@ void TestPrimaryOpcodeCoverageGaps()
         bool invoked = false;
         cpu.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
             invoked = true;
-            handlerCpu.WriteRegister64(0, 0x1RETULL);
+            handlerCpu.WriteRegister64(0, 0x1A2B3C4DULL);
             handlerCpu.Halt();
             return true;
         });
@@ -7887,7 +7887,7 @@ void TestPrimaryOpcodeCoverageGaps()
             "IRET invokes the exception-return handler",
             RunCode(cpu, mem, code) &&
             invoked &&
-            cpu.ReadRegister64(0) == 0x1RETULL);
+            cpu.ReadRegister64(0) == 0x1A2B3C4DULL);
     }
 
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
