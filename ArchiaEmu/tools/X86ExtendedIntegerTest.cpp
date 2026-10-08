@@ -3041,6 +3041,17 @@ static bool TestTestRmRegForms() {
         if(!Run(m,cpu,code) || cpu.Rax()!=0xFFFFFFFFFFFFFFFFULL) return false;
         if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
+    // REX.R+B must select both extended operands without modifying either.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,8,0x0000000080000000ULL);
+        AppendMovR64(code,11,0x00000000FFFFFFFFULL);
+        code.insert(code.end(),{0x45,0x85,0xD8}); // TEST R8D,R11D
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x0000000080000000ULL ||
+           cpu.ReadRegister64(11)!=0x00000000FFFFFFFFULL) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
+    }
     return true;
 }
 
