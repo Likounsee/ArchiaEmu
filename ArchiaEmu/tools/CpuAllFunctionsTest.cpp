@@ -813,6 +813,50 @@ void TestCallRet()
         cpu.Rax() == 0x42);
 }
 
+void TestGroup1RexExtended()
+{
+    struct Case { const char* name; std::uint8_t modrm; std::uint8_t imm; std::uint64_t initial; std::uint64_t expected; };
+    const Case cases[] = {
+        {"ADD R8,-1", 0xC0, 0xFF, 0, 0xFFFFFFFFFFFFFFFFULL},
+        {"OR R8,1",   0xC8, 0x01, 0x10, 0x11},
+        {"AND R8,15", 0xE0, 0x0F, 0x1F, 0x0F},
+        {"SUB R8,1",  0xE8, 0x01, 2, 1},
+        {"XOR R8,255",0xF0, 0xFF, 0xAA, 0x55}
+    };
+    for (const auto& c : cases) {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, c.initial);
+        std::vector<std::uint8_t> code = {0x49, 0x83, c.modrm, c.imm, 0xF4};
+        CHECK(c.name, RunCode(cpu, mem, code) && cpu.ReadRegister64(8) == c.expected);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0);
+        cpu.SetRflags(1ULL);
+        const std::vector<std::uint8_t> code = {0x49, 0x83, 0xD0, 0x00, 0xF4}; // ADC R8,0 + CF
+        CHECK("ADC R8,0 preserves incoming carry in result", RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 1);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0);
+        cpu.SetRflags(1ULL);
+        const std::vector<std::uint8_t> code = {0x49, 0x83, 0xD8, 0x00, 0xF4}; // SBB R8,0 - CF
+        CHECK("SBB R8,0 consumes incoming borrow", RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 0xFFFFFFFFFFFFFFFFULL);
+    }
+}
+
 void TestPushfPopf()
 {
     {
@@ -5717,6 +5761,7 @@ int main()
     TestPushPopRmForms();
     TestCallRet();
 
+    TestGroup1RexExtended();
     TestPushfPopf();
     TestLeaRexSib();
     TestMovsxdVariants();
