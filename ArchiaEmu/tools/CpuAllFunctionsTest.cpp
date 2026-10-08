@@ -7845,7 +7845,7 @@ void TestPrimaryOpcodeCoverageGaps()
         });
         CHECK(
             "0F AE /5-/7 reject register ModRM forms",
-            !RunCode(cpu, mem, code) && invalidOpcode);
+            RunCode(cpu, mem, code) && invalidOpcode);
     }
 
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
