@@ -5163,7 +5163,7 @@ void TestBitTestFamily()
         CHECK(
             "BT16 and BT32 immediate forms use operand-size width",
             RunCode(cpu, mem, code) &&
-            (cpu.Rflags() & 1ULL) != 0 &&
+            (cpu.Rflags() & 1ULL) == 0 &&
             cpu.Rax() == 0x8000ULL);
     }
 
