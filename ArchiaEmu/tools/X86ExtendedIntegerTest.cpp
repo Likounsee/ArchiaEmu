@@ -224,7 +224,7 @@ static bool TestXadd8ExtendedMemory() {
            (cpu.ReadRegister64(8) & 0xFFU) == 0x7FU &&
            (flags & (1ULL << 4)) != 0 &&  // AF
            (flags & (1ULL << 7)) != 0 &&  // SF
-           (flags & (1ULL << 11)) == 0;   // OF
+           (flags & (1ULL << 11)) != 0;   // OF
 }
 
 static bool TestXadd32() {
