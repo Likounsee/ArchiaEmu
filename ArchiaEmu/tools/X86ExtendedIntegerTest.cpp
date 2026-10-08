@@ -3387,9 +3387,22 @@ static bool TestXchgExtendedMemoryForms() {
                cpu.ReadRegister64(8) == 0x000000000000BEEFU;
     }
 
-    return true;
-}
 
+    // XCHG r/m32,r32 with REX.R/B must zero-extend the register result.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t initial = 0x89ABCDEFU;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 8, 0x1234567801020304ULL);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x45, 0x87, 0x03}); // XCHG [R11],R8D
+        std::uint32_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0x01020304U &&
+               cpu.ReadRegister64(8) == 0x0000000089ABCDEFULL;
+    }
 
 static bool TestCmpxchgExtendedMemoryForms() {
     // Successful CMPXCHG r/m64,r64 with REX.R/B stores the source register.
