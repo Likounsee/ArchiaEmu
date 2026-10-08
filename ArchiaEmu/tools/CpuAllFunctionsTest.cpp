@@ -3873,8 +3873,10 @@ void TestCallIndirectMemoryRex()
     Memory mem;
     mem.Map(CODE, 0x2000);
     mem.Map(STACK, 0x2000);
+    const std::uint64_t pointerAddress = DATA + 0x100;
+    Write64(mem, pointerAddress, CODE + 16);
     Cpu cpu = MakeCpu(mem);
-    cpu.WriteRegister64(13, CODE + 16);
+    cpu.WriteRegister64(13, pointerAddress);
     const std::vector<std::uint8_t> code = {
         0x41, 0xFF, 0x55, 0x00, // CALL QWORD PTR [R13]
         0xF4,                    // return here
