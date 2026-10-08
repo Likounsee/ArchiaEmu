@@ -2619,6 +2619,7 @@ static bool TestDoubleShiftExtendedForms() {
         if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0xC000U) { std::cerr << "SHRD16 memory out=0x" << std::hex << out << "\\n"; return false; }
         if((cpu.Rflags()&CF)==0 || (cpu.Rflags()&OF)!=0) { std::cerr << "SHRD16 memory flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
     }
+    return true;
 }
 
 
