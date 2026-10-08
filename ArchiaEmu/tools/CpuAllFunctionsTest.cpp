@@ -3888,9 +3888,9 @@ void TestCmpxchgVariants()
         Cpu cpu = MakeCpu(mem);
         cpu.WriteRegister64(0, 0xAABBCCDDEEFF0011ULL);
         cpu.WriteRegister64(9, 0x99);
-        cpu.WriteRegister64(12, DATA + 0x100);
+        cpu.WriteRegister64(13, DATA + 0x100);
         const std::vector<std::uint8_t> code = {
-            0x4F, 0x0F, 0xB1, 0x4C, 0x24, 0x00, // CMPXCHG [R12],R9
+            0x4F, 0x0F, 0xB1, 0x4D, 0x00, // CMPXCHG [R13],R9
             0xF4
         };
         CHECK("CMPXCHG64 memory mismatch updates accumulator",
