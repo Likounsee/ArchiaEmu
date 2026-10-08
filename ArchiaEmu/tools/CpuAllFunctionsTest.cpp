@@ -4687,6 +4687,53 @@ void TestMovxByteRexAndHighByteRules()
               RunCode(cpu, mem, code) &&
               cpu.ReadRegister64(8) == 0x80ULL);
     }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        constexpr std::uint64_t base = DATA + 0x700;
+        constexpr std::uint64_t index = 2;
+        constexpr std::uint64_t address = base + index * 4 + 0x20;
+        const std::uint8_t value = 0x80;
+        mem.Write(address, &value, 1);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+
+        // 47 0F B6 44 8D 20: MOVZX R8D,[R13+R9*4+disp8].
+        const std::vector<std::uint8_t> code = {
+            0x47, 0x0F, 0xB6, 0x44, 0x8D, 0x20, 0xF4
+        };
+        CHECK("MOVZX R8D memory REX.RXB SIB disp8",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 0x0000000000000080ULL);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        constexpr std::uint64_t base = DATA + 0x780;
+        constexpr std::uint64_t index = 1;
+        constexpr std::uint64_t address = base + index * 4 + 0x20;
+        const std::uint8_t value = 0x80;
+        mem.Write(address, &value, 1);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+
+        // 47 0F BE 44 8D 20: MOVSX R8D,[R13+R9*4+disp8].
+        const std::vector<std::uint8_t> code = {
+            0x47, 0x0F, 0xBE, 0x44, 0x8D, 0x20, 0xF4
+        };
+        CHECK("MOVSX R8D memory REX.RXB SIB disp8",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 0x00000000FFFFFF80ULL);
+    }
+
 }
 
 void TestCmpxchgOperandWidths()
