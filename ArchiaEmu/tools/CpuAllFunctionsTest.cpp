@@ -7826,6 +7826,28 @@ void TestPrimaryOpcodeCoverageGaps()
             cpu.Rax() == 1ULL);
     }
 
+    // 0F AE /5-/7 are memory-only; register ModRM forms must #UD.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        bool invalidOpcode = false;
+        cpu.SetExceptionHandler([&](Cpu& handlerCpu, const CpuException& exception) {
+            invalidOpcode = exception.vector == CpuExceptionVector::InvalidOpcode;
+            if (invalidOpcode) handlerCpu.Halt();
+            return invalidOpcode;
+        });
+        const std::vector<std::uint8_t> code = Finish({
+            0x0F, 0xAE, 0xED,
+            0x0F, 0xAE, 0xF0,
+            0x0F, 0xAE, 0xF8
+        });
+        CHECK(
+            "0F AE /5-/7 reject register ModRM forms",
+            !RunCode(cpu, mem, code) && invalidOpcode);
+    }
+
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
     {
         Memory mem;
