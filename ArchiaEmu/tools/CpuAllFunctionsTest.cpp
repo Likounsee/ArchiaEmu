@@ -855,6 +855,30 @@ void TestGroup1RexExtended()
         CHECK("SBB R8,0 consumes incoming borrow", RunCode(cpu, mem, code) &&
               cpu.ReadRegister64(8) == 0xFFFFFFFFFFFFFFFFULL);
     }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t address = DATA + 0x180;
+        Write64(mem, address, 0x0FULL);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0x10ULL);
+        cpu.WriteRegister64(13, DATA);
+        cpu.WriteRegister64(9, 0x30ULL);
+        cpu.SetRflags(1ULL);
+
+        // 4F 1B 44 CD 18: SBB R8,[R13+R9*8+disp8].
+        const std::vector<std::uint8_t> code = {
+            0x4F, 0x1B, 0x44, 0xCD, 0x18, 0xF4
+        };
+        CHECK("SBB R8 memory REX.RXB SIB disp8 consumes carry",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 0 &&
+              (cpu.Rflags() & 1ULL) == 0);
+    }
+
 }
 
 void TestPushfPopf()
