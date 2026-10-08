@@ -3061,8 +3061,8 @@ static bool TestTestRmRegForms() {
         AppendMovR64(code,12,2);
         AppendMovR64(code,8,0x80000000ULL);
         code.insert(code.end(),{0x4F,0x85,0x44,0xA3,0x10}); // TEST R8D,[R11+R12*4+0x10]
-        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x80000000ULL) return false;
-        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x80000000ULL) { std::cerr << "TEST SIB operands R8=0x" << std::hex << cpu.ReadRegister64(8) << " R11=0x" << cpu.ReadRegister64(11) << "\\n"; return false; }
+        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) { std::cerr << "TEST SIB flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
     }
     return true;
 }
