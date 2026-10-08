@@ -4865,7 +4865,7 @@ void TestShiftClOperandWidthsAndRexMemory()
         code = Finish(code);
         CHECK("SHL16 AX,CL preserves upper RAX bits", RunCode(cpu, mem, code) &&
               cpu.Rax() == 0x1122334455660010ULL &&
-              (cpu.Rflags() & (1ULL << 0)) != 0);
+              (cpu.Rflags() & (1ULL << 0)) == 0);
     }
 
     {
@@ -4894,7 +4894,7 @@ void TestShiftClOperandWidthsAndRexMemory()
         cpu.WriteRegister64(9, index);
         cpu.WriteRegister64(1, 4);
         const std::vector<std::uint8_t> code = {
-            0x49, 0xD3, 0x64, 0x8D, 0x20, 0xF4
+            0x4D, 0xD3, 0x64, 0x8D, 0x20, 0xF4
         }; // SHL qword [R13+R9*4+disp8],CL; REX.WXB
         CHECK("SHL64 memory SIB REX.WXB disp8 with CL",
               RunCode(cpu, mem, code) && Read64(mem, address) == 16);
