@@ -2527,6 +2527,15 @@ static bool TestLeaExtendedAddressing() {
         code.insert(code.end(),{0x67,0x43,0x8D,0x44,0xA3,0xF8}); // LEA EAX,[R11D+R12D*4-8]
         if(!Run(m,cpu,code) || cpu.Rax()!=0x1808ULL) return false;
     }
+    {
+        // 67 forces 32-bit address arithmetic: high halves of base/index are ignored.
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x0000000100001800ULL);
+        AppendMovR64(code,12,0x0000000100000002ULL);
+        code.insert(code.end(),{0x67,0x43,0x8D,0x44,0xA3,0x08}); // LEA EAX,[R11D+R12D*4+8]
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x1810ULL) return false;
+    }
     return true;
 }
 
