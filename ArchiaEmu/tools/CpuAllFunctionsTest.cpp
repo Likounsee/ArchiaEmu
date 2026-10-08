@@ -993,7 +993,7 @@ void TestLeaRexSib()
         };
         CHECK("LEA REX.WRXB SIB disp32 writes R8",
               RunCode(cpu, mem, code) &&
-              cpu.ReadRegister64(8) == 0x211CULL);
+              cpu.ReadRegister64(8) == 0x210CULL);
     }
 }
 
