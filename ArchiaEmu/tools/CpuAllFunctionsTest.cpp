@@ -5831,6 +5831,93 @@ void TestImulMemoryWidths()
 }
 
 // ============== SYSCALL -> repli PS5 interne (RAX=numero de service) ==============
+
+void TestRemainingBitScanAndByteSwapCoverage()
+{
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x0000000000000040ULL);
+        cpu.WriteRegister64(1, 0xFFFFFFFFFFFFFFFFULL);
+        const std::vector<std::uint8_t> code = {
+            0x0F, 0xBC, 0xC8, // BSF ECX,EAX -> 6
+            0x0F, 0xBD, 0xC8, // BSR ECX,EAX -> 6
+            0xF4
+        };
+        CHECK(
+            "BSF/BSR32 find first and last set bit",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(1) == 6 &&
+            (cpu.Rflags() & (1ULL << 6)) == 0);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0x8000000000001000ULL);
+        cpu.WriteRegister64(9, 0xFFFFFFFFFFFFFFFFULL);
+        const std::vector<std::uint8_t> code = {
+            0x4D, 0x0F, 0xBC, 0xC8, // BSF R9,R8
+            0x4D, 0x0F, 0xBD, 0xC8, // BSR R9,R8
+            0xF4
+        };
+        CHECK(
+            "BSF/BSR64 use REX.R+B extended registers",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(9) == 63 &&
+            (cpu.Rflags() & (1ULL << 6)) == 0);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x0000000000000000ULL);
+        cpu.WriteRegister64(1, 0x123456789ABCDEF0ULL);
+        const std::vector<std::uint8_t> code = {
+            0x0F, 0xBC, 0xC8, // BSF ECX,EAX with zero source.
+            0xF4
+        };
+        CHECK(
+            "BSF zero source sets ZF and preserves destination",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(1) == 0x123456789ABCDEF0ULL &&
+            (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x11223344ULL);
+        const std::vector<std::uint8_t> code = {
+            0x0F, 0xC8, // BSWAP EAX.
+            0xF4
+        };
+        CHECK(
+            "BSWAP32 reverses byte order and leaves flags untouched",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x44332211ULL &&
+            cpu.Rflags() == 0);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0x0123456789ABCDEFULL);
+        cpu.SetRflags((1ULL << 0) | (1ULL << 6) | (1ULL << 11));
+        const std::vector<std::uint8_t> code = {
+            0x49, 0x0F, 0xC8, // BSWAP R8.
+            0xF4
+        };
+        const std::uint64_t flags = cpu.Rflags();
+        CHECK(
+            "BSWAP64 uses REX.B and preserves flags",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(8) == 0xEFCDAB8967452301ULL &&
+            cpu.Rflags() == flags);
+    }
+}
+
+
 void TestSyscallPS5Fallback()
 {
     Memory mem;
@@ -7659,6 +7746,7 @@ int main()
     TestImulMemoryWidths();
     TestSyscallPS5Fallback();
     TestStringCompareScanIoAndXlatCoverage();
+    TestRemainingBitScanAndByteSwapCoverage();
 
     TestRotate();
     TestTestImmediate();
