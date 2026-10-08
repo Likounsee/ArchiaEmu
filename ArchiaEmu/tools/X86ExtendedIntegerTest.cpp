@@ -242,13 +242,16 @@ static bool TestXadd32() {
 }
 
 static bool TestXadd8() {
-    Memory memory; memory.Map(0x1000, 0x1000);
-    Cpu cpu; cpu.ConnectMemory(&memory);
+    Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code;
-    AppendMovR64(code, 0, 5);
-    AppendMovR64(code, 3, 7);
-    code.insert(code.end(), {0x0F, 0xC0, 0xC3});
-    return Run(memory, cpu, code) && (cpu.ReadRegister64(0) & 0xFFU) == 7 && (cpu.ReadRegister64(3) & 0xFFU) == 12;
+    AppendMovR64(code, 0, 0x1122334455660005ULL);
+    AppendMovR64(code, 3, 0xAABBCCDDEEFF0007ULL);
+    code.insert(code.end(), {0x0F, 0xC0, 0xC3}); // XADD BL,AL
+
+    if (!Run(memory,cpu,code)) return false;
+    // XADD byte must exchange only the low bytes; the upper 56 bits are untouched.
+    return cpu.ReadRegister64(0) == 0x1122334455660007ULL &&
+           cpu.ReadRegister64(3) == 0xAABBCCDDEEFF000CULL;
 }
 
 static bool TestCmpxchg64() {
