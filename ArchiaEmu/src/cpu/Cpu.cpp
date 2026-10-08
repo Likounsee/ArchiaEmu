@@ -2946,8 +2946,12 @@ bool Cpu::DecodeRotate64Imm(
 
     const std::uint8_t maskedCount =
         static_cast<std::uint8_t>(count & 0x3F);
+    const std::uint8_t effectiveCount =
+        (group == 2 || group == 3)
+            ? static_cast<std::uint8_t>(maskedCount % 65U)
+            : maskedCount;
 
-    if (maskedCount == 0) {
+    if (effectiveCount == 0) {
         return true;
     }
 
@@ -2964,7 +2968,7 @@ bool Cpu::DecodeRotate64Imm(
     bool carry = (rflags_ & CF_MASK) != 0;
 
     if (group == 0 || group == 1) {
-        const std::uint8_t rotate = maskedCount;
+        const std::uint8_t rotate = effectiveCount;
         if (group == 0) {
             result = static_cast<std::uint64_t>(
                 (value << rotate) | (value >> (64 - rotate)));
@@ -2975,7 +2979,7 @@ bool Cpu::DecodeRotate64Imm(
             carry = ((result >> (64 - 1)) & 1U) != 0;
         }
     } else {
-        for (std::uint8_t i = 0; i < maskedCount; ++i) {
+        for (std::uint8_t i = 0; i < effectiveCount; ++i) {
             if (group == 2) {
                 const bool nextCarry = ((value >> (64 - 1)) & 1U) != 0;
                 result = static_cast<std::uint64_t>(
@@ -3002,7 +3006,7 @@ bool Cpu::DecodeRotate64Imm(
 
     if (carry) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
 
-    if (maskedCount == 1) {
+    if (effectiveCount == 1) {
         bool overflow = false;
         if (group == 0 || group == 2) {
             overflow = ((result & 0x8000000000000000ULL) != 0) != carry;
@@ -3051,8 +3055,12 @@ bool Cpu::DecodeRotate32Imm(
 
     const std::uint8_t maskedCount =
         static_cast<std::uint8_t>(count & 0x1F);
+    const std::uint8_t effectiveCount =
+        (group == 2 || group == 3)
+            ? static_cast<std::uint8_t>(maskedCount % 33U)
+            : maskedCount;
 
-    if (maskedCount == 0) {
+    if (effectiveCount == 0) {
         return true;
     }
 
@@ -3069,7 +3077,7 @@ bool Cpu::DecodeRotate32Imm(
     bool carry = (rflags_ & CF_MASK) != 0;
 
     if (group == 0 || group == 1) {
-        const std::uint8_t rotate = maskedCount;
+        const std::uint8_t rotate = effectiveCount;
         if (group == 0) {
             result = static_cast<std::uint32_t>(
                 (value << rotate) | (value >> (32 - rotate)));
@@ -3080,7 +3088,7 @@ bool Cpu::DecodeRotate32Imm(
             carry = ((result >> (32 - 1)) & 1U) != 0;
         }
     } else {
-        for (std::uint8_t i = 0; i < maskedCount; ++i) {
+        for (std::uint8_t i = 0; i < effectiveCount; ++i) {
             if (group == 2) {
                 const bool nextCarry = ((value >> (32 - 1)) & 1U) != 0;
                 result = static_cast<std::uint32_t>(
@@ -3107,7 +3115,7 @@ bool Cpu::DecodeRotate32Imm(
 
     if (carry) rflags_ |= CF_MASK; else rflags_ &= ~CF_MASK;
 
-    if (maskedCount == 1) {
+    if (effectiveCount == 1) {
         bool overflow = false;
         if (group == 0 || group == 2) {
             overflow = ((result & 0x80000000ULL) != 0) != carry;

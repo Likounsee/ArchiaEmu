@@ -5912,6 +5912,60 @@ void TestRotate8Memory()
     }
 }
 
+void TestRotateThroughCarryLargeCounts()
+{
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(0);
+        auto code = MovR64(0, 1);
+        code.insert(code.end(), {0xC1, 0xD0, 32}); // RCL EAX,32
+        code = Finish(code);
+        CHECK("RCL32 immediate count 32 uses modulo-33", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0 &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(0);
+        auto code = MovR64(0, 1);
+        code.insert(code.end(), {0x48, 0xC1, 0xD0, 64}); // RCL RAX,64
+        code = Finish(code);
+        CHECK("RCL64 immediate count 64 uses modulo-65", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0 &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(0);
+        auto code = MovR64(0, 1);
+        Append(code, MovR64(1, 32));
+        code.insert(code.end(), {0xD3, 0xD0}); // RCL EAX,CL
+        code = Finish(code);
+        CHECK("RCL32 CL count 32 uses modulo-33", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0 &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(0);
+        auto code = MovR64(0, 1);
+        Append(code, MovR64(1, 64));
+        code.insert(code.end(), {0x48, 0xD3, 0xD0}); // RCL RAX,CL
+        code = Finish(code);
+        CHECK("RCL64 CL count 64 uses modulo-65", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0 &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+}
+
+
 void TestRotate8EdgeCases()
 {
     // count == 0 : aucune modification, flags inchanges
