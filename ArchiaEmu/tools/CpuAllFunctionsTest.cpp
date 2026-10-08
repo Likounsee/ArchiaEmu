@@ -860,7 +860,7 @@ void TestGroup1RexExtended()
         mem.Map(CODE, 0x2000);
         mem.Map(DATA, 0x2000);
         mem.Map(STACK, 0x2000);
-        const std::uint64_t address = DATA + 0x318;
+        const std::uint64_t address = DATA + 0x198;
         Write64(mem, address, 0x0FULL);
 
         Cpu cpu = MakeCpu(mem);
