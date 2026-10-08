@@ -7720,7 +7720,7 @@ void TestPrimaryOpcodeCoverageGaps()
         if (!mem.Write(DATA, src, sizeof(src))) return;
         Cpu cpu = MakeCpu(mem);
         cpu.WriteRegister64(6, 0x0000000100000000ULL | DATA);
-        cpu.WriteRegister64(7, 0x0000000200000100ULL);
+        cpu.WriteRegister64(7, 0x0000000200000000ULL | (DATA + 0x100));
         cpu.WriteRegister64(1, 0x0000000300000002ULL);
         std::vector<std::uint8_t> code = {0x67, 0xF3, 0xA4}; // REP MOVSB, 32-bit address/count
         code = Finish(code);
