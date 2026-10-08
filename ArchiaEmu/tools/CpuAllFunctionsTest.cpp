@@ -4399,6 +4399,37 @@ void TestShldShrd()
     {
         Memory mem;
         mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Write32(mem, DATA, 0x80000001U);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(1, 0x0000000012345678ULL);
+        auto code = std::vector<std::uint8_t>{0x0F, 0xAC, 0x0C, 0x25,
+            static_cast<std::uint8_t>(DATA), static_cast<std::uint8_t>(DATA >> 8),
+            static_cast<std::uint8_t>(DATA >> 16), static_cast<std::uint8_t>(DATA >> 24), 0x04, 0xF4};
+        CHECK("SHRD32 memory absolute form", RunCode(cpu, mem, code) &&
+              Read32(mem, DATA) == 0x88000000U);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t address = DATA + 0x80;
+        Write64(mem, address, 0x0123456789ABCDEFULL);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0xFEDCBA9876543210ULL);
+        cpu.WriteRegister64(1, 4);
+        auto code = std::vector<std::uint8_t>{0x4D, 0x0F, 0xAD, 0x04, 0x25,
+            static_cast<std::uint8_t>(address), static_cast<std::uint8_t>(address >> 8),
+            static_cast<std::uint8_t>(address >> 16), static_cast<std::uint8_t>(address >> 24), 0xF4};
+        CHECK("SHRD64 memory CL form uses REX.W+REX.R", RunCode(cpu, mem, code) &&
+              Read64(mem, address) == 0x00123456789ABCDEULL);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
         mem.Map(STACK, 0x2000);
         Cpu cpu = MakeCpu(mem);
         cpu.SetRflags((1ULL << 4) | (1ULL << 6) | (1ULL << 11)); // AF/ZF/OF
