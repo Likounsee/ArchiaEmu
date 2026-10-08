@@ -2499,6 +2499,112 @@ void TestImul()
     }
 }
 
+void TestMulDiv8()
+{
+    // F6 /4 MUL r/m8: the implicit AX result must contain the full
+    // unsigned product and CF/OF must indicate that AH is non-zero.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0x10);
+        Append(code, MovR64(3, 0x10));
+        Append(code, {0xF6, 0xE3}); // MUL BL
+        code = Finish(code);
+
+        CHECK("MUL8_reg_AX_result",
+              RunCode(cpu, mem, code) &&
+              (cpu.ReadRegister64(0) & 0xFFFFULL) == 0x0100ULL &&
+              (cpu.Rflags() & 1ULL) != 0 &&
+              (cpu.Rflags() & (1ULL << 11)) != 0);
+    }
+
+    // F6 /5 IMUL r/m8: a signed product that fits in AL clears CF/OF.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0xF8); // AL = -8
+        Append(code, MovR64(3, 3));
+        Append(code, {0xF6, 0xEB}); // IMUL BL
+        code = Finish(code);
+
+        CHECK("IMUL8_reg_signed_fit",
+              RunCode(cpu, mem, code) &&
+              (cpu.ReadRegister64(0) & 0xFFFFULL) == 0xFFE8ULL &&
+              (cpu.Rflags() & 1ULL) == 0 &&
+              (cpu.Rflags() & (1ULL << 11)) == 0);
+    }
+
+    // F6 /4 memory form through SIB disp32-only.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        const std::uint8_t value = 0x10;
+        mem.Write(DATA, &value, 1);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0x10);
+        Append(code, {0xF6, 0x24, 0x25,
+                      static_cast<std::uint8_t>(DATA),
+                      static_cast<std::uint8_t>(DATA >> 8),
+                      static_cast<std::uint8_t>(DATA >> 16),
+                      static_cast<std::uint8_t>(DATA >> 24)});
+        code = Finish(code);
+
+        CHECK("MUL8_memory_SIB_disp32",
+              RunCode(cpu, mem, code) &&
+              (cpu.ReadRegister64(0) & 0xFFFFULL) == 0x0100ULL &&
+              (cpu.Rflags() & 1ULL) != 0 &&
+              (cpu.Rflags() & (1ULL << 11)) != 0);
+    }
+
+    // F6 /6 DIV r/m8: AX is the implicit dividend and AL/AH receive
+    // quotient/remainder respectively.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0x0100);
+        Append(code, MovR64(3, 10));
+        Append(code, {0xF6, 0xF3}); // DIV BL
+        code = Finish(code);
+
+        CHECK("DIV8_reg_AX_quotient_remainder",
+              RunCode(cpu, mem, code) &&
+              (cpu.ReadRegister64(0) & 0xFFFFULL) == 0x0619ULL);
+    }
+
+    // F6 /7 IDIV r/m8: signed AX dividend, quotient in AL and remainder in AH.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0xFF9C); // AX = -100
+        Append(code, MovR64(3, 7));
+        Append(code, {0xF6, 0xFB}); // IDIV BL
+        code = Finish(code);
+
+        CHECK("IDIV8_reg_signed_quotient_remainder",
+              RunCode(cpu, mem, code) &&
+              (cpu.ReadRegister64(0) & 0xFFFFULL) == 0xFEF2ULL);
+    }
+}
+
 void TestDivIdiv128()
 {
     Memory mem;
@@ -6347,6 +6453,7 @@ int main()
 {
     TestCpuAudit();
     TestImul();
+    TestMulDiv8();
     TestAdcSbb();
     TestDivIdiv();
     TestDivIdiv128();
