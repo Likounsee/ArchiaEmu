@@ -1040,6 +1040,33 @@ void TestJumps()
     }
 }
 
+    {
+        Memory mem;
+        mem.Map(CODE, 0x4000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        // 0F 85 rel32: JNE over a deliberately long (>127 byte) gap.
+        auto code = MovR64(0, 0);
+        Append(code, MovR64(1, 1));
+        code.insert(code.end(), {0x48, 0x39, 0xC8}); // CMP RAX,RCX -> ZF=0
+        const std::size_t branch = code.size();
+        code.insert(code.end(), {0x0F, 0x85, 0, 0, 0, 0});
+        code.push_back(0xC3);
+        while (code.size() < branch + 6 + 0x100)
+            code.push_back(0x90);
+        const std::int32_t rel =
+            static_cast<std::int32_t>(code.size() - (branch + 6));
+        std::memcpy(code.data() + branch + 2, &rel, sizeof(rel));
+        Append(code, MovR64(0, 0x123456789ABCDEF0ULL));
+        code.push_back(0xC3);
+
+        CHECK("JNE rel32 takes long forward displacement",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x123456789ABCDEF0ULL);
+    }
+
 
 void TestJccBoundaryConditions()
 {
