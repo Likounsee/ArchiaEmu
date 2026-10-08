@@ -3686,6 +3686,8 @@ static bool TestMovExtendExtendedForms() {
     if (!Run(m, cpu, code)) return false;
     if (cpu.ReadRegister64(9) != 0x00000000FFFFFF80ULL) return false;
     if (cpu.ReadRegister64(10) != 0x0000000000007F01ULL) return false;
+    if (cpu.ReadRegister64(8) != 0x00000000000000FEULL) return false;
+
     // MOVSX R9,byte [R11+R12*4-1] exercises sign extension with a negative SIB displacement.
     {
         Memory m; m.Map(0x1000,0x4000); Cpu c; c.ConnectMemory(&m);
@@ -3696,7 +3698,6 @@ static bool TestMovExtendExtendedForms() {
         bytes.insert(bytes.end(),{0x4D,0x0F,0xBE,0x4B,0xFC}); // MOVSX R9B source,[R11-4]
         if(!Run(m,c,bytes) || c.ReadRegister64(9)!=0xFFFFFFFFFFFFFF80ULL) return false;
     }
-    return cpu.ReadRegister64(8) == 0x00000000000000FEULL;
     // MOVZX R10D,byte [R11-4] must zero-extend into the 64-bit register.
     {
         Memory m; m.Map(0x1000,0x4000); Cpu c; c.ConnectMemory(&m);
@@ -3707,6 +3708,7 @@ static bool TestMovExtendExtendedForms() {
         bytes.insert(bytes.end(),{0x45,0x0F,0xB6,0x53,0xFC}); // MOVZX R10D,[R11-4]
         if(!Run(m,c,bytes) || c.ReadRegister64(10)!=0xFEULL) return false;
     }
+    return true;
 }
 
 
