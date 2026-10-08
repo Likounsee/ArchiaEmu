@@ -7912,7 +7912,7 @@ void TestPrimaryOpcodeCoverageGaps()
             "67h indirect CALL uses 32-bit effective address",
             RunCode(cpu, mem, code) &&
             cpu.ReadRegister64(1) == 0xDEADBEEFULL &&
-            cpu.Rsp() == STACK + 0x2000);
+            cpu.Rsp() == STACK + 0x1000);
     }
 
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
