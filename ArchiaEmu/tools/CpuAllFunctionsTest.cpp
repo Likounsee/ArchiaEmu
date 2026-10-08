@@ -2814,7 +2814,7 @@ void TestDivIdiv()
         code = Finish(code);
         CHECK("IDIV16_MIN_VALUE", RunCode(cpu, mem, code) &&
               (cpu.Rax() & 0xFFFFULL) == 0x8000ULL &&
-              (cpu.Rdx() & 0xFFFFULL) == 0);
+              (cpu.ReadRegister64(2) & 0xFFFFULL) == 0);
     }
 
     // =========================================================
