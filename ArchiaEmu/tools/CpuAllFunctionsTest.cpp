@@ -2615,6 +2615,41 @@ void TestAdcSbb()
     }
 
 }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        constexpr std::uint64_t base = DATA + 0x280;
+        constexpr std::uint64_t index = 2;
+        constexpr std::uint64_t displacement = 0x20;
+        const std::uint64_t address = base + index * 4 + displacement;
+        const std::uint16_t initial = 0x7FFFU;
+        mem.Write(
+            address,
+            reinterpret_cast<const std::uint8_t*>(&initial),
+            sizeof(initial));
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(8, 1);
+        cpu.SetRflags(0);
+
+        // 66 47 11 44 8D 20: ADC WORD PTR [R13+R9*4+20h],R8W.
+        // 66 selects 16-bit operands; REX.R/X/B selects R8/R9/R13.
+        const std::vector<std::uint8_t> code = {
+            0x66, 0x47, 0x11, 0x44, 0x8D, 0x20, 0xF4
+        };
+
+        CHECK(
+            "ADC16 memory REX.RXB SIB disp8",
+            RunCode(cpu, mem, code) &&
+            Read16(mem, address) == 0x8000U &&
+            (cpu.Rflags() & (1ULL << 11)) != 0);
+    }
+
 
 void TestImul()
 {
