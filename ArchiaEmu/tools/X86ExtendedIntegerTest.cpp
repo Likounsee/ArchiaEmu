@@ -820,6 +820,66 @@ static bool TestIncDecMemoryAndCmpWidths() {
            cpu.ReadRegister64(3)==0x2222000000000001ULL;
 }
 
+static bool TestIncDecMemoryFlags() {
+    const std::uint64_t CF = 1ULL;
+    const std::uint64_t OF = 1ULL << 11;
+    const std::uint64_t ZF = 1ULL << 6;
+    const std::uint64_t SF = 1ULL << 7;
+
+    // INC must update arithmetic flags but preserve an incoming carry flag.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value = 0x7FFFFFFFFFFFFFFFULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        AppendMovR64;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        cpu.SetRflags(CF);
+        code.insert(code.end(),{0x48,0xFF,0x07}); // INC QWORD PTR [RDI]
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) ||
+           out!=0x8000000000000000ULL) return false;
+        const auto f=cpu.Rflags();
+        if((f&CF)==0 || (f&OF)==0 || (f&ZF)!=0 || (f&SF)==0) return false;
+    }
+
+    // DEC 32-bit memory must zero-extend through the architectural EDX-style
+    // write semantics while also preserving CF.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t value = 0x80000000U;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        cpu.SetRflags(CF);
+        code.insert(code.end(),{0xFF,0x0F}); // DEC DWORD PTR [RDI]
+        if(!Run(m,cpu,code)) return false;
+        std::uint32_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0x7FFFFFFFU) return false;
+        const auto f=cpu.Rflags();
+        if((f&CF)==0 || (f&OF)==0 || (f&ZF)!=0 || (f&SF)!=0) return false;
+    }
+
+    // INC 16-bit memory at -1 wraps to zero and still leaves CF untouched.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t value = 0xFFFFU;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        cpu.SetRflags(CF|OF|SF);
+        code.insert(code.end(),{0x66,0xFF,0x07}); // INC WORD PTR [RDI]
+        if(!Run(m,cpu,code)) return false;
+        std::uint16_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0) return false;
+        const auto f=cpu.Rflags();
+        if((f&CF)==0 || (f&ZF)==0 || (f&SF)!=0 || (f&OF)!=0) return false;
+    }
+
+    return true;
+}
+
 static bool TestImulForms() {
     Memory memory; memory.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code;
@@ -4015,6 +4075,7 @@ int main() {
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
     if (!TestAdcSbbImmediateAndWidths()) { std::cerr << "ADC/SBB immediate and widths failed\n"; return 8; }
     if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
+    if (!TestIncDecMemoryFlags()) { std::cerr << "INC/DEC memory flags failed\n"; return 67; }
     if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }
     if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }
     if (!TestImulImmediateMemoryForms()) { std::cerr << "IMUL immediate memory forms failed\n"; return 65; }
