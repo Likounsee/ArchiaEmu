@@ -6300,6 +6300,7 @@ int main()
     TestCmpEaxImmediate();
     TestGroupF7Memory();
     TestImulMemory();
+    TestImulMemoryWidths();
     TestSyscallPS5Fallback();
 
     TestRotate();
