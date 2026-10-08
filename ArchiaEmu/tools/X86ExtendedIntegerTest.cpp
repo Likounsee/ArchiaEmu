@@ -2215,6 +2215,43 @@ static bool TestRotate32ZeroCount() {
     return cpu.Rflags()==(1ULL | (1ULL<<11) | (1ULL<<6));
 }
 
+static bool TestRotateThroughCarryWidths() {
+    const std::uint64_t CF = 1ULL;
+    const std::uint64_t OF = 1ULL << 11;
+
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code={0x66,0xB8,0x00,0x80,0x66,0xD1,0xD0}; // RCL AX,1
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=1U) return false;
+        return (cpu.Rflags()&(CF|OF))==CF;
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code={0xB8,0x01,0x00,0x00,0x00,0xD1,0xD8}; // RCR EAX,1
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=0x80000000U) return false;
+        return (cpu.Rflags()&(CF|OF))==(CF|OF);
+    }
+
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000000ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0xD1,0x17}); // RCL qword [RDI],1
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=1ULL) return false;
+        return (cpu.Rflags()&(CF|OF))==CF;
+    }
+
+    return true;
+}
+
 static bool TestRotate64ZeroCount() {
     Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
     cpu.SetRflags(1ULL | (1ULL<<11) | (1ULL<<6));
