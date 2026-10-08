@@ -793,6 +793,29 @@ void TestPushPopRmForms()
     }
 }
 
+
+void TestPushPopRex16()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(STACK, 0x2000);
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(8, 0x1122334455667788ULL);
+
+    const std::vector<std::uint8_t> code = {
+        0x66, 0x41, 0x50, // PUSH R8W
+        0x66, 0x41, 0x59, // POP R9W
+        0xF4
+    };
+
+    CHECK(
+        "66h PUSH R8W / POP R9W uses extended registers",
+        RunCode(cpu, mem, code) &&
+        cpu.ReadRegister64(8) == 0x1122334455667788ULL &&
+        cpu.ReadRegister64(9) == 0x7788ULL &&
+        cpu.Rsp() == STACK + 0x1000);
+}
+
 void TestPushPopRexAndOperandWidths()
 {
     {
@@ -7151,6 +7174,7 @@ int main()
     TestPushImmediate();
     TestPushImmediate32();
     TestPushPopRexAndOperandWidths();
+    TestPushPopRex16();
     TestPushPopRmForms();
     TestCallRet();
 
