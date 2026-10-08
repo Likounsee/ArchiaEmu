@@ -359,6 +359,57 @@ static bool TestNegWidths() {
     return true;
 }
 
+static bool TestNegMemoryFlags() {
+    const std::uint64_t CF = 1ULL;
+    const std::uint64_t OF = 1ULL << 11;
+    const std::uint64_t ZF = 1ULL << 6;
+    const std::uint64_t SF = 1ULL << 7;
+
+    // NEG qword [mem]: nonzero input sets CF and produces -1.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=1;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x48,0xF7,0x1F}); // NEG QWORD PTR [RDI]
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0xFFFFFFFFFFFFFFFFULL) return false;
+        const auto f=cpu.Rflags();
+        if((f&CF)==0 || (f&ZF)!=0 || (f&SF)==0 || (f&OF)!=0) return false;
+    }
+
+    // NEG dword [mem]: signed minimum is the unique overflow case.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t value=0x80000000U;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0xF7,0x1F}); // NEG DWORD PTR [RDI]
+        if(!Run(m,cpu,code)) return false;
+        std::uint32_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0x80000000U) return false;
+        const auto f=cpu.Rflags();
+        if((f&(CF|OF|SF))!=(CF|OF|SF) || (f&ZF)!=0) return false;
+    }
+
+    // NEG word [mem]: zero input clears CF and sets ZF.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t value=0;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1800);
+        code.insert(code.end(),{0x66,0xF7,0x1F}); // NEG WORD PTR [RDI]
+        if(!Run(m,cpu,code)) return false;
+        std::uint16_t out=1;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0) return false;
+        const auto f=cpu.Rflags();
+        if((f&CF)!=0 || (f&ZF)==0 || (f&SF)!=0 || (f&OF)!=0) return false;
+    }
+
+    return true;
+}
+
 static bool TestIncDecByte() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory);
     cpu.SetRflags(cpu.Rflags()|1ULL);
@@ -4075,6 +4126,7 @@ int main() {
     if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
     if (!TestIncDecMemoryFlags()) { std::cerr << "INC/DEC memory flags failed\n"; return 67; }
     if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }
+    if (!TestNegMemoryFlags()) { std::cerr << "NEG memory flags failed\n"; return 68; }
     if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }
     if (!TestImulImmediateMemoryForms()) { std::cerr << "IMUL immediate memory forms failed\n"; return 65; }
     if (!TestImulImmediateExtendedRegisters()) { std::cerr << "IMUL immediate extended registers failed\n"; return 66; }
