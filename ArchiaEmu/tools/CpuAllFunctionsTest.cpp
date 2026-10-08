@@ -4420,7 +4420,7 @@ void TestShldShrd()
         Cpu cpu = MakeCpu(mem);
         cpu.WriteRegister64(8, 0xFEDCBA9876543210ULL);
         cpu.WriteRegister64(1, 4);
-        auto code = std::vector<std::uint8_t>{0x4D, 0x0F, 0xAD, 0x04, 0x25,
+        auto code = std::vector<std::uint8_t>{0x4C, 0x0F, 0xAD, 0x04, 0x25,
             static_cast<std::uint8_t>(address), static_cast<std::uint8_t>(address >> 8),
             static_cast<std::uint8_t>(address >> 16), static_cast<std::uint8_t>(address >> 24), 0xF4};
         CHECK("SHRD64 memory CL form uses REX.W+REX.R", RunCode(cpu, mem, code) &&
