@@ -3778,6 +3778,44 @@ void TestHlt()
 }
 
 // ============== SETcc ==============
+void TestSetccAllConditions()
+{
+    struct Case { const char* name; std::uint8_t opcode; std::uint64_t flags; };
+    const std::uint64_t CF = 1ULL, ZF = 1ULL << 6, SF = 1ULL << 7;
+    const std::uint64_t PF = 1ULL << 2, OF = 1ULL << 11;
+    const Case cases[] = {
+        {"SETO", 0x90, OF}, {"SETNO", 0x91, 0}, {"SETB", 0x92, CF},
+        {"SETAE", 0x93, 0}, {"SETE", 0x94, ZF}, {"SETNE", 0x95, 0},
+        {"SETBE", 0x96, CF | ZF}, {"SETA", 0x97, 0},
+        {"SETS", 0x98, SF}, {"SETNS", 0x99, 0}, {"SETP", 0x9A, PF},
+        {"SETNP", 0x9B, 0}, {"SETL", 0x9C, SF}, {"SETGE", 0x9D, SF},
+        {"SETLE", 0x9E, ZF}, {"SETG", 0x9F, 0}
+    };
+
+    for (const auto& c : cases) {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(c.flags);
+        const std::uint64_t before = cpu.Rflags();
+        std::vector<std::uint8_t> code = {0x0F, c.opcode, 0xC0, 0xF4}; // SETcc AL
+        const bool ran = RunCode(cpu, mem, code);
+        CHECK(c.name, ran && (cpu.Rax() & 0xFFULL) == 1 && cpu.Rflags() == before);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(ZF);
+        const std::vector<std::uint8_t> code = {0x41, 0x0F, 0x94, 0xC0, 0xF4};
+        CHECK("SETE R8B with REX.B", RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 1 && cpu.Rflags() == ZF);
+    }
+}
+
 void TestSetcc()
 {
     {
@@ -5704,6 +5742,7 @@ int main()
 
     TestLea32();
     TestHlt();
+    TestSetccAllConditions();
     TestSetcc();
     TestCmovccCoverage();
     TestBitTestFamily();
