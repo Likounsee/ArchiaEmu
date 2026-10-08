@@ -4023,6 +4023,29 @@ static bool TestHighByteRegisterAliases() {
         return cpu.ReadRegister64(8) == 0x0000000000000080ULL;
     }
 
+    // The remaining legacy high-byte aliases CH/DH/BH must decode distinctly.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,1,0x1122334455667788ULL); // CH=0x77
+        code.insert(code.end(),{0x0F,0xB6,0xC5}); // MOVZX EAX,CH
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x77ULL) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,2,0x1122334455667788ULL); // DH=0x77
+        code.insert(code.end(),{0x0F,0xB6,0xC6}); // MOVZX EAX,DH
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x77ULL) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,3,0x1122334455667788ULL); // BH=0x77
+        code.insert(code.end(),{0x0F,0xB6,0xC7}); // MOVZX EAX,BH
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x77ULL) return false;
+    }
+
     return true;
 }
 
