@@ -3204,6 +3204,29 @@ void TestDivIdiv()
               (cpu.ReadRegister64(2) & 0xFFFFULL) == 0);
     }
 
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x0000000000000064ULL);
+        Append(code, MovR64(2, 0));
+        Append(code, MovR64(3, 7));
+        code.insert(code.end(), {0x66, 0xF7, 0xF3}); // DIV BX: 100 / 7
+        code = Finish(code);
+        CHECK("DIV16 quotient and remainder", RunCode(cpu, mem, code) &&
+              (cpu.Rax() & 0xFFFFULL) == 14 &&
+              (cpu.ReadRegister64(2) & 0xFFFFULL) == 2);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x0000000000008000ULL);
+        Append(code, MovR64(2, 0x000000000000FFFFULL));
+        Append(code, MovR64(3, 0x000000000000FFFFULL));
+        code.insert(code.end(), {0x66, 0xF7, 0xFB}); // IDIV BX: -32768 / -1 = +32768, overflow
+        code = Finish(code);
+        CHECK("IDIV16 minimum divided by minus one overflows", !RunCode(cpu, mem, code));
+    }
+
     // =========================================================
     // DIV64 division par zero
     // =========================================================
