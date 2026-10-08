@@ -456,6 +456,27 @@ void TestCmp()
         "CMP64 ZF",
         RunCode(cpu, mem, code) &&
         (cpu.Rflags() & (1ULL << 6)) != 0);
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t base = DATA + 0x300;
+        const std::uint64_t index = 5;
+        const std::uint64_t address = base + index * 4 + 0x20;
+        Write64(mem, address, 0x123456789ABCDEF0ULL);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0x123456789ABCDEF0ULL);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        // 4F 3B 44 8D 20: CMP R8,[R13+R9*4+disp8].
+        const std::vector<std::uint8_t> code = {
+            0x4F, 0x3B, 0x44, 0x8D, 0x20, 0xF4
+        };
+        CHECK("CMP64 REX.RXB SIB disp8 memory form",
+              RunCode(cpu, mem, code) &&
+              (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
 }
 
 void TestLogic64()
