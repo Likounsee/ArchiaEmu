@@ -4130,6 +4130,20 @@ static bool TestCmpxchgExtendedMemoryForms() {
                cpu.Rax() == value &&
                (cpu.Rflags() & (1ULL << 6)) == 0;
     }
+    {
+        // Failed compare using REX.R/X/B and negative SIB displacement.
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x1122334455667788ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1808); AppendMovR64(code,12,2);
+        AppendMovR64(code,0,0xCAFEBABEDEADBEEFULL); AppendMovR64(code,9,0xAABBCCDDEEFF0011ULL);
+        code.insert(code.end(),{0x4F,0x0F,0xB1,0x4C,0xA3,0xF8});
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
+        return out==value && cpu.Rax()==value && (cpu.Rflags()&(1ULL<<6))==0;
+    }
 
     return true;
 }
