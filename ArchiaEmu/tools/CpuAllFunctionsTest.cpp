@@ -2808,9 +2808,7 @@ void TestDivIdiv128()
         CHECK(
             "IDIV64_128_OVERFLOW",
             !RunCode(cpu, mem, code));
-    }
-}
-    // IDIV64 boundary: INT64_MIN / -1 is the architectural quotient overflow case.
+    }    // IDIV64 boundary: INT64_MIN / -1 is the architectural quotient overflow case.
     {
         Memory mem;
         mem.Map(CODE, 0x2000);
@@ -2827,6 +2825,8 @@ void TestDivIdiv128()
         CHECK("IDIV64 INT64_MIN divided by -1 overflows",
               !RunCode(cpu, mem, code));
     }
+
+}
 
 void TestDivIdiv()
 {
