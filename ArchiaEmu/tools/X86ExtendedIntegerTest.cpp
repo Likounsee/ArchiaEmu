@@ -4380,6 +4380,7 @@ int main() {
     if (!TestGroup1ExtendedAddressing()) { std::cerr << "Group1 extended addressing failed\n"; return 21; }
     if (!TestGroup1ExtendedAllWidths()) { std::cerr << "Group1 extended all widths failed\n"; return 22; }
     if (!TestGroup1ByteFlags()) { std::cerr << "Group1 byte flags failed\n"; return 70; }
+    if (!TestGroup1ByteMemoryCarryBorrowFlags()) { std::cerr << "Group1 byte memory carry/borrow flags failed\n"; return 73; }
     if (!TestGroup1QwordImmediateMemory()) { std::cerr << "Group1 qword immediate memory failed\n"; return 37; }
     if (!TestTestRmRegForms()) { std::cerr << "TEST r/m,r forms failed\n"; return 38; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
