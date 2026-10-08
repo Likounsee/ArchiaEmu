@@ -4719,6 +4719,38 @@ void TestCmpxchgVariants()
     }
 }
 
+
+void TestCmpxchgMemoryRexSib()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(DATA, 0x2000);
+    mem.Map(STACK, 0x2000);
+
+    constexpr std::uint64_t base = DATA + 0x240;
+    constexpr std::uint64_t index = 3;
+    constexpr std::uint64_t displacement = 0x20;
+    const std::uint64_t address = base + index * 4 + displacement;
+    Write64(mem, address, 0x1111222233334444ULL);
+
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(13, base);
+    cpu.WriteRegister64(9, index);
+    cpu.WriteRegister64(0, 0x1111222233334444ULL);
+    cpu.WriteRegister64(8, 0xAAAABBBBCCCCDDDDULL);
+
+    const std::vector<std::uint8_t> code = {
+        0x4F, 0x0F, 0xB1, 0x44, 0x8D, 0x20, 0xF4
+    }; // CMPXCHG [R13+R9*4+disp8],R8; REX.WRXB
+
+    CHECK(
+        "CMPXCHG64 memory REX.WRXB SIB disp8 success",
+        RunCode(cpu, mem, code) &&
+        Read64(mem, address) == 0xAAAABBBBCCCCDDDDULL &&
+        cpu.ReadRegister64(0) == 0x1111222233334444ULL &&
+        (cpu.Rflags() & (1ULL << 6)) != 0);
+}
+
 void TestSetccAllConditions()
 {
     struct Case { const char* name; std::uint8_t opcode; std::uint64_t flags; };
@@ -6995,6 +7027,7 @@ int main()
     TestSetccMemory();
     TestCmpxchgMemory16();
     TestCmpxchgVariants();
+    TestCmpxchgMemoryRexSib();
     TestSetccAllConditions();
     TestSetcc();
     TestCmovccCoverage();
