@@ -2543,14 +2543,13 @@ static bool TestRotateThroughCarryCountReduction() {
         cpu.SetRflags(CF|OF);
         std::vector<std::uint8_t> code={0x66,0xB8,0x34,0x12,0xB1,0x11,0x66,0xD3,0xD0}; // RCL AX,CL (17)
         if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x1234U) return false;
-        if(cpu.Rflags()!=(CF|OF)) return false;
+        if(cpu.Rflags()!=(CF|OF)) { std::cerr << "RTC16 count17: AX=0x" << std::hex << (cpu.Rax()&0xFFFFU) << " flags=0x" << cpu.Rflags() << "\\n"; return false; }
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(CF);
         std::vector<std::uint8_t> code={0x66,0xB8,0x00,0x40,0xB1,0x02,0x66,0xD3,0xD0}; // RCL AX,CL (2)
-        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x0002U) return false;
-        if((cpu.Rflags()&CF)==0) return false;
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x0002U || (cpu.Rflags()&CF)==0) { std::cerr << "RTC16 count2: AX=0x" << std::hex << (cpu.Rax()&0xFFFFU) << " flags=0x" << cpu.Rflags() << "\\n"; return false; }
     }
 
     // 32-bit RCR through CF, using CL rather than the implicit count of one.
@@ -2558,8 +2557,7 @@ static bool TestRotateThroughCarryCountReduction() {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(CF);
         std::vector<std::uint8_t> code={0xB8,0x01,0x00,0x00,0x00,0xB1,0x02,0xD3,0xD8}; // RCR EAX,CL (2)
-        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=0xE0000000U) return false;
-        if((cpu.Rflags()&CF)!=0) return false;
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=0xE0000000U || (cpu.Rflags()&CF)!=0) { std::cerr << "RTC32 RCR: EAX=0x" << std::hex << static_cast<std::uint32_t>(cpu.Rax()) << " flags=0x" << cpu.Rflags() << "\\n"; return false; }
     }
 
     // 64-bit RCL through CF with a CL count of two.
@@ -2570,8 +2568,7 @@ static bool TestRotateThroughCarryCountReduction() {
         AppendMovR64(code,0,1);
         code.push_back(0xB1); code.push_back(0x02);
         code.insert(code.end(),{0x48,0xD3,0xD0}); // RCL RAX,CL
-        if(!Run(m,cpu,code) || cpu.Rax()!=6ULL) return false;
-        if((cpu.Rflags()&CF)!=0) return false;
+        if(!Run(m,cpu,code) || cpu.Rax()!=6ULL || (cpu.Rflags()&CF)!=0) { std::cerr << "RTC64 RCL: RAX=0x" << std::hex << cpu.Rax() << " flags=0x" << cpu.Rflags() << "\\n"; return false; }
     }
 
     return true;
