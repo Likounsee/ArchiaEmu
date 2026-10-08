@@ -3837,7 +3837,7 @@ void TestCmpxchgVariants()
         };
         CHECK("CMPXCHG64 equal register leaves destination and sets ZF",
               RunCode(cpu, mem, code) &&
-              cpu.ReadRegister64(0) == 0x1111 &&
+              cpu.ReadRegister64(0) == 0x2222 &&
               cpu.ReadRegister64(1) == 0x2222 &&
               (cpu.Rflags() & (1ULL << 6)) != 0);
     }
@@ -3887,10 +3887,10 @@ void TestCmpxchgVariants()
         Write64(mem, address, value);
         Cpu cpu = MakeCpu(mem);
         cpu.WriteRegister64(0, 0xAABBCCDDEEFF0011ULL);
-        cpu.WriteRegister64(1, 0x99);
+        cpu.WriteRegister64(9, 0x99);
+        cpu.WriteRegister64(12, DATA + 0x100);
         const std::vector<std::uint8_t> code = {
-            0x48, 0x0F, 0xB1, 0x0D,
-            0xF7, 0x00, 0x00, 0x00, // CMPXCHG [RIP+0xF7],RCX
+            0x4F, 0x0F, 0xB1, 0x4C, 0x24, 0x00, // CMPXCHG [R12],R9
             0xF4
         };
         CHECK("CMPXCHG64 memory mismatch updates accumulator",
@@ -3906,7 +3906,7 @@ void TestCmpxchgVariants()
         cpu.WriteRegister64(8, 0x000000000000007F);
         cpu.WriteRegister64(9, 0x00000000000000A5);
         const std::vector<std::uint8_t> code = {
-            0x45, 0x0F, 0xB0, 0xC8, // CMPXCHG R8B,R9B
+            0x4D, 0x0F, 0xB0, 0xC8, // CMPXCHG R8B,R9B
             0xF4
         };
         CHECK("CMPXCHG8 REX.BR uses R8B/R9B",
