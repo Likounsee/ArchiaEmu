@@ -7724,18 +7724,18 @@ void TestPrimaryOpcodeCoverageGaps()
         cpu.WriteRegister64(1, 0x0000000300000002ULL);
         std::vector<std::uint8_t> code = {0x67, 0xF3, 0xA4}; // REP MOVSB, 32-bit address/count
         code = Finish(code);
+        const bool runOk = RunCode(cpu, mem, code);
         CHECK(
             "67h REP MOVSB uses ESI/EDI/ECX",
-            RunCode(cpu, mem, code) &&
-            mem.Read(DATA + 0x100, const_cast<std::uint8_t*>(src), 0) &&
+            runOk &&
             cpu.ReadRegister64(6) == DATA + 2 &&
             cpu.ReadRegister64(7) == DATA + 0x102 &&
             cpu.ReadRegister64(1) == 0);
         std::uint8_t out[2] = {};
+        const bool copied = mem.Read(DATA + 0x100, out, sizeof(out));
         CHECK(
             "67h REP MOVSB copied bytes at the 32-bit destination",
-            mem.Read(DATA + 0x100, out, sizeof(out)) &&
-            out[0] == 0x11 && out[1] == 0x22);
+            copied && out[0] == 0x11 && out[1] == 0x22);
     }
 
 
