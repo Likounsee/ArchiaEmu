@@ -7710,6 +7710,36 @@ void TestBitTestFamily()
 void TestPrimaryOpcodeCoverageGaps()
 {
 
+    // 67h string address size uses ESI/EDI and ECX, not the high halves.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint8_t src[2] = {0x11, 0x22};
+        if (!mem.Write(DATA, src, sizeof(src))) return;
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(6, 0x0000000100000000ULL | DATA);
+        cpu.WriteRegister64(7, 0x0000000200000100ULL);
+        cpu.WriteRegister64(1, 0x0000000300000002ULL);
+        std::vector<std::uint8_t> code = {0x67, 0xF3, 0xA4}; // REP MOVSB, 32-bit address/count
+        code = Finish(code);
+        CHECK(
+            "67h REP MOVSB uses ESI/EDI/ECX",
+            RunCode(cpu, mem, code) &&
+            mem.Read(DATA + 0x100, const_cast<std::uint8_t*>(src), 0) &&
+            cpu.ReadRegister64(6) == DATA + 2 &&
+            cpu.ReadRegister64(7) == DATA + 0x102 &&
+            cpu.ReadRegister64(1) == 0);
+        std::uint8_t out[2] = {};
+        CHECK(
+            "67h REP MOVSB copied bytes at the 32-bit destination",
+            mem.Read(DATA + 0x100, out, sizeof(out)) &&
+            out[0] == 0x11 && out[1] == 0x22);
+    }
+
+
+
     // 0xAE: REP(E) SCASB must compare AL byte-by-byte and stop on mismatch.
     {
         Memory mem;
