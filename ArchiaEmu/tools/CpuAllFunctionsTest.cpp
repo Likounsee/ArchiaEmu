@@ -3868,6 +3868,25 @@ void TestHlt()
 }
 
 // ============== SETcc ==============
+void TestCallIndirectMemoryRex()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(STACK, 0x2000);
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(13, CODE + 16);
+    const std::vector<std::uint8_t> code = {
+        0x41, 0xFF, 0x55, 0x00, // CALL QWORD PTR [R13]
+        0xF4,                    // return here
+        0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,
+        0x48, 0xB8, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV RAX,42
+        0xC3                     // RET
+    };
+    CHECK("CALL r/m64 memory with REX.B reaches target and RET returns",
+          RunCode(cpu, mem, code) && cpu.Rax() == 0x42ULL &&
+          cpu.Rsp() == STACK + 0x1000);
+}
+
 void TestPushPopMemory16()
 {
     Memory mem;
@@ -6086,6 +6105,7 @@ int main()
 
     TestLea32();
     TestHlt();
+    TestCallIndirectMemoryRex();
     TestPushPopMemory16();
     TestRotateRexAndOperandWidths();
     TestMovxByteRexAndHighByteRules();
