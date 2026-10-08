@@ -821,7 +821,7 @@ void TestGroup1RexExtended()
         {"OR R8,1",   0xC8, 0x01, 0x10, 0x11},
         {"AND R8,15", 0xE0, 0x0F, 0x1F, 0x0F},
         {"SUB R8,1",  0xE8, 0x01, 2, 1},
-        {"XOR R8,255",0xF0, 0xFF, 0xAA, 0x55}
+        {"XOR R8,255",0xF0, 0xFF, 0xAA, 0xFFFFFFFFFFFFFF55ULL}
     };
     for (const auto& c : cases) {
         Memory mem;
