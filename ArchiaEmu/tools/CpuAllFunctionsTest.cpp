@@ -4472,6 +4472,36 @@ void TestRotateRexAndOperandWidths()
     }
 }
 
+
+void TestRotate64MemoryRexSib()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(DATA, 0x2000);
+    mem.Map(STACK, 0x2000);
+
+    constexpr std::uint64_t base = DATA + 0x300;
+    constexpr std::uint64_t index = 3;
+    constexpr std::uint64_t displacement = 0x20;
+    const std::uint64_t address = base + index * 4 + displacement;
+    Write64(mem, address, 1);
+
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(13, base);
+    cpu.WriteRegister64(9, index);
+
+    const std::vector<std::uint8_t> code = {
+        0x4F, 0xD1, 0x4C, 0x8D, 0x20, 0xF4
+    }; // ROR qword [R13+R9*4+disp8],1; REX.WRXB
+
+    CHECK(
+        "ROR64 memory REX.WRXB SIB disp8",
+        RunCode(cpu, mem, code) &&
+        Read64(mem, address) == 0x8000000000000000ULL &&
+        (cpu.Rflags() & 1ULL) != 0 &&
+        (cpu.Rflags() & (1ULL << 11)) != 0);
+}
+
 void TestMovxByteRexAndHighByteRules()
 {
     {
@@ -7055,6 +7085,7 @@ int main()
     TestHlt();
     TestPushPopMemory16();
     TestRotateRexAndOperandWidths();
+    TestRotate64MemoryRexSib();
     TestMovxByteRexAndHighByteRules();
     TestCmpxchgOperandWidths();
     TestSetccMemory();
