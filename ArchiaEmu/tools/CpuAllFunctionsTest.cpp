@@ -7742,6 +7742,64 @@ void TestPrimaryOpcodeCoverageGaps()
             cpu.ReadRegister64(1) == 0);
     }
 
+
+    // 66h changes INS/OUTS word width; DF reverses the EDI/ESI progression.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(2, 0x0044);
+        cpu.WriteRegister64(7, DATA + 0x204);
+        cpu.WriteRegister64(1, 2);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 10)); // DF=1
+        std::uint32_t readIndex = 0;
+        std::vector<std::uint16_t> writes;
+        cpu.SetIoHandlers(
+            [&](Cpu&, std::uint16_t port, std::uint8_t width) -> std::uint32_t {
+                if (port != 0x44 || width != 2) return 0;
+                return readIndex++ == 0 ? 0x1122U : 0x3344U;
+            },
+            [&](Cpu&, std::uint16_t port, std::uint32_t value, std::uint8_t width) -> bool {
+                if (port != 0x44 || width != 2) return false;
+                writes.push_back(static_cast<std::uint16_t>(value));
+                return true;
+            });
+
+        std::vector<std::uint8_t> inCode = {0xF3, 0x66, 0x6D};
+        inCode = Finish(inCode);
+        const bool inOk = RunCode(cpu, mem, inCode);
+        std::uint16_t in0 = 0, in1 = 0;
+        const bool inMemOk =
+            mem.Read(DATA + 0x204, reinterpret_cast<std::uint8_t*>(&in0), 2) &&
+            mem.Read(DATA + 0x202, reinterpret_cast<std::uint8_t*>(&in1), 2);
+        CHECK(
+            "66h REP INSW honors DF and 16-bit width",
+            inOk && inMemOk &&
+            in0 == 0x1122U && in1 == 0x3344U &&
+            cpu.ReadRegister64(7) == DATA + 0x200 &&
+            cpu.ReadRegister64(1) == 0);
+
+        cpu.SetInstructionPointer(CODE);
+        cpu.WriteRegister64(6, DATA + 0x304);
+        cpu.WriteRegister64(1, 2);
+        writes.clear();
+        const std::uint16_t out0 = 0x5566U;
+        const std::uint16_t out1 = 0x7788U;
+        mem.Write(DATA + 0x304, reinterpret_cast<const std::uint8_t*>(&out0), 2);
+        mem.Write(DATA + 0x302, reinterpret_cast<const std::uint8_t*>(&out1), 2);
+        std::vector<std::uint8_t> outCode = {0xF3, 0x66, 0x6F};
+        outCode = Finish(outCode);
+        CHECK(
+            "66h REP OUTSW honors DF and 16-bit width",
+            RunCode(cpu, mem, outCode) &&
+            writes.size() == 2 &&
+            writes[0] == 0x5566U && writes[1] == 0x7788U &&
+            cpu.ReadRegister64(6) == DATA + 0x300 &&
+            cpu.ReadRegister64(1) == 0);
+    }
+
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
     {
         Memory mem;
