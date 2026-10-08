@@ -3868,6 +3868,43 @@ void TestHlt()
 }
 
 // ============== SETcc ==============
+void TestMovxByteRexAndHighByteRules()
+{
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0xFFFFFFFFFFFFFF80ULL);
+        const std::vector<std::uint8_t> code = {0x49, 0x0F, 0xB6, 0xC0, 0xF4}; // MOVZX RAX,R8B
+        CHECK("MOVZX RAX,R8B uses REX.B and zero extends",
+              RunCode(cpu, mem, code) && cpu.Rax() == 0x80ULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0x0000000000000080ULL);
+        const std::vector<std::uint8_t> code = {0x4D, 0x0F, 0xBE, 0xC8, 0xF4}; // MOVSX R9,R8B
+        CHECK("MOVSX R9,R8B uses REX.WRB and sign extends",
+              RunCode(cpu, mem, code) && cpu.ReadRegister64(9) == 0xFFFFFFFFFFFFFF80ULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x112233445566AA00ULL);
+        const std::vector<std::uint8_t> code = {0x0F, 0xB6, 0xC4, 0xF4}; // MOVZX EAX,AH
+        CHECK("MOVZX EAX,AH accesses legacy high byte without REX",
+              RunCode(cpu, mem, code) && cpu.Rax() == 0xAAULL);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x112233445566AA00ULL);
+        cpu.WriteRegister64(4, 0x0000000000000077ULL);
+        const std::vector<std::uint8_t> code = {0x40, 0x0F, 0xB6, 0xC4, 0xF4}; // MOVZX EAX,SPL
+        CHECK("REX makes byte register 4 SPL instead of AH",
+              RunCode(cpu, mem, code) && cpu.Rax() == 0x77ULL);
+    }
+}
+
 void TestCmpxchgOperandWidths()
 {
     {
@@ -5990,6 +6027,7 @@ int main()
 
     TestLea32();
     TestHlt();
+    TestMovxByteRexAndHighByteRules();
     TestCmpxchgOperandWidths();
     TestSetccMemory();
     TestCmpxchgVariants();
