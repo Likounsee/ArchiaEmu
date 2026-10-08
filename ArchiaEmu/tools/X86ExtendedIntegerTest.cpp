@@ -3667,7 +3667,7 @@ static bool TestMovExtendExtendedForms() {
         if(!m.Write(0x1800,&value,1)) return false;
         std::vector<std::uint8_t> bytes;
         AppendMovR64(bytes,11,0x1804); AppendMovR64(bytes,12,0);
-        bytes.insert(bytes.end(),{0x4F,0x48,0x0F,0xBE,0x4B,0xFC}); // MOVSX R9,[R11-4]
+        bytes.insert(bytes.end(),{0x4D,0x0F,0xBE,0x4B,0xFC}); // MOVSX R9B source,[R11-4]
         if(!Run(m,c,bytes) || c.ReadRegister64(9)!=0xFFFFFFFFFFFFFF80ULL) return false;
     }
     return cpu.ReadRegister64(8) == 0x00000000000000FEULL;
