@@ -3836,6 +3836,8 @@ void TestSetccAllConditions()
         {"SETLE", 0x9E, ZF}, {"SETG", 0x9F, 0}
     };
 
+    const std::uint64_t falseFlags[] = {0, OF, 0, CF, 0, ZF, 0, CF, 0, SF, 0, PF, 0, 0, SF, ZF};
+
     for (const auto& c : cases) {
         Memory mem;
         mem.Map(CODE, 0x2000);
@@ -3847,6 +3849,19 @@ void TestSetccAllConditions()
         const bool ran = RunCode(cpu, mem, code);
         CHECK(c.name, ran && (cpu.Rax() & 0xFFULL) == 1 && cpu.Rflags() == before);
     }
+    for (std::size_t i = 0; i < std::size(cases); ++i) {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(falseFlags[i]);
+        const std::uint64_t before = cpu.Rflags();
+        std::vector<std::uint8_t> code = {0x0F, cases[i].opcode, 0xC0, 0xF4};
+        const bool ran = RunCode(cpu, mem, code);
+        std::string name = std::string(cases[i].name) + " false";
+        CHECK(name.c_str(), ran && (cpu.Rax() & 0xFFULL) == 0 && cpu.Rflags() == before);
+    }
+
 
     {
         Memory mem;
