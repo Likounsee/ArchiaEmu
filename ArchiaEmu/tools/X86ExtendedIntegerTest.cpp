@@ -2654,6 +2654,70 @@ static bool TestRotateThroughCarryWidths() {
         return (cpu.Rflags()&(CF|OF))==(CF|OF);
     }
 
+    // 16-bit RCL memory form with REX.X/B + SIB + disp8.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t value=0x8000U;
+        if(!m.Write(0x1818,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x66,0x43,0xD1,0x54,0xA3,0x10}); // RCL WORD PTR [R11+R12*4+0x10],1
+        if(!Run(m,cpu,code)) return false;
+        std::uint16_t out=0;
+        if(!m.Read(0x1818,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=1U) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
+    }
+
+    // 32-bit RCR memory form with REX.X/B + SIB + disp8.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t value=1U;
+        if(!m.Write(0x1818,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x43,0xD1,0x5C,0xA3,0x10}); // RCR DWORD PTR [R11+R12*4+0x10],1
+        if(!Run(m,cpu,code)) return false;
+        std::uint32_t out=0;
+        if(!m.Read(0x1818,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0x80000000U) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
+    }
+
+    // 64-bit RCL memory form with extended SIB addressing and REX.WRXB.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000000ULL;
+        if(!m.Write(0x1818,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x4D,0xD1,0x54,0xA3,0x10}); // RCL QWORD PTR [R11+R12*4+0x10],1
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1818,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=1ULL) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
+    }
+
+    // 64-bit RCR memory form with extended SIB addressing and REX.WRXB.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=1ULL;
+        if(!m.Write(0x1818,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x4D,0xD1,0x5C,0xA3,0x10}); // RCR QWORD PTR [R11+R12*4+0x10],1
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1818,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=0x8000000000000000ULL) return false;
+        if((cpu.Rflags()&(CF|OF))!=(CF|OF)) return false;
+    }
+
     return true;
 }
 
