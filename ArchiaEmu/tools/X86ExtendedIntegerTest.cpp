@@ -3015,22 +3015,22 @@ static bool TestTestRmRegForms() {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0xF0); AppendMovR64(code,3,0x0F);
         code.insert(code.end(),{0x84,0xD8});
-        if(!Run(m,cpu,code) || cpu.Rax()!=0xF0 || cpu.ReadRegister64(3)!=0x0F) { std::cerr << "TEST byte operands\\n"; return false; }
-        if((cpu.Rflags() & (CF|OF|AF|ZF|SF|PF))!=(ZF|PF)) { std::cerr << "TEST byte flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
+        if(!Run(m,cpu,code) || cpu.Rax()!=0xF0 || cpu.ReadRegister64(3)!=0x0F) return false;
+        if((cpu.Rflags() & (CF|OF|AF|ZF|SF|PF))!=(ZF|PF)) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0x8001); AppendMovR64(code,3,0x8001);
         code.insert(code.end(),{0x66,0x85,0xD8});
-        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x8001U) { std::cerr << "TEST 16 operands\\n"; return false; }
-        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) { std::cerr << "TEST 16 flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x8001U) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code; AppendMovR64(code,0,0x80000001ULL); AppendMovR64(code,3,0xFFFFFFFFULL);
         code.insert(code.end(),{0x85,0xD8});
-        if(!Run(m,cpu,code) || cpu.ReadRegister64(0)!=0x80000001ULL) { std::cerr << "TEST 32 operands\\n"; return false; }
-        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) { std::cerr << "TEST 32 flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(0)!=0x80000001ULL) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -3049,8 +3049,8 @@ static bool TestTestRmRegForms() {
         AppendMovR64(code,11,0x00000000FFFFFFFFULL);
         code.insert(code.end(),{0x45,0x85,0xD8}); // TEST R8D,R11D
         if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x0000000080000000ULL ||
-           cpu.ReadRegister64(11)!=0x00000000FFFFFFFFULL) { std::cerr << "TEST ext operands: R8=0x" << std::hex << cpu.ReadRegister64(8) << " R11=0x" << cpu.ReadRegister64(11) << " F=0x" << cpu.Rflags() << "\\n"; return false; }
-        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) { std::cerr << "TEST ext flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
+           cpu.ReadRegister64(11)!=0x00000000FFFFFFFFULL) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
     return true;
 }
