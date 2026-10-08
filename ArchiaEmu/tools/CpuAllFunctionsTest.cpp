@@ -4430,6 +4430,36 @@ void TestShldShrd()
     {
         Memory mem;
         mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Write32(mem, DATA, 0x12345678U);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(1, 0x000000009ABCDEF0ULL);
+        auto code = std::vector<std::uint8_t>{0x0F, 0xA4, 0x24, 0x25,
+            static_cast<std::uint8_t>(DATA), static_cast<std::uint8_t>(DATA >> 8),
+            static_cast<std::uint8_t>(DATA >> 16), static_cast<std::uint8_t>(DATA >> 24), 0x04, 0xF4};
+        CHECK("SHLD32 memory absolute form", RunCode(cpu, mem, code) &&
+              Read32(mem, DATA) == 0x23456789U);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Write64(mem, DATA, 0x1122334455664000ULL);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(1, 0);
+        auto code = std::vector<std::uint8_t>{0x66, 0x0F, 0xA4, 0x24, 0x25,
+            static_cast<std::uint8_t>(DATA), static_cast<std::uint8_t>(DATA >> 8),
+            static_cast<std::uint8_t>(DATA >> 16), static_cast<std::uint8_t>(DATA >> 24), 0x01, 0xF4};
+        CHECK("SHLD16 memory absolute form preserves surrounding bytes",
+              RunCode(cpu, mem, code) &&
+              Read64(mem, DATA) == 0x1122334455668000ULL);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
         mem.Map(STACK, 0x2000);
         Cpu cpu = MakeCpu(mem);
         cpu.SetRflags((1ULL << 4) | (1ULL << 6) | (1ULL << 11)); // AF/ZF/OF
