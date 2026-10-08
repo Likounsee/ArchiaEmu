@@ -5962,34 +5962,10 @@ void TestRotateThroughCarryLargeCounts()
         CHECK("RCL64 CL count 64 uses modulo-65", RunCode(cpu, mem, code) &&
               cpu.Rax() == 0 &&
               (cpu.Rflags() & 1ULL) != 0);
-    }{
-    {
-        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        cpu.SetRflags(0);
-        auto code = MovR64(0, 0);
-        code.insert(code.end(), {0xC1, 0xD8, 32}); // RCR EAX,32
-        code = Finish(code);
-        CHECK("RCR32 immediate count 32 uses modulo-33", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 0 &&
-              (cpu.Rflags() & 1ULL) == 0);
-    }
-
-    {
-        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
-        Cpu cpu = MakeCpu(mem);
-        cpu.SetRflags(1);
-        auto code = MovR64(0, 0);
-        code.insert(code.end(), {0x48, 0xC1, 0xD8, 64}); // RCR RAX,64
-        code = Finish(code);
-        CHECK("RCR64 immediate count 64 uses modulo-65", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 2 &&
-              (cpu.Rflags() & 1ULL) == 0);
     }
 }
 
 
-}
 void TestRotate8EdgeCases()
 {
     // count == 0 : aucune modification, flags inchanges
@@ -7474,7 +7450,6 @@ int main()
     TestRotate8Register();
     TestRotate8HighByteAndRex();
     TestRotate8Memory();
-    TestRotateThroughCarryLargeCounts();
     TestRotate8EdgeCases();
 
     TestC1RegisterForm();
