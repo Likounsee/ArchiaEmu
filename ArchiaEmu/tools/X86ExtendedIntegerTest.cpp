@@ -4248,6 +4248,7 @@ int main() {
     if (!TestCmov32ExtendedMemory()) { std::cerr << "CMOV32 extended memory failed\\n"; return 52; }
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXaddExtendedMemoryWidths()) { std::cerr << "XADD extended memory widths failed\n"; return 69; }
+    if (!TestXadd8ExtendedMemory()) { std::cerr << "XADD8 extended memory failed\n"; return 71; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
     if (!TestMultiByteNop()) { std::cerr << "multi-byte NOP failed\n"; return 6; }
