@@ -2235,6 +2235,130 @@ void TestAdcSbb()
         CHECK("SBB32_64_imm", RunCode(cpu, mem, code) && cpu.Rax() == 0);
     }
 
+    // 16-bit ADC/SBB register forms exercise 66h operand size together
+    // with REX.R/B register extensions.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        cpu.SetRflags(1);
+        auto code = MovR64(8, 0x0000000000007FFFULL);
+        Append(code, MovR64(9, 0x0000000000000000ULL));
+        Append(code, {0x66, 0x45, 0x13, 0xC1}); // ADC R8W,R9W + CF
+        code = Finish(code);
+
+        CHECK("ADC16_REX_RB",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 0x7FFFULL &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        cpu.SetRflags(1);
+        auto code = MovR64(8, 0x0000000000000000ULL);
+        Append(code, MovR64(9, 0x0000000000000000ULL));
+        Append(code, {0x66, 0x45, 0x1B, 0xC1}); // SBB R8W,R9W - CF
+        code = Finish(code);
+
+        CHECK("SBB16_REX_RB",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 0xFFFFULL &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+
+    // 64-bit register-to-memory ADC with REX.R/X/B and SIB exercises the
+    // full extended ModRM address path, including disp8.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        constexpr std::uint64_t base = DATA + 0x200;
+        constexpr std::uint64_t index = 3;
+        constexpr std::uint64_t displacement = 0x20;
+        const std::uint64_t address = base + index * 4 + displacement;
+        const std::uint64_t value = 0x7FFFFFFFFFFFFFFFULL;
+        Write64(mem, address, value);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(8, 1);
+        cpu.SetRflags(0);
+
+        auto code = std::vector<std::uint8_t>{
+            0x4F, 0x11, 0x44, 0x8D, 0x20 // ADC [R13+R9*4+20h],R8
+        };
+        code = Finish(code);
+
+        CHECK("ADC64_mem_REX_RXB_SIB_disp8",
+              RunCode(cpu, mem, code) &&
+              Read64(mem, address) == 0x8000000000000000ULL &&
+              (cpu.Rflags() & (1ULL << 11)) != 0);
+    }
+
+    // Group-1 immediate memory forms must honor operand width and the
+    // sign-extended imm32 encoding used by 64-bit ADC/SBB.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        constexpr std::uint64_t address = DATA + 0x180;
+        const std::uint16_t initial = 0x7FFF;
+        mem.Write(address, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial));
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(10, address);
+        cpu.SetRflags(0);
+
+        auto code = std::vector<std::uint8_t>{
+            0x66, 0x81, 0x12, 0x01, 0x00, // ADC WORD PTR [RDX],1 (RDX is r/m)
+            0xF4
+        };
+        cpu.WriteRegister64(2, address);
+        CHECK("ADC16_group1_memory",
+              RunCode(cpu, mem, code) &&
+              Read16(mem, address) == 0x8000U &&
+              (cpu.Rflags() & (1ULL << 11)) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        constexpr std::uint64_t address = DATA + 0x1A0;
+        const std::uint64_t initial = 0x8000000000000000ULL;
+        Write64(mem, address, initial);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, address);
+        cpu.SetRflags(1);
+
+        auto code = std::vector<std::uint8_t>{
+            0x49, 0x83, 0x1D, 0x98, 0x01, 0x00, 0x00, 0xFF, // SBB QWORD PTR [R13+disp32],-1
+            0xF4
+        };
+
+        CHECK("SBB64_group1_memory_imm8_disp32",
+              RunCode(cpu, mem, code) &&
+              Read64(mem, address) == 0x8000000000000000ULL &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+
 }
 
 void TestImul()
