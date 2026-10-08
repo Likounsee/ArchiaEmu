@@ -869,6 +869,19 @@ static bool TestStringWidthAndRepeatCoverage() {
            cpu.ReadRegister64(1)!=0) return false;
     }
 
+    // STD + REP MOVSB exercises backwards string traversal and exact final indices.
+    {
+        Memory m; m.Map(0x1000,0x5000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint8_t src[2] = {0x11U,0x22U};
+        if(!m.Write(0x2000,src,2)) return false;
+        cpu.WriteRegister64(6,0x2001); cpu.WriteRegister64(7,0x2101); cpu.WriteRegister64(1,2);
+        if(!Run(m,cpu,{0xFD,0xF3,0xA4})) return false;
+        std::uint8_t dst[2] = {};
+        if(!m.Read(0x2100,dst,2)) return false;
+        if(dst[0]!=0x11U || dst[1]!=0x22U || cpu.ReadRegister64(6)!=0x1FFFULL ||
+           cpu.ReadRegister64(7)!=0x20FFULL || cpu.ReadRegister64(1)!=0) return false;
+    }
+
     return true;
 }
 
