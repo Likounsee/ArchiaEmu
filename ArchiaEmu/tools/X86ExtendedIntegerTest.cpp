@@ -176,6 +176,31 @@ static bool TestCmov32ExtendedMemory() {
     return true;
 }
 
+static bool TestXaddExtendedMemoryWidths() {
+    const std::uint64_t CF=1ULL, ZF=1ULL<<6, SF=1ULL<<7, OF=1ULL<<11;
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint64_t value=0x7FFFFFFFFFFFFFFFULL;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2); AppendMovR64(code,8,1);
+        code.insert(code.end(),{0x4F,0x0F,0xC1,0x44,0xA3,0x10});
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=value) return false;
+        std::uint64_t out=0; if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),8)||out!=0x8000000000000000ULL)return false;
+        return (cpu.Rflags()&(CF|OF|SF))==(CF|OF|SF) && (cpu.Rflags()&ZF)==0;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint16_t value=0xFFFFU;
+        if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&value),2)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,11,0x1800); AppendMovR64(code,8,1);
+        code.insert(code.end(),{0x66,0x45,0x0F,0xC1,0x43,0x08});
+        if(!Run(m,cpu,code) || (cpu.ReadRegister64(8)&0xFFFFULL)!=0xFFFFULL) return false;
+        std::uint16_t out=0; if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),2)||out!=0)return false;
+        return (cpu.Rflags()&(CF|ZF|SF))==(CF|ZF);
+    }
+    return true;
+}
+
 static bool TestXadd32() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -4173,6 +4198,7 @@ int main() {
     if (!TestCmovccExtendedConditions()) { std::cerr << "CMOVcc extended conditions failed\n"; return 43; }
     if (!TestCmov32ExtendedMemory()) { std::cerr << "CMOV32 extended memory failed\\n"; return 52; }
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
+    if (!TestXaddExtendedMemoryWidths()) { std::cerr << "XADD extended memory widths failed\n"; return 69; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
     if (!TestMultiByteNop()) { std::cerr << "multi-byte NOP failed\n"; return 6; }
