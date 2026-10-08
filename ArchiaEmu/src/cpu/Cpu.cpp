@@ -4750,7 +4750,14 @@ int Cpu::Run()
             if (opcode2 == 0xAE) {
                 std::uint8_t modrm=0;if(!Fetch8(modrm))return 1;
                 const std::uint8_t group=static_cast<std::uint8_t>((modrm>>3)&7U);
-                if(group==5U||group==6U||group==7U) break;
+                const std::uint8_t mod=static_cast<std::uint8_t>((modrm>>6)&3U);
+                if(group==5U||group==6U||group==7U) {
+                    if(mod==3U) {
+                        if(!RaiseException({CpuExceptionKind::InvalidOpcode,instruction_address,MemoryFault::None,CpuExceptionVector::InvalidOpcode})) return 1;
+                        break;
+                    }
+                    break;
+                }
                 return 1;
             }
 
