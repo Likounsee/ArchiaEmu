@@ -702,7 +702,8 @@ static bool TestImulImmediateMemoryForms() {
     {
         Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value=3; if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
-        std::vector<std::uint8_t> code; AppendMovR64(code,8,0x1800);
+        cpu.SetStackPointer(0x1800);
+        std::vector<std::uint8_t> code;
         code.insert(code.end(),{0x4C,0x69,0x4C,0x24,0x00,0xFE,0xFF,0xFF,0xFF}); // IMUL R9,[RSP],-2
         if(!Run(m,cpu,code) || cpu.ReadRegister64(9)!=static_cast<std::uint64_t>(-6)) return false;
     }
