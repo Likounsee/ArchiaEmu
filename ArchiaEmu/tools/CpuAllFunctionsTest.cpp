@@ -5101,6 +5101,134 @@ void TestCmovccCoverage()
 }
 
 
+
+void TestBitTestFamily()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags((1ULL << 1) | (1ULL << 4) | (1ULL << 6));
+        auto code = MovR64(0, 0x8000000000000020ULL);
+        code.insert(code.end(), {0x48, 0x0F, 0xBA, 0xE0, 0x3F}); // BT RAX,63
+        code = Finish(code);
+
+        const std::uint64_t preserved =
+            (1ULL << 1) | (1ULL << 4) | (1ULL << 6);
+        CHECK(
+            "BT64 immediate selects bit and preserves non-CF flags",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & 1ULL) != 0 &&
+            (cpu.Rflags() & ~1ULL) == preserved &&
+            cpu.Rax() == 0x8000000000000020ULL);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(0);
+        auto code = MovR64(0, 0);
+        code.insert(code.end(), {0x48, 0x0F, 0xBA, 0xE8, 0x05}); // BTS RAX,5
+        code.insert(code.end(), {0x48, 0x0F, 0xBA, 0xF0, 0x05}); // BTR RAX,5
+        code.insert(code.end(), {0x48, 0x0F, 0xBA, 0xF8, 0x05}); // BTC RAX,5
+        code = Finish(code);
+
+        CHECK(
+            "BTS/BTR/BTC64 immediate set/reset/complement selected bit",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x20ULL &&
+            (cpu.Rflags() & 1ULL) == 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(0);
+        auto code = MovR64(0, 0x8000);
+        code.insert(code.end(), {0x66, 0x0F, 0xBA, 0xE0, 0x0F}); // BT AX,15
+        code.insert(code.end(), {0x0F, 0xBA, 0xE0, 0x1F}); // BT EAX,31
+        code = Finish(code);
+
+        CHECK(
+            "BT16 and BT32 immediate forms use operand-size width",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & 1ULL) != 0 &&
+            cpu.Rax() == 0x8000ULL);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x8000000000000000ULL);
+        cpu.WriteRegister64(1, 63);
+        auto code = std::vector<std::uint8_t>{0x48, 0x0F, 0xA3, 0xC8}; // BT RAX,RCX
+        code = Finish(code);
+
+        CHECK(
+            "BT64 register-index form",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & 1ULL) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0);
+        cpu.WriteRegister64(9, 0x20);
+        auto code = std::vector<std::uint8_t>{
+            0x4D, 0x0F, 0xA3, 0xC1 // BT R9,R8 (REX.W+REX.R+REX.B)
+        };
+        code = Finish(code);
+
+        CHECK(
+            "BT64 register form covers R8/R9 through REX.R+B",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & 1ULL) == 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        Write64(mem, DATA, 0x8000000000000000ULL);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, DATA + 8);
+        cpu.WriteRegister64(1, static_cast<std::uint64_t>(-1LL));
+
+        // 48 0F A3 08: BT [RAX],RCX. A -1 bit offset selects
+        // the previous 64-bit word, bit 63.
+        auto code = std::vector<std::uint8_t>{0x48, 0x0F, 0xA3, 0x08};
+        code = Finish(code);
+
+        CHECK(
+            "BT64 memory register form handles negative bit displacement",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & 1ULL) != 0);
+    }
+}
+
+
 int main()
 {
     TestCpuAudit();
@@ -5166,6 +5294,7 @@ int main()
     TestHlt();
     TestSetcc();
     TestCmovccCoverage();
+    TestBitTestFamily();
     TestShiftsByCL();
     TestCmpEaxImmediate();
     TestGroupF7Memory();
