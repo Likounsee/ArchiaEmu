@@ -813,6 +813,40 @@ void TestCallRet()
         cpu.Rax() == 0x42);
 }
 
+void TestMovsxdVariants()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = std::vector<std::uint8_t>{0xB8, 0xFF, 0xFF, 0xFF, 0xFF,
+                                              0x63, 0xC8, 0xF4}; // MOVSXD ECX,EAX
+        CHECK("MOVSXD r32,r/m32 sign source then zero extends", RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(1) == 0x00000000FFFFFFFFULL);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t base = DATA + 0x300;
+        const std::uint64_t index = 2;
+        const std::uint64_t address = base + index * 4 + 0x20;
+        Write64(mem, address, 0x00000000FFFFFFFEULL);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        const std::vector<std::uint8_t> code = {
+            0x4F, 0x63, 0x4C, 0x8D, 0x20, // MOVSXD R9,[R13+R9*4+disp8]
+            0xF4
+        };
+        CHECK("MOVSXD REX.WRXB SIB memory sign extends to R9",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(9) == 0xFFFFFFFFFFFFFFFEULL);
+    }
+}
+
 void TestIndirectCallAndRetImmediate()
 {
     {
@@ -5552,6 +5586,7 @@ int main()
     TestPushPopRmForms();
     TestCallRet();
 
+    TestMovsxdVariants();
     TestIndirectCallAndRetImmediate();
     TestJumps();
     TestJccBoundaryConditions();
