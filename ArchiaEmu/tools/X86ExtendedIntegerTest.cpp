@@ -311,6 +311,20 @@ static bool TestCmpxchg8b() {
     if(!Run(memory,c2,c))return false;
     std::uint64_t newLo=0,newHi=0;if(!memory.Read(0x1900,reinterpret_cast<std::uint8_t*>(&newLo),8)||!memory.Read(0x1908,reinterpret_cast<std::uint8_t*>(&newHi),8))return false;
     return newLo==0xAABBCCDDEEFF0011ULL && newHi==0x7766554433221100ULL && (c2.Rflags()&(1ULL<<6))!=0;
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t initial=0x1122334455667788ULL;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&initial),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800); AppendMovR64(code,12,1);
+        AppendMovR64(code,0,0x55667788ULL); AppendMovR64(code,2,0x11223344ULL);
+        AppendMovR64(code,3,0xAABBCCDDULL); AppendMovR64(code,1,0xEEFF0011ULL);
+        code.insert(code.end(),{0x46,0x0F,0xC7,0x4C,0xA3,0x10}); // CMPXCHG8B [R11+R12*4+0x10]
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
+        return out==0xEEFF0011AABBCCDDULL && (cpu.Rflags()&(1ULL<<6))!=0;
+    }
 }
 
 static bool TestSystemIntegerOps() {
