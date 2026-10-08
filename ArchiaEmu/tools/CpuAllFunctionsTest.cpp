@@ -3836,7 +3836,7 @@ void TestSetccAllConditions()
         {"SETLE", 0x9E, ZF}, {"SETG", 0x9F, 0}
     };
 
-    const std::uint64_t falseFlags[] = {0, OF, 0, CF, 0, ZF, 0, CF, 0, SF, 0, PF, 0, 0, SF, ZF};
+    const std::uint64_t falseFlags[] = {0, OF, 0, CF, 0, ZF, 0, CF, 0, SF, 0, PF, 0, SF, 0, ZF};
 
     for (const auto& c : cases) {
         Memory mem;
