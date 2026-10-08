@@ -825,8 +825,8 @@ void TestLeaRexSib()
         0x4F, 0x8D, 0x44, 0x8D, 0xF0, // LEA RAX,[R13+R9*4-0x10]
         0xF4
     };
-    CHECK("LEA REX.WRXB SIB with signed disp8", RunCode(cpu, mem, code) &&
-          cpu.Rax() == 0x0FFCULL);
+    CHECK("LEA REX.WRXB SIB with signed disp8 targets R8", RunCode(cpu, mem, code) &&
+          cpu.ReadRegister64(8) == 0x0FFCULL);
 }
 
 void TestMovsxdVariants()
