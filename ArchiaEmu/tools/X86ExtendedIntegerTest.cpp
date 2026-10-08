@@ -511,6 +511,14 @@ static bool TestAccumulatorXchg() {
     return Run(m4,c4,code) &&
            c4.Rax()==0x0000000055667788ULL &&
            c4.ReadRegister64(8)==0x0000000011223344ULL;
+
+    // Operand-size override selects a 16-bit accumulator exchange with R8W.
+    Memory m5; m5.Map(0x1000,0x1000); Cpu c5; c5.ConnectMemory(&m5);
+    code.clear(); AppendMovR64(code,0,0x1122334455667788ULL); AppendMovR64(code,8,0xAABBCCDDEEFF0011ULL);
+    code.insert(code.end(),{0x66,0x41,0x90}); // XCHG AX,R8W
+    return Run(m5,c5,code) &&
+           c5.Rax()==0x1122334455660011ULL &&
+           c5.ReadRegister64(8)==0xAABBCCDDEEFF7788ULL;
 }
 
 static bool TestMsrAndTsc() {
