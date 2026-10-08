@@ -7658,6 +7658,7 @@ int main()
     TestImulMemory();
     TestImulMemoryWidths();
     TestSyscallPS5Fallback();
+    TestStringCompareScanIoAndXlatCoverage();
 
     TestRotate();
     TestTestImmediate();
