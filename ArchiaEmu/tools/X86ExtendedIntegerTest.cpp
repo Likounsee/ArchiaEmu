@@ -2054,6 +2054,55 @@ static bool TestCmpUnequalFlags() {
     return true;
 }
 
+static bool TestGroup1ByteMemoryCarryBorrowFlags() {
+    constexpr std::uint64_t CF = 1ULL;
+    constexpr std::uint64_t AF = 1ULL << 4;
+    constexpr std::uint64_t SF = 1ULL << 7;
+    constexpr std::uint64_t OF = 1ULL << 11;
+
+    // ADC r/m8,r8 with extended registers, SIB addressing and incoming CF.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint8_t initial = 0x7FU;
+        if (!m.Write(0x1810, &initial, sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        AppendMovR64(code, 12, 2);
+        AppendMovR64(code, 8, 1);
+        cpu.SetRflags(CF);
+        code.insert(code.end(), {0x47, 0x10, 0x44, 0xA3, 0x10}); // ADC [R11+R12*4+0x10],R8B
+        if (!Run(m, cpu, code)) return false;
+        std::uint8_t out = 0;
+        if (!m.Read(0x1810, &out, sizeof(out))) return false;
+        const std::uint64_t flags = cpu.Rflags();
+        if (out != 0x81U) return false;
+        return (flags & AF) != 0 && (flags & SF) != 0 &&
+               (flags & (CF | OF)) == 0;
+    }
+
+    // SBB r/m8,r8 with extended registers, SIB addressing and incoming CF.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint8_t initial = 0x00U;
+        if (!m.Write(0x1810, &initial, sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        AppendMovR64(code, 12, 2);
+        AppendMovR64(code, 8, 1);
+        cpu.SetRflags(CF);
+        code.insert(code.end(), {0x47, 0x18, 0x44, 0xA3, 0x10}); // SBB [R11+R12*4+0x10],R8B
+        if (!Run(m, cpu, code)) return false;
+        std::uint8_t out = 0;
+        if (!m.Read(0x1810, &out, sizeof(out))) return false;
+        const std::uint64_t flags = cpu.Rflags();
+        if (out != 0xFEU) return false;
+        return (flags & (CF | AF | SF)) == (CF | AF | SF) &&
+               (flags & OF) == 0;
+    }
+
+    return true;
+}
+
 static bool TestGroup1ByteFlags() {
     const std::uint64_t CF=1ULL, PF=1ULL<<2, AF=1ULL<<4, ZF=1ULL<<6, SF=1ULL<<7, OF=1ULL<<11;
     {
