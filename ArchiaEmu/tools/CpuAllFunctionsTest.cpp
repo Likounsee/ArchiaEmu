@@ -3680,9 +3680,21 @@ void TestShldShrd()
         auto code = MovR64(0, 0x0123456789ABCDEFULL);
         Append(code, MovR64(1, 0xFEDCBA9876543210ULL));
         code.insert(code.end(), {0x48, 0x0F, 0xA4, 0xC8, 0x04}); // SHLD RAX,RCX,4
+        code = Finish(code);
+        CHECK("SHLD64 immediate register form", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x123456789ABCDEFFULL &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x0123456789ABCDEFULL);
+        Append(code, MovR64(1, 0xFEDCBA9876543210ULL));
         code.insert(code.end(), {0x48, 0x0F, 0xAC, 0xC8, 0x04}); // SHRD RAX,RCX,4
         code = Finish(code);
-        CHECK("SHLD/SHRD64 immediate register forms", RunCode(cpu, mem, code) &&
+        CHECK("SHRD64 immediate register form", RunCode(cpu, mem, code) &&
               cpu.Rax() == 0xF123456789ABCDEFULL &&
               (cpu.Rflags() & 1ULL) != 0);
     }
