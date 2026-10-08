@@ -3868,6 +3868,36 @@ void TestHlt()
 }
 
 // ============== SETcc ==============
+void TestPushPopMemory16()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(DATA, 0x1000);
+    mem.Map(STACK, 0x2000);
+    const std::uint64_t address = DATA + 0x140;
+    Write64(mem, address, 0xAABBCCDDEEFF1234ULL);
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(0, 0x1122334455667788ULL);
+    const std::vector<std::uint8_t> code = {
+        0x66, 0xFF, 0x34, 0x25,
+        static_cast<std::uint8_t>(address & 0xFF),
+        static_cast<std::uint8_t>((address >> 8) & 0xFF),
+        static_cast<std::uint8_t>((address >> 16) & 0xFF),
+        static_cast<std::uint8_t>((address >> 24) & 0xFF), // PUSH word [abs]
+        0x66, 0x8F, 0x04, 0x25,
+        static_cast<std::uint8_t>((address >> 0) & 0xFF),
+        static_cast<std::uint8_t>((address >> 8) & 0xFF),
+        static_cast<std::uint8_t>((address >> 16) & 0xFF),
+        static_cast<std::uint8_t>((address >> 24) & 0xFF), // POP word [abs]
+        0xF4
+    };
+    CHECK("PUSH/POP r/m16 memory uses 16-bit stack width",
+          RunCode(cpu, mem, code) &&
+          (Read64(mem, address) & 0xFFFFFFFFFFFF0000ULL) == 0xAABBCCDDEEFF0000ULL &&
+          (Read64(mem, address) & 0xFFFFULL) == 0x1234ULL &&
+          cpu.Rsp() == STACK + 0x1000);
+}
+
 void TestRotateRexAndOperandWidths()
 {
     {
@@ -6056,6 +6086,7 @@ int main()
 
     TestLea32();
     TestHlt();
+    TestPushPopMemory16();
     TestRotateRexAndOperandWidths();
     TestMovxByteRexAndHighByteRules();
     TestCmpxchgOperandWidths();
