@@ -622,6 +622,32 @@ static bool TestControlTransferGroups() {
     std::vector<std::uint8_t> code = {0x48,0xB8,0x0C,0x10,0,0,0,0,0,0, 0xFF,0xD0, 0xF4};
     if (!Run(memory,cpu,code) || cpu.InstructionPointer() == 0) return false;
 
+    // CALL r/m64 with REX.B must use the extended register target and restore RSP.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m); c.SetStackPointer(0x3000);
+        std::vector<std::uint8_t> callCode;
+        AppendMovR64(callCode, 11, 0x1100);
+        callCode.insert(callCode.end(), {0x41, 0xFF, 0xD3}); // CALL R11
+        callCode.push_back(0xF4);
+        const std::uint8_t retByte = 0xC3;
+        if (!m.Write(0x1100, &retByte, 1)) return false;
+        if (!Run(m, c, callCode) || c.Rsp() != 0x3000ULL) return false;
+    }
+
+    // CALL r/m64 through an extended SIB base must dereference the target pointer.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m); c.SetStackPointer(0x3000);
+        const std::uint64_t target = 0x1200ULL;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&target), sizeof(target))) return false;
+        const std::uint8_t retByte = 0xC3;
+        if (!m.Write(0x1200, &retByte, 1)) return false;
+        std::vector<std::uint8_t> callCode;
+        AppendMovR64(callCode, 12, 0x1800);
+        callCode.insert(callCode.end(), {0x41, 0xFF, 0x14, 0x24}); // CALL [R12]
+        callCode.push_back(0xF4);
+        if (!Run(m, c, callCode) || c.Rsp() != 0x3000ULL) return false;
+    }
+
     Memory m2; m2.Map(0x1000,0x3000); Cpu c2; c2.ConnectMemory(&m2); c2.SetStackPointer(0x3000);
     std::vector<std::uint8_t> ret = {0xC2,0x02,0x00,0xF4};
     return Run(m2,c2,ret);
