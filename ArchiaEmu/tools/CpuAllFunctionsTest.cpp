@@ -2354,7 +2354,7 @@ void TestAdcSbb()
             static_cast<std::uint8_t>(address >> 8),
             static_cast<std::uint8_t>(address >> 16),
             static_cast<std::uint8_t>(address >> 24),
-            0xFF // SBB QWORD PTR [disp32],-1
+            0xFF, // SBB QWORD PTR [disp32],-1
             0xF4
         };
 
