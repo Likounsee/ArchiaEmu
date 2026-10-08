@@ -4250,6 +4250,7 @@ int main() {
     if (!TestNotExtendedForms()) { std::cerr << "NOT extended forms failed\\n"; return 57; }
 
     if (!TestXchgExtendedMemoryForms()) { std::cerr << "XCHG extended memory forms failed\\n"; return 56; }
+    if (!TestXchg8ExtendedMemory()) { std::cerr << "XCHG8 extended memory failed\n"; return 72; }
 
     if (!TestCmpxchgExtendedMemoryForms()) { std::cerr << "CMPXCHG extended memory forms failed\\n"; return 55; }
     if (!TestCmpxchgExtendedWidths()) { std::cerr << "CMPXCHG extended widths failed\\n"; return 53; }
