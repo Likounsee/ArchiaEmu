@@ -5964,8 +5964,8 @@ void TestRotateThroughCarryLargeCounts()
               (cpu.Rflags() & 1ULL) != 0);
     }
 }
-
-
+void TestRotateThroughCarryLargeCounts()
+{
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
         Cpu cpu = MakeCpu(mem);
@@ -5989,6 +5989,7 @@ void TestRotateThroughCarryLargeCounts()
               cpu.Rax() == 2 &&
               (cpu.Rflags() & 1ULL) == 0);
     }
+}
 
 void TestRotate8EdgeCases()
 {
@@ -7474,6 +7475,7 @@ int main()
     TestRotate8Register();
     TestRotate8HighByteAndRex();
     TestRotate8Memory();
+    TestRotateThroughCarryRcrLargeCounts();
     TestRotate8EdgeCases();
 
     TestC1RegisterForm();
