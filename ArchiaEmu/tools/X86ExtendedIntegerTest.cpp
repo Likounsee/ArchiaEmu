@@ -529,6 +529,23 @@ static bool TestEnterLeave() {
     return cpu.ReadRegister64(5)==0x2FF8ULL && cpu.Rsp()==0x2FF0ULL;
 }
 
+static bool TestCallRetRelativeRoundTrip() {
+    // CALL rel32 must push the address of the following instruction and RET
+    // must restore RSP before execution resumes at that address.
+    Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+    cpu.SetStackPointer(0x3000);
+
+    std::vector<std::uint8_t> code = {
+        0xE8, 0x06, 0x00, 0x00, 0x00, // CALL 0x100B
+        0x90, 0x90, 0x90, 0x90, 0x90, 0x90, // resume point
+        0x48, 0xB8, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // RAX=0x42
+        0xC3 // RET
+    };
+
+    if (!Run(m, cpu, code)) return false;
+    return cpu.Rax() == 0x42ULL && cpu.Rsp() == 0x3000ULL;
+}
+
 static bool TestControlTransferGroups() {
     Memory memory; memory.Map(0x1000, 0x3000);
     Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetStackPointer(0x3000);
