@@ -4946,7 +4946,7 @@ int Cpu::Run()
                 break;
             }
 
-            if (opcode2 == 0xC0 || opcode2 == 0xC1) {
+            if (opcode2 == 0xC1) {
                 std::uint8_t modrm = 0;
                 if (!Fetch8(modrm)) return 1;
                 std::uint8_t reg = 0, rm = 0;
