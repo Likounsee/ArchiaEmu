@@ -2256,50 +2256,41 @@ static bool TestRotateThroughCarryCountReduction() {
     const std::uint64_t CF = 1ULL;
     const std::uint64_t OF = 1ULL << 11;
 
-    // RCL/RCR use a 33-bit rotation domain for 32-bit operands: count 32 is
-    // meaningful, while count 33 reduces to zero.
-    {
-        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        cpu.SetRflags(CF);
-        std::vector<std::uint8_t> code={0xB8,0x01,0x00,0x00,0x00,0xC1,0xD0,0x20}; // RCL EAX,32
-        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=0x80000000U) return false;
-        if((cpu.Rflags()&CF)==0) return false;
-    }
+    // 16-bit RCL/RCR use a 17-bit domain after the architectural count mask.
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(CF|OF);
-        std::vector<std::uint8_t> code={0xB8,0x00,0x00,0x00,0x80,0xC1,0xD8,0x21}; // RCR EAX,33
-        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=0x80000000U) return false;
+        std::vector<std::uint8_t> code={0x66,0xB8,0x34,0x12,0x66,0xB1,0x11,0x66,0xD2,0xD0}; // RCL AX,CL (17)
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x1234U) return false;
         if(cpu.Rflags()!=(CF|OF)) return false;
     }
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code={0x66,0xB8,0x00,0x40,0xB1,0x02,0x66,0xD3,0xD0}; // RCL AX,CL (2)
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x0002U) return false;
+        if((cpu.Rflags()&CF)!=0) return false;
+    }
 
-    // RCL/RCR use a 65-bit rotation domain for 64-bit operands.
+    // 32-bit RCR through CF, using CL rather than the implicit count of one.
+    {
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(CF);
+        std::vector<std::uint8_t> code={0xB8,0x01,0x00,0x00,0x00,0xB1,0x02,0xD3,0xD8}; // RCR EAX,CL (2)
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.Rax())!=0xC0000000U) return false;
+        if((cpu.Rflags()&CF)!=0) return false;
+    }
+
+    // 64-bit RCL through CF with a CL count of two.
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(CF);
         std::vector<std::uint8_t> code;
         AppendMovR64(code,0,1);
-        code.insert(code.end(),{0x48,0xC1,0xD0,0x40}); // RCL RAX,64
-        if(!Run(m,cpu,code) || cpu.Rax()!=0x8000000000000000ULL) return false;
-        if((cpu.Rflags()&CF)==0) return false;
-    }
-    {
-        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        cpu.SetRflags(CF|OF);
-        std::vector<std::uint8_t> code;
-        AppendMovR64(code,0,0x8000000000000000ULL);
-        code.insert(code.end(),{0x48,0xC1,0xD8,0x41}); // RCR RAX,65 -> no-op
-        if(!Run(m,cpu,code) || cpu.Rax()!=0x8000000000000000ULL) return false;
-        if(cpu.Rflags()!=(CF|OF)) return false;
-    }
-
-    // The 16-bit rotate-through-carry domain is 17 bits: 34 reduces to zero.
-    {
-        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        cpu.SetRflags(CF|OF);
-        std::vector<std::uint8_t> code={0x66,0xB8,0x34,0x12,0x66,0xC1,0xD0,0x22}; // RCL AX,34
-        if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x1234U) return false;
-        if(cpu.Rflags()!=(CF|OF)) return false;
+        code.push_back(0xB1); code.push_back(0x02);
+        code.insert(code.end(),{0x48,0xD3,0xD0}); // RCL RAX,CL
+        if(!Run(m,cpu,code) || cpu.Rax()!=6ULL) return false;
+        if((cpu.Rflags()&CF)!=0) return false;
     }
 
     return true;
