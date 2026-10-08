@@ -7755,9 +7755,9 @@ void TestPrimaryOpcodeCoverageGaps()
             "MOV r8,imm8 opcode matrix B0h..B7h",
             RunCode(cpu, mem, code) &&
             cpu.Rax() == 0x5511ULL &&
-            cpu.ReadRegister64(1) == 0x6600ULL &&
-            cpu.ReadRegister64(2) == 0x7700ULL &&
-            cpu.ReadRegister64(3) == 0x8800ULL);
+            cpu.ReadRegister64(1) == 0x6622ULL &&
+            cpu.ReadRegister64(2) == 0x7733ULL &&
+            cpu.ReadRegister64(3) == 0x8844ULL);
     }
 
 
