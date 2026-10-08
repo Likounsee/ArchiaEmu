@@ -6570,6 +6570,30 @@ void TestBitTestFamily()
 }
 
 
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t address = DATA + 0x100;
+        Write64(mem, address, 0x0000000000000008ULL);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, DATA);
+        cpu.WriteRegister64(10, 0x20);
+        cpu.WriteRegister64(9, 3);
+        // BT [R13 + R10*4 + disp8], R9:
+        // REX.WRXB, ModRM r/m=SIB, SIB index=R10, base=R13.
+        const std::vector<std::uint8_t> code = {
+            0x4F, 0x0F, 0xA3, 0x4C, 0x95, 0x20, 0xF4
+        };
+        CHECK(
+            "BT64 memory SIB REX.RXB disp8",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & 1ULL) != 0);
+    }
+
+
 int main()
 {
     TestCpuAudit();
