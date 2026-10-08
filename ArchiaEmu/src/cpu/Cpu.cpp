@@ -4902,6 +4902,50 @@ int Cpu::Run()
                 break;
             }
 
+            if (opcode2 == 0xC0) {
+                std::uint8_t modrm = 0;
+                if (!Fetch8(modrm)) return 1;
+
+                std::uint8_t regIndex = 0;
+                std::uint8_t rmRegisterIndex = 0;
+                bool regHighByte = false;
+                bool rmHighByte = false;
+                std::uint64_t address = 0;
+                bool memory = false;
+
+                if (!DecodeMemoryOrRegister8(
+                        modrm,
+                        rex,
+                        regIndex,
+                        regHighByte,
+                        rmRegisterIndex,
+                        rmHighByte,
+                        address,
+                        memory)) {
+                    return 1;
+                }
+
+                const std::uint8_t oldValue = memory
+                    ? ([&]() {
+                          std::uint8_t value = 0;
+                          if (!ReadMemory(address, &value, sizeof(value))) return std::uint8_t(0);
+                          return value;
+                      })()
+                    : ReadReg8(rmRegisterIndex, rmHighByte);
+                const std::uint8_t source = ReadReg8(regIndex, regHighByte);
+                const std::uint8_t sum = static_cast<std::uint8_t>(oldValue + source);
+
+                WriteReg8(regIndex, regHighByte, oldValue);
+                if (memory) {
+                    if (!WriteMemory(address, &sum, sizeof(sum))) return 1;
+                } else {
+                    WriteReg8(rmRegisterIndex, rmHighByte, sum);
+                }
+
+                SetAddFlags8(oldValue, source, sum);
+                break;
+            }
+
             if (opcode2 == 0xC0 || opcode2 == 0xC1) {
                 std::uint8_t modrm = 0;
                 if (!Fetch8(modrm)) return 1;
