@@ -3671,6 +3671,16 @@ static bool TestMovExtendExtendedForms() {
         if(!Run(m,c,bytes) || c.ReadRegister64(9)!=0xFFFFFFFFFFFFFF80ULL) return false;
     }
     return cpu.ReadRegister64(8) == 0x00000000000000FEULL;
+    // MOVZX R10D,byte [R11-4] must zero-extend into the 64-bit register.
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu c; c.ConnectMemory(&m);
+        const std::uint8_t value=0xFEU;
+        if(!m.Write(0x1800,&value,1)) return false;
+        std::vector<std::uint8_t> bytes;
+        AppendMovR64(bytes,11,0x1804);
+        bytes.insert(bytes.end(),{0x45,0x0F,0xB6,0x53,0xFC}); // MOVZX R10D,[R11-4]
+        if(!Run(m,c,bytes) || c.ReadRegister64(10)!=0xFEULL) return false;
+    }
 }
 
 
