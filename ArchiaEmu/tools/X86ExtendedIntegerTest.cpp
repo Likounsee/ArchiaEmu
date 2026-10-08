@@ -3792,6 +3792,38 @@ static bool TestNotExtendedForms() {
 }
 
 
+static bool TestXchg8ExtendedMemory() {
+    // XCHG r/m8,r8 with REX.R/X/B and SIB addressing must exchange only
+    // the low bytes of the extended registers and leave all flags unchanged.
+    Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+    const std::uint8_t initial = 0x55U;
+    if (!m.Write(0x1810, &initial, sizeof(initial))) return false;
+
+    constexpr std::uint64_t CF = 1ULL;
+    constexpr std::uint64_t PF = 1ULL << 2;
+    constexpr std::uint64_t AF = 1ULL << 4;
+    constexpr std::uint64_t ZF = 1ULL << 6;
+    constexpr std::uint64_t SF = 1ULL << 7;
+    constexpr std::uint64_t OF = 1ULL << 11;
+    constexpr std::uint64_t flags = CF | PF | AF | ZF | SF | OF;
+    cpu.SetRflags(flags);
+
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 11, 0x1800);
+    AppendMovR64(code, 12, 2);
+    AppendMovR64(code, 8, 0x11223344556677AAULL);
+    code.insert(code.end(), {0x47, 0x86, 0x44, 0xA3, 0x10}); // XCHG [R11+R12*4+0x10],R8B
+
+    if (!Run(m, cpu, code)) return false;
+
+    std::uint8_t out = 0;
+    if (!m.Read(0x1810, &out, sizeof(out))) return false;
+    return out == 0xAAU &&
+           (cpu.ReadRegister64(8) & 0xFFU) == 0x55U &&
+           cpu.ReadRegister64(8) == 0x1122334455667755ULL &&
+           cpu.Rflags() == flags;
+}
+
 static bool TestXchgExtendedMemoryForms() {
     // XCHG r/m64,r64 with REX.R/B swaps the full 64-bit values.
     {
