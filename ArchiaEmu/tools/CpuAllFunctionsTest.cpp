@@ -5261,6 +5261,48 @@ void TestShldShrd()
 }
 
 // ============== CMP EAX, imm32 (0x3D) ==============
+
+void TestDivIdivMemoryExceptions()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Write64(mem, DATA, 0);
+
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 100);
+        Append(code, MovR64(2, 0));
+        code.insert(code.end(), {0x48, 0xF7, 0x34, 0x25});
+        for (int i = 0; i < 4; ++i)
+            code.push_back(static_cast<std::uint8_t>(DATA >> (i * 8)));
+        code = Finish(code);
+
+        CHECK("DIV64 memory divide-by-zero raises error",
+              !RunCode(cpu, mem, code));
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Write64(mem, DATA, 0xFFFFFFFFFFFFFFFFULL);
+
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x8000000000000000ULL);
+        Append(code, MovR64(2, 0xFFFFFFFFFFFFFFFFULL));
+        code.insert(code.end(), {0x48, 0xF7, 0x3C, 0x25});
+        for (int i = 0; i < 4; ++i)
+            code.push_back(static_cast<std::uint8_t>(DATA >> (i * 8)));
+        code = Finish(code);
+
+        CHECK("IDIV64 memory INT64_MIN/-1 overflow raises error",
+              !RunCode(cpu, mem, code));
+    }
+}
+
 void TestCmpEaxImmediate()
 {
     Memory mem;
@@ -7072,6 +7114,7 @@ int main()
     TestMulDiv8();
     TestAdcSbb();
     TestDivIdiv();
+    TestDivIdivMemoryExceptions();
     TestDivIdiv128();
     TestIoInstructions();
     TestSyscallDispatch();
