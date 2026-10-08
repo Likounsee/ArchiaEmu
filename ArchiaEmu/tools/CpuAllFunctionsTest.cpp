@@ -697,6 +697,35 @@ void TestPushImmediate32()
         RunCode(cpu, mem, code) &&
         cpu.Rax() == 0x0000000012345678ULL);
 }
+void TestPushPopRexAndOperandWidths()
+{
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0x1122334455667788ULL);
+        auto code = std::vector<std::uint8_t>{0x41, 0x50, 0x41, 0x58, 0xC3};
+        CHECK("PUSH/POP R8", RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 0x1122334455667788ULL &&
+              cpu.Rsp() == STACK + 0x1000);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x1122334455667788ULL);
+        auto code = std::vector<std::uint8_t>{0x66, 0x50, 0x66, 0x58, 0xC3};
+        CHECK("66h PUSH/POP AX preserves upper register bits", RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0x1122334455667788ULL &&
+              cpu.Rsp() == STACK + 0x1000);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = std::vector<std::uint8_t>{0x48, 0x50, 0x48, 0x58, 0xC3};
+        CHECK("REX.W PUSH/POP RAX", RunCode(cpu, mem, code) &&
+              cpu.Rsp() == STACK + 0x1000);
+    }
+}
+
 void TestCallRet()
 {
     Memory mem;
@@ -5431,6 +5460,7 @@ int main()
     TestLeave();
     TestPushImmediate();
     TestPushImmediate32();
+    TestPushPopRexAndOperandWidths();
     TestCallRet();
 
     TestJumps();
