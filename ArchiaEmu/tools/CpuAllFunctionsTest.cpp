@@ -4850,6 +4850,57 @@ void TestShiftsByCL()
 }
 
 
+
+void TestShiftClOperandWidthsAndRexMemory()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags((1ULL << 0) | (1ULL << 4) | (1ULL << 6));
+        auto code = MovR64(0, 0x1122334455660001ULL);
+        Append(code, MovR64(1, 4));
+        code.insert(code.end(), {0x66, 0xD3, 0xE0}); // SHL AX,CL
+        code = Finish(code);
+        CHECK("SHL16 AX,CL preserves upper RAX bits", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x1122334455660010ULL &&
+              (cpu.Rflags() & (1ULL << 0)) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 1);
+        cpu.WriteRegister64(1, 4);
+        const std::vector<std::uint8_t> code = {0x49, 0xD3, 0xE0, 0xF4}; // SHL R8,CL
+        CHECK("SHL64 R8,CL exercises REX.B", RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 16);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t base = DATA + 0x200;
+        const std::uint64_t index = 3;
+        const std::uint64_t address = base + index * 4 + 0x20;
+        Write64(mem, address, 1);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(1, 4);
+        const std::vector<std::uint8_t> code = {
+            0x49, 0xD3, 0x64, 0x8D, 0x20, 0xF4
+        }; // SHL qword [R13+R9*4+disp8],CL; REX.WXB
+        CHECK("SHL64 memory SIB REX.WXB disp8 with CL",
+              RunCode(cpu, mem, code) && Read64(mem, address) == 16);
+    }
+}
+
 void TestShldShrd()
 {
     {
