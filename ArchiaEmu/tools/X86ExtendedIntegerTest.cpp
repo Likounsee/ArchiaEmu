@@ -2749,6 +2749,36 @@ static bool TestBitMemoryForms() {
         if(!m.Read(0x1814,reinterpret_cast<std::uint8_t*>(&out),4) || out!=1U) return false;
     }
 
+    // Negative register bit offsets must address the preceding storage unit for
+    // all three modifying forms, while CF reports the old bit.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000000ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1808); AppendMovR64(code,1,0xFFFFFFFFFFFFFFFFULL);
+        code.insert(code.end(),{0x48,0x0F,0xAB,0x0F}); // BTS [RDI],RCX (-1) -> bit 63 at 0x1800
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
+        std::uint64_t out=0; if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8) || out!=value) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000000ULL;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1808); AppendMovR64(code,1,0xFFFFFFFFFFFFFFFFULL);
+        code.insert(code.end(),{0x48,0x0F,0xB3,0x0F}); // BTR [RDI],RCX (-1)
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)==0) return false;
+        std::uint64_t out=0; if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8) || out!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code; AppendMovR64(code,7,0x1808); AppendMovR64(code,1,0xFFFFFFFFFFFFFFFFULL);
+        code.insert(code.end(),{0x48,0x0F,0xBB,0x0F}); // BTC [RDI],RCX (-1)
+        if(!Run(m,cpu,code) || (cpu.Rflags()&1ULL)!=0) return false;
+        std::uint64_t out=0; if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),8) || out!=0x8000000000000000ULL) return false;
+    }
+
     return true;
 }
 
