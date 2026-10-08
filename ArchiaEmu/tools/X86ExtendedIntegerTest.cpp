@@ -642,6 +642,28 @@ static bool TestMoffs() {
     if(!memory.Write(0x3000,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
     std::vector<std::uint8_t> load={0x48,0xA1,0x00,0x30,0x00,0x00,0x00,0x00,0x00,0x00,0xF4};
     if(!Run(memory,cpu,load) || cpu.Rax()!=value) return false;
+
+    // 32-bit moffs load/store use a 32-bit operand while retaining the full 64-bit address field.
+    Cpu cpu32; cpu32.ConnectMemory(&memory);
+    std::vector<std::uint8_t> load32={0xA1,0x00,0x30,0x00,0x00};
+    if(!Run(memory,cpu32,load32) || cpu32.Rax()!=0x55667788ULL) return false;
+
+    Cpu cpu16; cpu16.ConnectMemory(&memory);
+    std::vector<std::uint8_t> load16={0x66,0xA1,0x00,0x30,0x00,0x00,0x00,0x00,0x00,0x00};
+    if(!Run(memory,cpu16,load16) || (cpu16.Rax()&0xFFFFULL)!=0x7788ULL) return false;
+
+    Cpu cpu16Store; cpu16Store.ConnectMemory(&memory);
+    cpu16Store.WriteRegister64(0,0x112233445566A5B6ULL);
+    std::vector<std::uint8_t> store16={0x66,0xA3,0x10,0x30,0x00,0x00,0x00,0x00,0x00,0x00};
+    if(!Run(memory,cpu16Store,store16)) return false;
+    std::uint16_t out16=0;
+    if(!memory.Read(0x3010,reinterpret_cast<std::uint8_t*>(&out16),2) || out16!=0xA5B6U) return false;
+
+    // 67 changes the moffs address field to 32 bits; the high address bytes are not consumed.
+    Cpu cpu67; cpu67.ConnectMemory(&memory);
+    std::vector<std::uint8_t> load67={0x67,0xA1,0x00,0x30,0x00,0x00};
+    if(!Run(memory,cpu67,load67) || cpu67.Rax()!=0x55667788ULL) return false;
+
     Cpu cpu2; cpu2.ConnectMemory(&memory); cpu2.WriteRegister64(0,0xA5);
     std::vector<std::uint8_t> store={0xA2,0x08,0x30,0x00,0x00,0x00,0x00,0x00,0x00,0xF4};
     if(!Run(memory,cpu2,store)) return false;
