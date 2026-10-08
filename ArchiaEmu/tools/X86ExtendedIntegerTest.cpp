@@ -143,6 +143,39 @@ static bool TestCmov16ExtendedMemoryAndFlags() {
     return cpu.Rflags() == (CF | PF | ZF | OF);
 }
 
+
+static bool TestCmov32ExtendedMemory() {
+    // CMOVNZ EAX,[R11] must perform a 32-bit load and zero-extend EAX.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t value = 0x89ABCDEFU;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0x123456789ABCDEF0ULL);
+        AppendMovR64(code, 11, 0x1800);
+        cpu.SetRflags(0);
+        code.insert(code.end(), {0x45, 0x0F, 0x45, 0x03}); // CMOVNZ R8D? destination is R8D; source [R11]
+        if (!Run(m, cpu, code)) return false;
+        return cpu.ReadRegister64(8) == 0x0000000089ABCDEFULL;
+    }
+
+    // A false condition must leave the extended destination untouched.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t value = 0x01020304U;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 8, 0x123456789ABCDEF0ULL);
+        AppendMovR64(code, 11, 0x1800);
+        cpu.SetRflags(1ULL << 6);
+        code.insert(code.end(), {0x45, 0x0F, 0x44, 0x03}); // CMOVZ R8D,[R11]
+        if (!Run(m, cpu, code)) return false;
+        return cpu.ReadRegister64(8) == 0x123456789ABCDEF0ULL;
+    }
+
+    return true;
+}
+
 static bool TestXadd32() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -3782,6 +3815,7 @@ int main() {
     if (!TestBswap()) { std::cerr << "BSWAP failed\n"; return 2; }
     if (!TestCmovz()) { std::cerr << "CMOVZ failed\n"; return 3; }
     if (!TestCmovccExtendedConditions()) { std::cerr << "CMOVcc extended conditions failed\n"; return 43; }
+    if (!TestCmov32ExtendedMemory()) { std::cerr << "CMOV32 extended memory failed\\n"; return 52; }
     if (!TestXadd32()) { std::cerr << "XADD failed\n"; return 4; }
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
