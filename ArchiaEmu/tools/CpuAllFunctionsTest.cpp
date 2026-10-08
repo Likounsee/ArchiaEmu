@@ -7709,6 +7709,58 @@ void TestBitTestFamily()
 
 void TestPrimaryOpcodeCoverageGaps()
 {
+
+    // 0xAE: REP(E) SCASB must compare AL byte-by-byte and stop on mismatch.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        const std::uint8_t values[2] = {0x7A, 0x7B};
+        if (!mem.Write(DATA, values, sizeof(values))) return;
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x112233445566007AULL);
+        cpu.WriteRegister64(7, DATA);
+        cpu.WriteRegister64(1, 2);
+        std::vector<std::uint8_t> code = {0xF3, 0xAE}; // REPE SCASB
+        code = Finish(code);
+        CHECK(
+            "REPE SCASB (opcode AEh) stops on mismatch",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(7) == DATA + 2 &&
+            cpu.ReadRegister64(1) == 0 &&
+            (cpu.Rflags() & (1ULL << 6)) == 0 &&
+            cpu.Rax() == 0x112233445566007AULL);
+    }
+
+    // B0..B7: accumulator and legacy high-byte MOV-immediate forms.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        std::vector<std::uint8_t> code = {
+            0xB0, 0x11, // MOV AL,11h
+            0xB1, 0x22, // MOV CL,22h
+            0xB2, 0x33, // MOV DL,33h
+            0xB3, 0x44, // MOV BL,44h
+            0xB4, 0x55, // MOV AH,55h
+            0xB5, 0x66, // MOV CH,66h
+            0xB6, 0x77, // MOV DH,77h
+            0xB7, 0x88  // MOV BH,88h
+        };
+        code = Finish(code);
+        CHECK(
+            "MOV r8,imm8 opcode matrix B0h..B7h",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x5511ULL &&
+            cpu.ReadRegister64(1) == 0x66ULL &&
+            cpu.ReadRegister64(2) == 0x77ULL &&
+            cpu.ReadRegister64(3) == 0x88ULL);
+    }
+
+
     // 0x1A: SBB r8,r/m8. CF is an input and must be consumed correctly.
     {
         Memory mem;
