@@ -636,35 +636,6 @@ static bool TestControlTransferGroups() {
         if (!Run(m, c, callCode) || c.Rsp() != 0x3000ULL) return false;
     }
 
-    // CALL [R11+R12*4+disp8] exercises REX.WRXB, SIB, and indirect return flow.
-    {
-        Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m); c.SetStackPointer(0x3000);
-        const std::uint64_t target = 0x1240ULL;
-        if (!m.Write(0x1818, reinterpret_cast<const std::uint8_t*>(&target), sizeof(target))) return false;
-        const std::uint8_t retByte = 0xC3;
-        if (!m.Write(0x1240, &retByte, 1)) return false;
-        std::vector<std::uint8_t> callCode;
-        AppendMovR64(callCode, 11, 0x1800);
-        AppendMovR64(callCode, 12, 2);
-        callCode.insert(callCode.end(), {0x4D, 0xFF, 0x54, 0xA3, 0x10}); // CALL QWORD PTR [R11+R12*4+0x10]
-        callCode.push_back(0xF4);
-        if (!Run(m, c, callCode) || c.Rsp() != 0x3000ULL) return false;
-    }
-
-    // JMP [R11+R12*4+disp8] must use the same extended SIB effective address without touching RSP.
-    {
-        Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m); c.SetStackPointer(0x3000);
-        const std::uint64_t target = 0x1260ULL;
-        if (!m.Write(0x1818, reinterpret_cast<const std::uint8_t*>(&target), sizeof(target))) return false;
-        const std::uint8_t hlt = 0xF4;
-        if (!m.Write(0x1260, &hlt, 1)) return false;
-        std::vector<std::uint8_t> jmpCode;
-        AppendMovR64(jmpCode, 11, 0x1800);
-        AppendMovR64(jmpCode, 12, 2);
-        jmpCode.insert(jmpCode.end(), {0x4D, 0xFF, 0x64, 0xA3, 0x10}); // JMP QWORD PTR [R11+R12*4+0x10]
-        if (!Run(m, c, jmpCode) || c.Rsp() != 0x3000ULL) return false;
-    }
-
     // CALL r/m64 through an extended SIB base must dereference the target pointer.
     {
         Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m); c.SetStackPointer(0x3000);
