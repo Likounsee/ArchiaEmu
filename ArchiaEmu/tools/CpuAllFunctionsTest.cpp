@@ -4821,6 +4821,39 @@ void TestSetccAllConditions()
 
 }
 
+
+void TestSetccMemoryRexSib()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(DATA, 0x2000);
+    mem.Map(STACK, 0x2000);
+
+    constexpr std::uint64_t base = DATA + 0x280;
+    constexpr std::uint64_t index = 2;
+    constexpr std::uint64_t displacement = 0x20;
+    const std::uint64_t address = base + index * 4 + displacement;
+    std::uint8_t initial = 0xAA;
+    mem.Write(address, &initial, 1);
+
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(13, base);
+    cpu.WriteRegister64(9, index);
+    cpu.SetRflags(1ULL << 6); // ZF=1 -> SETE writes 1.
+
+    const std::vector<std::uint8_t> code = {
+        0x43, 0x0F, 0x94, 0x44, 0x8D, 0x20, 0xF4
+    }; // SETE byte [R13+R9*4+disp8], REX.XB
+
+    std::uint8_t result = 0;
+    CHECK(
+        "SETE memory REX.XB SIB disp8",
+        RunCode(cpu, mem, code) &&
+        mem.Read(address, &result, 1) &&
+        result == 1 &&
+        cpu.Rflags() == (1ULL << 6));
+}
+
 void TestSetcc()
 {
     {
@@ -7025,6 +7058,7 @@ int main()
     TestMovxByteRexAndHighByteRules();
     TestCmpxchgOperandWidths();
     TestSetccMemory();
+    TestSetccMemoryRexSib();
     TestCmpxchgMemory16();
     TestCmpxchgVariants();
     TestCmpxchgMemoryRexSib();
