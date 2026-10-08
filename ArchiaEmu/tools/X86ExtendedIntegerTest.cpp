@@ -2505,7 +2505,7 @@ static bool TestRotateThroughCarryWidths() {
         cpu.SetRflags(CF);
         std::vector<std::uint8_t> code={0x66,0xB8,0x00,0x80,0x66,0xD1,0xD0}; // RCL AX,1
         if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=1U) return false;
-        return (cpu.Rflags()&(CF|OF))==CF;
+        return (cpu.Rflags()&(CF|OF))==(CF|OF);
     }
 
     {
@@ -2527,7 +2527,7 @@ static bool TestRotateThroughCarryWidths() {
         if(!Run(m,cpu,code)) return false;
         std::uint64_t out=0;
         if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=1ULL) return false;
-        return (cpu.Rflags()&(CF|OF))==CF;
+        return (cpu.Rflags()&(CF|OF))==(CF|OF);
     }
 
     return true;
