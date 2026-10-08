@@ -2772,6 +2772,52 @@ void TestDivIdiv()
             !RunCode(cpu, mem, code));
     }
     // =========================================================
+    // DIV/IDIV16 exception boundaries
+    // =========================================================
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 1);
+        Append(code, MovR64(2, 0));
+        Append(code, MovR64(3, 0));
+        code.insert(code.end(), {0x66, 0xF7, 0xF3}); // DIV BX
+        code = Finish(code);
+        CHECK("DIV16_ZERO", !RunCode(cpu, mem, code));
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0);
+        Append(code, MovR64(2, 1));
+        Append(code, MovR64(3, 1));
+        code.insert(code.end(), {0x66, 0xF7, 0xF3}); // DIV BX
+        code = Finish(code);
+        CHECK("DIV16_OVERFLOW", !RunCode(cpu, mem, code));
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 1);
+        Append(code, MovR64(2, 0));
+        Append(code, MovR64(3, 0));
+        code.insert(code.end(), {0x66, 0xF7, 0xFB}); // IDIV BX
+        code = Finish(code);
+        CHECK("IDIV16_ZERO", !RunCode(cpu, mem, code));
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x8000);
+        Append(code, MovR64(2, 0xFFFF));
+        Append(code, MovR64(3, 1));
+        code.insert(code.end(), {0x66, 0xF7, 0xFB}); // IDIV BX: -32768 / 1 fits, not overflow
+        code = Finish(code);
+        CHECK("IDIV16_MIN_VALUE", RunCode(cpu, mem, code) &&
+              (cpu.Rax() & 0xFFFFULL) == 0x8000ULL &&
+              (cpu.Rdx() & 0xFFFFULL) == 0);
+    }
+
+    // =========================================================
     // DIV64 division par zero
     // =========================================================
     {
