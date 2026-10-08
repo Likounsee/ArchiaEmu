@@ -697,6 +697,57 @@ void TestPushImmediate32()
         RunCode(cpu, mem, code) &&
         cpu.Rax() == 0x0000000012345678ULL);
 }
+void TestPushPopRmForms()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t address = DATA + 0x180;
+        const std::uint64_t value = 0x8877665544332211ULL;
+        Write64(mem, address, value);
+        Cpu cpu = MakeCpu(mem);
+        auto code = std::vector<std::uint8_t>{0xFF, 0x34, 0x25};
+        for (int i = 0; i < 4; ++i)
+            code.push_back(static_cast<std::uint8_t>(address >> (i * 8)));
+        code.insert(code.end(), {0x8F, 0x04, 0x25});
+        for (int i = 0; i < 4; ++i)
+            code.push_back(static_cast<std::uint8_t>(address >> (i * 8)));
+        code = Finish(code);
+        CHECK("PUSH/POP r/m64 memory absolute", RunCode(cpu, mem, code) &&
+              Read64(mem, address) == value && cpu.Rsp() == STACK + 0x1000);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0x123456789ABCDEF0ULL);
+        auto code = std::vector<std::uint8_t>{0x41, 0x50, 0x41, 0x8F, 0xC1, 0xF4};
+        CHECK("PUSH R8 / POP R9 via r/m64", RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(9) == 0x123456789ABCDEF0ULL);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t address = DATA + 0x1A0;
+        Write64(mem, address, 0xAABBCCDDEEFF1234ULL);
+        Cpu cpu = MakeCpu(mem);
+        auto code = std::vector<std::uint8_t>{0xFF, 0x34, 0x25};
+        for (int i = 0; i < 4; ++i)
+            code.push_back(static_cast<std::uint8_t>(address >> (i * 8)));
+        code.insert(code.end(), {0x66, 0x8F, 0x04, 0x25});
+        for (int i = 0; i < 4; ++i)
+            code.push_back(static_cast<std::uint8_t>(address >> (i * 8)));
+        code = Finish(code);
+        CHECK("66h POP r/m16 stores only 16-bit value", RunCode(cpu, mem, code) &&
+              Read64(mem, address) == 0xAABBCCDDEEFF1234ULL);
+    }
+}
+
 void TestPushPopRexAndOperandWidths()
 {
     {
@@ -5461,6 +5512,7 @@ int main()
     TestPushImmediate();
     TestPushImmediate32();
     TestPushPopRexAndOperandWidths();
+    TestPushPopRmForms();
     TestCallRet();
 
     TestJumps();
