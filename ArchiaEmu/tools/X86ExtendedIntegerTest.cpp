@@ -2664,7 +2664,54 @@ static bool TestSetccExtendedMemoryAndFlags() {
     std::uint8_t values[4] = {};
     if (!m.Read(0x1800, values, sizeof(values))) return false;
     if (values[0] != 1 || values[1] != 1 || values[2] != 0 || values[3] != 1) return false;
-    return cpu.Rflags() == (CF | PF | AF | ZF | SF | OF);
+
+    if (cpu.Rflags() != (CF | PF | AF | ZF | SF | OF)) return false;
+
+    // Exercise all sixteen SETcc conditions with REX.B memory operands.
+    {
+        Memory m2; m2.Map(0x1000, 0x4000); Cpu cpu2; cpu2.ConnectMemory(&m2);
+        std::vector<std::uint8_t> code2;
+        AppendMovR64(code2, 11, 0x1800);
+        cpu2.SetRflags(OF | SF); // OF=1,SF=1; ZF/CF/PF=0
+        for (std::uint8_t cc = 0; cc < 16; ++cc) {
+            code2.push_back(0x41);
+            code2.push_back(0x0F);
+            code2.push_back(static_cast<std::uint8_t>(0x90U + cc));
+            code2.push_back(0x43);
+            code2.push_back(cc);
+        }
+        if (!Run(m2, cpu2, code2)) return false;
+        const std::uint8_t expected2[16] = {1,0,0,1,0,1,0,1,1,0,0,1,0,1,0,1};
+        for (std::uint8_t cc = 0; cc < 16; ++cc) {
+            std::uint8_t value = 0;
+            if (!m2.Read(0x1800 + cc, &value, sizeof(value)) || value != expected2[cc]) return false;
+        }
+        if (cpu2.Rflags() != (OF | SF)) return false;
+    }
+
+    // Complementary flags cover the carry/equality/parity and signed branches.
+    {
+        Memory m3; m3.Map(0x1000, 0x4000); Cpu cpu3; cpu3.ConnectMemory(&m3);
+        std::vector<std::uint8_t> code3;
+        AppendMovR64(code3, 11, 0x1800);
+        cpu3.SetRflags(CF | PF | ZF | SF);
+        for (std::uint8_t cc = 0; cc < 16; ++cc) {
+            code3.push_back(0x41);
+            code3.push_back(0x0F);
+            code3.push_back(static_cast<std::uint8_t>(0x90U + cc));
+            code3.push_back(0x43);
+            code3.push_back(cc);
+        }
+        if (!Run(m3, cpu3, code3)) return false;
+        const std::uint8_t expected3[16] = {0,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0};
+        for (std::uint8_t cc = 0; cc < 16; ++cc) {
+            std::uint8_t value = 0;
+            if (!m3.Read(0x1800 + cc, &value, sizeof(value)) || value != expected3[cc]) return false;
+        }
+        if (cpu3.Rflags() != (CF | PF | ZF | SF)) return false;
+    }
+
+    return true;
 }
 
 static bool TestJccConditionMatrix() {
