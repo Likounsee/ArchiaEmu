@@ -4366,6 +4366,40 @@ static bool TestPushPopExtendedRegistersAndWidths() {
         return out == value && cpu.Rsp() == 0x3000ULL;
     }
 
+    // PUSH/POP QWORD PTR [R11+R12*4+disp8] combines REX.WRXB with SIB addressing.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetStackPointer(0x3000);
+        const std::uint64_t value = 0x8877665544332211ULL;
+        if (!m.Write(0x1818, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        AppendMovR64(code, 12, 2);
+        code.insert(code.end(), {0x4D, 0xFF, 0x74, 0xA3, 0x10}); // PUSH QWORD PTR [R11+R12*4+0x10]
+        code.insert(code.end(), {0x4D, 0x8F, 0x44, 0xA3, 0x10}); // POP QWORD PTR [R11+R12*4+0x10]
+        std::uint64_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1818, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        if (out != value || cpu.Rsp() != 0x3000ULL) return false;
+    }
+
+    // 16-bit PUSH/POP memory with the same extended SIB address must move exactly two bytes.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetStackPointer(0x3000);
+        const std::uint16_t value = 0xBEEF;
+        if (!m.Write(0x1818, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        AppendMovR64(code, 12, 2);
+        code.insert(code.end(), {0x66, 0x43, 0xFF, 0x74, 0xA3, 0x10}); // PUSH WORD PTR [R11+R12*4+0x10]
+        code.insert(code.end(), {0x66, 0x43, 0x8F, 0x44, 0xA3, 0x10}); // POP WORD PTR [R11+R12*4+0x10]
+        std::uint16_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1818, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        if (out != value || cpu.Rsp() != 0x3000ULL) return false;
+    }
+
     return true;
 }
 
