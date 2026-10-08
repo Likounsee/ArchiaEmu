@@ -2497,6 +2497,48 @@ void TestImul()
             (cpu.Rflags() & 1ULL) == 0 &&
             (cpu.Rflags() & 0x800ULL) == 0);
     }
+
+    // One-operand MUL/IMUL must also cover the 32-bit implicit EDX:EAX form.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0xFFFFFFFFULL);
+        Append(code, MovR64(3, 2));
+        Append(code, {0xF7, 0xE3}); // MUL EBX
+        code = Finish(code);
+
+        CHECK("MUL32_reg_EDX_EAX",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0xFFFFFFFEULL &&
+              cpu.ReadRegister64(2) == 1ULL &&
+              (cpu.Rflags() & 1ULL) != 0 &&
+              (cpu.Rflags() & (1ULL << 11)) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0xFFFFFFFEULL); // EAX = -2
+        Append(code, MovR64(3, 2));
+        Append(code, {0xF7, 0xEB}); // IMUL EBX
+        code = Finish(code);
+
+        CHECK("IMUL32_reg_EDX_EAX_signed_fit",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0xFFFFFFFCULL &&
+              cpu.ReadRegister64(2) == 0xFFFFFFFFULL &&
+              (cpu.Rflags() & 1ULL) == 0 &&
+              (cpu.Rflags() & (1ULL << 11)) == 0);
+    }
+
 }
 
 void TestMulDiv8()
