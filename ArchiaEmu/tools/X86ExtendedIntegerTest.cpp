@@ -283,14 +283,14 @@ static bool TestCmpxchg64() {
     {
         Memory m; m.Map(0x1000,0x3000); Cpu c; c.ConnectMemory(&m);
         const std::uint64_t initial=0x1122334455667788ULL;
-        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&initial),8)) return false;
+        if(!m.Write(0x1814,reinterpret_cast<const std::uint8_t*>(&initial),8)) return false;
         std::vector<std::uint8_t> bytes;
         AppendMovR64(bytes,11,0x1800); AppendMovR64(bytes,12,1);
         AppendMovR64(bytes,0,initial); AppendMovR64(bytes,9,0xAABBCCDDEEFF0011ULL);
         bytes.insert(bytes.end(),{0x4F,0x0F,0xB1,0x4C,0xA3,0x0C}); // CMPXCHG [R11+R12*4+0x0C],R9
         if(!Run(m,c,bytes)) return false;
         std::uint64_t out=0;
-        if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
+        if(!m.Read(0x1814,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
         return out==0xAABBCCDDEEFF0011ULL && c.Rax()==initial &&
                (c.Rflags()&(1ULL<<6))!=0;
     }
