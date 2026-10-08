@@ -2260,7 +2260,7 @@ static bool TestRotateThroughCarryCountReduction() {
     {
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
         cpu.SetRflags(CF|OF);
-        std::vector<std::uint8_t> code={0x66,0xB8,0x34,0x12,0x66,0xB1,0x11,0x66,0xD2,0xD0}; // RCL AX,CL (17)
+        std::vector<std::uint8_t> code={0x66,0xB8,0x34,0x12,0xB1,0x11,0x66,0xD3,0xD0}; // RCL AX,CL (17)
         if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFU)!=0x1234U) return false;
         if(cpu.Rflags()!=(CF|OF)) return false;
     }
