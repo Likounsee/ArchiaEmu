@@ -327,7 +327,8 @@ static bool TestCmpxchg8b() {
         0x48,0x0F,0xC7,0x0C,0x25,0x00,0x19,0x00,0x00};
     if(!Run(memory,c2,c))return false;
     std::uint64_t newLo=0,newHi=0;if(!memory.Read(0x1900,reinterpret_cast<std::uint8_t*>(&newLo),8)||!memory.Read(0x1908,reinterpret_cast<std::uint8_t*>(&newHi),8))return false;
-    return newLo==0xAABBCCDDEEFF0011ULL && newHi==0x7766554433221100ULL && (c2.Rflags()&(1ULL<<6))!=0;
+    if (newLo!=0xAABBCCDDEEFF0011ULL || newHi!=0x7766554433221100ULL ||
+        (c2.Rflags()&(1ULL<<6))==0) return false;
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t initial=0x1122334455667788ULL;
@@ -342,6 +343,7 @@ static bool TestCmpxchg8b() {
         if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
         return out==0xEEFF0011AABBCCDDULL && (cpu.Rflags()&(1ULL<<6))!=0;
     }
+    return true;
 }
 
 static bool TestSystemIntegerOps() {
