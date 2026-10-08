@@ -789,6 +789,60 @@ void TestJumps()
     }
 }
 
+
+void TestJccBoundaryConditions()
+{
+    const struct {
+        const char* name;
+        std::uint8_t opcode;
+        std::uint64_t flags;
+    } cases[] = {
+        {"JO taken", 0x70, 1ULL << 11},
+        {"JNO taken", 0x71, 0},
+        {"JP taken", 0x7A, 1ULL << 2},
+        {"JNP taken", 0x7B, 0},
+        {"JS taken", 0x78, 1ULL << 7},
+        {"JNS taken", 0x79, 0},
+    };
+
+    for (const auto& c : cases) {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(c.flags);
+
+        auto code = MovR64(0, 1);
+        code.insert(code.end(), {c.opcode, 0x01, 0xC3});
+        Append(code, MovR64(0, 2));
+        code.push_back(0xC3);
+
+        CHECK(c.name, RunCode(cpu, mem, code) && cpu.Rax() == 2);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(0);
+
+        auto code = MovR64(0, 1);
+        code.insert(code.end(), {0x75, 0x02}); // JNZ +2: skip RET, land on MOV.
+        code.push_back(0xC3);
+        code.push_back(0x90);
+        Append(code, MovR64(0, 2));
+        code.push_back(0xC3);
+
+        CHECK(
+            "JNZ not taken preserves sequential path",
+            RunCode(cpu, mem, code) && cpu.Rax() == 1);
+    }
+}
+
+
 void TestJmp()
 {
     Memory mem;
@@ -5273,6 +5327,7 @@ int main()
     TestCallRet();
 
     TestJumps();
+    TestJccBoundaryConditions();
     TestJmp();
 
     TestImmediate();
