@@ -7800,6 +7800,32 @@ void TestPrimaryOpcodeCoverageGaps()
             cpu.ReadRegister64(1) == 0);
     }
 
+
+    // Secondary no-op/decode stubs explicitly present in Cpu.cpp must be
+    // executable without corrupting architectural state.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, DATA);
+        std::vector<std::uint8_t> code = {
+            0x0F, 0x0D, 0x00,       // PREFETCHW [RAX]
+            0x0F, 0x18, 0x00,       // PREFETCHNTA [RAX]
+            0x0F, 0x1E, 0x00,       // 0F 1E /0 no-op form
+            0x0F, 0xAE, 0x28,       // 0F AE /5 XRSTOR stub
+            0x0F, 0xAE, 0x30,       // 0F AE /6 XSAVE stub
+            0x0F, 0xAE, 0x38,       // 0F AE /7 CLFLUSH stub
+            0xB8, 0x01, 0x00, 0x00, 0x00
+        };
+        code = Finish(code);
+        CHECK(
+            "secondary no-op/decode stubs 0F 0D/18/1E/AE",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 1ULL);
+    }
+
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
     {
         Memory mem;
