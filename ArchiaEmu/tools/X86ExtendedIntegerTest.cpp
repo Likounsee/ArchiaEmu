@@ -2888,13 +2888,38 @@ static bool TestRotate64Forms() {
 }
 
 static bool TestCpuid() {
+    // Basic leaf reports the supported maximum and vendor signature.
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
     std::vector<std::uint8_t> code;
     AppendMovR64(code, 0, 0);
     AppendMovR64(code, 1, 0);
     code.insert(code.end(), {0x0F, 0xA2});
-    return Run(memory, cpu, code) && cpu.Rax() >= 1;
+    if (!Run(memory, cpu, code) || cpu.Rax() != 1U ||
+        cpu.ReadRegister64(1) != 0x69637241U ||
+        cpu.ReadRegister64(2) != 0x5550436DU ||
+        cpu.ReadRegister64(3) != 0x55616968U) return false;
+
+    // Leaf 1 exposes the modeled feature bits.
+    Memory m1; m1.Map(0x1000, 0x1000); Cpu c1; c1.ConnectMemory(&m1);
+    std::vector<std::uint8_t> leaf1;
+    AppendMovR64(leaf1, 0, 1);
+    AppendMovR64(leaf1, 1, 0);
+    leaf1.insert(leaf1.end(), {0x0F, 0xA2});
+    if (!Run(m1, c1, leaf1) ||
+        c1.ReadRegister64(0) != 0x00000000000006A1ULL ||
+        c1.ReadRegister64(2) != 0x0000000000000001ULL ||
+        c1.ReadRegister64(3) != ((1ULL << 4) | (1ULL << 15) | (1ULL << 23) | (1ULL << 25) | (1ULL << 26))) return false;
+
+    // Leaf 7 subleaf 0 is explicitly modeled as zero feature extensions.
+    Memory m7; m7.Map(0x1000, 0x1000); Cpu c7; c7.ConnectMemory(&m7);
+    std::vector<std::uint8_t> leaf7;
+    AppendMovR64(leaf7, 0, 7);
+    AppendMovR64(leaf7, 1, 0);
+    leaf7.insert(leaf7.end(), {0x0F, 0xA2});
+    return Run(m7, c7, leaf7) &&
+           c7.Rax() == 0 && c7.ReadRegister64(1) == 0 &&
+           c7.ReadRegister64(2) == 0 && c7.ReadRegister64(3) == 0;
 }
 
 
