@@ -4375,6 +4375,7 @@ int main() {
     if (!TestMoffs()) { std::cerr << "moffs failed\n"; return 6; }
     if (!TestEnterLeave()) { std::cerr << "ENTER failed\n"; return 6; }
     if (!TestControlTransferGroups()) { std::cerr << "control transfer groups failed\n"; return 6; }
+    if (!TestCallRetRelativeRoundTrip()) { std::cerr << "relative CALL/RET failed\n"; return 74; }
     if (!TestSoftwareInterrupts()) { std::cerr << "software interrupts failed\n"; return 6; }
     if (!TestGroupF6Byte()) { std::cerr << "F6 byte group failed\n"; return 6; }
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
