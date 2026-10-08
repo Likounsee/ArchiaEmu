@@ -3248,6 +3248,7 @@ static bool TestMovImmediateToRmForms() {
     // MOV r/m64, imm32 to extended memory must sign-extend a negative imm32.
     {
         Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
         AppendMovR64(code, 11, 0x1800);
         code.insert(code.end(), {0x49, 0xC7, 0x43, 0x08, 0x00, 0x00, 0x00, 0x80});
         std::uint64_t out = 0;
