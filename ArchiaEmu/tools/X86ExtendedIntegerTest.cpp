@@ -4078,6 +4078,18 @@ static bool TestXchgExtendedMemoryForms() {
                cpu.ReadRegister64(8) == 0x0000000089ABCDEFULL;
     }
 
+    {
+        // Negative disp8 with REX.X/B SIB for a 16-bit exchange.
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t initial=0xCAFE;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&initial),2)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1808); AppendMovR64(code,12,2); AppendMovR64(code,8,0x1357);
+        code.insert(code.end(),{0x66,0x45,0x87,0x44,0xA3,0xF8}); // XCHG [R11+R12*4-8],R8W
+        std::uint16_t out=0;
+        if(!Run(m,cpu,code) || !m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),2)) return false;
+        return out==0x1357U && cpu.ReadRegister64(8)==0xCAFEU;
+    }
     return true;
 }
 
