@@ -2346,11 +2346,15 @@ void TestAdcSbb()
         Write64(mem, address, initial);
 
         Cpu cpu = MakeCpu(mem);
-        cpu.WriteRegister64(0, address);
         cpu.SetRflags(0);
 
         auto code = std::vector<std::uint8_t>{
-            0x48, 0x83, 0x18, 0xFF, // SBB QWORD PTR [RAX],-1
+            0x48, 0x83, 0x1C, 0x25,
+            static_cast<std::uint8_t>(address),
+            static_cast<std::uint8_t>(address >> 8),
+            static_cast<std::uint8_t>(address >> 16),
+            static_cast<std::uint8_t>(address >> 24),
+            0xFF // SBB QWORD PTR [disp32],-1
             0xF4
         };
 
