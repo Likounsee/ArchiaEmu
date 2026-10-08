@@ -2810,6 +2810,24 @@ void TestDivIdiv128()
             !RunCode(cpu, mem, code));
     }
 }
+    // IDIV64 boundary: INT64_MIN / -1 is the architectural quotient overflow case.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 0x8000000000000000ULL);
+        Append(code, MovR64(2, 0xFFFFFFFFFFFFFFFFULL));
+        Append(code, MovR64(3, 0xFFFFFFFFFFFFFFFFULL));
+        Append(code, {0x48, 0xF7, 0xFB}); // IDIV RBX
+        code = Finish(code);
+
+        CHECK("IDIV64 INT64_MIN divided by -1 overflows",
+              !RunCode(cpu, mem, code));
+    }
+
 void TestDivIdiv()
 {
     // =========================================================
