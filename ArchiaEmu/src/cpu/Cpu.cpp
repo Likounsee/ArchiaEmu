@@ -5595,10 +5595,14 @@ int Cpu::Run()
                 if(memory){if(!ReadMemory(address,reinterpret_cast<std::uint8_t*>(&target),8))return 1;}else target=registers_.Read64(rm);
             }
 
-            if (group == 2 || group == 4) {
+            if (group == 2) {
                 if (!Push64(instruction_pointer_)) return 1;
                 instruction_pointer_ = target;
-                if (group == 2) ++call_depth;
+                ++call_depth;
+                break;
+            }
+            if (group == 4) {
+                instruction_pointer_ = target;
                 break;
             }
             if (group == 6) {
