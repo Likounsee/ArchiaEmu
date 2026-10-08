@@ -4413,6 +4413,28 @@ void TestShldShrd()
     {
         Memory mem;
         mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t base = DATA + 0x500;
+        const std::uint64_t index = 2;
+        const std::uint64_t address = base + index * 4;
+        Write64(mem, address, 0x0123456789ABCDEFULL);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(8, 0xFEDCBA9876543210ULL);
+        auto code = std::vector<std::uint8_t>{
+            0x4F, 0x0F, 0xAC, 0x04, 0x8D, 0x00, 0x00, 0x00, 0x00, 0x04,
+            0xF4
+        };
+        CHECK("SHRD64 memory exercises REX.WRXB plus SIB",
+              RunCode(cpu, mem, code) &&
+              Read64(mem, address) == 0x00123456789ABCDEULL);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
         mem.Map(STACK, 0x2000);
         Cpu cpu = MakeCpu(mem);
         cpu.SetRflags((1ULL << 4) | (1ULL << 6) | (1ULL << 11));
