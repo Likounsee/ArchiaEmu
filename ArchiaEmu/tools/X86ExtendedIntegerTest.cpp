@@ -337,7 +337,7 @@ static bool TestCmpxchg8b() {
         AppendMovR64(code,11,0x1800); AppendMovR64(code,12,1);
         AppendMovR64(code,0,0x55667788ULL); AppendMovR64(code,2,0x11223344ULL);
         AppendMovR64(code,3,0xAABBCCDDULL); AppendMovR64(code,1,0xEEFF0011ULL);
-        code.insert(code.end(),{0x46,0x0F,0xC7,0x4C,0xA3,0x10}); // CMPXCHG8B [R11+R12*4+0x10]
+        code.insert(code.end(),{0x47,0x0F,0xC7,0x4C,0xA3,0x10}); // CMPXCHG8B [R11+R12*4+0x10]
         if(!Run(m,cpu,code)) return false;
         std::uint64_t out=0;
         if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
