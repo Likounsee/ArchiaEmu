@@ -7710,6 +7710,38 @@ void TestBitTestFamily()
 void TestPrimaryOpcodeCoverageGaps()
 {
 
+
+    // 67h REP INSB uses EDI/ECX while DX remains the I/O port selector.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(2, 0x0042);
+        cpu.WriteRegister64(7, 0x0000000200000000ULL | (DATA + 0x200));
+        cpu.WriteRegister64(1, 0x0000000300000002ULL);
+        std::uint32_t next = 0;
+        cpu.SetIoHandlers(
+            [&](Cpu&, std::uint16_t port, std::uint8_t width) -> std::uint32_t {
+                if (port != 0x42 || width != 1) return 0;
+                return next++ == 0 ? 0x11U : 0x22U;
+            },
+            [](Cpu&, std::uint16_t, std::uint32_t, std::uint8_t) -> bool { return true; });
+        std::vector<std::uint8_t> code = {0x67, 0xF3, 0x6C}; // REP INSB
+        code = Finish(code);
+        const bool runOk = RunCode(cpu, mem, code);
+        std::uint8_t out[2] = {};
+        const bool readOk = mem.Read(DATA + 0x200, out, sizeof(out));
+        CHECK(
+            "67h REP INSB uses EDI/ECX",
+            runOk &&
+            readOk &&
+            out[0] == 0x11 && out[1] == 0x22 &&
+            cpu.ReadRegister64(7) == DATA + 0x202 &&
+            cpu.ReadRegister64(1) == 0);
+    }
+
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
     {
         Memory mem;
