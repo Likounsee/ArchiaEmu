@@ -2186,6 +2186,14 @@ static bool TestLeaExtendedAddressing() {
         code.insert(code.end(),{0x67,0x43,0x8D,0x04,0xA3}); // LEA EAX,[R11D+R12D*4]
         if(!Run(m,cpu,code) || cpu.Rax()!=0x1808ULL) return false;
     }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1808);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x67,0x43,0x8D,0x44,0xA3,0xF8}); // LEA EAX,[R11D+R12D*4-8]
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x1808ULL) return false;
+    }
     return true;
 }
 
