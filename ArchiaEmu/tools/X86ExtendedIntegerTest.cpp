@@ -816,6 +816,34 @@ static bool TestStringInstructions() {
            cpu.ReadRegister64(1) == 0;
 }
 
+static bool TestStringWidthAndRepeatCoverage() {
+    // REP MOVSD copies two dwords and advances RSI/RDI by four bytes each.
+    {
+        Memory m; m.Map(0x1000,0x5000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t src[2] = {0x11223344U, 0x55667788U};
+        if(!m.Write(0x2000,reinterpret_cast<const std::uint8_t*>(src),sizeof(src))) return false;
+        cpu.WriteRegister64(6,0x2000); cpu.WriteRegister64(7,0x2100); cpu.WriteRegister64(1,2);
+        if(!Run(m,cpu,{0xF3,0xA5})) return false;
+        std::uint32_t dst[2] = {};
+        if(!m.Read(0x2100,reinterpret_cast<std::uint8_t*>(dst),sizeof(dst))) return false;
+        if(dst[0]!=src[0] || dst[1]!=src[1] || cpu.ReadRegister64(6)!=0x2008ULL ||
+           cpu.ReadRegister64(7)!=0x2108ULL || cpu.ReadRegister64(1)!=0) return false;
+    }
+
+    // 66 + REP MOVSW selects the 16-bit element width.
+    {
+        Memory m; m.Map(0x1000,0x5000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t src[2] = {0x1234U,0xABCDU};
+        if(!m.Write(0x2000,reinterpret_cast<const std::uint8_t*>(src),sizeof(src))) return false;
+        cpu.WriteRegister64(6,0x2000); cpu.WriteRegister64(7,0x2100); cpu.WriteRegister64(1,2);
+        if(!Run(m,cpu,{0xF3,0x66,0xA5})) return false;
+        std::uint16_t dst[2] = {};
+        if(!m.Read(0x2100,reinterpret_cast<std::uint8_t*>(dst),sizeof(dst))) return false;
+        return dst[0]==src[0] && dst[1]==src[1] && cpu.ReadRegister64(6)==0x2004ULL &&
+               cpu.ReadRegister64(7)==0x2104ULL && cpu.ReadRegister64(1)==0;
+    }
+}
+
 static bool TestFlagsAndLoops() {
     Memory memory; memory.Map(0x1000, 0x2000);
     Cpu cpu; cpu.ConnectMemory(&memory);
@@ -4805,6 +4833,7 @@ int main() {
     if (!TestSoftwareInterrupts()) { std::cerr << "software interrupts failed\n"; return 6; }
     if (!TestGroupF6Byte()) { std::cerr << "F6 byte group failed\n"; return 6; }
     if (!TestStringInstructions()) { std::cerr << "string instructions failed\n"; return 6; }
+    if (!TestStringWidthAndRepeatCoverage()) { std::cerr << "string width/repeat coverage failed\n"; return 44; }
     if (!TestFlagsAndLoops()) { std::cerr << "flags/loops failed\n"; return 7; }
     if (!TestGroup1RexExtendedRegisters()) { std::cerr << "Group-1 REX extended registers failed\n"; return 8; }
     if (!TestAdcSbb16Directions()) { std::cerr << "ADC/SBB 16-bit directions failed\n"; return 8; }
