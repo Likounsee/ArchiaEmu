@@ -3050,7 +3050,7 @@ static bool TestTestRmRegForms() {
         code.insert(code.end(),{0x45,0x85,0xD8}); // TEST R8D,R11D
         if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x0000000080000000ULL ||
            cpu.ReadRegister64(11)!=0x00000000FFFFFFFFULL) return false;
-        if((cpu.Rflags()&(ZF|SF|PF))!=SF || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
     return true;
 }
