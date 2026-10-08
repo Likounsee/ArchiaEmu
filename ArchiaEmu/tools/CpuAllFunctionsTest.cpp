@@ -4503,6 +4503,23 @@ void TestSetccAllConditions()
     }
 }
 
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(ZF);
+        const std::uint64_t address = DATA + 0x180;
+        std::uint8_t zero = 0;
+        mem.Write(address, &zero, 1);
+        // SETNE byte ptr [R13+disp8] exercises REX.B + ModRM memory addressing.
+        auto code = MovR64(13, address - 0x7F);
+        Append(code, {0x41, 0x0F, 0x95, 0x45, 0x7F, 0xF4});
+        CHECK("SETNE memory R13 disp8 false",
+              RunCode(cpu, mem, code) && Read64(mem, address) == 0);
+    }
+
 void TestSetcc()
 {
     {
