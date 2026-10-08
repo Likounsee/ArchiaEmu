@@ -5952,6 +5952,32 @@ void TestMsrReadWriteCoverage()
 }
 
 
+
+void TestBitTestRegisterVariants()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(STACK, 0x2000);
+
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(8, 0);
+    cpu.WriteRegister64(9, 5);
+
+    const std::vector<std::uint8_t> code = {
+        0x4D, 0x0F, 0xAB, 0xC8, // BTS R8,R9: set bit 5.
+        0x4D, 0x0F, 0xB3, 0xC8, // BTR R8,R9: clear bit 5.
+        0x4D, 0x0F, 0xBB, 0xC8, // BTC R8,R9: complement bit 5.
+        0xF4
+    };
+
+    CHECK(
+        "BTS/BTR/BTC register forms use REX.R+B and selected bit",
+        RunCode(cpu, mem, code) &&
+        cpu.ReadRegister64(8) == 0x20ULL &&
+        (cpu.Rflags() & 1ULL) == 0);
+}
+
+
 void TestSyscallPS5Fallback()
 {
     Memory mem;
@@ -7782,6 +7808,7 @@ int main()
     TestStringCompareScanIoAndXlatCoverage();
     TestRemainingBitScanAndByteSwapCoverage();
     TestMsrReadWriteCoverage();
+    TestBitTestRegisterVariants();
 
     TestRotate();
     TestTestImmediate();
