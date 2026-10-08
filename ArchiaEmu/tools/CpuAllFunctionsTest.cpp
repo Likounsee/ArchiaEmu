@@ -6576,7 +6576,7 @@ void TestBitTestFamily()
 
         Cpu cpu = MakeCpu(mem);
         cpu.WriteRegister64(13, DATA);
-        cpu.WriteRegister64(10, 0x28);
+        cpu.WriteRegister64(10, 0x38);
         cpu.WriteRegister64(9, 3);
         // BT [R13 + R10*4 + disp8], R9:
         // REX.WRXB, ModRM r/m=SIB, SIB index=R10, base=R13.
