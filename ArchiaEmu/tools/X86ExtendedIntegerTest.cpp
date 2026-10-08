@@ -3404,6 +3404,10 @@ static bool TestXchgExtendedMemoryForms() {
                cpu.ReadRegister64(8) == 0x0000000089ABCDEFULL;
     }
 
+    return true;
+}
+
+
 static bool TestCmpxchgExtendedMemoryForms() {
     // Successful CMPXCHG r/m64,r64 with REX.R/B stores the source register.
     {
