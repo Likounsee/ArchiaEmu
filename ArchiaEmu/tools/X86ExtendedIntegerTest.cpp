@@ -274,10 +274,27 @@ static bool TestCmpxchg64() {
     AppendMovR64(code, 3, 20);
     AppendMovR64(code, 1, 20);
     code.insert(code.end(), {0x48, 0x0F, 0xB1, 0xC3});
-    return Run(memory, cpu, code) &&
-           cpu.ReadRegister64(0) == 20 &&
-           cpu.ReadRegister64(3) == 20 &&
-           (cpu.Rflags() & (1ULL << 6)) == 0;
+    if(!Run(memory, cpu, code) ||
+       cpu.ReadRegister64(0) != 20 ||
+       cpu.ReadRegister64(3) != 20 ||
+       (cpu.Rflags() & (1ULL << 6)) != 0) return false;
+
+    // CMPXCHG r/m64,r64 with REX.R/X/B and SIB addressing.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu c; c.ConnectMemory(&m);
+        const std::uint64_t initial=0x1122334455667788ULL;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&initial),8)) return false;
+        std::vector<std::uint8_t> bytes;
+        AppendMovR64(bytes,11,0x1800); AppendMovR64(bytes,12,1);
+        AppendMovR64(bytes,0,initial); AppendMovR64(bytes,9,0xAABBCCDDEEFF0011ULL);
+        bytes.insert(bytes.end(),{0x4F,0x0F,0xB1,0x4C,0xA3,0x0C}); // CMPXCHG [R11+R12*4+0x0C],R9
+        if(!Run(m,c,bytes)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),8)) return false;
+        return out==0xAABBCCDDEEFF0011ULL && c.Rax()==initial &&
+               (c.Rflags()&(1ULL<<6))!=0;
+    }
+    return true;
 }
 
 static bool TestMultiByteNop() {
