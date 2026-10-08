@@ -651,7 +651,7 @@ static bool TestControlTransferGroups() {
     // JMP r/m64 with REX.B must transfer to the extended register target.
     {
         Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m);
-        const std::uint8_t targetCode[] = {0xB8, 0xA5, 0x00, 0xF4}; // MOV EAX,0xA5; HLT
+        const std::uint8_t targetCode[] = {0xB0, 0xA5, 0xF4}; // MOV AL,0xA5; HLT
         if (!m.Write(0x1100, targetCode, sizeof(targetCode))) return false;
         std::vector<std::uint8_t> jumpCode;
         AppendMovR64(jumpCode, 11, 0x1100);
@@ -664,7 +664,7 @@ static bool TestControlTransferGroups() {
         Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m);
         const std::uint64_t target = 0x1200ULL;
         if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&target), sizeof(target))) return false;
-        const std::uint8_t targetCode[] = {0xB8, 0x5A, 0x00, 0xF4}; // MOV EAX,0x5A; HLT
+        const std::uint8_t targetCode[] = {0xB0, 0x5A, 0xF4}; // MOV AL,0x5A; HLT
         if (!m.Write(0x1200, targetCode, sizeof(targetCode))) return false;
         std::vector<std::uint8_t> jumpCode;
         AppendMovR64(jumpCode, 12, 0x1800);
