@@ -7817,14 +7817,25 @@ void TestPrimaryOpcodeCoverageGaps()
         cpu.SetStackPointer(STACK + 0x2000);
 
         for (std::uint8_t reg = 0; reg < 8; ++reg) {
-            cpu.WriteRegister64(reg, 0x1111111111111111ULL + reg);
+            if (reg != 4) {
+                cpu.WriteRegister64(reg, 0x1111111111111111ULL + reg);
+            }
         }
 
         std::vector<std::uint8_t> code;
-        for (std::uint8_t reg = 0; reg < 8; ++reg) {
+        // RSP (54h/5Ch) is covered separately below because it changes the
+        // stack pointer by definition and therefore cannot participate in a
+        // single register round-trip sequence.
+        for (std::uint8_t reg = 0; reg < 4; ++reg) {
             code.push_back(static_cast<std::uint8_t>(0x50 + reg));
         }
-        for (int reg = 7; reg >= 0; --reg) {
+        for (std::uint8_t reg = 5; reg < 8; ++reg) {
+            code.push_back(static_cast<std::uint8_t>(0x50 + reg));
+        }
+        for (int reg = 7; reg >= 5; --reg) {
+            code.push_back(static_cast<std::uint8_t>(0x58 + reg));
+        }
+        for (int reg = 3; reg >= 0; --reg) {
             code.push_back(static_cast<std::uint8_t>(0x58 + reg));
         }
 
@@ -7841,8 +7852,10 @@ void TestPrimaryOpcodeCoverageGaps()
 
         bool valuesOk = true;
         for (std::uint8_t reg = 0; reg < 8; ++reg) {
-            valuesOk = valuesOk &&
-                cpu.ReadRegister64(reg) == 0x1111111111111111ULL + reg;
+            if (reg != 4) {
+                valuesOk = valuesOk &&
+                    cpu.ReadRegister64(reg) == 0x1111111111111111ULL + reg;
+            }
         }
         for (std::uint8_t reg = 8; reg < 16; ++reg) {
             valuesOk = valuesOk &&
@@ -7852,6 +7865,40 @@ void TestPrimaryOpcodeCoverageGaps()
             "PUSH/POP short register opcode matrix 50h..5Fh",
             RunCode(cpu, mem, code) && valuesOk &&
             cpu.Rsp() == STACK + 0x2000);
+        // PUSH RSP pushes the pre-decrement stack pointer.
+        {
+            Memory rspMem;
+            rspMem.Map(CODE, 0x1000);
+            rspMem.Map(STACK, 0x2000);
+            Cpu rspCpu = MakeCpu(rspMem);
+            const std::uint64_t initialRsp = STACK + 0x1000;
+            rspCpu.SetStackPointer(initialRsp);
+            std::vector<std::uint8_t> rspCode = {0x54, 0x58}; // PUSH RSP; POP RAX
+            rspCode = Finish(rspCode);
+            CHECK(
+                "PUSH RSP (opcode 54h) pushes the original RSP",
+                RunCode(rspCpu, rspMem, rspCode) &&
+                rspCpu.Rax() == initialRsp &&
+                rspCpu.Rsp() == initialRsp);
+        }
+
+        // POP RSP increments the old stack pointer before loading the destination.
+        {
+            Memory rspMem;
+            rspMem.Map(CODE, 0x1000);
+            rspMem.Map(STACK, 0x2000);
+            Cpu rspCpu = MakeCpu(rspMem);
+            const std::uint64_t initialRsp = STACK + 0x1000;
+            const std::uint64_t value = STACK + 0x1800;
+            rspCpu.SetStackPointer(initialRsp);
+            rspCpu.WriteRegister64(0, value);
+            std::vector<std::uint8_t> rspCode = {0x50, 0x5C}; // PUSH RAX; POP RSP
+            rspCode = Finish(rspCode);
+            CHECK(
+                "POP RSP (opcode 5Ch) loads the popped value",
+                RunCode(rspCpu, rspMem, rspCode) &&
+                rspCpu.Rsp() == value);
+        }
     }
 }
 
