@@ -7890,6 +7890,31 @@ void TestPrimaryOpcodeCoverageGaps()
             cpu.ReadRegister64(0) == 0x1A2B3C4DULL);
     }
 
+    // 67h also changes the effective-address calculation of indirect CALL.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, DATA + 0x200);
+        const std::uint64_t target = CODE + 0x100;
+        mem.Write(DATA + 0x200, reinterpret_cast<const std::uint8_t*>(&target), sizeof(target));
+        std::vector<std::uint8_t> code = {
+            0x67, 0xFF, 0x10,             // CALL QWORD PTR [EAX]
+            0xF4,                         // return address
+            0x48, 0xB9, 0xEF, 0xBE, 0xAD, 0xDE, 0x00, 0x00, 0x00, 0x00,
+            0xC3
+        };
+        while (code.size() < 0x100) code.push_back(0xF4);
+        code = Finish(code);
+        CHECK(
+            "67h indirect CALL uses 32-bit effective address",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(1) == 0xDEADBEEFULL &&
+            cpu.Rsp() == STACK + 0x2000);
+    }
+
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
     {
         Memory mem;
