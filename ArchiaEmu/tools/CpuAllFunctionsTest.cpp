@@ -3822,6 +3822,100 @@ void TestHlt()
 }
 
 // ============== SETcc ==============
+void TestCmpxchgVariants()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x1111);
+        cpu.WriteRegister64(1, 0x2222);
+        const std::vector<std::uint8_t> code = {
+            0x48, 0x0F, 0xB1, 0xC8, // CMPXCHG RCX,RAX: RAX == RCX -> RCX = RAX? no: rm=RAX, reg=RCX
+            0xF4
+        };
+        CHECK("CMPXCHG64 equal register leaves destination and sets ZF",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0x1111 &&
+              cpu.ReadRegister64(1) == 0x2222 &&
+              (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x1111);
+        cpu.WriteRegister64(1, 0x2222);
+        cpu.WriteRegister64(2, 0x3333);
+        const std::vector<std::uint8_t> code = {
+            0x48, 0x0F, 0xB1, 0xD1, // CMPXCHG RCX,RDX: compare RAX with RCX, mismatch -> RAX=RCX
+            0xF4
+        };
+        CHECK("CMPXCHG64 mismatch loads old destination into RAX",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0x2222 &&
+              cpu.ReadRegister64(1) == 0x2222 &&
+              (cpu.Rflags() & (1ULL << 6)) == 0);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x1111);
+        cpu.WriteRegister64(8, 0xAAAA);
+        cpu.WriteRegister64(9, 0xBBBB);
+        const std::vector<std::uint8_t> code = {
+            0x4D, 0x0F, 0xB1, 0xC8, // CMPXCHG R8,R9: RAX compared with R8
+            0xF4
+        };
+        CHECK("CMPXCHG64 REX.RB extended registers",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0xAAAA &&
+              cpu.ReadRegister64(8) == 0xAAAA &&
+              cpu.ReadRegister64(9) == 0xBBBB);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t address = DATA + 0x100;
+        const std::uint64_t value = 0x1122334455667788ULL;
+        Write64(mem, address, value);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0xAABBCCDDEEFF0011ULL);
+        cpu.WriteRegister64(1, 0x99);
+        const std::vector<std::uint8_t> code = {
+            0x48, 0x0F, 0xB1, 0x0D,
+            0xF7, 0x00, 0x00, 0x00, // CMPXCHG [RIP+0xF7],RCX
+            0xF4
+        };
+        CHECK("CMPXCHG64 memory mismatch updates accumulator",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == value);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x000000000000007F);
+        cpu.WriteRegister64(8, 0x000000000000007F);
+        cpu.WriteRegister64(9, 0x00000000000000A5);
+        const std::vector<std::uint8_t> code = {
+            0x45, 0x0F, 0xB0, 0xC8, // CMPXCHG R8B,R9B
+            0xF4
+        };
+        CHECK("CMPXCHG8 REX.BR uses R8B/R9B",
+              RunCode(cpu, mem, code) &&
+              (cpu.ReadRegister64(8) & 0xFFULL) == 0xA5 &&
+              (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+}
+
 void TestSetccAllConditions()
 {
     struct Case { const char* name; std::uint8_t opcode; std::uint64_t flags; };
@@ -5802,6 +5896,7 @@ int main()
 
     TestLea32();
     TestHlt();
+    TestCmpxchgVariants();
     TestSetccAllConditions();
     TestSetcc();
     TestCmovccCoverage();
