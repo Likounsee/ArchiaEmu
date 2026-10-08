@@ -3524,6 +3524,23 @@ static bool TestXaddExtendedMemoryForms() {
         return out == 0x0013U && (cpu.ReadRegister64(8) & 0xFFFFU) == 0x0010U;
     }
 
+    // XADD r/m32,r32 with extended registers must use 32-bit zero-extension.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t initial = 0xFFFFFFF0U;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 8, 0x1234567800000025ULL);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x45, 0x0F, 0xC1, 0x03}); // XADD [R11],R8D
+        std::uint32_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0x00000015U &&
+               cpu.ReadRegister64(8) == 0x00000000FFFFFFF0ULL;
+    }
+
+
     return true;
 }
 
