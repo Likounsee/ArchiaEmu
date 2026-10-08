@@ -4959,6 +4959,148 @@ void TestOperandSizeOverrideLegacyArithmetic()
     }
 }
 
+
+void TestCmovccCoverage()
+{
+    const struct {
+        std::uint8_t cc;
+        std::uint64_t flags;
+        bool expected;
+    } conditions[] = {
+        {0x0, 1ULL << 11, true},                 // O
+        {0x1, 0, true},                           // NO
+        {0x2, 1ULL << 0, true},                  // B/NAE/C
+        {0x3, 0, true},                           // AE/NB/NC
+        {0x4, 1ULL << 6, true},                  // E/Z
+        {0x5, 0, true},                           // NE/NZ
+        {0x6, 1ULL << 0, true},                  // BE/NA
+        {0x7, 0, true},                           // A/NBE
+        {0x8, 1ULL << 7, true},                  // S
+        {0x9, 0, true},                           // NS
+        {0xA, 1ULL << 2, true},                  // P/PE
+        {0xB, 0, true},                           // NP/PO
+        {0xC, 1ULL << 7, true},                  // L
+        {0xD, 0, true},                           // GE
+        {0xE, (1ULL << 6) | (1ULL << 7), true}, // LE
+        {0xF, 0, true}                            // G
+    };
+
+    for (const auto& condition : conditions) {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        Cpu cpu = MakeCpu(mem);
+        constexpr std::uint64_t destination =
+            0x1111222233334444ULL;
+        constexpr std::uint64_t source =
+            0xAAAABBBBCCCCDDDDULL;
+        const std::uint64_t initialFlags =
+            condition.flags | (1ULL << 1) | (1ULL << 4);
+
+        cpu.SetRflags(initialFlags);
+        auto code = MovR64(0, destination);
+        Append(code, MovR64(1, source));
+
+        // REX.W + 0F 4x /r: CMOVcc RAX,RCX.
+        code.push_back(0x48);
+        code.push_back(0x0F);
+        code.push_back(static_cast<std::uint8_t>(0x40U + condition.cc));
+        code.push_back(0xC1);
+        code = Finish(code);
+
+        const bool ran = RunCode(cpu, mem, code);
+        CHECK(
+            "CMOVcc 64-bit register condition " +
+                std::to_string(condition.cc),
+            ran &&
+            cpu.Rax() == (condition.expected ? source : destination) &&
+            cpu.Rflags() == initialFlags);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(1ULL << 6);
+
+        auto code = MovR64(0, 0xFFFFFFFF00000000ULL);
+        Append(code, MovR64(1, 0x12345678ULL));
+
+        // 0F 44 C1: CMOVE EAX,ECX. A 32-bit CMOV zero-extends EAX.
+        code.insert(code.end(), {0x0F, 0x44, 0xC1});
+        code = Finish(code);
+
+        CHECK(
+            "CMOVE 32-bit register form zero-extends destination",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x0000000012345678ULL &&
+            cpu.Rflags() == (1ULL << 6));
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(1ULL << 6);
+
+        auto code = MovR64(0, 0xAAAABBBBCCCC1111ULL);
+        Append(code, MovR64(1, 0x0000000000002222ULL));
+
+        // 66 0F 44 C1: CMOVE AX,CX. Upper RAX bits remain unchanged.
+        code.insert(code.end(), {0x66, 0x0F, 0x44, 0xC1});
+        code = Finish(code);
+
+        CHECK(
+            "CMOVE 16-bit register form preserves upper destination bits",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0xAAAABBBBCCCC2222ULL &&
+            cpu.Rflags() == (1ULL << 6));
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+
+        constexpr std::uint64_t base = DATA + 0x200;
+        constexpr std::uint64_t index = 3;
+        constexpr std::uint64_t displacement = 0x20;
+        const std::uint64_t address =
+            base + index * 4 + displacement;
+        Write64(mem, address, 0xCAFEBABEDEADBEEFULL);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.SetRflags(1ULL << 6);
+
+        auto code = MovR64(8, 0x1111111111111111ULL);
+
+        // 4F 0F 44 44 8D 20:
+        // REX.WRXB + CMOVE R8,QWORD PTR [R13+R9*4+20h].
+        code.insert(code.end(), {
+            0x4F, 0x0F, 0x44, 0x44, 0x8D, 0x20
+        });
+        code = Finish(code);
+
+        CHECK(
+            "CMOVE R8, [R13+R9*4+disp8] exercises REX.R/X/B + SIB",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(8) == 0xCAFEBABEDEADBEEFULL &&
+            cpu.Rflags() == (1ULL << 6));
+    }
+}
+
+
 int main()
 {
     TestCpuAudit();
@@ -5023,6 +5165,7 @@ int main()
     TestLea32();
     TestHlt();
     TestSetcc();
+    TestCmovccCoverage();
     TestShiftsByCL();
     TestCmpEaxImmediate();
     TestGroupF7Memory();
