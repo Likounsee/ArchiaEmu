@@ -4612,6 +4612,39 @@ void TestImulMemory()
           cpu.Rax() == 42);
 }
 
+void TestImulMemoryWidths()
+{
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(DATA, 0x2000); mem.Map(STACK, 0x2000);
+        const std::uint64_t base = DATA + 0x300;
+        const std::uint64_t address = base + 0x10 * 8;
+        Write64(mem, address, 7);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, 0x10);
+        cpu.WriteRegister64(8, 6);
+        const std::vector<std::uint8_t> code = {
+            0x4F, 0x0F, 0xAF, 0x04, 0xCD, 0xF4
+        };
+        CHECK("IMUL R8,[R13+R9*8] uses REX.WRXB memory form",
+              RunCode(cpu, mem, code) && cpu.ReadRegister64(8) == 42);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(DATA, 0x2000); mem.Map(STACK, 0x2000);
+        Write64(mem, DATA, 7);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(1, 6);
+        const std::vector<std::uint8_t> code = {
+            0x66, 0x0F, 0xAF, 0x0C, 0x25,
+            static_cast<std::uint8_t>(DATA), static_cast<std::uint8_t>(DATA >> 8),
+            static_cast<std::uint8_t>(DATA >> 16), static_cast<std::uint8_t>(DATA >> 24),
+            0xF4
+        };
+        CHECK("IMUL CX,[absolute memory] uses 16-bit memory form",
+              RunCode(cpu, mem, code) && cpu.ReadRegister64(1) == 42);
+    }
+}
+
 // ============== SYSCALL -> repli PS5 interne (RAX=numero de service) ==============
 void TestSyscallPS5Fallback()
 {
