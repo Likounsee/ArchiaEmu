@@ -1105,6 +1105,44 @@ void TestIndirectCallMemoryRexSib()
         cpu.Rsp() == STACK + 0x1000);
 }
 
+
+void TestIndirectJmpMemoryRexSib()
+{
+    Memory mem;
+    mem.Map(CODE, 0x4000);
+    mem.Map(DATA, 0x2000);
+    mem.Map(STACK, 0x2000);
+
+    constexpr std::uint64_t base = DATA + 0x280;
+    constexpr std::uint64_t index = 2;
+    constexpr std::uint64_t displacement = 0x20;
+    constexpr std::uint64_t target = CODE + 0x120;
+    const std::uint64_t address = base + index * 4 + displacement;
+
+    Write64(mem, address, target);
+
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(13, base);
+    cpu.WriteRegister64(9, index);
+    const std::uint64_t initialRsp = cpu.Rsp();
+
+    auto code = std::vector<std::uint8_t>{
+        0x4F, 0xFF, 0x64, 0x8D, 0x20, // JMP [R13+R9*4+disp8], REX.WRXB
+        0xF4
+    };
+    while (code.size() < 0x120)
+        code.push_back(0x90);
+
+    Append(code, MovR64(0, 0xCAFEBABEULL));
+    code.push_back(0xF4);
+
+    CHECK(
+        "JMP r/m64 memory REX.WRXB SIB disp8",
+        RunCode(cpu, mem, code) &&
+        cpu.Rax() == 0xCAFEBABEULL &&
+        cpu.Rsp() == initialRsp);
+}
+
 void TestJumps()
 {
     const struct {
@@ -6928,6 +6966,7 @@ int main()
     TestMovsxdVariants();
     TestIndirectCallAndRetImmediate();
     TestIndirectCallMemoryRexSib();
+    TestIndirectJmpMemoryRexSib();
     TestJumps();
     TestJccBoundaryConditions();
     TestJmp();
