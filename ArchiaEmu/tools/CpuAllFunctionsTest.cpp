@@ -5918,6 +5918,40 @@ void TestRemainingBitScanAndByteSwapCoverage()
 }
 
 
+
+void TestMsrReadWriteCoverage()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(STACK, 0x2000);
+
+    Cpu cpu = MakeCpu(mem);
+    cpu.SetEfer(0x0000000012345678ULL);
+
+    auto code = MovR64(1, 0xC0000080ULL); // ECX = EFER MSR.
+    code.insert(code.end(), {0x0F, 0x32}); // RDMSR -> EDX:EAX.
+    code = Finish(code);
+
+    CHECK(
+        "RDMSR reads modeled EFER into EDX:EAX",
+        RunCode(cpu, mem, code) &&
+        cpu.Rax() == 0x0000000012345678ULL &&
+        cpu.ReadRegister64(2) == 0x0ULL);
+
+    cpu.SetInstructionPointer(CODE);
+    auto writeCode = MovR64(1, 0xC0000082ULL); // ECX = LSTAR MSR.
+    Append(writeCode, MovR64(0, 0x55667788ULL));
+    Append(writeCode, MovR64(2, 0x11223344ULL));
+    writeCode.insert(writeCode.end(), {0x0F, 0x30}); // WRMSR.
+    writeCode = Finish(writeCode);
+
+    CHECK(
+        "WRMSR updates modeled LSTAR from EDX:EAX",
+        RunCode(cpu, mem, writeCode) &&
+        cpu.MsrLstar() == 0x1122334455667788ULL);
+}
+
+
 void TestSyscallPS5Fallback()
 {
     Memory mem;
@@ -7747,6 +7781,7 @@ int main()
     TestSyscallPS5Fallback();
     TestStringCompareScanIoAndXlatCoverage();
     TestRemainingBitScanAndByteSwapCoverage();
+    TestMsrReadWriteCoverage();
 
     TestRotate();
     TestTestImmediate();
