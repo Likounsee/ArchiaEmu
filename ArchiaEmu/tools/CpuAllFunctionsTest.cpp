@@ -813,6 +813,22 @@ void TestCallRet()
         cpu.Rax() == 0x42);
 }
 
+void TestLeaRexSib()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(STACK, 0x2000);
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(13, 0x1000);
+    cpu.WriteRegister64(9, 3);
+    const std::vector<std::uint8_t> code = {
+        0x4F, 0x8D, 0x44, 0x8D, 0xF0, // LEA RAX,[R13+R9*4-0x10]
+        0xF4
+    };
+    CHECK("LEA REX.WRXB SIB with signed disp8", RunCode(cpu, mem, code) &&
+          cpu.Rax() == 0x0FFCULL);
+}
+
 void TestMovsxdVariants()
 {
     {
@@ -5586,6 +5602,7 @@ int main()
     TestPushPopRmForms();
     TestCallRet();
 
+    TestLeaRexSib();
     TestMovsxdVariants();
     TestIndirectCallAndRetImmediate();
     TestJumps();
