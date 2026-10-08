@@ -7869,6 +7869,27 @@ void TestPrimaryOpcodeCoverageGaps()
             cpu.Rflags() == initialFlags);
     }
 
+    // IRET (CFh) is delegated to the architectural exception-return hook.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x1000);
+        mem.Map(STACK, 0x1000);
+        Cpu cpu = MakeCpu(mem);
+        bool invoked = false;
+        cpu.SetExceptionReturnHandler([&](Cpu& handlerCpu) {
+            invoked = true;
+            handlerCpu.WriteRegister64(0, 0x1RETULL);
+            handlerCpu.Halt();
+            return true;
+        });
+        const std::vector<std::uint8_t> code = Finish({0xCF});
+        CHECK(
+            "IRET invokes the exception-return handler",
+            RunCode(cpu, mem, code) &&
+            invoked &&
+            cpu.ReadRegister64(0) == 0x1RETULL);
+    }
+
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
     {
         Memory mem;
