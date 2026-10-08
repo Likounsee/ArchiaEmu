@@ -181,11 +181,11 @@ static bool TestXaddExtendedMemoryWidths() {
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         std::uint64_t value=0x7FFFFFFFFFFFFFFFULL;
-        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        if(!m.Write(0x1818,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
         std::vector<std::uint8_t> code; AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2); AppendMovR64(code,8,1);
         code.insert(code.end(),{0x4F,0x0F,0xC1,0x44,0xA3,0x10});
         if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=value) return false;
-        std::uint64_t out=0; if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),8)||out!=0x8000000000000000ULL)return false;
+        std::uint64_t out=0; if(!m.Read(0x1818,reinterpret_cast<std::uint8_t*>(&out),8)||out!=0x8000000000000000ULL)return false;
         return (cpu.Rflags()&(CF|OF|SF))==(CF|OF|SF) && (cpu.Rflags()&ZF)==0;
     }
     {
