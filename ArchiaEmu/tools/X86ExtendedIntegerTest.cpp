@@ -831,7 +831,6 @@ static bool TestIncDecMemoryFlags() {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint64_t value = 0x7FFFFFFFFFFFFFFFULL;
         if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
-        AppendMovR64;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,7,0x1800);
         cpu.SetRflags(CF);
@@ -844,8 +843,7 @@ static bool TestIncDecMemoryFlags() {
         if((f&CF)==0 || (f&OF)==0 || (f&ZF)!=0 || (f&SF)==0) return false;
     }
 
-    // DEC 32-bit memory must zero-extend through the architectural EDX-style
-    // write semantics while also preserving CF.
+    // DEC 32-bit memory must update the signed overflow boundary while preserving CF.
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint32_t value = 0x80000000U;
