@@ -6716,6 +6716,62 @@ void TestOperandSizeOverrideLegacyArithmetic()
 }
 
 
+
+void TestCmpTest16RexSib()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        constexpr std::uint64_t base = DATA + 0x340;
+        constexpr std::uint64_t index = 2;
+        constexpr std::uint64_t address = base + index * 4 + 0x20;
+        Write64(mem, address, 0xAAAABBBBCCCC1234ULL);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(8, 0x1234);
+
+        const std::vector<std::uint8_t> code = {
+            0x66, 0x47, 0x3B, 0x44, 0x8D, 0x20, 0xF4
+        }; // CMP R8W,[R13+R9*4+disp8], 66h + REX.RXB
+
+        CHECK(
+            "CMP16 memory 66h REX.RXB SIB disp8",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        constexpr std::uint64_t base = DATA + 0x380;
+        constexpr std::uint64_t index = 1;
+        constexpr std::uint64_t address = base + index * 4 + 0x20;
+        Write64(mem, address, 0xFFFFFFFFFFFF00F0ULL);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(8, 0x00F0);
+
+        const std::vector<std::uint8_t> code = {
+            0x66, 0x47, 0x85, 0x44, 0x8D, 0x20, 0xF4
+        }; // TEST R8W,[R13+R9*4+disp8], 66h + REX.RXB
+
+        CHECK(
+            "TEST16 memory 66h REX.RXB SIB disp8",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & (1ULL << 6)) == 0 &&
+            (cpu.Rflags() & 1ULL) == 0 &&
+            (cpu.Rflags() & (1ULL << 11)) == 0);
+    }
+}
+
 void TestCmovccCoverage()
 {
     const struct {
@@ -7095,6 +7151,7 @@ int main()
     TestCmpxchgMemoryRexSib();
     TestSetccAllConditions();
     TestSetcc();
+    TestCmpTest16RexSib();
     TestCmovccCoverage();
     TestBitTestFamily();
     TestShiftsByCL();
