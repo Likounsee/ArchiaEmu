@@ -502,6 +502,15 @@ static bool TestAccumulatorXchg() {
            c3.Rax()==0x8877665544332211ULL &&
            c3.ReadRegister64(8)==0x1122334455667788ULL &&
            c3.Rflags()==(1ULL | (1ULL<<2) | (1ULL<<4) | (1ULL<<6) | (1ULL<<7) | (1ULL<<11));
+
+    // Without REX.W, REX.B 90 performs a 32-bit XCHG and therefore
+    // zero-extends both architectural registers.
+    Memory m4; m4.Map(0x1000,0x1000); Cpu c4; c4.ConnectMemory(&m4);
+    code.clear(); AppendMovR64(code,0,0xFFFFFFFF11223344ULL); AppendMovR64(code,8,0xAAAABBBB55667788ULL);
+    code.insert(code.end(),{0x41,0x90}); // XCHG EAX,R8D
+    return Run(m4,c4,code) &&
+           c4.Rax()==0x0000000055667788ULL &&
+           c4.ReadRegister64(8)==0x0000000011223344ULL;
 }
 
 static bool TestMsrAndTsc() {
