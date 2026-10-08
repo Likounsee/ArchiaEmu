@@ -2129,22 +2129,22 @@ static bool TestGroup1ByteFlags() {
     const std::uint64_t CF=1ULL, PF=1ULL<<2, AF=1ULL<<4, ZF=1ULL<<6, SF=1ULL<<7, OF=1ULL<<11;
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::vector<std::uint8_t> code={0xB0,0x0F,0x04,0x01}; // ADD AL,1 -> 0x10
+        std::vector<std::uint8_t> code={0xB0,0x0F,0x80,0xC0,0x01}; // ADD AL,1 -> 0x10
         if(!Run(m,cpu,code) || (cpu.Rax()&0xFF)!=0x10) return false;
         const auto f=cpu.Rflags(); if((f&(AF|SF))!=AF || (f&(CF|PF|ZF|OF))!=0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::vector<std::uint8_t> code={0xB0,0xF0,0x0C,0x0F}; // OR AL,0x0F -> FF
+        std::vector<std::uint8_t> code={0xB0,0xF0,0x80,0xC8,0x0F}; // OR AL,0x0F -> FF
         if(!Run(m,cpu,code) || (cpu.Rax()&0xFF)!=0xFF) return false;
         const auto f=cpu.Rflags(); if((f&(PF|SF))!=(PF|SF) || (f&(CF|AF|ZF|OF))!=0) return false;
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
-        std::vector<std::uint8_t> code={0xB0,0xFF,0x34,0xFF}; // XOR AL,0xFF -> 00
+        std::vector<std::uint8_t> code={0xB0,0xFF,0x80,0xF0,0xFF}; // XOR AL,0xFF -> 00
         if(!Run(m,cpu,code) || (cpu.Rax()&0xFF)!=0) return false;
         const auto f=cpu.Rflags();
-        if((f&(PF|ZF))!=(PF|ZF) || (f&(CF|AF|SF|OF))!=0) { std::cerr << "G1 XOR flags=0x" << std::hex << f << "\\n"; return false; }
+        if((f&(PF|ZF))!=(PF|ZF) || (f&(CF|AF|SF|OF))!=0) return false;
     }
     return true;
 }
