@@ -3868,6 +3868,32 @@ void TestHlt()
 }
 
 // ============== SETcc ==============
+void TestCmpxchgOperandWidths()
+{
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x1122334455661234ULL);
+        cpu.WriteRegister64(1, 0x0000000000001234ULL);
+        const std::vector<std::uint8_t> code = {0x66, 0x0F, 0xB1, 0xC8, 0xF4}; // CMPXCHG CX,AX
+        CHECK("CMPXCHG16 success preserves upper accumulator bits",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0x1122334455661234ULL &&
+              (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0xFFFFFFFF12345678ULL);
+        cpu.WriteRegister64(1, 0x0000000012345678ULL);
+        const std::vector<std::uint8_t> code = {0x0F, 0xB1, 0xC8, 0xF4}; // CMPXCHG ECX,EAX
+        CHECK("CMPXCHG32 success zero-extends destination",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0x0000000012345678ULL &&
+              (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+}
+
 void TestSetccMemory()
 {
     Memory mem;
@@ -5964,6 +5990,7 @@ int main()
 
     TestLea32();
     TestHlt();
+    TestCmpxchgOperandWidths();
     TestSetccMemory();
     TestCmpxchgVariants();
     TestSetccAllConditions();
