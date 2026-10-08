@@ -3049,8 +3049,8 @@ static bool TestTestRmRegForms() {
         AppendMovR64(code,11,0x00000000FFFFFFFFULL);
         code.insert(code.end(),{0x45,0x85,0xD8}); // TEST R8D,R11D
         if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x0000000080000000ULL ||
-           cpu.ReadRegister64(11)!=0x00000000FFFFFFFFULL) return false;
-        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
+           cpu.ReadRegister64(11)!=0x00000000FFFFFFFFULL) { std::cerr << "TEST ext operands: R8=0x" << std::hex << cpu.ReadRegister64(8) << " R11=0x" << cpu.ReadRegister64(11) << " F=0x" << cpu.Rflags() << "\\n"; return false; }
+        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) { std::cerr << "TEST ext flags=0x" << std::hex << cpu.Rflags() << "\\n"; return false; }
     }
     return true;
 }
