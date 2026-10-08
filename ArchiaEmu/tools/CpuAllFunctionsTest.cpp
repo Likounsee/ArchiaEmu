@@ -2687,6 +2687,43 @@ void TestDivIdiv()
             "DIV32_OVERFLOW",
             !RunCode(cpu, mem, code));
     }
+    // =========================================================
+    // DIV64 division par zero
+    // =========================================================
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 100);
+        Append(code, MovR64(2, 0));
+        Append(code, MovR64(3, 0));
+        code.insert(code.end(), {0x48, 0xF7, 0xF3}); // DIV RBX
+        code = Finish(code);
+        CHECK("DIV64_ZERO", !RunCode(cpu, mem, code));
+    }
+
+    // =========================================================
+    // DIV64 quotient overflow
+    //
+    // RDX:RAX = 0x00000001_0000000000000000
+    // divisor = 1 -> quotient = 2^64, hors plage de RAX
+    // =========================================================
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0);
+        Append(code, MovR64(2, 1));
+        Append(code, MovR64(3, 1));
+        code.insert(code.end(), {0x48, 0xF7, 0xF3}); // DIV RBX
+        code = Finish(code);
+        CHECK("DIV64_OVERFLOW", !RunCode(cpu, mem, code));
+    }
+
 }
 
 
