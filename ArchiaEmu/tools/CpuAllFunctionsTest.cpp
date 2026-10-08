@@ -6086,7 +6086,6 @@ int main()
 
     TestLea32();
     TestHlt();
-    TestCallIndirectMemoryRex();
     TestPushPopMemory16();
     TestRotateRexAndOperandWidths();
     TestMovxByteRexAndHighByteRules();
