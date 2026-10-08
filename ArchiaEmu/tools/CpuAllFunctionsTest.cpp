@@ -2648,7 +2648,7 @@ void TestAdcSbb()
             Read16(mem, address) == 0x8000U &&
             (cpu.Rflags() & (1ULL << 11)) != 0);
     }
-
+}
 
 void TestImul()
 {
