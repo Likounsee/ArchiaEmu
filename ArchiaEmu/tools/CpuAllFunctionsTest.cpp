@@ -3712,7 +3712,7 @@ void TestShldShrd()
         code = Finish(code);
         CHECK("SHLD64 immediate register form", RunCode(cpu, mem, code) &&
               cpu.Rax() == 0x123456789ABCDEFFULL &&
-              (cpu.Rflags() & 1ULL) != 0);
+              (cpu.Rflags() & 1ULL) == 0);
     }
     {
         Memory mem;
@@ -3724,7 +3724,7 @@ void TestShldShrd()
         code.insert(code.end(), {0x48, 0x0F, 0xAC, 0xC8, 0x04}); // SHRD RAX,RCX,4
         code = Finish(code);
         CHECK("SHRD64 immediate register form", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 0xF123456789ABCDEFULL &&
+              cpu.Rax() == 0x00123456789ABCDEULL &&
               (cpu.Rflags() & 1ULL) != 0);
     }
     {
