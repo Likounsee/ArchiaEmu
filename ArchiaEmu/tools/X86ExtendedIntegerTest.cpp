@@ -651,12 +651,12 @@ static bool TestControlTransferGroups() {
     // JMP r/m64 with REX.B must transfer to the extended register target.
     {
         Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m);
-        const std::uint8_t halt = 0xF4;
-        if (!m.Write(0x1100, &halt, 1)) return false;
+        const std::uint8_t targetCode[] = {0xB8, 0xA5, 0x00, 0xF4}; // MOV EAX,0xA5; HLT
+        if (!m.Write(0x1100, targetCode, sizeof(targetCode))) return false;
         std::vector<std::uint8_t> jumpCode;
         AppendMovR64(jumpCode, 11, 0x1100);
         jumpCode.insert(jumpCode.end(), {0x41, 0xFF, 0xE3}); // JMP R11
-        if (!Run(m, c, jumpCode) || c.InstructionPointer() != 0x1101ULL) return false;
+        if (!Run(m, c, jumpCode) || (c.ReadRegister64(0) & 0xFFFFFFFFULL) != 0xA5ULL) return false;
     }
 
     // JMP r/m64 through [R12] must use the extended SIB base and dereference the target.
@@ -664,12 +664,12 @@ static bool TestControlTransferGroups() {
         Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m);
         const std::uint64_t target = 0x1200ULL;
         if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&target), sizeof(target))) return false;
-        const std::uint8_t halt = 0xF4;
-        if (!m.Write(0x1200, &halt, 1)) return false;
+        const std::uint8_t targetCode[] = {0xB8, 0x5A, 0x00, 0xF4}; // MOV EAX,0x5A; HLT
+        if (!m.Write(0x1200, targetCode, sizeof(targetCode))) return false;
         std::vector<std::uint8_t> jumpCode;
         AppendMovR64(jumpCode, 12, 0x1800);
         jumpCode.insert(jumpCode.end(), {0x41, 0xFF, 0x24, 0x24}); // JMP [R12]
-        if (!Run(m, c, jumpCode) || c.InstructionPointer() != 0x1201ULL) return false;
+        if (!Run(m, c, jumpCode) || (c.ReadRegister64(0) & 0xFFFFFFFFULL) != 0x5AULL) return false;
     }
 
     Memory m2; m2.Map(0x1000,0x3000); Cpu c2; c2.ConnectMemory(&m2); c2.SetStackPointer(0x3000);
