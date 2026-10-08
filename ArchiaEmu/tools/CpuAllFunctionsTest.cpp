@@ -7107,6 +7107,33 @@ void TestCmovccCoverage()
             cpu.ReadRegister64(8) == 0xCAFEBABEDEADBEEFULL &&
             cpu.Rflags() == (1ULL << 6));
     }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        constexpr std::uint64_t base = DATA + 0x900;
+        constexpr std::uint64_t index = 2;
+        constexpr std::uint64_t address = base + index * 4 + 0x20;
+        Write64(mem, address, 0xAAAABBBBCCCC1234ULL);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(8, 0xAAAABBBBCCCC5678ULL);
+        cpu.SetRflags(1ULL << 6);
+
+        // 66 4F 0F 44 44 8D 20: CMOVE R8W,[R13+R9*4+disp8].
+        const std::vector<std::uint8_t> code = {
+            0x66, 0x4F, 0x0F, 0x44, 0x44, 0x8D, 0x20, 0xF4
+        };
+        CHECK(
+            "CMOVE16 memory REX.RXB SIB disp8 preserves upper destination bits",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(8) == 0xAAAABBBBCCCC1234ULL &&
+            cpu.Rflags() == (1ULL << 6));
+    }
 }
 
 
