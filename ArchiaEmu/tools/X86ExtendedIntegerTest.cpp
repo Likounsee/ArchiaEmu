@@ -2296,6 +2296,24 @@ static bool TestGroup1ExtendedAddressing() {
         if(!Run(m,cpu,code)) return false;
         std::uint64_t out=0;
         if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out))) return false;
+        if(out!=6) return false;
+    }
+
+    // Address-size override with REX.X/B SIB and a negative disp8:
+    // ADD QWORD PTR [R11D + R12D*4 - 8], 1.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value = 5;
+        if(!m.Write(0x1800,reinterpret_cast<const std::uint8_t*>(&value),sizeof(value))) return false;
+
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1808);
+        AppendMovR64(code,12,2);
+        code.insert(code.end(),{0x67,0x4F,0x83,0x44,0xA3,0xF8,0x01});
+
+        if(!Run(m,cpu,code)) return false;
+        std::uint64_t out=0;
+        if(!m.Read(0x1800,reinterpret_cast<std::uint8_t*>(&out),sizeof(out))) return false;
         return out==6;
     }
 }
