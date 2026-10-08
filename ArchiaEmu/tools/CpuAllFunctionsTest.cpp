@@ -2614,7 +2614,6 @@ void TestAdcSbb()
               (cpu.Rflags() & 1ULL) != 0);
     }
 
-}
     {
         Memory mem;
         mem.Map(CODE, 0x2000);
