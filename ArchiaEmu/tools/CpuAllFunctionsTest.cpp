@@ -3788,7 +3788,7 @@ void TestSetccAllConditions()
         {"SETAE", 0x93, 0}, {"SETE", 0x94, ZF}, {"SETNE", 0x95, 0},
         {"SETBE", 0x96, CF | ZF}, {"SETA", 0x97, 0},
         {"SETS", 0x98, SF}, {"SETNS", 0x99, 0}, {"SETP", 0x9A, PF},
-        {"SETNP", 0x9B, 0}, {"SETL", 0x9C, SF}, {"SETGE", 0x9D, SF},
+        {"SETNP", 0x9B, 0}, {"SETL", 0x9C, SF}, {"SETGE", 0x9D, SF | OF},
         {"SETLE", 0x9E, ZF}, {"SETG", 0x9F, 0}
     };
 
