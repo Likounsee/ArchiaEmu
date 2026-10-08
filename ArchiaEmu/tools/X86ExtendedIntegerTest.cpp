@@ -491,7 +491,17 @@ static bool TestAccumulatorXchg() {
     if(!Run(memory,cpu,code) || cpu.Rax()!=2 || cpu.ReadRegister64(1)!=1) return false;
     Memory m2; m2.Map(0x1000,0x1000); Cpu c2; c2.ConnectMemory(&m2);
     code.clear(); AppendMovR64(code,0,0x1234); AppendMovR64(code,1,0x5678); code.insert(code.end(),{0x66,0x91});
-    return Run(m2,c2,code) && c2.Rax()==0x5678 && c2.ReadRegister64(1)==0x1234;
+    if (!Run(m2,c2,code) || c2.Rax()!=0x5678 || c2.ReadRegister64(1)!=0x1234) return false;
+
+    // REX.B extends the short XCHG accumulator form to R8.
+    Memory m3; m3.Map(0x1000,0x1000); Cpu c3; c3.ConnectMemory(&m3);
+    c3.SetRflags(1ULL | (1ULL<<2) | (1ULL<<4) | (1ULL<<6) | (1ULL<<7) | (1ULL<<11));
+    code.clear(); AppendMovR64(code,0,0x1122334455667788ULL); AppendMovR64(code,8,0x8877665544332211ULL);
+    code.insert(code.end(),{0x41,0x90}); // XCHG RAX,R8
+    return Run(m3,c3,code) &&
+           c3.Rax()==0x8877665544332211ULL &&
+           c3.ReadRegister64(8)==0x1122334455667788ULL &&
+           c3.Rflags()==(1ULL | (1ULL<<2) | (1ULL<<4) | (1ULL<<6) | (1ULL<<7) | (1ULL<<11));
 }
 
 static bool TestMsrAndTsc() {
