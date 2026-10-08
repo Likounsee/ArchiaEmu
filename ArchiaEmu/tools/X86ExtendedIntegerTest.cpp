@@ -206,7 +206,7 @@ static bool TestXadd8ExtendedMemory() {
     // extended registers and compute byte-sized flags from the stored sum.
     Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
     const std::uint8_t initial = 0x7FU;
-    if (!m.Write(0x1810, &initial, sizeof(initial))) return false;
+    if (!m.Write(0x1818, &initial, sizeof(initial))) return false;
 
     std::vector<std::uint8_t> code;
     AppendMovR64(code, 11, 0x1800);
@@ -217,7 +217,7 @@ static bool TestXadd8ExtendedMemory() {
     if (!Run(m, cpu, code)) return false;
 
     std::uint8_t out = 0;
-    if (!m.Read(0x1810, &out, sizeof(out))) return false;
+    if (!m.Read(0x1818, &out, sizeof(out))) return false;
     const std::uint64_t flags = cpu.Rflags();
     return out == 0x80U &&
            (cpu.ReadRegister64(8) & 0xFFU) == 0x7FU &&
