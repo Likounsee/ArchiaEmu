@@ -573,7 +573,7 @@ void TestTest64()
         const std::uint64_t address = base + index * 4 + 0x20;
         Write64(mem, address, 0x00000000000000F0ULL);
         Cpu cpu = MakeCpu(mem);
-        cpu.WriteRegister64(8, 0x000000000000000FULL);
+        cpu.WriteRegister64(8, 0x00000000000000F0ULL);
         cpu.WriteRegister64(13, base);
         cpu.WriteRegister64(9, index);
         cpu.SetRflags((1ULL << 0) | (1ULL << 11));
