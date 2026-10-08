@@ -2346,7 +2346,7 @@ void TestAdcSbb()
         Write64(mem, address, initial);
 
         Cpu cpu = MakeCpu(mem);
-        cpu.WriteRegister64(13, address);
+        cpu.WriteRegister64(13, address - 0x1A0);
         cpu.SetRflags(1);
 
         auto code = std::vector<std::uint8_t>{
