@@ -7848,6 +7848,27 @@ void TestPrimaryOpcodeCoverageGaps()
             RunCode(cpu, mem, code) && invalidOpcode);
     }
 
+    // REP with a zero count performs no memory access and leaves indexes/flags unchanged.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x1000);
+        mem.Map(STACK, 0x1000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(6, 0xDEADBEEF);
+        cpu.WriteRegister64(7, 0xCAFEBABE);
+        cpu.WriteRegister64(1, 0);
+        const std::uint64_t initialFlags = cpu.Rflags() | (1ULL << 0) | (1ULL << 6) | (1ULL << 11);
+        cpu.SetRflags(initialFlags);
+        const std::vector<std::uint8_t> code = Finish({0xF3, 0xA4}); // REP MOVSB
+        CHECK(
+            "REP MOVSB with RCX=0 is a true no-op",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(6) == 0xDEADBEEFULL &&
+            cpu.ReadRegister64(7) == 0xCAFEBABEULL &&
+            cpu.ReadRegister64(1) == 0 &&
+            cpu.Rflags() == initialFlags);
+    }
+
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
     {
         Memory mem;
