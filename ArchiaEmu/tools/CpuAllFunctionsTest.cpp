@@ -6923,6 +6923,7 @@ int main()
     TestCmovccCoverage();
     TestBitTestFamily();
     TestShiftsByCL();
+    TestShiftClOperandWidthsAndRexMemory();
     TestShldShrd();
     TestCmpEaxImmediate();
     TestGroupF7Memory();
