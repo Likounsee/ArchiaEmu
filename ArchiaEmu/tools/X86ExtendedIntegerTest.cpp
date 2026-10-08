@@ -2144,7 +2144,7 @@ static bool TestGroup1ByteFlags() {
         std::vector<std::uint8_t> code={0xB0,0xFF,0x34,0xFF}; // XOR AL,0xFF -> 00
         if(!Run(m,cpu,code) || (cpu.Rax()&0xFF)!=0) return false;
         const auto f=cpu.Rflags();
-        if((f&(PF|ZF))!=(PF|ZF) || (f&(CF|AF|SF|OF))!=0) return false;
+        if((f&(PF|ZF))!=(PF|ZF) || (f&(CF|AF|SF|OF))!=0) { std::cerr << "G1 XOR flags=0x" << std::hex << f << "\\n"; return false; }
     }
     return true;
 }
