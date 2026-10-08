@@ -478,6 +478,31 @@ void TestCmp()
               (cpu.Rflags() & (1ULL << 6)) != 0);
     }
 }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        constexpr std::uint64_t base = DATA + 0x480;
+        constexpr std::uint64_t index = 2;
+        constexpr std::uint64_t address = base + index * 4 + 0x20;
+        Write32(mem, address, 0x12345678U);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(8, 0x12345678ULL);
+
+        // 47 3B 44 8D 20: CMP R8D,[R13+R9*4+disp8].
+        const std::vector<std::uint8_t> code = {
+            0x47, 0x3B, 0x44, 0x8D, 0x20, 0xF4
+        };
+        CHECK(
+            "CMP32 memory REX.RXB SIB disp8",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+
 
 void TestLogic64()
 {
@@ -588,6 +613,34 @@ void TestTest64()
               (cpu.Rflags() & (1ULL << 11)) == 0);
     }
 }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        constexpr std::uint64_t base = DATA + 0x500;
+        constexpr std::uint64_t index = 3;
+        constexpr std::uint64_t address = base + index * 4 + 0x20;
+        Write32(mem, address, 0x0000F0F0U);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(8, 0x0000F0F0ULL);
+        cpu.SetRflags((1ULL << 0) | (1ULL << 11));
+
+        // 47 85 44 8D 20: TEST R8D,[R13+R9*4+disp8].
+        const std::vector<std::uint8_t> code = {
+            0x47, 0x85, 0x44, 0x8D, 0x20, 0xF4
+        };
+        CHECK(
+            "TEST32 memory REX.RXB SIB disp8",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & (1ULL << 6)) == 0 &&
+            (cpu.Rflags() & 1ULL) == 0 &&
+            (cpu.Rflags() & (1ULL << 11)) == 0);
+    }
+
 
 void TestLea()
 {
