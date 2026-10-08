@@ -4017,6 +4017,8 @@ int main() {
     if (!TestIncDecMemoryAndCmpWidths()) { std::cerr << "INC/DEC memory and CMP widths failed\n"; return 8; }
     if (!TestNegWidths()) { std::cerr << "NEG widths failed\n"; return 9; }
     if (!TestImulForms()) { std::cerr << "IMUL forms failed\n"; return 10; }
+    if (!TestImulImmediateMemoryForms()) { std::cerr << "IMUL immediate memory forms failed\n"; return 65; }
+    if (!TestImulImmediateExtendedRegisters()) { std::cerr << "IMUL immediate extended registers failed\n"; return 66; }
     if (!TestMulDivForms()) { std::cerr << "MUL/DIV forms failed\n"; return 11; }
     if (!TestOneOperandMulWidths()) { std::cerr << "one-operand MUL/IMUL failed\n"; return 12; }
     if (!TestCmpByteForms()) { std::cerr << "byte CMP forms failed\n"; return 14; }
