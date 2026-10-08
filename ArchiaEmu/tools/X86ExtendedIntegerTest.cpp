@@ -3660,6 +3660,16 @@ static bool TestMovExtendExtendedForms() {
     if (!Run(m, cpu, code)) return false;
     if (cpu.ReadRegister64(9) != 0x00000000FFFFFF80ULL) return false;
     if (cpu.ReadRegister64(10) != 0x0000000000007F01ULL) return false;
+    // MOVSX R9,byte [R11+R12*4-1] exercises sign extension with a negative SIB displacement.
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu c; c.ConnectMemory(&m);
+        const std::uint8_t value=0x80U;
+        if(!m.Write(0x1800,&value,1)) return false;
+        std::vector<std::uint8_t> bytes;
+        AppendMovR64(bytes,11,0x1804); AppendMovR64(bytes,12,0);
+        bytes.insert(bytes.end(),{0x4F,0x48,0x0F,0xBE,0x4B,0xFC}); // MOVSX R9,[R11-4]
+        if(!Run(m,c,bytes) || c.ReadRegister64(9)!=0xFFFFFFFFFFFFFF80ULL) return false;
+    }
     return cpu.ReadRegister64(8) == 0x00000000000000FEULL;
 }
 
