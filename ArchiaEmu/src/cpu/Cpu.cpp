@@ -9282,7 +9282,23 @@ case 0xD0:
         }
 
         case 0x90: {
-            // NOP
+            // 0x90 is NOP, except REX.B 90..97 extends the accumulator
+            // XCHG short form to R8..R15. REX.W/66 select its operand width.
+            if (rex.b) {
+                if (operand_size_override_ && !rex.w) {
+                    const std::uint16_t a = registers_.Read16(0), b = registers_.Read16(8);
+                    registers_.Write16(0, b);
+                    registers_.Write16(8, a);
+                } else if (rex.w) {
+                    const std::uint64_t a = registers_.Read64(0), b = registers_.Read64(8);
+                    registers_.Write64(0, b);
+                    registers_.Write64(8, a);
+                } else {
+                    const std::uint32_t a = registers_.Read32(0), b = registers_.Read32(8);
+                    registers_.Write32(0, b);
+                    registers_.Write32(8, a);
+                }
+            }
             break;
         }
 
