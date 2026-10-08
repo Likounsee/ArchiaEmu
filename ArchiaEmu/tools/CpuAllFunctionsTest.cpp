@@ -813,6 +813,43 @@ void TestCallRet()
         cpu.Rax() == 0x42);
 }
 
+void TestIndirectCallAndRetImmediate()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        const std::uint64_t target = CODE + 0x40;
+        auto code = MovR64(0, target);
+        code.insert(code.end(), {0xFF, 0xD0}); // CALL RAX (FF /2)
+        code.insert(code.end(), {0xF4});
+        while (code.size() < 0x40)
+            code.push_back(0x90);
+        Append(code, MovR64(0, 0x1234));
+        code.push_back(0xC3);
+        CHECK("CALL r/m64 register form", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x1234);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = std::vector<std::uint8_t>{0xE8, 0x08, 0x00, 0x00, 0x00};
+        code.push_back(0xF4);
+        while (code.size() < 0x0D)
+            code.push_back(0x90);
+        Append(code, MovR64(0, 0x5678));
+        code.insert(code.end(), {0xC2, 0x08, 0x00}); // RET 8
+        const std::uint64_t initialRsp = cpu.Rsp();
+        CHECK("RET imm16 adjusts stack after popping return address",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x5678 &&
+              cpu.Rsp() == initialRsp + 8);
+    }
+}
+
 void TestJumps()
 {
     const struct {
@@ -5515,6 +5552,7 @@ int main()
     TestPushPopRmForms();
     TestCallRet();
 
+    TestIndirectCallAndRetImmediate();
     TestJumps();
     TestJccBoundaryConditions();
     TestJmp();
