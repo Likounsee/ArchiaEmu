@@ -5962,10 +5962,7 @@ void TestRotateThroughCarryLargeCounts()
         CHECK("RCL64 CL count 64 uses modulo-65", RunCode(cpu, mem, code) &&
               cpu.Rax() == 0 &&
               (cpu.Rflags() & 1ULL) != 0);
-    }
-}
-void TestRotateThroughCarryLargeCounts()
-{
+    }{
     {
         Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
         Cpu cpu = MakeCpu(mem);
@@ -5991,6 +5988,8 @@ void TestRotateThroughCarryLargeCounts()
     }
 }
 
+
+}
 void TestRotate8EdgeCases()
 {
     // count == 0 : aucune modification, flags inchanges
@@ -7475,7 +7474,7 @@ int main()
     TestRotate8Register();
     TestRotate8HighByteAndRex();
     TestRotate8Memory();
-    TestRotateThroughCarryRcrLargeCounts();
+    TestRotateThroughCarryLargeCounts();
     TestRotate8EdgeCases();
 
     TestC1RegisterForm();
