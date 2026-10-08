@@ -5269,6 +5269,62 @@ void TestXchgAll()
 }
 
 
+void TestXchgAccumulatorShortForms()
+{
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1111222233334444ULL);
+        Append(code, MovR64(1, 0xAAAABBBBCCCCDDDDULL));
+        code.insert(code.end(), {0x91, 0xF4}); // XCHG RAX,RCX (32-bit short form)
+        code = Finish(code);
+        CHECK("91h XCHG EAX,ECX short form zero-extends EAX",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x00000000CCCCDDDDULL &&
+              cpu.ReadRegister64(1) == 0x0000000033334444ULL);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x1111222233334444ULL);
+        Append(code, MovR64(8, 0xAAAABBBBCCCCDDDDULL));
+        code.insert(code.end(), {0x49, 0x90, 0xF4}); // REX.B + NOP opcode: XCHG RAX,R8
+        code = Finish(code);
+        CHECK("49h 90 XCHG RAX,R8 short form uses REX.B",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0xAAAABBBBCCCCDDDDULL &&
+              cpu.ReadRegister64(8) == 0x1111222233334444ULL);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0xAAAABBBB00001234ULL);
+        Append(code, MovR64(8, 0xCCCCDDDD00005678ULL));
+        code.insert(code.end(), {0x66, 0x41, 0x90, 0xF4}); // 66 + REX.B: XCHG AX,R8W
+        code = Finish(code);
+        CHECK("66h 41h 90 XCHG AX,R8W short form preserves upper bits",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0xAAAABBBB00005678ULL &&
+              cpu.ReadRegister64(8) == 0xCCCCDDDD00001234ULL);
+    }
+
+    {
+        Memory mem; mem.Map(CODE, 0x2000); mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x123456789ABCDEF0ULL);
+        Append(code, MovR64(9, 0x0FEDCBA987654321ULL));
+        code.insert(code.end(), {0x4D, 0x91, 0xF4}); // REX.WR+B: XCHG RAX,R9
+        code = Finish(code);
+        CHECK("4Dh 91h XCHG RAX,R9 short form combines REX.W+B",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x0FEDCBA987654321ULL &&
+              cpu.ReadRegister64(9) == 0x123456789ABCDEF0ULL);
+    }
+}
+
+
 void TestShift8LargeCount()
 {
     Memory mem;
