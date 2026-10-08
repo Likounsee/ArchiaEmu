@@ -3064,6 +3064,18 @@ static bool TestTestRmRegForms() {
         if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=0x80000000ULL) { std::cerr << "TEST SIB operands R8=0x" << std::hex << cpu.ReadRegister64(8) << " R11=0x" << cpu.ReadRegister64(11) << " R12=0x" << cpu.ReadRegister64(12) << "\\n"; return false; }
         if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
     }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t value=0x8000000000000000ULL;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800);
+        AppendMovR64(code,12,0);
+        AppendMovR64(code,8,value);
+        code.insert(code.end(),{0x4F,0x85,0x44,0xA3,0x10}); // TEST R8,[R11+R12*4+0x10]
+        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=value) return false;
+        if((cpu.Rflags()&(ZF|SF|PF))!=(SF|PF) || (cpu.Rflags()&(CF|OF|AF))!=0) return false;
+    }
     return true;
 }
 
