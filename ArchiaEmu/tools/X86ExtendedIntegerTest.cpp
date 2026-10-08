@@ -3432,6 +3432,49 @@ static bool TestCmpxchgExtendedMemoryForms() {
 }
 
 
+
+static bool TestCmpxchgExtendedWidths() {
+    // CMPXCHG r/m32,r32 with an extended memory base must zero-extend EAX
+    // on the successful comparison path.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t value = 0x89ABCDEFU;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0x0000000089ABCDEFULL);
+        AppendMovR64(code, 12, 0x1234567801020304ULL);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x45, 0x0F, 0xB1, 0x23}); // CMPXCHG [R11],R12D
+        std::uint32_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0x01020304U &&
+               cpu.Rax() == 0x0000000089ABCDEFULL &&
+               (cpu.Rflags() & (1ULL << 6)) != 0;
+    }
+
+    // Failed CMPXCHG r/m16,r16 loads the 16-bit memory value into AX and
+    // preserves the upper bits of RAX.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t value = 0x80F1U;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&value), sizeof(value))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 0, 0x123456789ABC1234ULL);
+        AppendMovR64(code, 9, 0x0000000000005678ULL);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x66, 0x45, 0x0F, 0xB1, 0x0B}); // CMPXCHG [R11],R9W
+        std::uint16_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == value &&
+               cpu.Rax() == 0x123456789ABC80F1ULL &&
+               (cpu.Rflags() & (1ULL << 6)) == 0;
+    }
+
+    return true;
+}
+
 static bool TestXaddExtendedMemoryForms() {
     // XADD r/m64,r64 with both REX.R and REX.B: memory gets the sum,
     // while the destination register receives the original memory value.
@@ -3659,6 +3702,7 @@ int main() {
     if (!TestXchgExtendedMemoryForms()) { std::cerr << "XCHG extended memory forms failed\\n"; return 56; }
 
     if (!TestCmpxchgExtendedMemoryForms()) { std::cerr << "CMPXCHG extended memory forms failed\\n"; return 55; }
+    if (!TestCmpxchgExtendedWidths()) { std::cerr << "CMPXCHG extended widths failed\\n"; return 53; }
 
     if (!TestXaddExtendedMemoryForms()) { std::cerr << "XADD extended memory forms failed\\n"; return 54; }
 
