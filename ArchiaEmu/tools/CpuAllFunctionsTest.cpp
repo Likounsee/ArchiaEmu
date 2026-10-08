@@ -1037,10 +1037,7 @@ void TestJumps()
         CHECK(
             t.name,
             ok && cpu.Rax() == 2);
-    }
-}
-
-    {
+    }    {
         Memory mem;
         mem.Map(CODE, 0x4000);
         mem.Map(DATA, 0x1000);
@@ -1066,6 +1063,9 @@ void TestJumps()
               RunCode(cpu, mem, code) &&
               cpu.Rax() == 0x123456789ABCDEF0ULL);
     }
+
+}
+
 
 
 void TestJccBoundaryConditions()
