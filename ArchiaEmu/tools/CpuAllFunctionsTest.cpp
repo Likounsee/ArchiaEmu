@@ -2358,8 +2358,13 @@ void TestAdcSbb()
             0xF4
         };
 
+        const bool ran = RunCode(cpu, mem, code);
+        if (!ran) {
+            std::cout << "[DEBUG] SBB64_group1_memory_imm8_disp32 LastMemoryFault="
+                      << static_cast<unsigned>(cpu.LastMemoryFault()) << "\n";
+        }
         CHECK("SBB64_group1_memory_imm8_disp32",
-              RunCode(cpu, mem, code) &&
+              ran &&
               Read64(mem, address) == 0x8000000000000000ULL &&
               (cpu.Rflags() & (1ULL << 11)) != 0 &&
               (cpu.Rflags() & 1ULL) == 0);
