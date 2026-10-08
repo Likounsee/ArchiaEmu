@@ -7917,6 +7917,30 @@ void TestPrimaryOpcodeCoverageGaps()
             cpu.Rsp() == STACK + 0x1000 - 8);
     }
 
+    // 67h indirect JMP uses a 32-bit effective address without touching the stack.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x0000000100000000ULL | (DATA + 0x300));
+        const std::uint64_t target = CODE + 0x100;
+        mem.Write(DATA + 0x300, reinterpret_cast<const std::uint8_t*>(&target), sizeof(target));
+        std::vector<std::uint8_t> code = {0x67, 0xFF, 0x20, 0xF4}; // JMP QWORD PTR [EAX]
+        while (code.size() < 0x100) code.push_back(0xF4);
+        code.insert(code.end(), {
+            0x48, 0xB8, 0x78, 0x56, 0x34, 0x12, 0x00, 0x00, 0x00, 0x00,
+            0xF4
+        });
+        code = Finish(code);
+        CHECK(
+            "67h indirect JMP uses 32-bit effective address",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x12345678ULL &&
+            cpu.Rsp() == STACK + 0x1000);
+    }
+
     // 67h string address size uses ESI/EDI and ECX, not the high halves.
     {
         Memory mem;
