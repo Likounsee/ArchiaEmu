@@ -346,6 +346,62 @@ static bool TestCmpxchg8b() {
     return true;
 }
 
+static bool TestCmpxchg16b() {
+    // CMPXCHG16B success: compare RDX:RAX against m128, then store RCX:RBX.
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t expectedLo = 0x1122334455667788ULL;
+        const std::uint64_t expectedHi = 0x99AABBCCDDEEFF00ULL;
+        const std::uint64_t replacementLo = 0xAABBCCDDEEFF0011ULL;
+        const std::uint64_t replacementHi = 0x7766554433221100ULL;
+        if (!m.Write(0x1818, reinterpret_cast<const std::uint8_t*>(&expectedLo), 8) ||
+            !m.Write(0x1820, reinterpret_cast<const std::uint8_t*>(&expectedHi), 8)) return false;
+
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        AppendMovR64(code, 12, 2);
+        AppendMovR64(code, 0, expectedLo);
+        AppendMovR64(code, 2, expectedHi);
+        AppendMovR64(code, 3, replacementLo);
+        AppendMovR64(code, 1, replacementHi);
+        code.insert(code.end(), {0x4B, 0x0F, 0xC7, 0x4C, 0xA3, 0x10}); // CMPXCHG16B [R11+R12*4+0x10]
+
+        if (!Run(m, cpu, code)) return false;
+        std::uint64_t outLo = 0, outHi = 0;
+        if (!m.Read(0x1818, reinterpret_cast<std::uint8_t*>(&outLo), 8) ||
+            !m.Read(0x1820, reinterpret_cast<std::uint8_t*>(&outHi), 8)) return false;
+        if (outLo != replacementLo || outHi != replacementHi) return false;
+        if ((cpu.Rflags() & (1ULL << 6)) == 0) return false;
+    }
+
+    // CMPXCHG16B failure must leave memory untouched and load the observed
+    // 128-bit value back into RDX:RAX while clearing ZF.
+    {
+        Memory m; m.Map(0x1000,0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint64_t memoryLo = 0x0123456789ABCDEFULL;
+        const std::uint64_t memoryHi = 0x0FEDCBA987654321ULL;
+        if (!m.Write(0x1818, reinterpret_cast<const std::uint8_t*>(&memoryLo), 8) ||
+            !m.Write(0x1820, reinterpret_cast<const std::uint8_t*>(&memoryHi), 8)) return false;
+
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 11, 0x1800);
+        AppendMovR64(code, 12, 2);
+        AppendMovR64(code, 0, 0x1111111111111111ULL);
+        AppendMovR64(code, 2, 0x2222222222222222ULL);
+        AppendMovR64(code, 3, 0x3333333333333333ULL);
+        AppendMovR64(code, 1, 0x4444444444444444ULL);
+        code.insert(code.end(), {0x4B, 0x0F, 0xC7, 0x4C, 0xA3, 0x10});
+
+        if (!Run(m, cpu, code)) return false;
+        std::uint64_t outLo = 0, outHi = 0;
+        if (!m.Read(0x1818, reinterpret_cast<std::uint8_t*>(&outLo), 8) ||
+            !m.Read(0x1820, reinterpret_cast<std::uint8_t*>(&outHi), 8)) return false;
+        return outLo == memoryLo && outHi == memoryHi &&
+               cpu.Rax() == memoryLo && cpu.ReadRegister64(2) == memoryHi &&
+               (cpu.Rflags() & (1ULL << 6)) == 0;
+    }
+}
+
 static bool TestSystemIntegerOps() {
     Memory memory; memory.Map(0x1000,0x1000); Cpu cpu; cpu.ConnectMemory(&memory); cpu.SetCr0(0x8);
     std::vector<std::uint8_t> code={0x0F,0x06,0x0F,0x01,0xE0,0xF4};
@@ -4676,6 +4732,7 @@ int main() {
     if (!TestXadd8()) { std::cerr << "XADD8 failed\n"; return 5; }
     if (!TestCmpxchg64()) { std::cerr << "CMPXCHG failed\n"; return 6; }
     if (!TestMultiByteNop()) { std::cerr << "multi-byte NOP failed\n"; return 6; }
+    if (!TestCmpxchg16b()) { std::cerr << "CMPXCHG16B failed\n"; return 45; }
     if (!TestCmpxchg8b()) { std::cerr << "CMPXCHG8B failed\n"; return 6; }
     if (!TestSystemIntegerOps()) { std::cerr << "system integer ops failed\n"; return 6; }
     if (!TestLockPrefix()) { std::cerr << "LOCK prefix failed\n"; return 6; }
