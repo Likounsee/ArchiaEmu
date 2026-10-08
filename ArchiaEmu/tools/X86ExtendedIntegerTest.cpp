@@ -201,6 +201,31 @@ static bool TestXaddExtendedMemoryWidths() {
     return true;
 }
 
+static bool TestXadd8ExtendedMemory() {
+    // XADD r/m8,r8 with REX.R/X/B and SIB addressing must use the low-byte
+    // extended registers and compute byte-sized flags from the stored sum.
+    Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+    const std::uint8_t initial = 0x7FU;
+    if (!m.Write(0x1810, &initial, sizeof(initial))) return false;
+
+    std::vector<std::uint8_t> code;
+    AppendMovR64(code, 11, 0x1800);
+    AppendMovR64(code, 12, 2);
+    AppendMovR64(code, 8, 1);
+    code.insert(code.end(), {0x47, 0x0F, 0xC0, 0x44, 0xA3, 0x10}); // XADD [R11+R12*4+0x10],R8B
+
+    if (!Run(m, cpu, code)) return false;
+
+    std::uint8_t out = 0;
+    if (!m.Read(0x1810, &out, sizeof(out))) return false;
+    const std::uint64_t flags = cpu.Rflags();
+    return out == 0x80U &&
+           (cpu.ReadRegister64(8) & 0xFFU) == 0x7FU &&
+           (flags & (1ULL << 4)) != 0 &&  // AF
+           (flags & (1ULL << 7)) != 0 &&  // SF
+           (flags & (1ULL << 11)) == 0;   // OF
+}
+
 static bool TestXadd32() {
     Memory memory; memory.Map(0x1000, 0x1000);
     Cpu cpu; cpu.ConnectMemory(&memory);
