@@ -827,10 +827,10 @@ void TestJccBoundaryConditions()
         mem.Map(DATA, 0x1000);
         mem.Map(STACK, 0x2000);
         Cpu cpu = MakeCpu(mem);
-        cpu.SetRflags(0);
+        cpu.SetRflags(1ULL << 6);
 
         auto code = MovR64(0, 1);
-        code.insert(code.end(), {0x75, 0x02}); // JNZ +2: skip RET, land on MOV.
+        code.insert(code.end(), {0x75, 0x02}); // JNZ +2 is not taken when ZF=1.
         code.push_back(0xC3);
         code.push_back(0x90);
         Append(code, MovR64(0, 2));
@@ -3679,11 +3679,11 @@ void TestShldShrd()
         Cpu cpu = MakeCpu(mem);
         auto code = MovR64(0, 0x0123456789ABCDEFULL);
         Append(code, MovR64(1, 0xFEDCBA9876543210ULL));
-        code.insert(code.end(), {0x48, 0x0F, 0xA4, 0xC8, 0x04}); // SHLD RAX,R9,4
-        code.insert(code.end(), {0x48, 0x0F, 0xAC, 0xC8, 0x04}); // SHRD RAX,R9,4
+        code.insert(code.end(), {0x48, 0x0F, 0xA4, 0xC8, 0x04}); // SHLD RAX,RCX,4
+        code.insert(code.end(), {0x48, 0x0F, 0xAC, 0xC8, 0x04}); // SHRD RAX,RCX,4
         code = Finish(code);
         CHECK("SHLD/SHRD64 immediate register forms", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 0x00123456789ABCDEULL &&
+              cpu.Rax() == 0xF123456789ABCDEFULL &&
               (cpu.Rflags() & 1ULL) != 0);
     }
     {
@@ -3696,7 +3696,7 @@ void TestShldShrd()
         code.insert(code.end(), {0x66, 0x0F, 0xA4, 0xC8, 0x01}); // SHLD AX,CX,1
         code = Finish(code);
         CHECK("SHLD16 immediate uses operand-size override", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 0x0000000080004000ULL &&
+              cpu.Rax() == 0x8000ULL &&
               (cpu.Rflags() & 1ULL) == 0 &&
               (cpu.Rflags() & (1ULL << 11)) != 0);
     }
@@ -3711,7 +3711,7 @@ void TestShldShrd()
         code.insert(code.end(), {0x0F, 0xAD, 0xC8}); // SHRD EAX,ECX,CL
         code = Finish(code);
         CHECK("SHLD/SHRD32 register-count forms", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 0x80000000ULL);
+              cpu.Rax() == 0x80000001ULL);
     }
     {
         Memory mem;
