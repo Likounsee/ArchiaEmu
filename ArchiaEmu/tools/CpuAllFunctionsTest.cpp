@@ -3868,6 +3868,28 @@ void TestHlt()
 }
 
 // ============== SETcc ==============
+void TestSetccMemory()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(DATA, 0x1000);
+    mem.Map(STACK, 0x2000);
+    const std::uint64_t address = DATA + 0x110;
+    std::uint8_t initial = 0xAA;
+    mem.Write(address, &initial, 1);
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(12, DATA + 0x100);
+    cpu.SetRflags(0);
+    const std::vector<std::uint8_t> code = {
+        0x41, 0x0F, 0x95, 0x44, 0x24, 0x10, // SETNE byte [R12+0x10]
+        0xF4
+    };
+    std::uint8_t result = 0;
+    CHECK("SETNE memory with REX.B SIB", RunCode(cpu, mem, code) &&
+          mem.Read(address, &result, 1) && result == 1 &&
+          cpu.Rflags() == 0);
+}
+
 void TestCmpxchgVariants()
 {
     {
@@ -5942,6 +5964,7 @@ int main()
 
     TestLea32();
     TestHlt();
+    TestSetccMemory();
     TestCmpxchgVariants();
     TestSetccAllConditions();
     TestSetcc();
