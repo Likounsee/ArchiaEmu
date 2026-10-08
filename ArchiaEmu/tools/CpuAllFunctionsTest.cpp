@@ -563,6 +563,30 @@ void TestTest64()
         "TEST64 ZF",
         RunCode(cpu, mem, code) &&
         (cpu.Rflags() & (1ULL << 6)) != 0);
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t base = DATA + 0x400;
+        const std::uint64_t index = 3;
+        const std::uint64_t address = base + index * 4 + 0x20;
+        Write64(mem, address, 0x00000000000000F0ULL);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(8, 0x000000000000000FULL);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.SetRflags((1ULL << 0) | (1ULL << 11));
+        // 4F 85 44 8D 20: TEST [R13+R9*4+disp8],R8.
+        const std::vector<std::uint8_t> code = {
+            0x4F, 0x85, 0x44, 0x8D, 0x20, 0xF4
+        };
+        CHECK("TEST64 REX.RXB SIB disp8 memory form",
+              RunCode(cpu, mem, code) &&
+              (cpu.Rflags() & (1ULL << 6)) == 0 &&
+              (cpu.Rflags() & 1ULL) == 0 &&
+              (cpu.Rflags() & (1ULL << 11)) == 0);
+    }
 }
 
 void TestLea()
