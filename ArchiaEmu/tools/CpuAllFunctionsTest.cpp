@@ -6566,11 +6566,7 @@ void TestBitTestFamily()
             "BT64 memory register form handles negative bit displacement",
             RunCode(cpu, mem, code) &&
             (cpu.Rflags() & 1ULL) != 0);
-    }
-}
-
-
-    {
+    }    {
         Memory mem;
         mem.Map(CODE, 0x2000);
         mem.Map(DATA, 0x2000);
@@ -6592,6 +6588,10 @@ void TestBitTestFamily()
             RunCode(cpu, mem, code) &&
             (cpu.Rflags() & 1ULL) != 0);
     }
+}
+
+
+
 
 
 int main()
