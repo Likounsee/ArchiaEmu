@@ -645,7 +645,7 @@ static bool TestMoffs() {
 
     // 32-bit moffs load/store use a 32-bit operand while retaining the full 64-bit address field.
     Cpu cpu32; cpu32.ConnectMemory(&memory);
-    std::vector<std::uint8_t> load32={0xA1,0x00,0x30,0x00,0x00};
+    std::vector<std::uint8_t> load32={0xA1,0x00,0x30,0x00,0x00,0x00,0x00,0x00,0x00};
     if(!Run(memory,cpu32,load32) || cpu32.Rax()!=0x55667788ULL) return false;
 
     Cpu cpu16; cpu16.ConnectMemory(&memory);
