@@ -4907,7 +4907,7 @@ void TestGroupF7Memory()
         CHECK("IDIV64 [mem] signed quotient remainder",
               RunCode(cpu, mem, code) &&
               cpu.Rax() == static_cast<std::uint64_t>(-12LL) &&
-              cpu.Rdx() == 0ULL);
+              cpu.ReadRegister64(2) == 0ULL);
     }
 
     // NEG dword [DATA]
