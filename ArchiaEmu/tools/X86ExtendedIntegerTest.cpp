@@ -2504,7 +2504,6 @@ static bool TestLeaExtendedNoBase() {
     {
         // 65 reduces to one, exercising the mask boundary above 64.
         Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
-        AppendMovR64(*(new std::vector<std::uint8_t>()),0,0); // no-op helper instantiation
         std::vector<std::uint8_t> code;
         AppendMovR64(code,0,1);
         code.insert(code.end(),{0xB1,0x41,0x48,0xD3,0xE0}); // SHL RAX,CL (65 -> 1)
