@@ -4012,6 +4012,32 @@ void TestSetccMemory()
           cpu.Rflags() == 0);
 }
 
+void TestCmpxchgMemory16()
+{
+    Memory mem;
+    mem.Map(CODE, 0x2000);
+    mem.Map(DATA, 0x2000);
+    mem.Map(STACK, 0x2000);
+    const std::uint64_t address = DATA + 0x180;
+    Write64(mem, address, 0xAABBCCDDEEFF1234ULL);
+    Cpu cpu = MakeCpu(mem);
+    cpu.WriteRegister64(0, 0x1122334455661234ULL);
+    cpu.WriteRegister64(1, 0x000000000000BEEFULL);
+    std::vector<std::uint8_t> code = {
+        0x66, 0x0F, 0xB1, 0x0C, 0x25,
+        static_cast<std::uint8_t>(address & 0xFF),
+        static_cast<std::uint8_t>((address >> 8) & 0xFF),
+        static_cast<std::uint8_t>((address >> 16) & 0xFF),
+        static_cast<std::uint8_t>((address >> 24) & 0xFF),
+        0xF4
+    };
+    CHECK("CMPXCHG16 memory success writes r16 operand and preserves accumulator upper bits",
+          RunCode(cpu, mem, code) &&
+          Read64(mem, address) == 0xAABBCCDDEEFFBEEFULL &&
+          cpu.ReadRegister64(0) == 0x1122334455661234ULL &&
+          (cpu.Rflags() & (1ULL << 6)) != 0);
+}
+
 void TestCmpxchgVariants()
 {
     {
@@ -6091,6 +6117,7 @@ int main()
     TestMovxByteRexAndHighByteRules();
     TestCmpxchgOperandWidths();
     TestSetccMemory();
+    TestCmpxchgMemory16();
     TestCmpxchgVariants();
     TestSetccAllConditions();
     TestSetcc();
