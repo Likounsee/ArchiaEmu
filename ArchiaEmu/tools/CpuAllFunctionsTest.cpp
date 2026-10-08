@@ -4501,8 +4501,6 @@ void TestSetccAllConditions()
         CHECK("SETE R8B with REX.B", RunCode(cpu, mem, code) &&
               cpu.ReadRegister64(8) == 1 && cpu.Rflags() == ZF);
     }
-}
-
     {
         Memory mem;
         mem.Map(CODE, 0x2000);
@@ -4519,6 +4517,8 @@ void TestSetccAllConditions()
         CHECK("SETNE memory R13 disp8 false",
               RunCode(cpu, mem, code) && Read64(mem, address) == 0);
     }
+
+}
 
 void TestSetcc()
 {
