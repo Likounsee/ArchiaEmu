@@ -4888,6 +4888,28 @@ void TestGroupF7Memory()
         CHECK("DIV64 [mem] (F7 /6)", RunCode(cpu, mem, code) &&
               cpu.Rax() == 12);
     }
+    // IDIV qword [DATA]: signed dividend from RDX:RAX and signed quotient/remainder.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Write64(mem, DATA, 7);
+
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, static_cast<std::uint64_t>(-84LL));
+        Append(code, MovR64(2, static_cast<std::uint64_t>(-1LL)));
+        code.insert(code.end(), {0x48, 0xF7, 0x3C, 0x25});
+        for (int i = 0; i < 4; ++i)
+            code.push_back(static_cast<std::uint8_t>(DATA >> (i * 8)));
+        code = Finish(code);
+
+        CHECK("IDIV64 [mem] signed quotient remainder",
+              RunCode(cpu, mem, code) &&
+              cpu.Rax() == static_cast<std::uint64_t>(-12LL) &&
+              cpu.Rdx() == 0ULL);
+    }
+
     // NEG dword [DATA]
     {
         Memory mem;
