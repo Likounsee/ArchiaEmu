@@ -199,6 +199,17 @@ static bool TestXaddExtendedMemoryWidths() {
         std::uint16_t out=0; if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),2)||out!=0)return false;
         return (cpu.Rflags()&(CF|ZF|SF))==(CF|ZF);
     }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::uint32_t value=0x7FFFFFFFU;
+        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),4)) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,11,0x1800); AppendMovR64(code,12,1); AppendMovR64(code,8,1);
+        code.insert(code.end(),{0x47,0x0F,0xC1,0x44,0x8B,0x10}); // XADD [R11+R12*4+0x10],R8D
+        if(!Run(m,cpu,code) || static_cast<std::uint32_t>(cpu.ReadRegister64(8))!=0x7FFFFFFFU) return false;
+        std::uint32_t out=0; if(!m.Read(0x1810,reinterpret_cast<std::uint8_t*>(&out),4)||out!=0x80000000U)return false;
+        return (cpu.Rflags()&(OF|SF))==(OF|SF) && (cpu.Rflags()&(CF|ZF))==0;
+    }
     return true;
 }
 
