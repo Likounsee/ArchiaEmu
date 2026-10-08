@@ -813,6 +813,46 @@ void TestCallRet()
         cpu.Rax() == 0x42);
 }
 
+void TestPushfPopf()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 1);
+        Append(code, MovR64(3, 2));
+        code.insert(code.end(), {0x48, 0x39, 0xD8}); // CMP RAX,RBX -> CF=1, SF=1
+        code.push_back(0x9C);                         // PUSHFQ
+        code.insert(code.end(), {0x48, 0x39, 0xC0}); // CMP RAX,RAX -> CF=0, ZF=1
+        code.push_back(0x9D);                         // POPFQ
+        code = Finish(code);
+        CHECK("PUSHFQ/POPFQ restores arithmetic flags", RunCode(cpu, mem, code) &&
+              (cpu.Rflags() & 1ULL) != 0 &&
+              (cpu.Rflags() & (1ULL << 6)) == 0 &&
+              (cpu.Rflags() & (1ULL << 7)) != 0 &&
+              cpu.Rsp() == STACK + 0x1000);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 1);
+        Append(code, MovR64(3, 2));
+        code.insert(code.end(), {0x48, 0x39, 0xD8});
+        code.insert(code.end(), {0x66, 0x9C});
+        code.insert(code.end(), {0x48, 0x39, 0xC0});
+        code.insert(code.end(), {0x66, 0x9D});
+        code = Finish(code);
+        CHECK("66h PUSHF/POPF uses 16-bit stack width", RunCode(cpu, mem, code) &&
+              (cpu.Rflags() & 1ULL) != 0 &&
+              (cpu.Rflags() & (1ULL << 6)) == 0 &&
+              (cpu.Rflags() & (1ULL << 7)) != 0 &&
+              cpu.Rsp() == STACK + 0x1000);
+    }
+}
+
 void TestLeaRexSib()
 {
     Memory mem;
@@ -5639,6 +5679,7 @@ int main()
     TestPushPopRmForms();
     TestCallRet();
 
+    TestPushfPopf();
     TestLeaRexSib();
     TestMovsxdVariants();
     TestIndirectCallAndRetImmediate();
