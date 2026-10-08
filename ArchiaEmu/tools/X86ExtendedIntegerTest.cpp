@@ -3245,6 +3245,17 @@ static bool TestMovImmediateToRmForms() {
             !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
         return out == 0x0000000012345678ULL;
     }
+    // MOV r/m64, imm32 to extended memory must sign-extend a negative imm32.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        AppendMovR64(code, 11, 0x1800);
+        code.insert(code.end(), {0x49, 0xC7, 0x43, 0x08, 0x00, 0x00, 0x00, 0x80});
+        std::uint64_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1808, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        return out == 0xFFFFFFFF80000000ULL;
+    }
+
 }
 
 
