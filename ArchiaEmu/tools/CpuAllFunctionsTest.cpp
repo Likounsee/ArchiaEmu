@@ -4392,6 +4392,222 @@ void TestIoInstructions()
             lastWriteValue == 0x55667788U && writeCalls == 3);
     }
 }
+
+void TestStringCompareScanIoAndXlatCoverage()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint8_t source[] = {1, 2, 3};
+        const std::uint8_t destination[] = {1, 9, 3};
+        mem.Write(DATA, source, sizeof(source));
+        mem.Write(DATA + 0x100, destination, sizeof(destination));
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(6, DATA);
+        cpu.WriteRegister64(7, DATA + 0x100);
+        cpu.WriteRegister64(1, 3);
+        const std::vector<std::uint8_t> code = {
+            0xF2, 0xA6, 0xC3 // REPNE CMPSB: equal first byte, then stop.
+        };
+
+        CHECK(
+            "REPNE CMPSB stops on equality and updates SI/DI/RCX",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(6) == DATA + 1 &&
+            cpu.ReadRegister64(7) == DATA + 0x101 &&
+            cpu.ReadRegister64(1) == 2 &&
+            (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Write32(mem, DATA, 7);
+        Write32(mem, DATA + 4, 7);
+        Write32(mem, DATA + 8, 8);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 7);
+        cpu.WriteRegister64(7, DATA);
+        cpu.WriteRegister64(1, 3);
+        const std::vector<std::uint8_t> code = {
+            0xF3, 0xAF, 0xC3 // REPE SCASD: two matches, then mismatch.
+        };
+
+        CHECK(
+            "REPE SCASD compares EAX with each dword and stops on mismatch",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(7) == DATA + 12 &&
+            cpu.ReadRegister64(1) == 0 &&
+            (cpu.Rflags() & (1ULL << 6)) == 0 &&
+            cpu.Rax() == 7);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint16_t source[] = {0x1234, 0x5678};
+        const std::uint16_t destination[] = {0x1234, 0x5679};
+        mem.Write(DATA, reinterpret_cast<const std::uint8_t*>(source), sizeof(source));
+        mem.Write(DATA + 0x100, reinterpret_cast<const std::uint8_t*>(destination), sizeof(destination));
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(6, DATA);
+        cpu.WriteRegister64(7, DATA + 0x100);
+        cpu.WriteRegister64(1, 2);
+        const std::vector<std::uint8_t> code = {
+            0xF3, 0x66, 0xA7, 0xC3 // REPE CMPSW.
+        };
+
+        CHECK(
+            "REPE CMPSW uses 16-bit elements and repeat count",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(6) == DATA + 4 &&
+            cpu.ReadRegister64(7) == DATA + 0x104 &&
+            cpu.ReadRegister64(1) == 0 &&
+            (cpu.Rflags() & (1ULL << 6)) == 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Write64(mem, DATA, 0x1122334455667788ULL);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x1122334455667788ULL);
+        cpu.WriteRegister64(7, DATA);
+        cpu.WriteRegister64(1, 1);
+        const std::vector<std::uint8_t> code = {
+            0x48, 0xF3, 0xAF, 0xC3 // REPE SCASQ.
+        };
+
+        CHECK(
+            "REPE SCASQ uses REX.W 64-bit elements",
+            RunCode(cpu, mem, code) &&
+            cpu.ReadRegister64(7) == DATA + 8 &&
+            cpu.ReadRegister64(1) == 0 &&
+            (cpu.Rflags() & (1ULL << 6)) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        std::uint16_t lastPort = 0;
+        std::uint8_t lastWidth = 0;
+        int reads = 0;
+        int writes = 0;
+        std::uint32_t lastValue = 0;
+        cpu.SetIoHandlers(
+            [&](Cpu&, std::uint16_t port, std::uint8_t width) -> std::uint32_t {
+                lastPort = port;
+                lastWidth = width;
+                ++reads;
+                return 0xA1B2C3D4U;
+            },
+            [&](Cpu&, std::uint16_t port, std::uint32_t value, std::uint8_t width) -> bool {
+                lastPort = port;
+                lastWidth = width;
+                lastValue = value;
+                ++writes;
+                return true;
+            });
+
+        cpu.WriteRegister64(2, 0x1234);
+        cpu.WriteRegister64(7, DATA);
+        cpu.WriteRegister64(1, 2);
+        const std::vector<std::uint8_t> inCode = {
+            0xF3, 0x6D, 0xC3 // REP INSD.
+        };
+        const bool inOk = RunCode(cpu, mem, inCode);
+        CHECK(
+            "REP INSD writes two dwords through the I/O handler",
+            inOk &&
+            reads == 2 &&
+            lastPort == 0x1234 &&
+            lastWidth == 4 &&
+            cpu.ReadRegister64(7) == DATA + 8 &&
+            cpu.ReadRegister64(1) == 0 &&
+            Read32(mem, DATA) == 0xA1B2C3D4U &&
+            Read32(mem, DATA + 4) == 0xA1B2C3D4U);
+
+        Write32(mem, DATA + 0x100, 0x11223344U);
+        Write32(mem, DATA + 0x104, 0x55667788U);
+        cpu.SetInstructionPointer(CODE);
+        cpu.WriteRegister64(6, DATA + 0x100);
+        cpu.WriteRegister64(1, 2);
+        const std::vector<std::uint8_t> outCode = {
+            0xF3, 0x6F, 0xC3 // REP OUTSD.
+        };
+        const bool outOk = RunCode(cpu, mem, outCode);
+        CHECK(
+            "REP OUTSD reads two dwords and advances RSI/RCX",
+            outOk &&
+            writes == 2 &&
+            lastPort == 0x1234 &&
+            lastWidth == 4 &&
+            lastValue == 0x55667788U &&
+            cpu.ReadRegister64(6) == DATA + 0x108 &&
+            cpu.ReadRegister64(1) == 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        mem.Write(DATA + 3, reinterpret_cast<const std::uint8_t*>("\xA7"), 1);
+
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(3, DATA);
+        cpu.WriteRegister64(0, 0x1234567800000003ULL);
+        const std::vector<std::uint8_t> code = {
+            0x67, 0xD7, 0xC3 // XLAT with 32-bit address-size override.
+        };
+
+        CHECK(
+            "67h XLAT uses EBX plus unsigned AL index",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x12345678000000A7ULL);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(1ULL | (1ULL << 10));
+
+        const std::vector<std::uint8_t> code = {
+            0xFC, // CLD
+            0xF8, // CLC
+            0xF5, // CMC -> CF=1
+            0xF9, // STC -> CF remains 1
+            0xFD, // STD
+            0xFC, // CLD
+            0xF4
+        };
+
+        CHECK(
+            "CLD/CLC/CMC/STC/STD update only their architectural flags",
+            RunCode(cpu, mem, code) &&
+            (cpu.Rflags() & 1ULL) != 0 &&
+            (cpu.Rflags() & (1ULL << 10)) == 0);
+    }
+}
+
 void TestSyscallDispatch()
 {
     Memory mem;
