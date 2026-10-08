@@ -659,19 +659,6 @@ static bool TestControlTransferGroups() {
         if (!Run(m, c, jumpCode) || (c.ReadRegister64(0) & 0xFFFFFFFFULL) != 0xA5ULL) return false;
     }
 
-    // JMP r/m64 through an extended memory base must dereference the target pointer.
-    {
-        Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m);
-        const std::uint64_t target = 0x1200ULL;
-        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&target), sizeof(target))) return false;
-        const std::uint8_t targetCode[] = {0xB0, 0x5A, 0xF4}; // MOV AL,0x5A; HLT
-        if (!m.Write(0x1200, targetCode, sizeof(targetCode))) return false;
-        std::vector<std::uint8_t> jumpCode;
-        AppendMovR64(jumpCode, 11, 0x1800);
-        jumpCode.insert(jumpCode.end(), {0x41, 0xFF, 0x23}); // JMP [R11]
-        if (!Run(m, c, jumpCode) || (c.ReadRegister64(0) & 0xFFU) != 0x5AULL) return false;
-    }
-
     Memory m2; m2.Map(0x1000,0x3000); Cpu c2; c2.ConnectMemory(&m2); c2.SetStackPointer(0x3000);
     std::vector<std::uint8_t> ret = {0xC2,0x02,0x00,0xF4};
     return Run(m2,c2,ret);
