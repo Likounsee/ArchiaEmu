@@ -636,6 +636,21 @@ static bool TestControlTransferGroups() {
         if (!Run(m, c, callCode) || c.Rsp() != 0x3000ULL) return false;
     }
 
+    // CALL r/m64 with REX.WXB, extended SIB base/index, and disp8.
+    // REX.R is not required because the ModRM reg field selects the /2 opcode group.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m); c.SetStackPointer(0x3000);
+        const std::uint64_t target = 0x1260ULL;
+        if (!m.Write(0x1818, reinterpret_cast<const std::uint8_t*>(&target), sizeof(target))) return false;
+        const std::uint8_t retByte = 0xC3;
+        if (!m.Write(0x1260, &retByte, 1)) return false;
+        std::vector<std::uint8_t> callCode;
+        AppendMovR64(callCode, 11, 0x1800);
+        AppendMovR64(callCode, 12, 2);
+        callCode.insert(callCode.end(), {0x4B, 0xFF, 0x54, 0xA3, 0x10}); // CALL QWORD PTR [R11+R12*4+0x10]
+        if (!Run(m, c, callCode) || c.Rsp() != 0x3000ULL) return false;
+    }
+
     // CALL r/m64 through an extended SIB base must dereference the target pointer.
     {
         Memory m; m.Map(0x1000, 0x4000); Cpu c; c.ConnectMemory(&m); c.SetStackPointer(0x3000);
