@@ -7706,8 +7706,159 @@ void TestBitTestFamily()
 
 
 
+
+void TestPrimaryOpcodeCoverageGaps()
+{
+    // 0x1A: SBB r8,r/m8. CF is an input and must be consumed correctly.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 10);
+        Append(code, MovR64(3, 3));
+        Append(code, {0x48, 0x39, 0xD8}); // CMP RAX,RBX => CF=0
+        Append(code, {0x1A, 0xC3});       // SBB AL,BL => 7
+        code = Finish(code);
+        CHECK(
+            "SBB AL,BL (opcode 1Ah)",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 7ULL &&
+            (cpu.Rflags() & 1ULL) == 0);
+    }
+
+    // 0x2D: SUB EAX,imm32. A 32-bit accumulator operation zero-extends RAX.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x000000010000000AULL);
+        Append(code, {0x2D, 0x03, 0x00, 0x00, 0x00}); // SUB EAX,3
+        code = Finish(code);
+        CHECK(
+            "SUB EAX,imm32 (opcode 2Dh)",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 7ULL);
+    }
+
+    // 0xA0: MOV AL,moffs. In long mode the moffs address is 64-bit without 67h.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x4000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t address = DATA + 0x123;
+        const std::uint8_t value = 0x5A;
+        if (!mem.Write(address, &value, 1)) return;
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(0, 0x1122334455667788ULL);
+        std::vector<std::uint8_t> code = {
+            0xA0,
+            static_cast<std::uint8_t>(address),
+            static_cast<std::uint8_t>(address >> 8),
+            static_cast<std::uint8_t>(address >> 16),
+            static_cast<std::uint8_t>(address >> 24),
+            static_cast<std::uint8_t>(address >> 32),
+            static_cast<std::uint8_t>(address >> 40),
+            static_cast<std::uint8_t>(address >> 48),
+            static_cast<std::uint8_t>(address >> 56)
+        };
+        code = Finish(code);
+        CHECK(
+            "MOV AL,moffs64 (opcode A0h)",
+            RunCode(cpu, mem, code) &&
+            cpu.Rax() == 0x112233445566775AULL);
+    }
+
+    // 0x6E: OUTSB with REP must execute once per RCX element and obey DF.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        const std::uint8_t bytes[2] = {0xA1, 0xB2};
+        if (!mem.Write(DATA + 1, bytes, sizeof(bytes))) return;
+        cpu.WriteRegister64(2, 0x1234);
+        cpu.WriteRegister64(6, DATA + 2);
+        cpu.WriteRegister64(1, 2);
+        cpu.SetRflags(cpu.Rflags() | (1ULL << 10)); // DF=1
+        std::vector<std::uint8_t> code = {0xF3, 0x6E};
+        code = Finish(code);
+        std::vector<std::uint8_t> writes;
+        cpu.SetIoHandlers(
+            [](Cpu&, std::uint16_t, std::uint8_t) -> std::uint32_t { return 0; },
+            [&writes](Cpu&, std::uint16_t port, std::uint32_t value, std::uint8_t width) -> bool {
+                if (port != 0x1234 || width != 1) return false;
+                writes.push_back(static_cast<std::uint8_t>(value));
+                return true;
+            });
+        CHECK(
+            "REP OUTSB (opcode 6Eh) honors DF and RCX",
+            RunCode(cpu, mem, code) &&
+            writes.size() == 2 &&
+            writes[0] == 0xB2 &&
+            writes[1] == 0xA1 &&
+            cpu.ReadRegister64(6) == DATA &&
+            cpu.ReadRegister64(1) == 0);
+    }
+
+    // All legacy short PUSH/POP register opcodes 50h..5F must remain reachable
+    // in long mode (unlike 40h..4F, which are REX prefixes).
+    {
+        Memory mem;
+        mem.Map(CODE, 0x4000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x4000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetStackPointer(STACK + 0x2000);
+
+        for (std::uint8_t reg = 0; reg < 8; ++reg) {
+            cpu.WriteRegister64(reg, 0x1111111111111111ULL + reg);
+        }
+
+        std::vector<std::uint8_t> code;
+        for (std::uint8_t reg = 0; reg < 8; ++reg) {
+            code.push_back(static_cast<std::uint8_t>(0x50 + reg));
+        }
+        for (int reg = 7; reg >= 0; --reg) {
+            code.push_back(static_cast<std::uint8_t>(0x58 + reg));
+        }
+
+        for (std::uint8_t reg = 8; reg < 16; ++reg) {
+            cpu.WriteRegister64(reg, 0x2222222222222222ULL + reg);
+            code.push_back(0x41);
+            code.push_back(static_cast<std::uint8_t>(0x50 + (reg - 8)));
+        }
+        for (int reg = 15; reg >= 8; --reg) {
+            code.push_back(0x41);
+            code.push_back(static_cast<std::uint8_t>(0x58 + (reg - 8)));
+        }
+        code = Finish(code);
+
+        bool valuesOk = true;
+        for (std::uint8_t reg = 0; reg < 8; ++reg) {
+            valuesOk = valuesOk &&
+                cpu.ReadRegister64(reg) == 0x1111111111111111ULL + reg;
+        }
+        for (std::uint8_t reg = 8; reg < 16; ++reg) {
+            valuesOk = valuesOk &&
+                cpu.ReadRegister64(reg) == 0x2222222222222222ULL + reg;
+        }
+        CHECK(
+            "PUSH/POP short register opcode matrix 50h..5Fh",
+            RunCode(cpu, mem, code) && valuesOk &&
+            cpu.Rsp() == STACK + 0x2000);
+    }
+}
+
+
 int main()
 {
+    TestPrimaryOpcodeCoverageGaps();
     TestCpuAudit();
     TestImul();
     TestMulDiv8();
