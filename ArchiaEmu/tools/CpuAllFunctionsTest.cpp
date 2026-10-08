@@ -3669,6 +3669,101 @@ void TestShiftsByCL()
     }
 }
 
+
+void TestShldShrd()
+{
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x0123456789ABCDEFULL);
+        Append(code, MovR64(1, 0xFEDCBA9876543210ULL));
+        code.insert(code.end(), {0x48, 0x0F, 0xA4, 0xC8, 0x04}); // SHLD RAX,R9,4
+        code.insert(code.end(), {0x48, 0x0F, 0xAC, 0xC8, 0x04}); // SHRD RAX,R9,4
+        code = Finish(code);
+        CHECK("SHLD/SHRD64 immediate register forms", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x00123456789ABCDEULL &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x0000000000004000ULL);
+        Append(code, MovR64(1, 0x0000000000000000ULL));
+        code.insert(code.end(), {0x66, 0x0F, 0xA4, 0xC8, 0x01}); // SHLD AX,CX,1
+        code = Finish(code);
+        CHECK("SHLD16 immediate uses operand-size override", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x0000000080004000ULL &&
+              (cpu.Rflags() & 1ULL) == 0 &&
+              (cpu.Rflags() & (1ULL << 11)) != 0);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        auto code = MovR64(0, 0x80000001ULL);
+        Append(code, MovR64(1, 1));
+        code.insert(code.end(), {0x0F, 0xA5, 0xC8}); // SHLD EAX,ECX,CL
+        code.insert(code.end(), {0x0F, 0xAD, 0xC8}); // SHRD EAX,ECX,CL
+        code = Finish(code);
+        CHECK("SHLD/SHRD32 register-count forms", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x80000000ULL);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x2000);
+        mem.Map(STACK, 0x2000);
+        const std::uint64_t base = DATA + 0x400;
+        const std::uint64_t index = 3;
+        const std::uint64_t address = base + index * 2;
+        Write64(mem, address, 0x0123456789ABCDEFULL);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, base);
+        cpu.WriteRegister64(9, index);
+        cpu.WriteRegister64(8, 0xFEDCBA9876543210ULL);
+        auto code = std::vector<std::uint8_t>{
+            0x4F, 0x0F, 0xA4, 0x04, 0x4D, 0x04, // SHLD [R13+R9*2],R8,4
+            0xF4
+        };
+        CHECK("SHLD64 memory exercises REX.WRXB plus SIB", RunCode(cpu, mem, code) &&
+              Read64(mem, address) == 0x123456789ABCDEFFULL);
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags((1ULL << 4) | (1ULL << 6) | (1ULL << 11)); // AF/ZF/OF
+        auto code = MovR64(0, 0x1122334455667788ULL);
+        Append(code, MovR64(1, 0x99AABBCCDDEEFF00ULL));
+        code.push_back(0x48); code.insert(code.end(), {0x0F, 0xA4, 0xC8, 0x40}); // count 64 -> masked to 0
+        code = Finish(code);
+        CHECK("SHLD64 count equal to width is a zero-count no-op", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x1122334455667788ULL &&
+              cpu.Rflags() == ((1ULL << 4) | (1ULL << 6) | (1ULL << 11)));
+    }
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags((1ULL << 4) | (1ULL << 6) | (1ULL << 11));
+        auto code = MovR64(0, 0x1122334455667788ULL);
+        Append(code, MovR64(1, 0x99AABBCCDDEEFF00ULL));
+        Append(code, MovR64(1, 64));
+        code.insert(code.end(), {0x48, 0x0F, 0xAD, 0xC8}); // SHRD RAX,R9,CL; CL=64 -> masked to 0
+        code = Finish(code);
+        CHECK("SHRD64 register count equal to width is a no-op", RunCode(cpu, mem, code) &&
+              cpu.Rax() == 0x1122334455667788ULL &&
+              cpu.Rflags() == ((1ULL << 4) | (1ULL << 6) | (1ULL << 11)));
+    }
+}
+
 // ============== CMP EAX, imm32 (0x3D) ==============
 void TestCmpEaxImmediate()
 {
@@ -5351,6 +5446,7 @@ int main()
     TestCmovccCoverage();
     TestBitTestFamily();
     TestShiftsByCL();
+    TestShldShrd();
     TestCmpEaxImmediate();
     TestGroupF7Memory();
     TestImulMemory();
