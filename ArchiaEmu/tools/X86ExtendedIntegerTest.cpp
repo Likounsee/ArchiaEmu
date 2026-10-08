@@ -3998,6 +3998,7 @@ int main() {
     if (!TestRotate32ExtendedForms()) { std::cerr << "32-bit rotate extended forms failed\n"; return 32; }
     if (!TestRotate32ZeroCount()) { std::cerr << "32-bit rotate zero-count failed\n"; return 31; }
     if (!TestRotate64ZeroCount()) { std::cerr << "64-bit rotate zero-count failed\n"; return 28; }
+    if (!TestRotateThroughCarryWidths()) { std::cerr << "rotate-through-carry widths failed\n"; return 50; }
     if (!TestRotate64Forms()) { std::cerr << "64-bit rotate forms failed\n"; return 25; }
     if (!TestCpuid()) { std::cerr << "CPUID failed\n"; return 8; }
     if (!TestRexLowByteAliases()) { std::cerr << "REX low-byte aliases failed\n"; return 41; }
