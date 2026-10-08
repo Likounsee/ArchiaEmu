@@ -2491,6 +2491,25 @@ static bool TestLeaExtendedNoBase() {
     AppendMovR64(code,12,2);
     code.insert(code.end(),{0x67,0x42,0x8D,0x04,0xA5,0x00,0x18,0x00,0x00});
     if(!Run(m,cpu,code) || (cpu.Rax()&0xFFFFFFFFULL)!=0x1808ULL) return false;
+    {
+        // In 64-bit mode CL counts are masked to six bits: 64 is a zero-count.
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        cpu.SetRflags(1ULL | (1ULL<<6) | (1ULL<<11));
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000000000000001ULL);
+        code.insert(code.end(),{0xB1,0x40,0x48,0xD3,0xE0}); // SHL RAX,CL (64 -> 0)
+        if(!Run(m,cpu,code) || cpu.Rax()!=0x8000000000000001ULL) return false;
+        if(cpu.Rflags()!=(1ULL | (1ULL<<6) | (1ULL<<11))) return false;
+    }
+    {
+        // 65 reduces to one, exercising the mask boundary above 64.
+        Memory m; m.Map(0x1000,0x2000); Cpu cpu; cpu.ConnectMemory(&m);
+        AppendMovR64(*(new std::vector<std::uint8_t>()),0,0); // no-op helper instantiation
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,1);
+        code.insert(code.end(),{0xB1,0x41,0x48,0xD3,0xE0}); // SHL RAX,CL (65 -> 1)
+        if(!Run(m,cpu,code) || cpu.Rax()!=2ULL) return false;
+    }
     return true;
 }
 
