@@ -3055,7 +3055,7 @@ static bool TestTestRmRegForms() {
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         const std::uint32_t value=0x80000000U;
-        if(!m.Write(0x1810,reinterpret_cast<const std::uint8_t*>(&value),4)) return false;
+        if(!m.Write(0x1818,reinterpret_cast<const std::uint8_t*>(&value),4)) return false;
         std::vector<std::uint8_t> code;
         AppendMovR64(code,11,0x1800);
         AppendMovR64(code,12,2);
