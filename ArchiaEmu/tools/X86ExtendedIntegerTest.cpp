@@ -3541,6 +3541,27 @@ static bool TestXaddExtendedMemoryForms() {
     }
 
 
+    // XADD must report 32-bit arithmetic flags from the sum.
+    {
+        Memory m; m.Map(0x1000, 0x4000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint32_t initial = 0x7FFFFFFFU;
+        if (!m.Write(0x1800, reinterpret_cast<const std::uint8_t*>(&initial), sizeof(initial))) return false;
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code, 8, 1);
+        AppendMovR64(code, 11, 0x1800);
+        cpu.SetRflags((1ULL << 0) | (1ULL << 2) | (1ULL << 4) | (1ULL << 6));
+        code.insert(code.end(), {0x45, 0x0F, 0xC1, 0x03}); // XADD [R11],R8D
+        std::uint32_t out = 0;
+        if (!Run(m, cpu, code) ||
+            !m.Read(0x1800, reinterpret_cast<std::uint8_t*>(&out), sizeof(out))) return false;
+        const std::uint64_t flags = cpu.Rflags();
+        return out == 0x80000000U &&
+               cpu.ReadRegister64(8) == 0x000000007FFFFFFFULL &&
+               (flags & (1ULL << 11)) != 0 &&
+               (flags & (1ULL << 7)) != 0 &&
+               (flags & (1ULL << 0)) == 0;
+    }
+
     return true;
 }
 
