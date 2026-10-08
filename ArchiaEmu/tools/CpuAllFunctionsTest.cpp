@@ -1729,6 +1729,46 @@ void TestIncDecNeg()
             (cpu.Rflags() & 1ULL) != 0 &&
             (cpu.Rflags() & (1ULL << 6)) == 0);
     }
+
+    // 8-bit FE /0, FE /1 and F6 /3 forms were previously untested.
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.SetRflags(1ULL);
+
+        auto code = MovR64(0, 0x11223344556600FFULL);
+        Append(code, {0xFE, 0xC0}); // INC AL
+        Append(code, {0xFE, 0xC8}); // DEC AL
+        code = Finish(code);
+
+        CHECK("INC8_DEC8_preserve_CF_and_upper_bits",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(0) == 0x11223344556600FFULL &&
+              (cpu.Rflags() & 1ULL) != 0);
+    }
+
+    {
+        Memory mem;
+        mem.Map(CODE, 0x2000);
+        mem.Map(DATA, 0x1000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+
+        auto code = MovR64(0, 1);
+        Append(code, {0xF6, 0xD8}); // NEG AL
+        code = Finish(code);
+
+        CHECK("NEG8_flags_and_result",
+              RunCode(cpu, mem, code) &&
+              (cpu.ReadRegister64(0) & 0xFFULL) == 0xFFULL &&
+              (cpu.Rflags() & 1ULL) != 0 &&
+              (cpu.Rflags() & (1ULL << 4)) != 0 &&
+              (cpu.Rflags() & (1ULL << 2)) != 0);
+    }
+
 }
 void TestFlags()
 {
