@@ -497,7 +497,7 @@ static bool TestAccumulatorXchg() {
     Memory m3; m3.Map(0x1000,0x1000); Cpu c3; c3.ConnectMemory(&m3);
     c3.SetRflags(1ULL | (1ULL<<2) | (1ULL<<4) | (1ULL<<6) | (1ULL<<7) | (1ULL<<11));
     code.clear(); AppendMovR64(code,0,0x1122334455667788ULL); AppendMovR64(code,8,0x8877665544332211ULL);
-    code.insert(code.end(),{0x41,0x90}); // XCHG RAX,R8
+    code.insert(code.end(),{0x49,0x90}); // XCHG RAX,R8 (REX.W+B)
     return Run(m3,c3,code) &&
            c3.Rax()==0x8877665544332211ULL &&
            c3.ReadRegister64(8)==0x1122334455667788ULL &&
