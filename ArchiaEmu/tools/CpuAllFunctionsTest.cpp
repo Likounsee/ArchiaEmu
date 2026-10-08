@@ -980,6 +980,21 @@ void TestLeaRexSib()
     };
     CHECK("LEA REX.WRXB SIB with signed disp8 targets R8", RunCode(cpu, mem, code) &&
           cpu.ReadRegister64(8) == 0x0FFCULL);
+    {
+        Memory mem;
+        mem.Map(CODE, 0x4000);
+        mem.Map(STACK, 0x2000);
+        Cpu cpu = MakeCpu(mem);
+        cpu.WriteRegister64(13, 0x2000ULL);
+        cpu.WriteRegister64(9, 3);
+        // 4F 8D 84 8D 00 01 00 00: LEA R8,[R13+R9*4+disp32].
+        const std::vector<std::uint8_t> code = {
+            0x4F, 0x8D, 0x84, 0x8D, 0x00, 0x01, 0x00, 0x00, 0xF4
+        };
+        CHECK("LEA REX.WRXB SIB disp32 writes R8",
+              RunCode(cpu, mem, code) &&
+              cpu.ReadRegister64(8) == 0x211CULL);
+    }
 }
 
 void TestMovsxdVariants()
