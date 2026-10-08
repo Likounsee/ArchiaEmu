@@ -839,9 +839,37 @@ static bool TestStringWidthAndRepeatCoverage() {
         if(!Run(m,cpu,{0xF3,0x66,0xA5})) return false;
         std::uint16_t dst[2] = {};
         if(!m.Read(0x2100,reinterpret_cast<std::uint8_t*>(dst),sizeof(dst))) return false;
-        return dst[0]==src[0] && dst[1]==src[1] && cpu.ReadRegister64(6)==0x2004ULL &&
-               cpu.ReadRegister64(7)==0x2104ULL && cpu.ReadRegister64(1)==0;
+        if (dst[0]!=src[0] || dst[1]!=src[1] || cpu.ReadRegister64(6)!=0x2004ULL ||
+            cpu.ReadRegister64(7)!=0x2104ULL || cpu.ReadRegister64(1)!=0) return false;
     }
+
+    // REP STOSD stores EAX repeatedly and advances RDI by four bytes.
+    {
+        Memory m; m.Map(0x1000,0x5000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0xA1B2C3D4ULL);
+        AppendMovR64(code,7,0x2300ULL);
+        AppendMovR64(code,1,2);
+        code.insert(code.end(),{0xF3,0xAB}); // REP STOSD
+        if(!Run(m,cpu,code)) return false;
+        std::uint32_t out[2] = {};
+        if(!m.Read(0x2300,reinterpret_cast<std::uint8_t*>(out),sizeof(out))) return false;
+        if(out[0]!=0xA1B2C3D4U || out[1]!=0xA1B2C3D4U ||
+           cpu.ReadRegister64(7)!=0x2308ULL || cpu.ReadRegister64(1)!=0) return false;
+    }
+
+    // REP LODSW loads the final word into AX and advances RSI by two bytes.
+    {
+        Memory m; m.Map(0x1000,0x5000); Cpu cpu; cpu.ConnectMemory(&m);
+        const std::uint16_t src[2] = {0x1234U,0xBEEFU};
+        if(!m.Write(0x2200,reinterpret_cast<const std::uint8_t*>(src),sizeof(src))) return false;
+        cpu.WriteRegister64(6,0x2200); cpu.WriteRegister64(1,2);
+        if(!Run(m,cpu,{0xF3,0x66,0xAD})) return false;
+        if((cpu.Rax()&0xFFFFULL)!=0xBEEFU || cpu.ReadRegister64(6)!=0x2204ULL ||
+           cpu.ReadRegister64(1)!=0) return false;
+    }
+
+    return true;
 }
 
 static bool TestFlagsAndLoops() {
