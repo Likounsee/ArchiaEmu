@@ -4487,7 +4487,7 @@ void TestStringCompareScanIoAndXlatCoverage()
         cpu.WriteRegister64(7, DATA);
         cpu.WriteRegister64(1, 1);
         const std::vector<std::uint8_t> code = {
-            0x48, 0xF3, 0xAF, 0xC3 // REPE SCASQ.
+            0xF3, 0x48, 0xAF, 0xC3 // REPE SCASQ.
         };
 
         CHECK(

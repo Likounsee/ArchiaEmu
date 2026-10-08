@@ -8148,10 +8148,11 @@ case 0xD0:
                     : static_cast<std::int64_t>(width);
 
             while (count != 0) {
+                const std::uint8_t index_register = input ? 7 : 6;
                 const std::uint64_t address =
                     address_size_override_
-                        ? static_cast<std::uint64_t>(registers_.Read32(7))
-                        : registers_.Read64(7);
+                        ? static_cast<std::uint64_t>(registers_.Read32(index_register))
+                        : registers_.Read64(index_register);
 
                 if (input) {
                     const std::uint32_t value =
@@ -8178,9 +8179,9 @@ case 0xD0:
                     static_cast<std::uint64_t>(
                         static_cast<std::int64_t>(address) + delta);
                 if (address_size_override_) {
-                    registers_.Write32(7, static_cast<std::uint32_t>(next));
+                    registers_.Write32(index_register, static_cast<std::uint32_t>(next));
                 } else {
-                    registers_.Write64(7, next);
+                    registers_.Write64(index_register, next);
                 }
 
                 --count;
