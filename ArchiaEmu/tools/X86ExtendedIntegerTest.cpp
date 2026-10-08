@@ -2047,7 +2047,6 @@ static bool TestGroup1ByteFlags() {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
         std::vector<std::uint8_t> code={0xB0,0xFF,0x34,0xFF}; // XOR AL,0xFF -> 00
         if(!Run(m,cpu,code) || (cpu.Rax()&0xFF)!=0) return false;
-        const auto f=cpu.Rflags(); if((f&Pf) != (f&Pf)) return false;
         if((f&(PF|ZF))!=(PF|ZF) || (f&(CF|AF|SF|OF))!=0) return false;
     }
     return true;
