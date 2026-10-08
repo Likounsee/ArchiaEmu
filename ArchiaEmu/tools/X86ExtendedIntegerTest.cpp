@@ -2029,6 +2029,30 @@ static bool TestCmpUnequalFlags() {
     return true;
 }
 
+static bool TestGroup1ByteFlags() {
+    const std::uint64_t CF=1ULL, PF=1ULL<<2, AF=1ULL<<4, ZF=1ULL<<6, SF=1ULL<<7, OF=1ULL<<11;
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB0,0x0F,0x04,0x01}; // ADD AL,1 -> 0x10
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFF)!=0x10) return false;
+        const auto f=cpu.Rflags(); if((f&(AF|SF))!=AF || (f&(CF|PF|ZF|OF))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB0,0xF0,0x0C,0x0F}; // OR AL,0x0F -> FF
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFF)!=0xFF) return false;
+        const auto f=cpu.Rflags(); if((f&(PF|SF))!=(PF|SF) || (f&(CF|AF|ZF|OF))!=0) return false;
+    }
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        std::vector<std::uint8_t> code={0xB0,0xFF,0x34,0xFF}; // XOR AL,0xFF -> 00
+        if(!Run(m,cpu,code) || (cpu.Rax()&0xFF)!=0) return false;
+        const auto f=cpu.Rflags(); if((f&Pf) != (f&Pf)) return false;
+        if((f&(PF|ZF))!=(PF|ZF) || (f&(CF|AF|SF|OF))!=0) return false;
+    }
+    return true;
+}
+
 static bool TestGroup1ExtendedAllWidths() {
     auto run64 = [](std::uint64_t initial, std::uint8_t group, std::uint8_t imm,
                     bool carryIn, std::uint64_t expected, bool writeBack) {
@@ -4247,6 +4271,7 @@ int main() {
     if (!TestGroup1RexAndMemory()) { std::cerr << "Group1 REX/memory failed\n"; return 19; }
     if (!TestGroup1ExtendedAddressing()) { std::cerr << "Group1 extended addressing failed\n"; return 21; }
     if (!TestGroup1ExtendedAllWidths()) { std::cerr << "Group1 extended all widths failed\n"; return 22; }
+    if (!TestGroup1ByteFlags()) { std::cerr << "Group1 byte flags failed\n"; return 70; }
     if (!TestGroup1QwordImmediateMemory()) { std::cerr << "Group1 qword immediate memory failed\n"; return 37; }
     if (!TestTestRmRegForms()) { std::cerr << "TEST r/m,r forms failed\n"; return 38; }
     if (!TestGroup1FlagMatrix()) { std::cerr << "Group1 flag matrix failed\n"; return 18; }
