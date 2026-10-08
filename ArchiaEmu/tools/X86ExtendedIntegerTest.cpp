@@ -2102,6 +2102,33 @@ static bool TestGroup1ExtendedAllWidths() {
         if(!m.Read(0x1828,reinterpret_cast<std::uint8_t*>(&out),sizeof(out)) || out!=10) return false;
     }
 
+    // Group-1 opcode 80 /r: exercise every ALU sub-op through the same
+    // REX.X/B SIB address, including CMP's no-write behavior.
+    {
+        struct ByteCase { std::uint8_t group; std::uint8_t initial; std::uint8_t imm; std::uint8_t expected; bool writeBack; bool carryIn; };
+        const ByteCase cases[] = {
+            {0,0x01,0x01,0x02,true,false}, // ADD
+            {1,0x0F,0xF0,0xFF,true,false}, // OR
+            {2,0x7F,0x00,0x80,true,true},  // ADC
+            {3,0x80,0x00,0x7F,true,true},  // SBB
+            {4,0xF0,0x0F,0x00,true,false}, // AND
+            {5,0x02,0x01,0x01,true,false}, // SUB
+            {6,0xF0,0x0F,0xFF,true,false}, // XOR
+            {7,0x55,0x55,0x55,false,false} // CMP
+        };
+        for (const auto& tc : cases) {
+            Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+            if(!m.Write(0x1808,&tc.initial,1)) return false;
+            std::vector<std::uint8_t> code;
+            AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2);
+            if(tc.carryIn) cpu.SetRflags(1ULL);
+            code.insert(code.end(),{0x47,0x80,static_cast<std::uint8_t>(0x04U | (tc.group<<3)),0xA3,tc.imm});
+            if(!Run(m,cpu,code)) return false;
+            std::uint8_t out=0;
+            if(!m.Read(0x1808,&out,1) || (tc.writeBack ? out!=tc.expected : out!=tc.initial)) return false;
+        }
+    }
+
     return true;
 }
 
