@@ -477,7 +477,6 @@ void TestCmp()
               RunCode(cpu, mem, code) &&
               (cpu.Rflags() & (1ULL << 6)) != 0);
     }
-}
     {
         Memory mem;
         mem.Map(CODE, 0x2000);
@@ -502,7 +501,7 @@ void TestCmp()
             RunCode(cpu, mem, code) &&
             (cpu.Rflags() & (1ULL << 6)) != 0);
     }
-
+}
 
 void TestLogic64()
 {
@@ -612,7 +611,6 @@ void TestTest64()
               (cpu.Rflags() & 1ULL) == 0 &&
               (cpu.Rflags() & (1ULL << 11)) == 0);
     }
-}
     {
         Memory mem;
         mem.Map(CODE, 0x2000);
@@ -640,7 +638,7 @@ void TestTest64()
             (cpu.Rflags() & 1ULL) == 0 &&
             (cpu.Rflags() & (1ULL << 11)) == 0);
     }
-
+}
 
 void TestLea()
 {
