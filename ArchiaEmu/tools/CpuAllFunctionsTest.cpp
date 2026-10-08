@@ -4424,7 +4424,7 @@ void TestShldShrd()
         cpu.WriteRegister64(9, index);
         cpu.WriteRegister64(8, 0xFEDCBA9876543210ULL);
         auto code = std::vector<std::uint8_t>{
-            0x4F, 0x0F, 0xAC, 0x04, 0x8D, 0x00, 0x00, 0x00, 0x00, 0x04,
+            0x4F, 0x0F, 0xAC, 0x04, 0x8D, 0x04,
             0xF4
         };
         CHECK("SHRD64 memory exercises REX.WRXB plus SIB",
