@@ -5922,8 +5922,8 @@ void TestRotateThroughCarryLargeCounts()
         code.insert(code.end(), {0xC1, 0xD0, 32}); // RCL EAX,32
         code = Finish(code);
         CHECK("RCL32 immediate count 32 uses modulo-33", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 0 &&
-              (cpu.Rflags() & 1ULL) != 0);
+              cpu.Rax() == 1 &&
+              (cpu.Rflags() & 1ULL) == 0);
     }
 
     {
@@ -5934,8 +5934,8 @@ void TestRotateThroughCarryLargeCounts()
         code.insert(code.end(), {0x48, 0xC1, 0xD0, 64}); // RCL RAX,64
         code = Finish(code);
         CHECK("RCL64 immediate count 64 uses modulo-65", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 0 &&
-              (cpu.Rflags() & 1ULL) != 0);
+              cpu.Rax() == 1 &&
+              (cpu.Rflags() & 1ULL) == 0);
     }
 
     {
@@ -5947,8 +5947,8 @@ void TestRotateThroughCarryLargeCounts()
         code.insert(code.end(), {0xD3, 0xD0}); // RCL EAX,CL
         code = Finish(code);
         CHECK("RCL32 CL count 32 uses modulo-33", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 0 &&
-              (cpu.Rflags() & 1ULL) != 0);
+              cpu.Rax() == 1 &&
+              (cpu.Rflags() & 1ULL) == 0);
     }
 
     {
@@ -5960,8 +5960,8 @@ void TestRotateThroughCarryLargeCounts()
         code.insert(code.end(), {0x48, 0xD3, 0xD0}); // RCL RAX,CL
         code = Finish(code);
         CHECK("RCL64 CL count 64 uses modulo-65", RunCode(cpu, mem, code) &&
-              cpu.Rax() == 0 &&
-              (cpu.Rflags() & 1ULL) != 0);
+              cpu.Rax() == 1 &&
+              (cpu.Rflags() & 1ULL) == 0);
     }
 }
 
@@ -7451,6 +7451,9 @@ int main()
     TestRotate8HighByteAndRex();
     TestRotate8Memory();
     TestRotate8EdgeCases();
+    TestRotateThroughCarryLargeCounts();
+    TestXchgAccumulatorShortForms();
+    TestShift8LargeCount();
 
     TestC1RegisterForm();
     TestC1MemoryFormOrderOfFetch();
