@@ -184,9 +184,18 @@ static bool TestXaddExtendedMemoryWidths() {
         if(!m.Write(0x1818,reinterpret_cast<const std::uint8_t*>(&value),8)) return false;
         std::vector<std::uint8_t> code; AppendMovR64(code,11,0x1800); AppendMovR64(code,12,2); AppendMovR64(code,8,1);
         code.insert(code.end(),{0x4F,0x0F,0xC1,0x44,0xA3,0x10});
-        if(!Run(m,cpu,code) || cpu.ReadRegister64(8)!=value) return false;
-        std::uint64_t out=0; if(!m.Read(0x1818,reinterpret_cast<std::uint8_t*>(&out),8)||out!=0x8000000000000000ULL)return false;
-        return (cpu.Rflags()&(CF|OF|SF))==(CF|OF|SF) && (cpu.Rflags()&ZF)==0;
+        if(!Run(m,cpu,code)) { std::cerr << "XADD64 run failed\\n"; return false; }
+        std::uint64_t out=0; if(!m.Read(0x1818,reinterpret_cast<std::uint8_t*>(&out),8)) { std::cerr << "XADD64 read failed\\n"; return false; }
+        if(out!=0x8000000000000000ULL || cpu.ReadRegister64(8)!=value) {
+            std::cerr << "XADD64 values: mem=0x" << std::hex << out << " R8=0x" << cpu.ReadRegister64(8) << std::dec << "\\n";
+            return false;
+        }
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&(CF|OF|SF))!=(CF|OF|SF) || (flags&ZF)!=0) {
+            std::cerr << "XADD64 flags: 0x" << std::hex << flags << std::dec << "\\n";
+            return false;
+        }
+        return true;
     }
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
@@ -194,9 +203,18 @@ static bool TestXaddExtendedMemoryWidths() {
         if(!m.Write(0x1808,reinterpret_cast<const std::uint8_t*>(&value),2)) return false;
         std::vector<std::uint8_t> code; AppendMovR64(code,11,0x1800); AppendMovR64(code,8,1);
         code.insert(code.end(),{0x66,0x45,0x0F,0xC1,0x43,0x08});
-        if(!Run(m,cpu,code) || (cpu.ReadRegister64(8)&0xFFFFULL)!=0xFFFFULL) return false;
-        std::uint16_t out=0; if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),2)||out!=0)return false;
-        return (cpu.Rflags()&(CF|ZF|SF))==(CF|ZF);
+        if(!Run(m,cpu,code)) { std::cerr << "XADD16 run failed\\n"; return false; }
+        std::uint16_t out=0; if(!m.Read(0x1808,reinterpret_cast<std::uint8_t*>(&out),2)) { std::cerr << "XADD16 read failed\\n"; return false; }
+        if(out!=0 || (cpu.ReadRegister64(8)&0xFFFFULL)!=0xFFFFULL) {
+            std::cerr << "XADD16 values: mem=0x" << std::hex << out << " R8=0x" << cpu.ReadRegister64(8) << std::dec << "\\n";
+            return false;
+        }
+        const std::uint64_t flags=cpu.Rflags();
+        if((flags&(CF|ZF|SF))!=(CF|ZF)) {
+            std::cerr << "XADD16 flags: 0x" << std::hex << flags << std::dec << "\\n";
+            return false;
+        }
+        return true;
     }
     return true;
 }
