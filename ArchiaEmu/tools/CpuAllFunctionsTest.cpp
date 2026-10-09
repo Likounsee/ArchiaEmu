@@ -7939,6 +7939,31 @@ void TestPrimaryOpcodeCoverageGaps()
         }
     }
 
+    // F6/F7 TEST/NOT/NEG/MUL/IMUL/DIV groups reserve /1; reject before EA access.
+    {
+        for (const std::uint8_t opcode : {std::uint8_t{0xF6}, std::uint8_t{0xF7}}) {
+            for (const std::uint8_t modrm : {std::uint8_t{0xC8}, std::uint8_t{0x08}}) {
+                Memory mem;
+                mem.Map(CODE, 0x1000);
+                mem.Map(STACK, 0x1000);
+                Cpu cpu = MakeCpu(mem);
+                cpu.WriteRegister64(0, 0xDEADBEEF);
+                bool invalidOpcode = false;
+                cpu.SetExceptionHandler([&](Cpu& handlerCpu, const CpuException& exception) {
+                    invalidOpcode = exception.vector == CpuExceptionVector::InvalidOpcode;
+                    if (invalidOpcode) handlerCpu.Halt();
+                    return invalidOpcode;
+                });
+                const std::vector<std::uint8_t> code = Finish({opcode, modrm});
+                const bool expectedRegister = modrm == 0xC8;
+                const char* name = opcode == 0xF6
+                    ? (expectedRegister ? "F6 /1 register form raises #UD" : "F6 /1 unmapped memory form raises #UD before access")
+                    : (expectedRegister ? "F7 /1 register form raises #UD" : "F7 /1 unmapped memory form raises #UD before access");
+                CHECK(name, RunCode(cpu, mem, code) && invalidOpcode);
+            }
+        }
+    }
+
     // REP with a zero count performs no memory access and leaves indexes/flags unchanged.
     {
         Memory mem;

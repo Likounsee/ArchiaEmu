@@ -5666,6 +5666,9 @@ int Cpu::Run()
             std::uint8_t modrm = 0;
             if (!Fetch8(modrm)) return 1;
             const std::uint8_t group = static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+            if (group == 1) {
+                return RaiseException({CpuExceptionKind::InvalidOpcode, instruction_address, MemoryFault::None, CpuExceptionVector::InvalidOpcode}) ? 0 : 1;
+            }
             if (group == 0) {
                 if (!DecodeTest8(modrm, rex)) return 1;
                 break;
@@ -5749,6 +5752,10 @@ int Cpu::Run()
 
             const std::uint8_t group =
                 static_cast<std::uint8_t>((modrm >> 3) & 0x07);
+
+            if (group == 1) {
+                return RaiseException({CpuExceptionKind::InvalidOpcode, instruction_address, MemoryFault::None, CpuExceptionVector::InvalidOpcode}) ? 0 : 1;
+            }
 
             std::uint8_t reg = 0;
             std::uint8_t rm = 0;
