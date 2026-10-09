@@ -7870,6 +7870,29 @@ void TestPrimaryOpcodeCoverageGaps()
         }
     }
 
+    // FF /7 is reserved and must raise #UD before touching a memory operand.
+    {
+        for (const std::uint8_t modrm : {std::uint8_t{0xF8}, std::uint8_t{0x38}}) {
+            Memory mem;
+            mem.Map(CODE, 0x1000);
+            mem.Map(STACK, 0x1000);
+            Cpu cpu = MakeCpu(mem);
+            cpu.WriteRegister64(0, 0xDEADBEEF);
+            bool invalidOpcode = false;
+            cpu.SetExceptionHandler([&](Cpu& handlerCpu, const CpuException& exception) {
+                invalidOpcode = exception.vector == CpuExceptionVector::InvalidOpcode;
+                if (invalidOpcode) handlerCpu.Halt();
+                return invalidOpcode;
+            });
+            const std::vector<std::uint8_t> code = Finish({0xFF, modrm});
+            CHECK(
+                (modrm == 0xF8
+                    ? "FF /7 register form raises #UD"
+                    : "FF /7 unmapped memory form raises #UD before access"),
+                RunCode(cpu, mem, code) && invalidOpcode);
+        }
+    }
+
     // REP with a zero count performs no memory access and leaves indexes/flags unchanged.
     {
         Memory mem;

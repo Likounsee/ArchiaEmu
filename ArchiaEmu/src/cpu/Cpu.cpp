@@ -5595,6 +5595,17 @@ int Cpu::Run()
                 break;
             }
 
+            // Validate reserved FF groups and register-only-invalid far transfers
+            // before decoding or reading an effective-address operand.
+            if (group == 7 || ((group == 3 || group == 5) && ((modrm >> 6) == 3))) {
+                return RaiseException({
+                    CpuExceptionKind::InvalidOpcode,
+                    instruction_address,
+                    MemoryFault::None,
+                    CpuExceptionVector::InvalidOpcode
+                }) ? 0 : 1;
+            }
+
             std::uint8_t reg = 0, rm = 0;
             std::uint64_t address = 0;
             bool memory = false;
