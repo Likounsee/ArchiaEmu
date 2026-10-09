@@ -5730,8 +5730,10 @@ int Cpu::Run()
                 } else {
                     const std::int16_t dividend = static_cast<std::int16_t>(dividendBits);
                     const std::int8_t divisor = static_cast<std::int8_t>(value);
-                    const std::int16_t quotient = static_cast<std::int16_t>(dividend / divisor);
-                    const std::int16_t remainder = static_cast<std::int16_t>(dividend % divisor);
+                    // Keep the intermediate in a wider type: -32768 / -1 is 32768,
+                    // which cannot be represented by int16_t before the quotient check.
+                    const std::int32_t quotient = static_cast<std::int32_t>(dividend) / static_cast<std::int32_t>(divisor);
+                    const std::int32_t remainder = static_cast<std::int32_t>(dividend) % static_cast<std::int32_t>(divisor);
                     if (quotient < -128 || quotient > 127) {
                         if (!RaiseException({CpuExceptionKind::DivideError, instruction_address, MemoryFault::None, CpuExceptionVector::DivideError})) return 1;
                         break;

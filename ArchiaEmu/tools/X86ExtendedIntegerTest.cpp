@@ -3694,6 +3694,22 @@ static bool TestDivisionSignedAndExtendedForms() {
            ((cpu.Rax()>>8)&0xFFU)!=0xFFU) return false;
     }
 
+    // IDIV8 with AX=-32768 and divisor=-1 must raise #DE without narrowing
+    // the mathematically unrepresentable quotient before checking its range.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        bool seen=false;
+        cpu.SetExceptionHandler([&](Cpu&, const CpuException& e) {
+            seen = e.vector == CpuExceptionVector::DivideError;
+            return true;
+        });
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000ULL);
+        AppendMovR64(code,1,0xFFULL);
+        code.insert(code.end(),{0xF6,0xF9}); // IDIV CL: -32768 / -1 does not fit in AL
+        if(!Run(m,cpu,code) || !seen || (cpu.Rax()&0xFFFFU)!=0x8000U) return false;
+    }
+
     // 64-bit quotient overflow must raise #DE and leave destination registers unchanged.
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
