@@ -7863,9 +7863,9 @@ void TestPrimaryOpcodeCoverageGaps()
             });
             const std::vector<std::uint8_t> code = Finish({0xFF, modrm});
             CHECK(
-                modrm == 0xD8
+                (modrm == 0xD8
                     ? "FF /3 register form raises #UD"
-                    : "FF /5 register form raises #UD",
+                    : "FF /5 register form raises #UD"),
                 RunCode(cpu, mem, code) && invalidOpcode);
         }
     }
