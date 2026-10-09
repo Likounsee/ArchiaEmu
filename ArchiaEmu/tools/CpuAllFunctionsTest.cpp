@@ -7893,6 +7893,29 @@ void TestPrimaryOpcodeCoverageGaps()
         }
     }
 
+    // POP r/m reserved /1 forms must raise #UD before touching the operand.
+    {
+        for (const std::uint8_t modrm : {std::uint8_t{0xC8}, std::uint8_t{0x08}}) {
+            Memory mem;
+            mem.Map(CODE, 0x1000);
+            mem.Map(STACK, 0x1000);
+            Cpu cpu = MakeCpu(mem);
+            cpu.WriteRegister64(0, 0xDEADBEEF);
+            bool invalidOpcode = false;
+            cpu.SetExceptionHandler([&](Cpu& handlerCpu, const CpuException& exception) {
+                invalidOpcode = exception.vector == CpuExceptionVector::InvalidOpcode;
+                if (invalidOpcode) handlerCpu.Halt();
+                return invalidOpcode;
+            });
+            const std::vector<std::uint8_t> code = Finish({0x8F, modrm});
+            CHECK(
+                (modrm == 0xC8
+                    ? "8F /1 register form raises #UD"
+                    : "8F /1 unmapped memory form raises #UD before access"),
+                RunCode(cpu, mem, code) && invalidOpcode);
+        }
+    }
+
     // REP with a zero count performs no memory access and leaves indexes/flags unchanged.
     {
         Memory mem;
