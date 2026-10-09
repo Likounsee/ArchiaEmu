@@ -3710,6 +3710,25 @@ static bool TestDivisionSignedAndExtendedForms() {
         if(!Run(m,cpu,code) || !seen || (cpu.Rax()&0xFFFFU)!=0x8000U) return false;
     }
 
+    // IDIV16: DX:AX=-32768 divided by CX=-1 yields +32768, outside int16.
+    // #DE must occur before either AX or DX is overwritten.
+    {
+        Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
+        bool seen=false;
+        cpu.SetExceptionHandler([&](Cpu&, const CpuException& e) {
+            seen = e.vector == CpuExceptionVector::DivideError;
+            return true;
+        });
+        std::vector<std::uint8_t> code;
+        AppendMovR64(code,0,0x8000ULL);
+        AppendMovR64(code,2,0xFFFFULL);
+        AppendMovR64(code,1,0xFFFFULL);
+        code.insert(code.end(),{0x66,0xF7,0xF9}); // IDIV CX
+        if(!Run(m,cpu,code) || !seen ||
+           (cpu.Rax()&0xFFFFU)!=0x8000U ||
+           (cpu.ReadRegister64(2)&0xFFFFU)!=0xFFFFU) return false;
+    }
+
     // 64-bit quotient overflow must raise #DE and leave destination registers unchanged.
     {
         Memory m; m.Map(0x1000,0x3000); Cpu cpu; cpu.ConnectMemory(&m);
