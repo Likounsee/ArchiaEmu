@@ -5626,9 +5626,27 @@ int Cpu::Run()
                 break;
             }
             if (group == 3 || group == 5) {
+                // Far CALL/JMP require a memory operand. Register encodings
+                // are architecturally invalid and must raise #UD, not merely
+                // terminate the interpreter with an unhandled return code.
+                if (!memory) {
+                    return RaiseException({
+                        CpuExceptionKind::InvalidOpcode,
+                        instruction_address,
+                        MemoryFault::None,
+                        CpuExceptionVector::InvalidOpcode
+                    }) ? 0 : 1;
+                }
+                // Memory forms are valid, but far transfers are not yet
+                // implemented by this CPU core.
                 return 1;
             }
-            return 1;
+            return RaiseException({
+                CpuExceptionKind::InvalidOpcode,
+                instruction_address,
+                MemoryFault::None,
+                CpuExceptionVector::InvalidOpcode
+            }) ? 0 : 1;
         }
 
         case 0xF6: {
