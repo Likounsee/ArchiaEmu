@@ -7916,6 +7916,29 @@ void TestPrimaryOpcodeCoverageGaps()
         }
     }
 
+    // FE only defines byte INC (/0) and DEC (/1); reserved groups must #UD before EA access.
+    {
+        for (const std::uint8_t modrm : {std::uint8_t{0xD0}, std::uint8_t{0x38}}) {
+            Memory mem;
+            mem.Map(CODE, 0x1000);
+            mem.Map(STACK, 0x1000);
+            Cpu cpu = MakeCpu(mem);
+            cpu.WriteRegister64(0, 0xDEADBEEF);
+            bool invalidOpcode = false;
+            cpu.SetExceptionHandler([&](Cpu& handlerCpu, const CpuException& exception) {
+                invalidOpcode = exception.vector == CpuExceptionVector::InvalidOpcode;
+                if (invalidOpcode) handlerCpu.Halt();
+                return invalidOpcode;
+            });
+            const std::vector<std::uint8_t> code = Finish({0xFE, modrm});
+            CHECK(
+                (modrm == 0xD0
+                    ? "FE /2 register form raises #UD"
+                    : "FE /7 unmapped memory form raises #UD before access"),
+                RunCode(cpu, mem, code) && invalidOpcode);
+        }
+    }
+
     // REP with a zero count performs no memory access and leaves indexes/flags unchanged.
     {
         Memory mem;
