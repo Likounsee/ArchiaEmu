@@ -7848,6 +7848,28 @@ void TestPrimaryOpcodeCoverageGaps()
             RunCode(cpu, mem, code) && invalidOpcode);
     }
 
+    // FF /3 and /5 require memory operands: register forms must deliver #UD.
+    {
+        for (const std::uint8_t modrm : {std::uint8_t{0xD8}, std::uint8_t{0xE8}}) {
+            Memory mem;
+            mem.Map(CODE, 0x1000);
+            mem.Map(STACK, 0x1000);
+            Cpu cpu = MakeCpu(mem);
+            bool invalidOpcode = false;
+            cpu.SetExceptionHandler([&](Cpu& handlerCpu, const CpuException& exception) {
+                invalidOpcode = exception.vector == CpuExceptionVector::InvalidOpcode;
+                if (invalidOpcode) handlerCpu.Halt();
+                return invalidOpcode;
+            });
+            const std::vector<std::uint8_t> code = Finish({0xFF, modrm});
+            CHECK(
+                modrm == 0xD8
+                    ? "FF /3 register form raises #UD"
+                    : "FF /5 register form raises #UD",
+                RunCode(cpu, mem, code) && invalidOpcode);
+        }
+    }
+
     // REP with a zero count performs no memory access and leaves indexes/flags unchanged.
     {
         Memory mem;
