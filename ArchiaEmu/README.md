@@ -16,9 +16,10 @@ cargo fmt --all -- --check
 cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
+cargo package --workspace --locked --no-verify
 ```
 
-The CI runs formatting, locked tests and warning-free documentation generation on pushes and pull requests targeting `ArchiaEmu`; Clippy runs on Linux.
+The CI runs formatting, locked tests, warning-free documentation generation and package-content checks on pushes and pull requests targeting `ArchiaEmu`. Dependency advisories, license policy and source provenance are checked with cargo-deny; Clippy runs on Linux.
 
 ## Current components
 
