@@ -402,10 +402,11 @@ mod tests {
         let actual = SystemId::new("other").unwrap();
         let mut registry = CoreRegistry::new();
         registry.register(registered, make_mismatched_core).unwrap();
-        assert_eq!(
-            registry.create(registered).unwrap_err(),
-            RegistryError::DescriptorMismatch { registered, actual }
-        );
+        assert!(matches!(
+            registry.create(registered),
+            Err(RegistryError::DescriptorMismatch { registered: found_registered, actual: found_actual })
+                if found_registered == registered && found_actual == actual
+        ));
     }
 
     #[test]
