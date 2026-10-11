@@ -4,7 +4,7 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 
 | Phase | Current estimate | Remaining acceptance work |
 | --- | ---: | --- |
-| P0 — foundations | 60% | Add property/fuzz tests when justified; define dependency and release checks |
+| P0 — foundations | 70% | Verify the new dependency/package gates in CI; add property/fuzz tests when justified; establish release artifact validation |
 | P1 — first console | 0% | Select target; implement hardware and instruction behavior; run reproducible authorized tests |
 | P2 — audio/video/input | 0% | Real platform output and controls; synchronization and latency tests |
 | P3 — library/saves | 0% | Real content library, persistent saves and validated/versioned save states |
@@ -25,11 +25,13 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 - [x] Testing policy documents the CI scope and limitations of cross-platform checks.
 - [x] CI generates API documentation with rustdoc warnings treated as errors on all three host operating systems.
 - [x] Tests cover every public error enum's display messages and empty-registry behavior; repeated creation verifies factory invocation.
-- [x] Repository-level CI workflow runs formatting, tests and Clippy.
+- [x] Repository-level CI workflow runs formatting, tests, Clippy, rustdoc, package checks and dependency policy checks.
 - [x] GitHub Actions passed on commit `28d7d9ddbc91ea477155954304bda860cc8a6928`.
 - [x] MIT and Apache-2.0 license texts are checked in; third-party policy is documented.
 - [x] Architecture, interface, language, supported-system, graphics/audio, input, performance, testing, security, and legal documentation reviewed against the current source and repository metadata.
-- [ ] Dependency audit automation and release/package checks remain.
+- [x] Dependency advisory, license and source-origin checks are configured through cargo-deny.
+- [x] Workspace package-content validation is part of CI.
+- [ ] Confirm the new dependency/package gates pass on all CI runners; release artifact validation remains.
 - [x] Cross-platform CI matrix passed on Linux, Windows and macOS on commit `72d2460575a561ffc44d0348081491384aabc86f`.
 
 No console is currently supported. Choose the first target only after auditing hardware specifications, implementation scope, and availability of lawful, reproducible test inputs.
