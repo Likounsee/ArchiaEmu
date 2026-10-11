@@ -1,0 +1,9 @@
+[package]
+name = "archiaemu-core"
+version = "0.1.0"
+description = "Shared contracts and metadata for ArchiaEmu emulation cores"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
