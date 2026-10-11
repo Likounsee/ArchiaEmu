@@ -4,7 +4,7 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 
 | Phase | Current estimate | Remaining acceptance work |
 | --- | ---: | --- |
-| P0 — foundations | 35% | License files and third-party inventory; architecture/documentation review; cross-platform build verification; more robust test and tooling policy |
+| P0 — foundations | 45% | Verify the new Linux/Windows/macOS CI matrix; complete documentation review; expand robustness tests and tooling policy |
 | P1 — first console | 0% | Select target; implement hardware and instruction behavior; run reproducible authorized tests |
 | P2 — audio/video/input | 0% | Real platform output and controls; synchronization and latency tests |
 | P3 — library/saves | 0% | Real content library, persistent saves and validated/versioned save states |
@@ -23,8 +23,8 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 - [x] Tests cover duplicate/unknown IDs, mismatched factories and selected stable error messages.
 - [x] Repository-level CI workflow runs formatting, tests and Clippy.
 - [x] GitHub Actions passed on commit `28d7d9ddbc91ea477155954304bda860cc8a6928`.
-- [ ] License files and third-party inventory are finalized.
+- [x] MIT and Apache-2.0 license texts are checked in; third-party policy is documented.
 - [ ] The complete documentation set is reviewed against real code.
-- [ ] Cross-platform build strategy is verified.
+- [x] Cross-platform CI matrix is configured for Linux, Windows and macOS; successful runs are still required to verify it.
 
 No console is currently supported. Choose the first target only after auditing hardware specifications, implementation scope, and availability of lawful, reproducible test inputs.
