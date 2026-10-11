@@ -15,7 +15,7 @@ The CI workflow runs formatting, tests and warning-free documentation generation
 
 ## Current test coverage
 
-The core contract crate tests canonical and malformed identifiers (including whitespace, non-ASCII characters and invalid separators), default-false capability declarations, registry lookup and creation, duplicate registration without mutation, deterministic enumeration order, descriptor/key mismatch rejection, stable error messages, and explicit unsupported save/load-state behavior. Registry factory tests verify successful creation on repeated requests. There are no CPU, bus, instruction, timing, graphics, audio, controller, content-loading or console compatibility tests yet.
+The core contract crate tests canonical and malformed identifiers (including whitespace, non-ASCII characters and invalid separators), default-false capability declarations, registry lookup and creation, duplicate registration without mutation, deterministic enumeration order, descriptor/key mismatch rejection, stable display messages for every public identifier, core-operation and registry error variant, empty-registry behavior, and explicit unsupported save/load-state behavior. Registry factory tests verify that the factory is invoked on each creation request. There are no CPU, bus, instruction, timing, graphics, audio, controller, content-loading or console compatibility tests yet.
 
 ## Future core tests
 
