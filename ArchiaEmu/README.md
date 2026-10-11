@@ -23,7 +23,8 @@ The CI runs formatting, locked tests, warning-free documentation generation and 
 
 ## Current components
 
-- `crates/archiaemu-core`: shared metadata, capability declarations, core lifecycle contract, and error types. It is not itself a console emulator.
+- `crates/archiaemu-core`: shared metadata, capability declarations, core lifecycle contract, and error types.
+- `crates/archiaemu-game-boy`: experimental Game Boy cartridge-header parser. CPU, bus, PPU, audio, and runnable-game support are not implemented.
 - `docs/`: architecture, language decisions, interface, roadmap, compatibility, media/input plans, testing, performance, security, and legal constraints.
 - `.github/workflows/ci.yml` at the repository root: Rust quality gates.
 
@@ -39,4 +40,4 @@ The CI runs formatting, locked tests, warning-free documentation generation and 
 
 ## Status
 
-P0 is underway. The initial shared interface is a contract for future cores; it does not imply a console has been implemented. See `docs/ROADMAP.md` and `docs/SUPPORTED_SYSTEMS.md`.
+P0 is underway. The initial shared interface is a contract for future cores; it does not imply a console has been implemented. See `docs/ROADMAP.md`, `docs/SUPPORTED_SYSTEMS.md`, and `docs/GAME_BOY_DMG.md` for the first-target decision and explicit scope.
