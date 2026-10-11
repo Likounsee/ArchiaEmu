@@ -316,6 +316,18 @@ mod tests {
             SystemId::new("gb/color"),
             Err(IdentifierError::InvalidCharacter)
         );
+        assert_eq!(
+            SystemId::new("gb color"),
+            Err(IdentifierError::InvalidCharacter)
+        );
+        assert_eq!(
+            SystemId::new("gb\n"),
+            Err(IdentifierError::InvalidCharacter)
+        );
+        assert_eq!(
+            SystemId::new("écran"),
+            Err(IdentifierError::InvalidCharacter)
+        );
     }
 
     #[test]
@@ -397,6 +409,40 @@ mod tests {
     }
 
     #[test]
+    fn registry_preserves_registration_order_and_remains_unchanged_on_duplicate() {
+        let first = SystemId::new("first").unwrap();
+        let second = SystemId::new("second").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(first, make_example_core).unwrap();
+        registry.register(second, make_example_core).unwrap();
+
+        assert_eq!(
+            registry.system_ids().collect::<Vec<_>>(),
+            vec![first, second]
+        );
+        assert!(matches!(
+            registry.register(first, make_mismatched_core),
+            Err(RegistryError::DuplicateSystem(found)) if found == first
+        ));
+        assert_eq!(
+            registry.system_ids().collect::<Vec<_>>(),
+            vec![first, second]
+        );
+    }
+
+    #[test]
+    fn registry_factory_creates_a_fresh_core_for_each_request() {
+        let id = SystemId::new("example").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_example_core).unwrap();
+
+        let first = registry.create(id).unwrap();
+        let second = registry.create(id).unwrap();
+        assert_eq!(first.descriptor().system_id, id);
+        assert_eq!(second.descriptor().system_id, id);
+    }
+
+    #[test]
     fn registry_rejects_factories_with_mismatched_descriptors() {
         let registered = SystemId::new("example").unwrap();
         let actual = SystemId::new("other").unwrap();
@@ -451,6 +497,11 @@ mod tests {
         let core = MetadataOnlyCore;
         assert_eq!(
             core.save_state(),
+            Err(CoreError::Unsupported("save states"))
+        );
+        let mut core = core;
+        assert_eq!(
+            core.load_state(&[0, 1, 2]),
             Err(CoreError::Unsupported("save states"))
         );
         assert!(!core.descriptor().capabilities.save_states);
