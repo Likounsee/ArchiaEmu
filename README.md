@@ -1,54 +1,51 @@
 # ArchiaEmu
 
-**ArchiaEmu is an in-development, modular multi-console emulation project.** Its long-term goal is to host multiple independently testable emulation cores behind a shared application and tooling layer. The repository is currently at its initial foundation stage: no console is claimed as supported until a real core and a reproducible test corpus demonstrate that support.
+**ArchiaEmu is an in-development, modular multi-console emulation project.** Its long-term goal is to host independently testable emulation cores behind a shared application and tooling layer. The repository is at the foundation stage; no console is claimed as supported until a real core and reproducible tests demonstrate that support.
 
 ## Goals
 
-- Build new shared components primarily in **stable Rust**, emphasizing explicit errors, predictable resource use, and testability.
-- Integrate **C or C++** only when a mature, legally reusable library or a concrete interoperability/performance need justifies the added build and maintenance cost.
-- Keep emulation cores independent of the user interface, with documented boundaries for memory ownership, audio/video buffers, and errors.
-- Validate each platform against reproducible tests rather than treating successful compilation as compatibility.
-- Handle imported game images, firmware, configuration, and save files as untrusted input.
+- Build shared components primarily in stable Rust, with explicit errors and testable boundaries.
+- Integrate C or C++ only when a mature, legally reusable library or a concrete interoperability/performance need justifies it.
+- Keep cores independent of the UI and make audio/video ownership and timing explicit.
+- Validate platform behavior with reproducible tests rather than treating compilation as compatibility.
+- Treat game images, firmware, configuration and save files as untrusted input.
 
 ## Repository layout
 
-- `README.md` — this project overview, kept at the repository root for GitHub.
-- `ArchiaEmu/` — project source, Cargo workspace (when established), technical documentation, tests, fixtures, and development tools.
-- `.github/workflows/` — repository-level automation, so GitHub Actions can discover workflows.
+- `ArchiaEmu/` — Cargo workspace, source crates and technical documentation.
+- `.github/workflows/` — GitHub Actions quality gates.
+- `ArchiaEmu/docs/` — architecture, interface, roadmap, testing, security and legal notes.
 
-The Git metadata remains at the repository root. See the [technical project README](ArchiaEmu/README.md) once the project directory is present.
+## Current implementation
 
-## Current status
+The shared Rust crate `archiaemu-core` currently defines validated system identifiers, core capability metadata, lifecycle/error contracts, and a registry that maps system IDs to factories. Registry creation checks that the created core's descriptor matches the registered ID. Unit tests cover identifier validation, conservative capability defaults, unsupported save-state behavior, registry lookup/duplicates/mismatched factories, and error messages.
 
-**Stage: initial repository foundation.** The current branch contains only this README. There is no emulator core, frontend, audio/video pipeline, controller support, save-state implementation, or verified console compatibility in the current tree. No hardware platform is currently supported or experimental in code.
-
-## Roadmap
-
-| Phase | Focus | Status |
-| --- | --- | --- |
-| P0 | Repository structure, Rust workspace, CI, architecture, tests and licensing baseline | Not started |
-| P1 | First real console core and reproducible program tests | Not started |
-| P2 | Video, audio, input and stable emulation loop | Not started |
-| P3 | Game library, persistent saves and robust save states | Not started |
-| P4 | Reproducible benchmarks and measured optimization | Not started |
-| P5 | A second independently tested platform | Not started |
-| P6 | Gradual work on more complex systems | Not started |
-| P7 | Security review, reproducible distribution and release process | Not started |
-
-Phase completion will be based on checked-in implementation and verified acceptance tests, not on directory names or aspirational claims.
+The project does **not** yet implement a console CPU, memory map, graphics, audio, input, game loading, persistent saves or a usable frontend. No system is currently supported.
 
 ## Build and test
 
-The current repository does not yet contain a Cargo workspace, so there are no valid project build or test commands to run yet. Once the workspace exists, development commands will be documented in [`ArchiaEmu/README.md`](ArchiaEmu/README.md) and the CI will invoke them from the `ArchiaEmu/` directory.
+Run from the project directory:
 
-## Supported systems
+```sh
+cd ArchiaEmu
+cargo fmt --all -- --check
+cargo test --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+```
 
-None at this stage. Planned systems will be listed separately from systems with experimental, partial, or validated compatibility in `ArchiaEmu/docs/SUPPORTED_SYSTEMS.md`.
+GitHub Actions runs the same quality gates on pushes to the `ArchiaEmu` branch and on pull requests targeting it.
 
-## Contributions
+## Roadmap
 
-Development takes place on the `ArchiaEmu` branch. Do not commit project changes to `main`. Before proposing a change, run the documented formatting, test, and lint checks where available, describe any checks that could not be run, and avoid bundling unrelated changes.
+- **P0 — Foundations:** workspace, shared contracts, registry, CI, tests, documentation and licensing review.
+- **P1 — First console:** select a target after auditing specifications and lawful test availability; implement and test real hardware behavior.
+- **P2 — Runtime I/O:** graphics, audio, input and synchronization.
+- **P3 — Library and saves:** content management, persistent data and validated save states.
+- **P4 — Performance:** reproducible baselines, profiling and measured optimizations.
+- **P5–P7 — Expansion and release:** second platform, more complex systems, security/legal review and reproducible packaging.
 
-## Legal and content policy
+Progress is measured against checked-in implementation and verified acceptance tests, not planned features or directory names.
 
-ArchiaEmu does not intend to distribute copyrighted game images, BIOS files, or firmware without authorization. Third-party cores and libraries must be evaluated for licensing, redistribution terms, security, maintenance, and platform support before integration.
+## Development and legal policy
+
+Development changes belong on the `ArchiaEmu` branch; do not commit project changes to `main`. Do not distribute copyrighted game images, BIOS files or firmware without authorization. Third-party dependencies must be reviewed for license compatibility, redistribution terms, security, maintenance and platform support before integration.
