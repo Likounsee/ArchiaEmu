@@ -134,9 +134,9 @@ mod tests {
     }
 
     fn header_checksum(image: &[u8]) -> u8 {
-        image[0x134..=0x14C]
-            .iter()
-            .fold(0u8, |checksum, byte| checksum.wrapping_sub(*byte).wrapping_sub(1))
+        image[0x134..=0x14C].iter().fold(0u8, |checksum, byte| {
+            checksum.wrapping_sub(*byte).wrapping_sub(1)
+        })
     }
 
     #[test]
