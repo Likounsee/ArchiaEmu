@@ -418,8 +418,10 @@ mod tests {
                 dependencies: NO_DEPENDENCIES,
             },
         ];
-        assert_eq!(ModuleCatalog::new(&duplicate).validate(),
-            Err(CatalogError::DuplicateModule(SHARED)));
+        assert_eq!(
+            ModuleCatalog::new(&duplicate).validate(),
+            Err(CatalogError::DuplicateModule(SHARED))
+        );
 
         let missing = [ModuleDescriptor {
             id: GB,
