@@ -19,7 +19,7 @@ A console being listed in the catalogue is not proof that its emulator works. Th
 
 Every package has a stable, lowercase ASCII ID (`game-boy`, `shared-audio-runtime`), display name, readiness status, package version, compatibility range, platform/architecture constraints, declared dependencies and a trusted source identity. IDs are machine-facing and must not be renamed casually once used in user configuration.
 
-The first implementation uses typed descriptors and a pure dependency planner in `archiaemu-core::module_management`. It validates duplicate IDs, missing dependencies and dependency cycles. Planning resolves transitive dependencies, emits dependencies before dependants, avoids duplicate shared packages and omits already-installed packages. It rejects unknown modules and modules still in development.
+The first implementation uses owned, runtime-validated module IDs, typed descriptors and a pure dependency planner in `archiaemu-core::module_management`. User intent and installed versions are modeled separately in `archiaemu-core::module_state`; this is a persistence-agnostic model, not yet a disk-backed registry. It validates duplicate IDs, missing dependencies and dependency cycles. Planning resolves transitive dependencies, emits dependencies before dependants, avoids duplicate shared packages and omits already-installed packages. It rejects unknown modules and modules still in development.
 
 The next step is a versioned external manifest format. That format should include:
 - schema version and catalogue revision;
