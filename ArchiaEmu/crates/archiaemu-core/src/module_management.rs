@@ -108,7 +108,9 @@ pub enum CatalogError {
     DuplicateModule(ModuleId),
     /// A dependency points to an ID absent from the catalogue.
     MissingDependency {
+        /// Module declaring the dependency.
         module: ModuleId,
+        /// Dependency ID absent from the catalogue.
         dependency: ModuleId,
     },
     /// A dependency path eventually refers back to a module already on that path.
@@ -141,7 +143,9 @@ pub enum PlanError {
     UnknownModule(ModuleId),
     /// A requested or required module is not ready for installation.
     NotInstallable {
+        /// Module requested directly or required by another module.
         module: ModuleId,
+        /// Readiness state that prevents installation.
         readiness: ModuleReadiness,
     },
     /// The catalogue must be validated before planning.
@@ -325,6 +329,16 @@ mod tests {
         Ok(value) => value,
         Err(_) => panic!("test ID must be valid"),
     };
+    const CYCLE_A: ModuleId = match ModuleId::new("cycle-a") {
+        Ok(value) => value,
+        Err(_) => panic!("test ID must be valid"),
+    };
+    const CYCLE_B: ModuleId = match ModuleId::new("cycle-b") {
+        Ok(value) => value,
+        Err(_) => panic!("test ID must be valid"),
+    };
+    const CYCLE_A_DEPENDENCY: &[ModuleId] = &[CYCLE_B];
+    const CYCLE_B_DEPENDENCY: &[ModuleId] = &[CYCLE_A];
 
     const NO_DEPENDENCIES: &[ModuleId] = &[];
     const SHARED_DEPENDENCY: &[ModuleId] = &[SHARED];
@@ -440,25 +454,23 @@ mod tests {
 
     #[test]
     fn rejects_dependency_cycles() {
-        let a = id("cycle-a");
-        let b = id("cycle-b");
         let descriptors = [
             ModuleDescriptor {
-                id: a,
+                id: CYCLE_A,
                 display_name: "A",
                 readiness: ModuleReadiness::Installable,
-                dependencies: &[b],
+                dependencies: CYCLE_A_DEPENDENCY,
             },
             ModuleDescriptor {
-                id: b,
+                id: CYCLE_B,
                 display_name: "B",
                 readiness: ModuleReadiness::Installable,
-                dependencies: &[a],
+                dependencies: CYCLE_B_DEPENDENCY,
             },
         ];
         assert_eq!(
             ModuleCatalog::new(&descriptors).validate(),
-            Err(CatalogError::DependencyCycle(a))
+            Err(CatalogError::DependencyCycle(CYCLE_A))
         );
     }
 
