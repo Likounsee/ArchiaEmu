@@ -40,6 +40,10 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Run tests
         run: cargo test --workspace --locked
+      - name: Check documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps --locked
       - name: Run Clippy
         if: runner.os == 'Linux'
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
