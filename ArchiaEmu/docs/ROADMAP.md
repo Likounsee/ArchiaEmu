@@ -4,7 +4,7 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 
 | Phase | Current estimate | Remaining acceptance work |
 | --- | ---: | --- |
-| P0 — foundations | 75% (estimate) | Validate module-planner tests in CI; add persistent package state, release artifact validation, and installer trust checks |
+| P0 — foundations | 75% (estimate) | Validate module planner and disk-backed state store in CI; implement signed catalogue, secure installer trust checks, and release artifact validation |
 | P1 — first console | 5% | Implement cartridge size/mapper validation, memory bus, LR35902 CPU and peripherals; run reproducible authorized tests |
 | P2 — audio/video/input | 0% | Real platform output and controls; synchronization and latency tests |
 | P3 — library/saves | 0% | Real content library, persistent saves and validated/versioned save states |
@@ -31,9 +31,10 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 - [x] Architecture, interface, language, supported-system, graphics/audio, input, performance, testing, security, and legal documentation reviewed against the current source and repository metadata.
 - [x] Dependency advisory, license and source-origin checks are configured through cargo-deny.
 - [x] Workspace package-content validation is part of CI.
-- [ ] Confirm the dependency/package gates and module-state tests pass on the latest CI run; release artifact validation remains.
+- [ ] Confirm dependency/package gates, disk-backed module-state tests, and platform-specific path handling pass on the latest CI run; release artifact validation remains.
 - [x] Add a pure module catalogue/dependency planner with runtime-validated IDs, duplicate/missing dependency and cycle validation, topological installation order, shared dependency de-duplication, installed-module handling, and explicit in-development rejection.
 - [x] Add a first-launch and module-state model for skip/completion status, deduplicated selection, installed versions, version updates and post-removal bookkeeping.
+- [x] Add a versioned disk-backed state store with strict decoding, size limits, per-user path resolution, staged writes and backup recovery tests.
 - [x] Document first-launch selection, offline/skip behavior, secure staged installation requirements, later module management, and the distinction between a catalogue entry and a working emulator.
 - [x] First target selected and isolated in a dedicated crate; header parser validates minimum length, ROM size code and header checksum.
 - [x] Cross-platform CI matrix passed on Linux, Windows and macOS on commit `72d2460575a561ffc44d0348081491384aabc86f`.
