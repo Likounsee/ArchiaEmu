@@ -31,8 +31,9 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 - [x] Architecture, interface, language, supported-system, graphics/audio, input, performance, testing, security, and legal documentation reviewed against the current source and repository metadata.
 - [x] Dependency advisory, license and source-origin checks are configured through cargo-deny.
 - [x] Workspace package-content validation is part of CI.
-- [ ] Confirm the new dependency/package gates and module-planner tests pass on all CI runners; release artifact validation remains.
-- [x] Add a pure module catalogue/dependency planner with duplicate/missing dependency and cycle validation, topological installation order, shared dependency de-duplication, installed-module handling, and explicit in-development rejection.
+- [ ] Confirm the dependency/package gates and module-state tests pass on the latest CI run; release artifact validation remains.
+- [x] Add a pure module catalogue/dependency planner with runtime-validated IDs, duplicate/missing dependency and cycle validation, topological installation order, shared dependency de-duplication, installed-module handling, and explicit in-development rejection.
+- [x] Add a first-launch and module-state model for skip/completion status, deduplicated selection, installed versions, version updates and post-removal bookkeeping.
 - [x] Document first-launch selection, offline/skip behavior, secure staged installation requirements, later module management, and the distinction between a catalogue entry and a working emulator.
 - [x] First target selected and isolated in a dedicated crate; header parser validates minimum length, ROM size code and header checksum.
 - [x] Cross-platform CI matrix passed on Linux, Windows and macOS on commit `72d2460575a561ffc44d0348081491384aabc86f`.
