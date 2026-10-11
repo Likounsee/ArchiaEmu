@@ -19,7 +19,7 @@ A console being listed in the catalogue is not proof that its emulator works. Th
 
 Every package has a stable, lowercase ASCII ID (`game-boy`, `shared-audio-runtime`), display name, readiness status, package version, compatibility range, platform/architecture constraints, declared dependencies and a trusted source identity. IDs are machine-facing and must not be renamed casually once used in user configuration.
 
-The first implementation uses owned, runtime-validated module IDs, typed descriptors and a pure dependency planner in `archiaemu-core::module_management`. User intent and installed versions are modeled separately in `archiaemu-core::module_state`; this is a persistence-agnostic model, not yet a disk-backed registry. It validates duplicate IDs, missing dependencies and dependency cycles. Planning resolves transitive dependencies, emits dependencies before dependants, avoids duplicate shared packages and omits already-installed packages. It rejects unknown modules and modules still in development.
+The first implementation uses owned, runtime-validated module IDs, typed descriptors and a pure dependency planner in `archiaemu-core::module_management`. User intent and installed versions are modeled separately in `archiaemu-core::module_state`, with version-1 disk persistence in `archiaemu-core::module_state_store`. The store bounds input size, validates IDs and records, hex-encodes version strings, stages writes, retains a backup and attempts recovery from a corrupt primary file. The application still needs to choose the correct per-user data directory and serialize concurrent writes. It validates duplicate IDs, missing dependencies and dependency cycles. Planning resolves transitive dependencies, emits dependencies before dependants, avoids duplicate shared packages and omits already-installed packages. It rejects unknown modules and modules still in development.
 
 The next step is a versioned external manifest format. That format should include:
 - schema version and catalogue revision;
@@ -71,7 +71,7 @@ The Game Boy DMG crate currently parses cartridge-header metadata only. It does 
 ## Implementation sequence
 
 - **P0:** dependency-aware planner and tests (implemented in core); truthful readiness states; documented trust model.
-- **P0:** persistent installed-package state model and version compatibility rules.
+- **P0:** persistent first-launch/selection/installed-version state with a versioned format, size limit, validation, staged writes and backup recovery (model and store implemented; per-user path integration remains).\n- **P0:** version compatibility rules and conflict handling during concurrent application updates.
 - **P1:** first-launch wizard and settings page, including skip/offline paths.
 - **P1:** signed catalogue format and secure staged installer.
 - **P1/P2:** platform-specific packaging, atomic activation, repair, removal and rollback.
