@@ -10,7 +10,7 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-The CI workflow runs these checks on pushes and pull requests targeting `ArchiaEmu`. A green build proves only that the checked-in code passes these checks; it does not prove console compatibility.
+The CI workflow runs formatting and tests on Linux, Windows and macOS for pushes and pull requests targeting `ArchiaEmu`; Clippy runs on Linux. A green build proves only that the checked-in code passes these checks on the listed runners; it does not prove console compatibility or native builds for every target architecture.
 
 ## Current test coverage
 
