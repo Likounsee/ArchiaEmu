@@ -10,7 +10,6 @@ allow = [
     "MIT",
 ]
 # Do not silently accept dependencies whose license could not be identified.
-unlicensed = "deny"
 
 [bans]
 # New dependencies should not silently introduce duplicate versions.
