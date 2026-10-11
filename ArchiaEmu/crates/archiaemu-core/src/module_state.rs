@@ -141,8 +141,7 @@ impl ModuleManagerState {
         {
             existing.version = version;
         } else {
-            self.installed_modules
-                .push(InstalledModule { id, version });
+            self.installed_modules.push(InstalledModule { id, version });
         }
         Ok(())
     }
