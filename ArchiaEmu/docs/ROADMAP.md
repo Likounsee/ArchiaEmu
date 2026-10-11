@@ -4,7 +4,7 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 
 | Phase | Current estimate | Remaining acceptance work |
 | --- | ---: | --- |
-| P0 — foundations | 70% | Verify the new dependency/package gates in CI; add property/fuzz tests when justified; establish release artifact validation |
+| P0 — foundations | 75% (estimate) | Validate module-planner tests in CI; add persistent package state, release artifact validation, and installer trust checks |
 | P1 — first console | 5% | Implement cartridge size/mapper validation, memory bus, LR35902 CPU and peripherals; run reproducible authorized tests |
 | P2 — audio/video/input | 0% | Real platform output and controls; synchronization and latency tests |
 | P3 — library/saves | 0% | Real content library, persistent saves and validated/versioned save states |
@@ -31,7 +31,9 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 - [x] Architecture, interface, language, supported-system, graphics/audio, input, performance, testing, security, and legal documentation reviewed against the current source and repository metadata.
 - [x] Dependency advisory, license and source-origin checks are configured through cargo-deny.
 - [x] Workspace package-content validation is part of CI.
-- [ ] Confirm the new dependency/package gates pass on all CI runners; release artifact validation remains.
+- [ ] Confirm the new dependency/package gates and module-planner tests pass on all CI runners; release artifact validation remains.
+- [x] Add a pure module catalogue/dependency planner with duplicate/missing dependency and cycle validation, topological installation order, shared dependency de-duplication, installed-module handling, and explicit in-development rejection.
+- [x] Document first-launch selection, offline/skip behavior, secure staged installation requirements, later module management, and the distinction between a catalogue entry and a working emulator.
 - [x] First target selected and isolated in a dedicated crate; header parser validates minimum length, ROM size code and header checksum.
 - [x] Cross-platform CI matrix passed on Linux, Windows and macOS on commit `72d2460575a561ffc44d0348081491384aabc86f`.
 
