@@ -1,0 +1,22 @@
+[advisories]
+# Treat known vulnerable dependencies and unmaintained advisories as failures.
+yanked = "deny"
+ignore = []
+
+[licenses]
+confidence-threshold = 0.8
+allow = [
+    "Apache-2.0",
+    "MIT",
+]
+# Do not silently accept dependencies whose license could not be identified.
+unlicensed = "deny"
+
+[bans]
+# New dependencies should not silently introduce duplicate versions.
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
