@@ -16,8 +16,12 @@ concurrency:
 
 jobs:
   rust:
-    name: Rust quality gates
-    runs-on: ubuntu-latest
+    name: Rust quality gates (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: ArchiaEmu
@@ -37,4 +41,5 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --locked
       - name: Run Clippy
+        if: runner.os == 'Linux'
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
