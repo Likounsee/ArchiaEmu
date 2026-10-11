@@ -46,6 +46,9 @@ jobs:
         run: cargo doc --workspace --no-deps --locked
       - name: Check package contents
         run: cargo package --workspace --locked --no-verify
+      - name: Run Clippy (Linux)
+        if: runner.os == 'Linux'
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Audit dependencies and licenses
         if: runner.os == 'Linux'
         uses: EmbarkStudios/cargo-deny-action@v2
