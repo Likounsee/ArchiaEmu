@@ -283,9 +283,9 @@ impl<'a> ModuleCatalog<'a> {
             )));
         }
         visiting.push(id.clone());
-        let descriptor = self.descriptor(id).ok_or_else(|| {
-            PlanError::UnknownModule(id.clone())
-        })?;
+        let descriptor = self
+            .descriptor(id)
+            .ok_or_else(|| PlanError::UnknownModule(id.clone()))?;
         if !installed.contains(id) && descriptor.readiness == ModuleReadiness::InDevelopment {
             return Err(PlanError::NotInstallable {
                 module: id.clone(),
@@ -344,7 +344,12 @@ mod tests {
                 ModuleReadiness::Experimental,
                 &["shared-runtime"],
             ),
-            descriptor("nes", "NES", ModuleReadiness::Installable, &["shared-runtime"]),
+            descriptor(
+                "nes",
+                "NES",
+                ModuleReadiness::Installable,
+                &["shared-runtime"],
+            ),
             descriptor(
                 "experimental",
                 "Experimental",
@@ -361,10 +366,7 @@ mod tests {
             ModuleId::new("Game-Boy"),
             Err(ModuleIdError::InvalidCharacter)
         );
-        assert_eq!(
-            ModuleId::new("-gb"),
-            Err(ModuleIdError::InvalidSeparator)
-        );
+        assert_eq!(ModuleId::new("-gb"), Err(ModuleIdError::InvalidSeparator));
         assert_eq!(
             ModuleId::new("gb--color"),
             Err(ModuleIdError::InvalidSeparator)
@@ -445,18 +447,8 @@ mod tests {
     #[test]
     fn rejects_dependency_cycles() {
         let descriptors = vec![
-            descriptor(
-                "cycle-a",
-                "A",
-                ModuleReadiness::Installable,
-                &["cycle-b"],
-            ),
-            descriptor(
-                "cycle-b",
-                "B",
-                ModuleReadiness::Installable,
-                &["cycle-a"],
-            ),
+            descriptor("cycle-a", "A", ModuleReadiness::Installable, &["cycle-b"]),
+            descriptor("cycle-b", "B", ModuleReadiness::Installable, &["cycle-a"]),
         ];
         assert_eq!(
             ModuleCatalog::new(&descriptors).validate(),
