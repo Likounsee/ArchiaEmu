@@ -330,6 +330,8 @@ mod tests {
         let mut second = ModuleManagerState::new();
         second.mark_setup_completed();
         store.save(&second).unwrap();
+        fs::remove_file(&path).unwrap();
+        assert_eq!(store.load().unwrap(), first);
         fs::write(&path, b"corrupt").unwrap();
         assert_eq!(store.load().unwrap(), first);
         let _ = fs::remove_file(&path);
