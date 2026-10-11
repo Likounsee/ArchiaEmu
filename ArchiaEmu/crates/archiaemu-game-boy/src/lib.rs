@@ -128,7 +128,8 @@ mod tests {
         image[0x147] = 0x00;
         image[0x148] = 0x00;
         image[0x149] = 0x00;
-        image[0x14D] = header_checksum(&image);
+        let checksum = header_checksum(&image);
+        image[0x14D] = checksum;
         image
     }
 
