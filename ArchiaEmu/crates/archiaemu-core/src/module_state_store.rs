@@ -166,8 +166,8 @@ impl ModuleManagerState {
                     selected.push(id);
                 }
                 ["installed", raw_id, raw_version] if status.is_some() => {
-                    let id = ModuleId::new(*raw_id)
-                        .map_err(|_| StateFormatError::InvalidModuleId)?;
+                    let id =
+                        ModuleId::new(*raw_id).map_err(|_| StateFormatError::InvalidModuleId)?;
                     if installed.iter().any(|item| item.id == id) {
                         return Err(StateFormatError::DuplicateModule);
                     }
@@ -247,7 +247,10 @@ impl ModuleStateStore {
                                 &primary,
                                 ModuleStateStoreError::Io(primary_error)
                                     if primary_error.kind() == io::ErrorKind::NotFound
-                            ) => Ok(ModuleManagerState::new()),
+                            ) =>
+                    {
+                        Ok(ModuleManagerState::new())
+                    }
                     Err(ModuleStateStoreError::Io(error))
                         if error.kind() == io::ErrorKind::NotFound =>
                     {
