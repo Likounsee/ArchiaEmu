@@ -4,7 +4,7 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 
 | Phase | Current estimate | Remaining acceptance work |
 | --- | ---: | --- |
-| P0 — foundations | 45% | Verify the new Linux/Windows/macOS CI matrix; complete documentation review; expand robustness tests and tooling policy |
+| P0 — foundations | 50% | Complete documentation review against implementation; add property/fuzz tests when justified; define dependency and release checks |
 | P1 — first console | 0% | Select target; implement hardware and instruction behavior; run reproducible authorized tests |
 | P2 — audio/video/input | 0% | Real platform output and controls; synchronization and latency tests |
 | P3 — library/saves | 0% | Real content library, persistent saves and validated/versioned save states |
@@ -21,10 +21,12 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 - [x] Stable system identifier validation has unit tests.
 - [x] Core registry supports unique IDs, deterministic enumeration, factory creation and descriptor/key consistency checks.
 - [x] Tests cover duplicate/unknown IDs, mismatched factories and selected stable error messages.
+- [x] Edge-case tests cover whitespace/non-ASCII identifiers, deterministic registration order, duplicate rejection without registry mutation, repeated factory creation, and explicit unsupported save/load-state operations.
+- [x] Testing policy documents the CI scope and limitations of cross-platform checks.
 - [x] Repository-level CI workflow runs formatting, tests and Clippy.
 - [x] GitHub Actions passed on commit `28d7d9ddbc91ea477155954304bda860cc8a6928`.
 - [x] MIT and Apache-2.0 license texts are checked in; third-party policy is documented.
 - [ ] The complete documentation set is reviewed against real code.
-- [x] Cross-platform CI matrix is configured for Linux, Windows and macOS; successful runs are still required to verify it.
+- [x] Cross-platform CI matrix passed on Linux, Windows and macOS on commit `72d2460575a561ffc44d0348081491384aabc86f`.
 
 No console is currently supported. Choose the first target only after auditing hardware specifications, implementation scope, and availability of lawful, reproducible test inputs.
