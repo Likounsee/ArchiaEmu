@@ -310,7 +310,7 @@ impl ModuleStateStore {
 }
 
 fn read_state(path: &Path) -> Result<ModuleManagerState, ModuleStateStoreError> {
-    let mut file = File::open(path)?;
+    let file = File::open(path)?;
     let size = file.metadata()?.len();
     if size > MAX_STATE_FILE_BYTES {
         return Err(ModuleStateStoreError::TooLarge);
