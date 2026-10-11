@@ -17,6 +17,36 @@ pub const MAX_STATE_FILE_BYTES: u64 = 4 * 1024 * 1024;
 const HEADER: &str = "ARCHIAEMU-MODULE-STATE\t1";
 static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+/// Resolves ArchiaEmu's default per-user state path without creating it.
+///
+/// Applications may instead pass an explicit path to ModuleStateStore::new.
+/// This function only reads standard environment variables; it does not elevate
+/// privileges or write outside the current user's configuration directory.
+pub fn default_user_state_path() -> io::Result<PathBuf> {
+    #[cfg(windows)]
+    let root = std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "APPDATA is not set"))?;
+
+    #[cfg(target_os = "macos")]
+    let root = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "HOME is not set"))?
+        .join("Library")
+        .join("Application Support");
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let root = match std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from) {
+        Some(path) if path.is_absolute() => path,
+        _ => std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "HOME is not set"))?
+            .join(".config"),
+    };
+
+    Ok(root.join("ArchiaEmu").join("module-state.v1"))
+}
+
 /// A malformed or unsupported persisted state.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StateFormatError {
