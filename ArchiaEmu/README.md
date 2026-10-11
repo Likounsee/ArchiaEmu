@@ -13,11 +13,12 @@ Once the workspace has been established, run these commands from this directory:
 
 ```sh
 cargo fmt --all -- --check
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
-The CI runs the same checks on pushes and pull requests targeting `ArchiaEmu`.
+The CI runs formatting, locked tests and warning-free documentation generation on pushes and pull requests targeting `ArchiaEmu`; Clippy runs on Linux.
 
 ## Current components
 
