@@ -31,9 +31,10 @@ cd ArchiaEmu
 cargo fmt --all -- --check
 cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
-GitHub Actions runs the same quality gates on pushes to the `ArchiaEmu` branch and on pull requests targeting it.
+GitHub Actions runs formatting, locked tests and warning-free API documentation generation on pushes to the `ArchiaEmu` branch and on pull requests targeting it; Clippy runs on Linux.
 
 ## Roadmap
 
