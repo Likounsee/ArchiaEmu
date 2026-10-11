@@ -9,6 +9,9 @@
 /// Dependency-aware planning for optional console and shared-runtime modules.
 pub mod module_management;
 
+/// First-launch decisions and installed module state.
+pub mod module_state;
+
 use core::fmt;
 
 /// Stable machine-readable identifier for an emulated system.
