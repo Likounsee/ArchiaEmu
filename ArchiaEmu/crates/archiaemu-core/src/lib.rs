@@ -12,6 +12,9 @@ pub mod module_management;
 /// First-launch decisions and installed module state.
 pub mod module_state;
 
+/// Versioned disk persistence for first-launch and module state.
+pub mod module_state_store;
+
 use core::fmt;
 
 /// Stable machine-readable identifier for an emulated system.
