@@ -198,13 +198,17 @@ impl ModuleStateStore {
     pub fn load(&self) -> Result<ModuleManagerState, ModuleStateStoreError> {
         match read_state(&self.path) {
             Ok(state) => Ok(state),
-            Err(ModuleStateStoreError::Io(error)) if error.kind() == io::ErrorKind::NotFound => {
-                Ok(ModuleManagerState::new())
-            }
             Err(primary) => {
                 let backup = backup_path(&self.path);
                 match read_state(&backup) {
                     Ok(state) => Ok(state),
+                    Err(ModuleStateStoreError::Io(error))
+                        if error.kind() == io::ErrorKind::NotFound
+                            && matches!(
+                                &primary,
+                                ModuleStateStoreError::Io(primary_error)
+                                    if primary_error.kind() == io::ErrorKind::NotFound
+                            ) => Ok(ModuleManagerState::new()),
                     Err(ModuleStateStoreError::Io(error))
                         if error.kind() == io::ErrorKind::NotFound => Err(primary),
                     Err(backup_error) => Err(backup_error),
