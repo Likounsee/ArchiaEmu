@@ -382,6 +382,19 @@ mod tests {
     }
 
     #[test]
+    fn empty_registry_has_no_systems_and_rejects_queries() {
+        let registry = CoreRegistry::new();
+        let id = SystemId::new("example").unwrap();
+
+        assert!(!registry.contains(id));
+        assert_eq!(registry.system_ids().count(), 0);
+        assert!(matches!(
+            registry.create(id),
+            Err(RegistryError::UnknownSystem(found)) if found == id
+        ));
+    }
+
+    #[test]
     fn registry_creates_cores_by_stable_id() {
         let id = SystemId::new("example").unwrap();
         let mut registry = CoreRegistry::new();
@@ -431,15 +444,28 @@ mod tests {
     }
 
     #[test]
-    fn registry_factory_creates_a_fresh_core_for_each_request() {
+    fn registry_invokes_factory_for_each_creation_request() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        static FACTORY_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+        fn counted_factory() -> Box<dyn EmulationCore> {
+            FACTORY_CALLS.fetch_add(1, Ordering::SeqCst);
+            make_example_core()
+        }
+
         let id = SystemId::new("example").unwrap();
         let mut registry = CoreRegistry::new();
-        registry.register(id, make_example_core).unwrap();
+        registry.register(id, counted_factory).unwrap();
 
+        let before = FACTORY_CALLS.load(Ordering::SeqCst);
         let first = registry.create(id).unwrap();
         let second = registry.create(id).unwrap();
+        let after = FACTORY_CALLS.load(Ordering::SeqCst);
+
         assert_eq!(first.descriptor().system_id, id);
         assert_eq!(second.descriptor().system_id, id);
+        assert_eq!(after - before, 2);
     }
 
     #[test]
@@ -466,8 +492,48 @@ mod tests {
             "invalid content: bad header"
         );
         assert_eq!(
-            RegistryError::UnknownSystem(SystemId::new("gb").unwrap()).to_string(),
+            CoreError::Unsupported("video").to_string(),
+            "unsupported capability: video"
+        );
+        assert_eq!(
+            CoreError::InvalidState("wrong version").to_string(),
+            "invalid save state: wrong version"
+        );
+        assert_eq!(
+            CoreError::Execution("bus fault").to_string(),
+            "emulation execution failed: bus fault"
+        );
+
+        let gb = SystemId::new("gb").unwrap();
+        let other = SystemId::new("other").unwrap();
+        assert_eq!(
+            RegistryError::DuplicateSystem(gb).to_string(),
+            "system 'gb' is already registered"
+        );
+        assert_eq!(
+            RegistryError::DescriptorMismatch {
+                registered: gb,
+                actual: other
+            }
+            .to_string(),
+            "registered system 'gb' produced core 'other'"
+        );
+        assert_eq!(
+            RegistryError::UnknownSystem(gb).to_string(),
             "no core is registered for 'gb'"
+        );
+
+        assert_eq!(
+            IdentifierError::Empty.to_string(),
+            "system identifier cannot be empty"
+        );
+        assert_eq!(
+            IdentifierError::InvalidCharacter.to_string(),
+            "system identifier must contain only lowercase ASCII letters, digits, and hyphens"
+        );
+        assert_eq!(
+            IdentifierError::InvalidSeparator.to_string(),
+            "system identifier cannot start or end with a hyphen or contain adjacent hyphens"
         );
     }
 
