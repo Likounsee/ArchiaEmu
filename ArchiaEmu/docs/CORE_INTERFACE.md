@@ -1,6 +1,6 @@
 # Core interface
 
-The initial Rust contract lives in `crates/archiaemu-core/src/lib.rs`.
+The shared Rust contract lives in `crates/archiaemu-core/src/lib.rs`.
 
 ## Required metadata
 
@@ -8,7 +8,13 @@ A concrete core reports a stable `SystemId`, a display name, its implementation 
 
 ## Lifecycle
 
-`EmulationCore` currently defines content loading, reset, execution until an observable event, and optional save-state operations. The common `CoreEvent` intentionally allows non-frame scheduling boundaries. Platform cores may expose additional typed interfaces for timing, debugger access, device configuration and richer audio/video delivery.
+`EmulationCore` defines content loading, reset, execution until an observable event, and optional save-state operations. The common `CoreEvent` allows non-frame scheduling boundaries. Platform cores may expose additional typed interfaces for timing, debugger access, device configuration and richer audio/video delivery.
+
+## Core registry
+
+`CoreRegistry` maps unique `SystemId` values to factory functions. Registration rejects duplicate IDs and preserves registration order for enumeration. Calling `create` constructs a fresh instance and verifies that the instance's descriptor reports the same ID as the registry key. Unknown IDs and mismatched factories return explicit `RegistryError` variants; they do not silently select a fallback core.
+
+Factories should be cheap to call and must not load user content or perform irreversible side effects. Registry validation is not a substitute for validating ROMs, firmware, or machine state inside a concrete core.
 
 ## Error and data rules
 
@@ -21,4 +27,4 @@ A concrete core reports a stable `SystemId`, a display name, its implementation 
 
 ## Stability
 
-This API is an initial internal contract and may evolve before the first core is selected. Do not treat it as a stable plugin ABI. A native C ABI will only be designed if a real native core is chosen.
+This API is an initial internal contract and may evolve before the first core is selected. It is not a stable plugin ABI. A native C ABI will only be designed if a real native core is chosen.
