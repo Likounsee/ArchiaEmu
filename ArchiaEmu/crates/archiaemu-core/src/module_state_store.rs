@@ -66,10 +66,14 @@ impl fmt::Display for ModuleStateStoreError {
 }
 impl std::error::Error for ModuleStateStoreError {}
 impl From<io::Error> for ModuleStateStoreError {
-    fn from(value: io::Error) -> Self { Self::Io(value) }
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
+    }
 }
 impl From<StateFormatError> for ModuleStateStoreError {
-    fn from(value: StateFormatError) -> Self { Self::Format(value) }
+    fn from(value: StateFormatError) -> Self {
+        Self::Format(value)
+    }
 }
 
 impl ModuleManagerState {
@@ -124,8 +128,8 @@ impl ModuleManagerState {
                     });
                 }
                 ["selected", raw_id] if status.is_some() => {
-                    let id = ModuleId::new(*raw_id)
-                        .map_err(|_| StateFormatError::InvalidModuleId)?;
+                    let id =
+                        ModuleId::new(*raw_id).map_err(|_| StateFormatError::InvalidModuleId)?;
                     if selected.contains(&id) {
                         return Err(StateFormatError::DuplicateModule);
                     }
@@ -146,8 +150,8 @@ impl ModuleManagerState {
                         let low = nibble(pair[1]).ok_or(StateFormatError::InvalidVersion)?;
                         bytes.push((high << 4) | low);
                     }
-                    let version = String::from_utf8(bytes)
-                        .map_err(|_| StateFormatError::InvalidVersion)?;
+                    let version =
+                        String::from_utf8(bytes).map_err(|_| StateFormatError::InvalidVersion)?;
                     if version.trim().is_empty() {
                         return Err(StateFormatError::InvalidVersion);
                     }
@@ -165,7 +169,8 @@ impl ModuleManagerState {
             FirstLaunchStatus::Completed => state.mark_setup_completed(),
         }
         for module in installed {
-            state.record_installed(module.id, module.version)
+            state
+                .record_installed(module.id, module.version)
                 .map_err(|_| StateFormatError::InvalidVersion)?;
         }
         Ok(state)
@@ -189,10 +194,14 @@ pub struct ModuleStateStore {
 }
 impl ModuleStateStore {
     /// Creates a store at the exact path supplied by the application.
-    pub fn new(path: impl Into<PathBuf>) -> Self { Self { path: path.into() } }
+    pub fn new(path: impl Into<PathBuf>) -> Self {
+        Self { path: path.into() }
+    }
 
     /// Returns the configured state path.
-    pub fn path(&self) -> &Path { &self.path }
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
 
     /// Loads persisted state, or returns a fresh profile when no file exists.
     pub fn load(&self) -> Result<ModuleManagerState, ModuleStateStoreError> {
@@ -210,7 +219,10 @@ impl ModuleStateStore {
                                     if primary_error.kind() == io::ErrorKind::NotFound
                             ) => Ok(ModuleManagerState::new()),
                     Err(ModuleStateStoreError::Io(error))
-                        if error.kind() == io::ErrorKind::NotFound => Err(primary),
+                        if error.kind() == io::ErrorKind::NotFound =>
+                    {
+                        Err(primary)
+                    }
                     Err(backup_error) => Err(backup_error),
                 }
             }
@@ -219,17 +231,23 @@ impl ModuleStateStore {
 
     /// Saves state using a flushed temporary file and recoverable backup.
     pub fn save(&self, state: &ModuleManagerState) -> Result<(), ModuleStateStoreError> {
-        let parent = self.path.parent()
+        let parent = self
+            .path
+            .parent()
             .filter(|p| !p.as_os_str().is_empty())
             .unwrap_or_else(|| Path::new("."));
         fs::create_dir_all(parent)?;
         let sequence = TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let temp = self.path.with_extension(format!(
-            "tmp-{}-{sequence}", std::process::id()
-        ));
+        let temp = self
+            .path
+            .with_extension(format!("tmp-{}-{sequence}", std::process::id()));
         let backup = backup_path(&self.path);
-        let mut file = OpenOptions::new().write(true).create_new(true).open(&temp)?;
-        let write_result = file.write_all(state.encode().as_bytes())
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp)?;
+        let write_result = file
+            .write_all(state.encode().as_bytes())
             .and_then(|()| file.sync_all());
         drop(file);
         if let Err(error) = write_result {
@@ -265,7 +283,8 @@ fn read_state(path: &Path) -> Result<ModuleManagerState, ModuleStateStoreError> 
         return Err(ModuleStateStoreError::TooLarge);
     }
     let mut bytes = Vec::with_capacity(size as usize);
-    file.take(MAX_STATE_FILE_BYTES + 1).read_to_end(&mut bytes)?;
+    file.take(MAX_STATE_FILE_BYTES + 1)
+        .read_to_end(&mut bytes)?;
     if bytes.len() as u64 > MAX_STATE_FILE_BYTES {
         return Err(ModuleStateStoreError::TooLarge);
     }
@@ -273,7 +292,9 @@ fn read_state(path: &Path) -> Result<ModuleManagerState, ModuleStateStoreError> 
         .map_err(|_| ModuleStateStoreError::Format(StateFormatError::MalformedRecord))?;
     ModuleManagerState::decode(text).map_err(Into::into)
 }
-fn backup_path(path: &Path) -> PathBuf { path.with_extension("bak") }
+fn backup_path(path: &Path) -> PathBuf {
+    path.with_extension("bak")
+}
 
 #[cfg(test)]
 mod tests {
@@ -281,9 +302,13 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_path() -> PathBuf {
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         std::env::temp_dir().join(format!(
-            "archiaemu-module-state-{}-{unique}.state", std::process::id()
+            "archiaemu-module-state-{}-{unique}.state",
+            std::process::id()
         ))
     }
 
@@ -294,9 +319,9 @@ mod tests {
             ModuleId::new("game-boy").unwrap(),
             ModuleId::new("nes").unwrap(),
         ]);
-        state.record_installed(
-            ModuleId::new("game-boy").unwrap(), "1.2\t0\nβ"
-        ).unwrap();
+        state
+            .record_installed(ModuleId::new("game-boy").unwrap(), "1.2\t0\nβ")
+            .unwrap();
         state.mark_setup_completed();
         assert_eq!(ModuleManagerState::decode(&state.encode()).unwrap(), state);
     }
