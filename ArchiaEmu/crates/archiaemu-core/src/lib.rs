@@ -245,11 +245,7 @@ impl CoreRegistry {
     }
 
     /// Registers a factory under a unique system identifier.
-    pub fn register(
-        &mut self,
-        id: SystemId,
-        factory: CoreFactory,
-    ) -> Result<(), RegistryError> {
+    pub fn register(&mut self, id: SystemId, factory: CoreFactory) -> Result<(), RegistryError> {
         if self.registrations.iter().any(|entry| entry.id == id) {
             return Err(RegistryError::DuplicateSystem(id));
         }
@@ -337,7 +333,6 @@ mod tests {
         );
     }
 
-
     struct RegistryTestCore {
         id: SystemId,
     }
@@ -394,10 +389,11 @@ mod tests {
             registry.register(id, make_example_core).unwrap_err(),
             RegistryError::DuplicateSystem(id)
         );
-        assert_eq!(
-            registry.create(SystemId::new("missing").unwrap()).unwrap_err(),
-            RegistryError::UnknownSystem(SystemId::new("missing").unwrap())
-        );
+        let missing = SystemId::new("missing").unwrap();
+        assert!(matches!(
+            registry.create(missing),
+            Err(RegistryError::UnknownSystem(found)) if found == missing
+        ));
     }
 
     #[test]
@@ -414,7 +410,10 @@ mod tests {
 
     #[test]
     fn core_errors_have_stable_display_messages() {
-        assert_eq!(CoreError::NotInitialized.to_string(), "core is not initialized");
+        assert_eq!(
+            CoreError::NotInitialized.to_string(),
+            "core is not initialized"
+        );
         assert_eq!(
             CoreError::InvalidContent("bad header").to_string(),
             "invalid content: bad header"
