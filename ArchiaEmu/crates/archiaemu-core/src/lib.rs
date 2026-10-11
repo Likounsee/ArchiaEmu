@@ -189,7 +189,10 @@ mod tests {
     #[test]
     fn accepts_canonical_system_ids() {
         assert_eq!(SystemId::new("gb").unwrap().as_str(), "gb");
-        assert_eq!(SystemId::new("console-64-v2").unwrap().as_str(), "console-64-v2");
+        assert_eq!(
+            SystemId::new("console-64-v2").unwrap().as_str(),
+            "console-64-v2"
+        );
     }
 
     #[test]
@@ -197,22 +200,37 @@ mod tests {
         assert_eq!(SystemId::new(""), Err(IdentifierError::Empty));
         assert_eq!(SystemId::new("-gb"), Err(IdentifierError::InvalidSeparator));
         assert_eq!(SystemId::new("gb-"), Err(IdentifierError::InvalidSeparator));
-        assert_eq!(SystemId::new("gb--color"), Err(IdentifierError::InvalidSeparator));
-        assert_eq!(SystemId::new("GameBoy"), Err(IdentifierError::InvalidCharacter));
-        assert_eq!(SystemId::new("gb_color"), Err(IdentifierError::InvalidCharacter));
-        assert_eq!(SystemId::new("gb/color"), Err(IdentifierError::InvalidCharacter));
+        assert_eq!(
+            SystemId::new("gb--color"),
+            Err(IdentifierError::InvalidSeparator)
+        );
+        assert_eq!(
+            SystemId::new("GameBoy"),
+            Err(IdentifierError::InvalidCharacter)
+        );
+        assert_eq!(
+            SystemId::new("gb_color"),
+            Err(IdentifierError::InvalidCharacter)
+        );
+        assert_eq!(
+            SystemId::new("gb/color"),
+            Err(IdentifierError::InvalidCharacter)
+        );
     }
 
     #[test]
     fn capabilities_default_to_not_claiming_support() {
-        assert_eq!(CoreCapabilities::default(), CoreCapabilities {
-            content_loading: false,
-            persistent_saves: false,
-            save_states: false,
-            video_output: false,
-            audio_output: false,
-            input: false,
-        });
+        assert_eq!(
+            CoreCapabilities::default(),
+            CoreCapabilities {
+                content_loading: false,
+                persistent_saves: false,
+                save_states: false,
+                video_output: false,
+                audio_output: false,
+                input: false,
+            }
+        );
     }
 
     #[test]
@@ -239,7 +257,10 @@ mod tests {
         }
 
         let core = MetadataOnlyCore;
-        assert_eq!(core.save_state(), Err(CoreError::Unsupported("save states")));
+        assert_eq!(
+            core.save_state(),
+            Err(CoreError::Unsupported("save states"))
+        );
         assert!(!core.descriptor().capabilities.save_states);
     }
 }
