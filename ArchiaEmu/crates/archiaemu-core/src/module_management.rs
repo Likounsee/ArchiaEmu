@@ -24,9 +24,8 @@ impl ModuleId {
         let mut previous_hyphen = true;
         while index < bytes.len() {
             let byte = bytes[index];
-            let valid = (byte >= b'a' && byte <= b'z')
-                || (byte >= b'0' && byte <= b'9')
-                || byte == b'-';
+            let valid =
+                (byte >= b'a' && byte <= b'z') || (byte >= b'0' && byte <= b'9') || byte == b'-';
             if !valid {
                 return Err(ModuleIdError::InvalidCharacter);
             }
@@ -63,12 +62,10 @@ impl fmt::Display for ModuleIdError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => f.write_str("module ID cannot be empty"),
-            Self::InvalidCharacter => f.write_str(
-                "module ID must contain lowercase ASCII letters, digits, and hyphens",
-            ),
-            Self::InvalidSeparator => {
-                f.write_str("module ID has an invalid hyphen separator")
+            Self::InvalidCharacter => {
+                f.write_str("module ID must contain lowercase ASCII letters, digits, and hyphens")
             }
+            Self::InvalidSeparator => f.write_str("module ID has an invalid hyphen separator"),
         }
     }
 }
@@ -110,7 +107,10 @@ pub enum CatalogError {
     /// Two descriptors use the same ID.
     DuplicateModule(ModuleId),
     /// A dependency points to an ID absent from the catalogue.
-    MissingDependency { module: ModuleId, dependency: ModuleId },
+    MissingDependency {
+        module: ModuleId,
+        dependency: ModuleId,
+    },
     /// A dependency path eventually refers back to a module already on that path.
     DependencyCycle(ModuleId),
 }
@@ -140,7 +140,10 @@ pub enum PlanError {
     /// The user requested a module absent from the catalogue.
     UnknownModule(ModuleId),
     /// A requested or required module is not ready for installation.
-    NotInstallable { module: ModuleId, readiness: ModuleReadiness },
+    NotInstallable {
+        module: ModuleId,
+        readiness: ModuleReadiness,
+    },
     /// The catalogue must be validated before planning.
     InvalidCatalog(CatalogError),
 }
@@ -183,7 +186,10 @@ impl<'a> ModuleCatalog<'a> {
     /// Checks uniqueness, dependency references, and dependency cycles.
     pub fn validate(&self) -> Result<(), CatalogError> {
         for (index, descriptor) in self.descriptors.iter().enumerate() {
-            if self.descriptors[..index].iter().any(|prior| prior.id == descriptor.id) {
+            if self.descriptors[..index]
+                .iter()
+                .any(|prior| prior.id == descriptor.id)
+            {
                 return Err(CatalogError::DuplicateModule(descriptor.id));
             }
             for dependency in descriptor.dependencies {
@@ -224,7 +230,9 @@ impl<'a> ModuleCatalog<'a> {
             }
             self.plan_visit(*id, installed, &mut visited, &mut visiting, &mut order)?;
         }
-        Ok(ModuleInstallPlan { install_order: order })
+        Ok(ModuleInstallPlan {
+            install_order: order,
+        })
     }
 
     fn visit(
@@ -240,7 +248,9 @@ impl<'a> ModuleCatalog<'a> {
             return Err(CatalogError::DependencyCycle(id));
         }
         visiting.push(id);
-        let descriptor = self.descriptor(id).expect("validated dependency must exist");
+        let descriptor = self
+            .descriptor(id)
+            .expect("validated dependency must exist");
         for dependency in descriptor.dependencies {
             self.visit(*dependency, visited, visiting)?;
         }
@@ -264,9 +274,7 @@ impl<'a> ModuleCatalog<'a> {
             return Err(PlanError::InvalidCatalog(CatalogError::DependencyCycle(id)));
         }
         visiting.push(id);
-        let descriptor = self
-            .descriptor(id)
-            .ok_or(PlanError::UnknownModule(id))?;
+        let descriptor = self.descriptor(id).ok_or(PlanError::UnknownModule(id))?;
         if !installed.contains(&id) && descriptor.readiness == ModuleReadiness::InDevelopment {
             return Err(PlanError::NotInstallable {
                 module: id,
@@ -321,18 +329,44 @@ mod tests {
     const NO_DEPENDENCIES: &[ModuleId] = &[];
     const SHARED_DEPENDENCY: &[ModuleId] = &[SHARED];
     const CATALOG: &[ModuleDescriptor] = &[
-        ModuleDescriptor { id: SHARED, display_name: "Shared runtime", readiness: ModuleReadiness::Installable, dependencies: NO_DEPENDENCIES },
-        ModuleDescriptor { id: GB, display_name: "Game Boy", readiness: ModuleReadiness::Experimental, dependencies: SHARED_DEPENDENCY },
-        ModuleDescriptor { id: NES, display_name: "NES", readiness: ModuleReadiness::Installable, dependencies: SHARED_DEPENDENCY },
-        ModuleDescriptor { id: EXPERIMENTAL, display_name: "Experimental", readiness: ModuleReadiness::InDevelopment, dependencies: NO_DEPENDENCIES },
+        ModuleDescriptor {
+            id: SHARED,
+            display_name: "Shared runtime",
+            readiness: ModuleReadiness::Installable,
+            dependencies: NO_DEPENDENCIES,
+        },
+        ModuleDescriptor {
+            id: GB,
+            display_name: "Game Boy",
+            readiness: ModuleReadiness::Experimental,
+            dependencies: SHARED_DEPENDENCY,
+        },
+        ModuleDescriptor {
+            id: NES,
+            display_name: "NES",
+            readiness: ModuleReadiness::Installable,
+            dependencies: SHARED_DEPENDENCY,
+        },
+        ModuleDescriptor {
+            id: EXPERIMENTAL,
+            display_name: "Experimental",
+            readiness: ModuleReadiness::InDevelopment,
+            dependencies: NO_DEPENDENCIES,
+        },
     ];
 
     #[test]
     fn validates_module_ids() {
         assert_eq!(ModuleId::new(""), Err(ModuleIdError::Empty));
-        assert_eq!(ModuleId::new("Game-Boy"), Err(ModuleIdError::InvalidCharacter));
+        assert_eq!(
+            ModuleId::new("Game-Boy"),
+            Err(ModuleIdError::InvalidCharacter)
+        );
         assert_eq!(ModuleId::new("-gb"), Err(ModuleIdError::InvalidSeparator));
-        assert_eq!(ModuleId::new("gb--color"), Err(ModuleIdError::InvalidSeparator));
+        assert_eq!(
+            ModuleId::new("gb--color"),
+            Err(ModuleIdError::InvalidSeparator)
+        );
         assert_eq!(id("game-boy").as_str(), "game-boy");
     }
 
@@ -355,20 +389,37 @@ mod tests {
     #[test]
     fn rejects_unknown_and_not_yet_implemented_modules() {
         let catalog = ModuleCatalog::new(CATALOG);
-        assert_eq!(catalog.plan_install(&[FUTURE], &[]), Err(PlanError::UnknownModule(FUTURE)));
+        assert_eq!(
+            catalog.plan_install(&[FUTURE], &[]),
+            Err(PlanError::UnknownModule(FUTURE))
+        );
         assert_eq!(
             catalog.plan_install(&[EXPERIMENTAL], &[]),
-            Err(PlanError::NotInstallable { module: EXPERIMENTAL, readiness: ModuleReadiness::InDevelopment })
+            Err(PlanError::NotInstallable {
+                module: EXPERIMENTAL,
+                readiness: ModuleReadiness::InDevelopment,
+            })
         );
     }
 
     #[test]
     fn rejects_duplicate_ids_and_missing_dependencies() {
         let duplicate = [
-            ModuleDescriptor { id: SHARED, display_name: "A", readiness: ModuleReadiness::Installable, dependencies: NO_DEPENDENCIES },
-            ModuleDescriptor { id: SHARED, display_name: "B", readiness: ModuleReadiness::Installable, dependencies: NO_DEPENDENCIES },
+            ModuleDescriptor {
+                id: SHARED,
+                display_name: "A",
+                readiness: ModuleReadiness::Installable,
+                dependencies: NO_DEPENDENCIES,
+            },
+            ModuleDescriptor {
+                id: SHARED,
+                display_name: "B",
+                readiness: ModuleReadiness::Installable,
+                dependencies: NO_DEPENDENCIES,
+            },
         ];
-        assert_eq!(ModuleCatalog::new(&duplicate).validate(), Err(CatalogError::DuplicateModule(SHARED)));
+        assert_eq!(ModuleCatalog::new(&duplicate).validate(),
+            Err(CatalogError::DuplicateModule(SHARED)));
 
         let missing = [ModuleDescriptor {
             id: GB,
@@ -378,7 +429,10 @@ mod tests {
         }];
         assert_eq!(
             ModuleCatalog::new(&missing).validate(),
-            Err(CatalogError::MissingDependency { module: GB, dependency: FUTURE })
+            Err(CatalogError::MissingDependency {
+                module: GB,
+                dependency: FUTURE,
+            })
         );
     }
 
@@ -387,10 +441,23 @@ mod tests {
         let a = id("cycle-a");
         let b = id("cycle-b");
         let descriptors = [
-            ModuleDescriptor { id: a, display_name: "A", readiness: ModuleReadiness::Installable, dependencies: &[b] },
-            ModuleDescriptor { id: b, display_name: "B", readiness: ModuleReadiness::Installable, dependencies: &[a] },
+            ModuleDescriptor {
+                id: a,
+                display_name: "A",
+                readiness: ModuleReadiness::Installable,
+                dependencies: &[b],
+            },
+            ModuleDescriptor {
+                id: b,
+                display_name: "B",
+                readiness: ModuleReadiness::Installable,
+                dependencies: &[a],
+            },
         ];
-        assert_eq!(ModuleCatalog::new(&descriptors).validate(), Err(CatalogError::DependencyCycle(a)));
+        assert_eq!(
+            ModuleCatalog::new(&descriptors).validate(),
+            Err(CatalogError::DependencyCycle(a))
+        );
     }
 
     #[test]
