@@ -182,6 +182,110 @@ pub trait EmulationCore {
     }
 }
 
+/// Factory function used to construct a fresh instance of a registered core.
+pub type CoreFactory = fn() -> Box<dyn EmulationCore>;
+
+/// Error returned by the core registry.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RegistryError {
+    /// A core with this identifier is already registered.
+    DuplicateSystem(SystemId),
+    /// A factory returned a core whose descriptor does not match its registration.
+    DescriptorMismatch {
+        /// Identifier used to select the factory.
+        registered: SystemId,
+        /// Identifier declared by the constructed core.
+        actual: SystemId,
+    },
+    /// No core is registered for the requested identifier.
+    UnknownSystem(SystemId),
+}
+
+impl fmt::Display for RegistryError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DuplicateSystem(id) => {
+                write!(formatter, "system '{}' is already registered", id.as_str())
+            }
+            Self::DescriptorMismatch { registered, actual } => write!(
+                formatter,
+                "registered system '{}' produced core '{}'",
+                registered.as_str(),
+                actual.as_str()
+            ),
+            Self::UnknownSystem(id) => {
+                write!(formatter, "no core is registered for '{}'", id.as_str())
+            }
+        }
+    }
+}
+
+impl std::error::Error for RegistryError {}
+
+struct CoreRegistration {
+    id: SystemId,
+    factory: CoreFactory,
+}
+
+/// Small deterministic registry mapping stable system IDs to core factories.
+///
+/// Registration order is preserved. Factories are called only when a caller
+/// requests an instance, and each request creates a new core.
+#[derive(Default)]
+pub struct CoreRegistry {
+    registrations: Vec<CoreRegistration>,
+}
+
+impl CoreRegistry {
+    /// Creates an empty registry.
+    pub const fn new() -> Self {
+        Self {
+            registrations: Vec::new(),
+        }
+    }
+
+    /// Registers a factory under a unique system identifier.
+    pub fn register(
+        &mut self,
+        id: SystemId,
+        factory: CoreFactory,
+    ) -> Result<(), RegistryError> {
+        if self.registrations.iter().any(|entry| entry.id == id) {
+            return Err(RegistryError::DuplicateSystem(id));
+        }
+        self.registrations.push(CoreRegistration { id, factory });
+        Ok(())
+    }
+
+    /// Returns whether the registry contains the given system identifier.
+    pub fn contains(&self, id: SystemId) -> bool {
+        self.registrations.iter().any(|entry| entry.id == id)
+    }
+
+    /// Returns registered system identifiers in registration order.
+    pub fn system_ids(&self) -> impl Iterator<Item = SystemId> + '_ {
+        self.registrations.iter().map(|entry| entry.id)
+    }
+
+    /// Constructs a fresh core and verifies its descriptor matches its key.
+    pub fn create(&self, id: SystemId) -> Result<Box<dyn EmulationCore>, RegistryError> {
+        let registration = self
+            .registrations
+            .iter()
+            .find(|entry| entry.id == id)
+            .ok_or(RegistryError::UnknownSystem(id))?;
+        let core = (registration.factory)();
+        let actual = core.descriptor().system_id;
+        if actual != registration.id {
+            return Err(RegistryError::DescriptorMismatch {
+                registered: registration.id,
+                actual,
+            });
+        }
+        Ok(core)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -230,6 +334,94 @@ mod tests {
                 audio_output: false,
                 input: false,
             }
+        );
+    }
+
+
+    struct RegistryTestCore {
+        id: SystemId,
+    }
+
+    impl EmulationCore for RegistryTestCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                system_id: self.id,
+                display_name: "Registry test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities::default(),
+            }
+        }
+        fn load_content(&mut self, _: &[u8]) -> Result<(), CoreError> {
+            Err(CoreError::Unsupported("test core"))
+        }
+        fn reset(&mut self) -> Result<(), CoreError> {
+            Err(CoreError::NotInitialized)
+        }
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            Err(CoreError::NotInitialized)
+        }
+    }
+
+    fn make_example_core() -> Box<dyn EmulationCore> {
+        Box::new(RegistryTestCore {
+            id: SystemId::new("example").unwrap(),
+        })
+    }
+
+    fn make_mismatched_core() -> Box<dyn EmulationCore> {
+        Box::new(RegistryTestCore {
+            id: SystemId::new("other").unwrap(),
+        })
+    }
+
+    #[test]
+    fn registry_creates_cores_by_stable_id() {
+        let id = SystemId::new("example").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_example_core).unwrap();
+
+        assert!(registry.contains(id));
+        assert_eq!(registry.system_ids().collect::<Vec<_>>(), vec![id]);
+        assert_eq!(registry.create(id).unwrap().descriptor().system_id, id);
+    }
+
+    #[test]
+    fn registry_rejects_duplicate_and_unknown_ids() {
+        let id = SystemId::new("example").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_example_core).unwrap();
+        assert_eq!(
+            registry.register(id, make_example_core).unwrap_err(),
+            RegistryError::DuplicateSystem(id)
+        );
+        assert_eq!(
+            registry.create(SystemId::new("missing").unwrap()).unwrap_err(),
+            RegistryError::UnknownSystem(SystemId::new("missing").unwrap())
+        );
+    }
+
+    #[test]
+    fn registry_rejects_factories_with_mismatched_descriptors() {
+        let registered = SystemId::new("example").unwrap();
+        let actual = SystemId::new("other").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(registered, make_mismatched_core).unwrap();
+        assert_eq!(
+            registry.create(registered).unwrap_err(),
+            RegistryError::DescriptorMismatch { registered, actual }
+        );
+    }
+
+    #[test]
+    fn core_errors_have_stable_display_messages() {
+        assert_eq!(CoreError::NotInitialized.to_string(), "core is not initialized");
+        assert_eq!(
+            CoreError::InvalidContent("bad header").to_string(),
+            "invalid content: bad header"
+        );
+        assert_eq!(
+            RegistryError::UnknownSystem(SystemId::new("gb").unwrap()).to_string(),
+            "no core is registered for 'gb'"
         );
     }
 
