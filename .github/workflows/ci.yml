@@ -47,6 +47,7 @@ jobs:
       - name: Check package contents
         run: cargo package --workspace --locked --no-verify
       - name: Audit dependencies and licenses
+        if: runner.os == 'Linux'
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           manifest-path: ArchiaEmu/Cargo.toml
