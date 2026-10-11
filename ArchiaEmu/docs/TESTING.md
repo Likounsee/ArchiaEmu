@@ -8,9 +8,10 @@ From `ArchiaEmu/`:
 cargo fmt --all -- --check
 cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
-The CI workflow runs formatting and tests on Linux, Windows and macOS for pushes and pull requests targeting `ArchiaEmu`; Clippy runs on Linux. A green build proves only that the checked-in code passes these checks on the listed runners; it does not prove console compatibility or native builds for every target architecture. The stable toolchain is declared in `rust-toolchain.toml`.
+The CI workflow runs formatting, tests and warning-free documentation generation on Linux, Windows and macOS for pushes and pull requests targeting `ArchiaEmu`; Clippy runs on Linux. A green build proves only that the checked-in code passes these checks on the listed runners; it does not prove console compatibility or native builds for every target architecture. The stable toolchain is declared in `rust-toolchain.toml`.
 
 ## Current test coverage
 
