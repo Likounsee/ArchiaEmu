@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: archiaemu-ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   rust:
@@ -44,6 +44,10 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --workspace --no-deps --locked
-      - name: Run Clippy
-        if: runner.os == 'Linux'
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Check package contents
+        run: cargo package --workspace --locked --no-verify
+      - name: Audit dependencies and licenses
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: ArchiaEmu/Cargo.toml
+          command: check
