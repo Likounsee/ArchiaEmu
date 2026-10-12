@@ -21,6 +21,9 @@ pub mod runtime;
 /// Runtime-facing module metadata, capability and provenance contract.
 pub mod module_descriptor;
 
+/// Dependency-aware activation planning for runtime module descriptors.
+pub mod module_runtime_plan;
+
 /// Dependency-aware planning for optional console and shared-runtime modules.
 pub mod module_management;
 
