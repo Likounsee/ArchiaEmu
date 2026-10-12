@@ -8,7 +8,7 @@
 //! deterministic plan and perform verified package installation.
 
 use core::fmt;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Stable, machine-readable identifier for a distributable module.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -193,15 +193,21 @@ impl<'a> ModuleCatalog<'a> {
 
     /// Checks uniqueness, dependency references, and dependency cycles.
     pub fn validate(&self) -> Result<(), CatalogError> {
-        for (index, descriptor) in self.descriptors.iter().enumerate() {
-            if self.descriptors[..index]
-                .iter()
-                .any(|prior| prior.id == descriptor.id)
-            {
+        // Build the lookup once so large catalogues do not require a linear
+        // scan of every descriptor for each ID and dependency.
+        let indices: HashMap<ModuleId, usize> = self
+            .descriptors
+            .iter()
+            .enumerate()
+            .map(|(index, descriptor)| (descriptor.id.clone(), index))
+            .collect();
+        let mut seen_ids = HashSet::with_capacity(self.descriptors.len());
+        for descriptor in self.descriptors {
+            if !seen_ids.insert(&descriptor.id) {
                 return Err(CatalogError::DuplicateModule(descriptor.id.clone()));
             }
             for dependency in &descriptor.dependencies {
-                if self.descriptor(dependency).is_none() {
+                if !indices.contains_key(dependency) {
                     return Err(CatalogError::MissingDependency {
                         module: descriptor.id.clone(),
                         dependency: dependency.clone(),
@@ -212,12 +218,6 @@ impl<'a> ModuleCatalog<'a> {
 
         // Validate the graph iteratively: catalogue input may be deeply nested,
         // so recursive DFS could exhaust the process stack.
-        let indices: HashMap<ModuleId, usize> = self
-            .descriptors
-            .iter()
-            .enumerate()
-            .map(|(index, descriptor)| (descriptor.id.clone(), index))
-            .collect();
         let mut state = vec![0_u8; self.descriptors.len()]; // 0 = unseen, 1 = active, 2 = complete
         let mut stack: Vec<(usize, usize)> = Vec::new();
 
