@@ -9,7 +9,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 77 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 46 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Chargement et validation du contenu | 50 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 72 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -58,10 +58,10 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Traiter les ROM Game Boy ROM-only tronquées : vérifier la taille déclarée avant de remplacer le contenu déjà chargé, avec test de régression.
 - [x] Rejeter un logo Nintendo incorrect et un checksum d'en-tête invalide sans remplacer la cartouche précédemment chargée ; les tests vérifient que l'ancienne cartouche reste exécutable.
 - [ ] Étendre les validateurs structurels et les tests de troncature aux autres formats ; le contrôle Game Boy vérifie maintenant aussi le logo Nintendo, en plus du checksum et des codes de taille, mais reste spécifique à ce cœur.
-- [ ] Séparer détection du format, validation structurelle et acceptation par un module.
+- [x] Introduire un contrat de détection générique séparé de la validation structurelle et de l'acceptation par le cœur; les sondes examinent les octets, peuvent demander un préfixe plus long et peuvent signaler plusieurs candidats sans les déclarer valides.
 - [ ] Transmettre le contenu au cœur uniquement après validation des limites communes.
-- [ ] Éviter de supposer qu'une extension de fichier garantit son format.
-- [ ] Ajouter des tests avec données arbitraires, tailles limites et fichiers tronqués.
+- [x] La détection générique reçoit uniquement un préfixe d'octets et des sondes explicites; elle ne consulte ni extension ni chemin et ne valide pas elle-même le contenu.
+- [ ] Étendre les tests aux tailles limites et aux fichiers tronqués; la détection couvre maintenant les signatures partielles, les octets arbitraires et les candidats ambigus.
 - [ ] Ne pas exiger que le framework comprenne lui-même les formats propriétaires de chaque système.
 
 **Critère de sortie :** le framework rejette proprement les contenus invalides et fournit au module un contenu borné avec des métadonnées fiables.

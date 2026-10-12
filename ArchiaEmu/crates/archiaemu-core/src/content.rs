@@ -65,6 +65,73 @@ impl fmt::Display for ContentError {
 
 impl std::error::Error for ContentError {}
 
+/// Outcome of probing bytes for a possible content format.
+///
+/// A match is only a detection hint; it does not certify structural validity
+/// or mean that a core accepts the content.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FormatProbeResult {
+    /// The prefix matches this probe's identifying characteristics.
+    Match,
+    /// The prefix definitively does not match this format.
+    NoMatch,
+    /// The prefix is too short to decide; the value is the minimum total
+    /// prefix length needed for this probe to decide.
+    NeedMoreData {
+        /// Minimum total prefix length required to decide.
+        minimum_bytes: usize,
+    },
+}
+
+/// A format-specific, read-only probe for untrusted content.
+///
+/// Implementations should inspect only the supplied bytes, must not rely on a
+/// filename extension, and should return `NeedMoreData` rather than treating
+/// a truncated identifying header as a match. Probes are not validators.
+pub trait ContentFormatProbe {
+    /// Returns a stable identifier for the format this probe recognizes.
+    fn format_id(&self) -> &'static str;
+
+    /// Examines a prefix and reports whether it may be this format.
+    fn probe(&self, prefix: &[u8]) -> FormatProbeResult;
+}
+
+/// Results of running format probes against the same content prefix.
+///
+/// Matches and undecided probes are kept in input order. The caller must still
+/// perform format-specific structural validation and ask a core to accept the
+/// content; a detected format alone is never sufficient for launch.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ContentDetection {
+    /// Format IDs whose probes reported a match.
+    pub matches: Vec<&'static str>,
+    /// Format IDs that need more bytes, paired with their minimum total prefix length.
+    pub needs_more_data: Vec<(&'static str, usize)>,
+}
+
+/// Runs format probes without consulting a path, extension, or other metadata.
+///
+/// This function does not load or validate content and does not privilege one
+/// matching format over another.
+pub fn detect_content_formats(
+    prefix: &[u8],
+    probes: &[&dyn ContentFormatProbe],
+) -> ContentDetection {
+    let mut detection = ContentDetection::default();
+    for probe in probes {
+        match probe.probe(prefix) {
+            FormatProbeResult::Match => detection.matches.push(probe.format_id()),
+            FormatProbeResult::NoMatch => {}
+            FormatProbeResult::NeedMoreData { minimum_bytes } => {
+                detection
+                    .needs_more_data
+                    .push((probe.format_id(), minimum_bytes));
+            }
+        }
+    }
+    detection
+}
+
 /// Owned content that has passed common size checks.
 ///
 /// This type does not certify a file format, authenticity, safety of a core,
@@ -161,6 +228,103 @@ impl ContentImage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct MagicProbe {
+        id: &'static str,
+        magic: &'static [u8],
+    }
+
+    impl ContentFormatProbe for MagicProbe {
+        fn format_id(&self) -> &'static str {
+            self.id
+        }
+
+        fn probe(&self, prefix: &[u8]) -> FormatProbeResult {
+            let compared = prefix.len().min(self.magic.len());
+            if prefix[..compared] != self.magic[..compared] {
+                return FormatProbeResult::NoMatch;
+            }
+            if prefix.len() < self.magic.len() {
+                return FormatProbeResult::NeedMoreData {
+                    minimum_bytes: self.magic.len(),
+                };
+            }
+            FormatProbeResult::Match
+        }
+    }
+
+    #[test]
+    fn format_detection_uses_bytes_without_claiming_validation() {
+        let magic = MagicProbe {
+            id: "test-format",
+            magic: b"ARCH",
+        };
+        let probes: [&dyn ContentFormatProbe; 1] = [&magic];
+        assert_eq!(
+            detect_content_formats(b"ARCH payload", &probes),
+            ContentDetection {
+                matches: vec!["test-format"],
+                needs_more_data: vec![],
+            }
+        );
+        assert_eq!(
+            detect_content_formats(b"NOPE", &probes),
+            ContentDetection::default()
+        );
+    }
+
+    #[test]
+    fn format_detection_reports_truncated_signatures_as_incomplete() {
+        let magic = MagicProbe {
+            id: "test-format",
+            magic: b"ARCH",
+        };
+        let probes: [&dyn ContentFormatProbe; 1] = [&magic];
+        assert_eq!(
+            detect_content_formats(b"AR", &probes),
+            ContentDetection {
+                matches: vec![],
+                needs_more_data: vec![("test-format", 4)],
+            }
+        );
+    }
+
+    #[test]
+    fn format_detection_keeps_ambiguous_candidates_in_probe_order() {
+        let first = MagicProbe {
+            id: "first",
+            magic: b"A",
+        };
+        let second = MagicProbe {
+            id: "second",
+            magic: b"A",
+        };
+        let probes: [&dyn ContentFormatProbe; 2] = [&first, &second];
+        assert_eq!(
+            detect_content_formats(b"A", &probes).matches,
+            vec!["first", "second"]
+        );
+    }
+
+    #[test]
+    fn format_detection_does_not_match_arbitrary_bytes() {
+        let magic = MagicProbe {
+            id: "test-format",
+            magic: b"ARCH",
+        };
+        let probes: [&dyn ContentFormatProbe; 1] = [&magic];
+        for bytes in [&b""[..], &b"xxxx"[..], &b"ARX"[..]] {
+            let detection = detect_content_formats(bytes, &probes);
+            if bytes.is_empty() {
+                assert_eq!(
+                    detection.needs_more_data,
+                    vec![("test-format", 4)]
+                );
+            } else {
+                assert_eq!(detection, ContentDetection::default());
+            }
+        }
+    }
 
     #[test]
     fn borrowed_content_is_checked_before_it_is_copied() {
