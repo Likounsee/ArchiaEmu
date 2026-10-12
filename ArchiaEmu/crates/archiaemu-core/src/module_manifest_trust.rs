@@ -107,12 +107,13 @@ impl ManifestTrustPolicy {
     pub fn new(
         trusted_keys: Vec<TrustedManifestKey>,
         highest_accepted_revision: u64,
-    ) -> Result<Self, ManifestTrustError>
-    {
+    ) -> Result<Self, ManifestTrustError> {
         for (index, key) in trusted_keys.iter().enumerate() {
             if key.key_id.trim().is_empty()
                 || key.public_key.is_empty()
-                || trusted_keys[..index].iter().any(|prior| prior.key_id == key.key_id)
+                || trusted_keys[..index]
+                    .iter()
+                    .any(|prior| prior.key_id == key.key_id)
             {
                 return Err(ManifestTrustError::InvalidTrustConfiguration);
             }
@@ -153,9 +154,11 @@ impl ManifestTrustPolicy {
             .verify(&key.public_key, &envelope.payload, &envelope.signature)
             .map_err(|_| ManifestTrustError::InvalidSignature)?;
 
-        let manifest =
-            parse_verified_payload(&envelope.payload).map_err(|_| ManifestTrustError::InvalidPayload)?;
-        manifest.validate().map_err(ManifestTrustError::InvalidManifest)?;
+        let manifest = parse_verified_payload(&envelope.payload)
+            .map_err(|_| ManifestTrustError::InvalidPayload)?;
+        manifest
+            .validate()
+            .map_err(ManifestTrustError::InvalidManifest)?;
 
         if manifest.revision <= self.highest_accepted_revision {
             return Err(ManifestTrustError::RevisionRollback {
@@ -184,8 +187,7 @@ mod tests {
             public_key: &[u8],
             payload: &[u8],
             signature: &[u8],
-        ) -> Result<(), SignatureVerificationError>
-        {
+        ) -> Result<(), SignatureVerificationError> {
             // Test-only deterministic sentinel. This is NOT a cryptographic signature.
             if public_key == b"test-public-key" && signature == payload {
                 Ok(())
@@ -204,7 +206,10 @@ mod tests {
                 version: ReleaseVersion::parse("1.0.0").unwrap(),
                 min_app_version: ReleaseVersion::parse("0.1.0").unwrap(),
                 max_app_version_exclusive: Some(ReleaseVersion::parse("2.0.0").unwrap()),
-                targets: vec![ModuleTarget { os: TargetOs::Linux, arch: TargetArch::X86_64 }],
+                targets: vec![ModuleTarget {
+                    os: TargetOs::Linux,
+                    arch: TargetArch::X86_64,
+                }],
                 readiness: ModuleReadiness::Installable,
                 dependencies: vec![],
                 artifact: Some(PackageArtifact {
