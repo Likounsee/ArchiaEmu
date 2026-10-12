@@ -743,12 +743,12 @@ mod tests {
             required: CoreApiVersion { major: 2, minor: 0 },
             supported: CURRENT_CORE_API_VERSION,
         };
-        assert_eq!(registry.create(id).unwrap_err(), expected);
+        assert_eq!(registry.create(id).err().unwrap(), expected);
         assert_eq!(
             registry.create_from_detection(&content::ContentDetection {
                 matches: vec!["incompatible"],
                 needs_more_data: vec![],
-            }).unwrap_err(),
+            }).err().unwrap(),
             expected
         );
     }
