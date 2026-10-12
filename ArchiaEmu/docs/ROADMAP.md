@@ -35,6 +35,7 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 - [x] Add a pure module catalogue/dependency planner with runtime-validated IDs, duplicate/missing dependency and cycle validation, topological installation order, shared dependency de-duplication, installed-module handling, and explicit in-development rejection.
 - [x] Add a first-launch and module-state model for skip/completion status, deduplicated selection, installed versions, version updates and post-removal bookkeeping.
 - [x] Add a versioned disk-backed state store with strict decoding, size limits, per-user path resolution, staged writes and backup recovery tests.
+- [x] Add strict release-version parsing, app compatibility bounds, explicit OS/architecture targets, and structural validation for module manifest dependencies and artifact metadata.
 - [x] Document first-launch selection, offline/skip behavior, secure staged installation requirements, later module management, and the distinction between a catalogue entry and a working emulator.
 - [x] First target selected and isolated in a dedicated crate; header parser validates minimum length, ROM size code and header checksum.
 - [x] Cross-platform CI matrix passed on Linux, Windows and macOS on commit `72d2460575a561ffc44d0348081491384aabc86f`.
