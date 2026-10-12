@@ -1113,6 +1113,7 @@ mod shared_input_runtime_tests {
 
     struct RejectSpecificInputCore {
         rejected_event: InputEvent,
+        reset_fails: bool,
     }
 
     impl EmulationCore for RejectSpecificInputCore {
@@ -1137,6 +1138,9 @@ mod shared_input_runtime_tests {
         }
 
         fn reset(&mut self) -> Result<(), CoreError> {
+            if self.reset_fails {
+                return Err(CoreError::Execution("reset rejected for test"));
+            }
             Ok(())
         }
 
@@ -1160,6 +1164,7 @@ mod shared_input_runtime_tests {
         };
         let core = RejectSpecificInputCore {
             rejected_event: press,
+            reset_fails: false,
         };
         let mut session = EmulationSession::new(Box::new(core));
         session.load_content(&[1]).unwrap();
@@ -1181,6 +1186,7 @@ mod shared_input_runtime_tests {
         };
         let core = RejectSpecificInputCore {
             rejected_event: release,
+            reset_fails: false,
         };
         let mut session = EmulationSession::new(Box::new(core));
         session.load_content(&[1]).unwrap();
@@ -1196,6 +1202,34 @@ mod shared_input_runtime_tests {
                 "input rejected for test"
             )))
         );
+        assert!(session.is_input_pressed(InputControl::Action1));
+    }
+
+    #[test]
+    fn failed_reset_preserves_held_input_for_recovery() {
+        let press = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+        let core = RejectSpecificInputCore {
+            rejected_event: InputEvent {
+                control: InputControl::Start,
+                pressed: true,
+            },
+            reset_fails: true,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+        session.send_input(press).unwrap();
+        session.pause().unwrap();
+
+        assert_eq!(
+            session.reset(),
+            Err(SessionError::Core(CoreError::Execution(
+                "reset rejected for test"
+            )))
+        );
+        assert_eq!(session.state(), SessionState::Paused);
         assert!(session.is_input_pressed(InputControl::Action1));
     }
 
