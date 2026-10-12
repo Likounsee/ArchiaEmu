@@ -681,6 +681,27 @@ mod tests {
     }
 
     #[test]
+    fn invalid_logo_replacement_preserves_loaded_cartridge() {
+        let mut core = GameBoyCore::new();
+        archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
+        let before = *core.cartridge_header().unwrap();
+
+        let mut replacement = valid_rom();
+        replacement[0x0104] ^= 0xFF;
+        assert_eq!(
+            archiaemu_core::EmulationCore::load_content(&mut core, &replacement),
+            Err(archiaemu_core::CoreError::InvalidContent(
+                "invalid Game Boy cartridge header"
+            ))
+        );
+        assert_eq!(core.cartridge_header(), Some(&before));
+        assert_eq!(
+            archiaemu_core::EmulationCore::run_until_event(&mut core),
+            Ok(archiaemu_core::CoreEvent::Yielded)
+        );
+    }
+
+    #[test]
     fn invalid_replacement_rom_does_not_destroy_previous_metadata() {
         let mut core = GameBoyCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
