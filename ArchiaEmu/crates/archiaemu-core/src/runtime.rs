@@ -420,9 +420,9 @@ mod runtime_manager_tests {
     fn runtime_reports_unknown_system_without_creating_a_session() {
         let runtime = EmulationRuntime::new();
         let id = SystemId::new("missing").unwrap();
-        assert_eq!(
-            runtime.create_session(id).unwrap_err(),
-            RuntimeError::Registry(crate::RegistryError::UnknownSystem(id))
-        );
+        assert!(matches!(
+            runtime.create_session(id),
+            Err(RuntimeError::Registry(crate::RegistryError::UnknownSystem(found))) if found == id
+        ));
     }
 }
