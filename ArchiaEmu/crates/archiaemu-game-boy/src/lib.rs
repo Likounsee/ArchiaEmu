@@ -611,7 +611,9 @@ mod tests {
 
     #[test]
     fn rejects_all_header_truncation_boundaries() {
-        for actual in [0, 1, 0x0103, 0x0104, 0x0133, 0x0134, 0x014C, 0x014D, 0x014E, 0x014F] {
+        for actual in [
+            0, 1, 0x0103, 0x0104, 0x0133, 0x0134, 0x014C, 0x014D, 0x014E, 0x014F,
+        ] {
             assert_eq!(
                 CartridgeHeader::parse(&vec![0; actual]),
                 Err(HeaderError::ImageTooShort {
