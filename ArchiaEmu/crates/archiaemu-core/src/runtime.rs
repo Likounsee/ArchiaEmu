@@ -445,6 +445,16 @@ mod tests {
             .load_content_bounded(&[1], ContentLimits::new(1))
             .unwrap();
         assert_eq!(session.state(), SessionState::Running);
+
+        assert_eq!(
+            session.load_content_bounded(&[1, 2], ContentLimits::new(1)),
+            Err(SessionError::Content(ContentError::TooLarge {
+                max_bytes: 1,
+                actual_bytes: 2,
+            }))
+        );
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
     }
 
     #[test]
