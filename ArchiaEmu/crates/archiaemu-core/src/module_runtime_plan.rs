@@ -196,5 +196,4 @@ impl<'a> ModuleRuntimeCatalog<'a> {
             activation_order: order,
         })
     }
-
 }
