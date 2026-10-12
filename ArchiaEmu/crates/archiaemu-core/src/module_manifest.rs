@@ -5,6 +5,7 @@
 //! This module does not fetch manifests, authenticate signatures, download, or install code.
 
 use crate::module_management::{ModuleId, ModuleReadiness};
+use crate::module_state::InstalledModule;
 use core::cmp::Ordering;
 use core::fmt;
 use std::collections::{HashMap, HashSet};
@@ -337,6 +338,26 @@ pub struct InstallationPreflight<'a> {
     pub total_download_bytes: u64,
 }
 
+/// Kind of change required to bring an installed module to the catalogue version.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ModuleUpdateAction {
+    /// The module is not currently installed.
+    Install,
+    /// A different version is installed and should be replaced.
+    Upgrade,
+}
+
+/// One actionable entry in a dependency-first update plan.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ModuleUpdate<'a> {
+    /// Catalogue entry to install.
+    pub module: &'a ManifestModule,
+    /// Required operation for this module.
+    pub action: ModuleUpdateAction,
+    /// Version currently recorded as installed, if any.
+    pub installed_version: Option<&'a str>,
+}
+
 impl ModuleManifest {
     /// Validates schema, IDs, dependency references, version ranges and artifact metadata.
     /// This is structural validation only; callers must authenticate the manifest separately.
@@ -556,6 +577,46 @@ impl ModuleManifest {
             modules,
             total_download_bytes,
         })
+    }
+
+    /// Plans only the missing or outdated modules for a selected dependency closure.
+    ///
+    /// The returned entries preserve dependency-first installation order. Already-installed
+    /// modules at exactly the catalogue version are omitted, including dependencies shared
+    /// by multiple selected modules. Version strings in installed state are compared with the
+    /// canonical catalogue version; an unrecognized or older string is treated as outdated.
+    pub fn plan_update_for_target<'a>(
+        &'a self,
+        selected: &[ModuleId],
+        installed: &'a [InstalledModule],
+        app_version: ReleaseVersion,
+        target: ModuleTarget,
+    ) -> Result<Vec<ModuleUpdate<'a>>, ManifestError> {
+        let installation = self.plan_installation_for_target(selected, app_version, target)?;
+        let installed_by_id: HashMap<&ModuleId, &InstalledModule> = installed
+            .iter()
+            .map(|entry| (&entry.id, entry))
+            .collect();
+
+        let mut updates = Vec::new();
+        for module in installation {
+            let current = installed_by_id.get(&module.id);
+            let wanted_version = module.version.to_string();
+            match current {
+                Some(entry) if entry.version == wanted_version => {}
+                Some(entry) => updates.push(ModuleUpdate {
+                    module,
+                    action: ModuleUpdateAction::Upgrade,
+                    installed_version: Some(entry.version.as_str()),
+                }),
+                None => updates.push(ModuleUpdate {
+                    module,
+                    action: ModuleUpdateAction::Install,
+                    installed_version: None,
+                }),
+            }
+        }
+        Ok(updates)
     }
 
     /// Lists modules that are individually installable by this application on a host target.
