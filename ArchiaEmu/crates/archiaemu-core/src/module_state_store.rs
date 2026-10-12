@@ -5,6 +5,7 @@
 
 use core::fmt;
 use std::fs::{self, File, OpenOptions};
+use std::collections::HashSet;
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -142,7 +143,9 @@ impl ModuleManagerState {
         }
         let mut status = None;
         let mut selected = Vec::new();
+        let mut selected_ids = HashSet::new();
         let mut installed: Vec<InstalledModule> = Vec::new();
+        let mut installed_ids = HashSet::new();
         for line in lines {
             if line.is_empty() {
                 return Err(StateFormatError::MalformedRecord);
@@ -160,7 +163,7 @@ impl ModuleManagerState {
                 ["selected", raw_id] if status.is_some() => {
                     let id =
                         ModuleId::new(*raw_id).map_err(|_| StateFormatError::InvalidModuleId)?;
-                    if selected.contains(&id) {
+                    if !selected_ids.insert(id.clone()) {
                         return Err(StateFormatError::DuplicateModule);
                     }
                     selected.push(id);
@@ -168,7 +171,7 @@ impl ModuleManagerState {
                 ["installed", raw_id, raw_version] if status.is_some() => {
                     let id =
                         ModuleId::new(*raw_id).map_err(|_| StateFormatError::InvalidModuleId)?;
-                    if installed.iter().any(|item| item.id == id) {
+                    if !installed_ids.insert(id.clone()) {
                         return Err(StateFormatError::DuplicateModule);
                     }
                     if raw_version.len() % 2 != 0 {
