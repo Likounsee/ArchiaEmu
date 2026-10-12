@@ -25,6 +25,19 @@ Factories should be cheap to call and must not load user content or perform irre
 - Keep buffer ownership and lifetime explicit if audio/video buffers are added.
 - Avoid panics for malformed external content.
 
-## Audio/video/input boundary\n\nThe shared lifecycle contract deliberately does not prescribe a universal audio/video buffer or input representation yet. Before the host starts consuming these devices, define typed, owned frame/sample payloads and input events in a small additive contract, with explicit pixel/sample formats, dimensions/rates, buffer lifetime, timestamp/timing semantics, and reset behavior. Keep device-specific register semantics in each console crate; do not expose a native plugin ABI or build renderer/audio backends as a prerequisite for CPU work. The Game Boy CPU and bus can be developed independently while this host-facing boundary is specified.\n\n## Shared input and media data contracts\n\n`archiaemu_core::core_io` defines platform-neutral `InputEvent`/`InputControl`, owned RGBA8888 `VideoFrame` payloads, and interleaved signed-16-bit PCM `AudioBuffer` payloads. Constructors validate frame dimensions, exact pixel byte count, nonzero audio format, and complete interleaved sample frames. These are data contracts only: there is no host input mapper, renderer, audio device backend, pacing loop, or core-to-host media delivery trait yet. The core can be implemented without waiting for those backends. Console-specific button layouts and hardware registers remain in each system module.\n\n## Stability
+## Audio/video/input boundary
+
+The common contract uses additive, typed methods on `EmulationCore` so the host can exchange input and media payloads without depending on a console crate:
+
+- `send_input(InputEvent)` accepts semantic pressed/released transitions; a core maps them to its own hardware.
+- `take_video_frame()` transfers ownership of one complete `VideoFrame`, or returns `None` when no frame is waiting.
+- `take_audio_buffer()` transfers ownership of one `AudioBuffer`, or returns `None` when no audio is waiting.
+- The default methods return `CoreError::Unsupported`, so existing cores do not claim functionality they have not implemented.
+- `VideoFrame` currently validates non-zero dimensions and exact RGBA8888 payload length. `AudioBuffer` validates a non-zero sample rate/channel count and complete interleaved signed-16-bit PCM sample frames.
+
+These contracts do not implement a host input mapper, renderer, audio device backend, scheduler, pacing loop, or timestamp synchronization. The host must treat `CoreEvent::FrameReady` and `CoreEvent::AudioReady` as signals to retrieve payloads, not as proof that a payload will always be available. Console-specific button layouts, video timing and audio generation remain the responsibility of each system module.
+
+## Stability
+
 
 This API is an initial internal contract and may evolve before the first core is selected. It is not a stable plugin ABI. A native C ABI will only be designed if a real native core is chosen.
