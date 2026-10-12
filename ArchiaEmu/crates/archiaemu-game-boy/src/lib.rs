@@ -247,6 +247,11 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         self.work_ram.fill(0);
         self.high_ram.fill(0);
         self.cpu = Cpu::new();
+        if header.cartridge_type == 0x00 && header.preferred_hardware_mode().is_some() {
+            // For supported ROM-only images, loading also establishes the initial
+            // machine state so the runtime can execute immediately after loading.
+            self.reset()?;
+        }
         Ok(())
     }
 
@@ -302,6 +307,11 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         if header.cartridge_type != 0x00 {
             return Err(archiaemu_core::CoreError::Unsupported(
                 "execution currently supports ROM-only cartridges (mapper 0)",
+            ));
+        }
+        if header.preferred_hardware_mode().is_none() {
+            return Err(archiaemu_core::CoreError::Unsupported(
+                "reserved Game Boy Color compatibility flag",
             ));
         }
 
@@ -492,7 +502,6 @@ mod tests {
             core.cartridge_header().unwrap().cartridge_type,
             image[0x147]
         );
-        archiaemu_core::EmulationCore::reset(&mut core).unwrap();
         assert_eq!(
             archiaemu_core::EmulationCore::run_until_event(&mut core),
             Ok(archiaemu_core::CoreEvent::Yielded)
