@@ -136,7 +136,7 @@ impl fmt::Display for VersionParseError {
 impl std::error::Error for VersionParseError {}
 
 /// Operating system targeted by a module artifact.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TargetOs {
     /// Microsoft Windows.
     Windows,
@@ -147,7 +147,7 @@ pub enum TargetOs {
 }
 
 /// CPU architecture targeted by a module artifact.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TargetArch {
     /// 64-bit x86.
     X86_64,
@@ -156,7 +156,7 @@ pub enum TargetArch {
 }
 
 /// A host target; compatibility is explicit rather than inferred.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ModuleTarget {
     /// Operating system.
     pub os: TargetOs,
