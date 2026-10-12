@@ -9,14 +9,14 @@ Ce document décrit les transitions garanties par `EmulationSession`. Il ne prom
 | `Empty` | `load_content` / chargement borné valide | `Running`, entrées hôte réinitialisées | reste `Empty`; le cœur doit valider avant mutation |
 | `Running` | `pause` | `Paused` | transition invalide, état inchangé |
 | `Paused` | `resume` | `Running` | transition invalide, état inchangé |
-| `Running`, `Paused`, `Halted` | `reset` | `Running`, entrées hôte réinitialisées | état et entrées hôte inchangés |
+| `Running`, `Paused`, `Halted`, `Stopped` | `reset` | `Running`, entrées hôte réinitialisées | état et entrées hôte inchangés |
 | Tout état | rechargement réussi de contenu | `Running`, entrées hôte réinitialisées | état et entrées hôte inchangés |
 | `Running` | `run_until_event` / `run_for_events` | reste `Running`, sauf événement `Halted` | l'état hôte reste inchangé |
 | `Paused` | exécution | transition invalide | reste `Paused` |
-| `Halted` | exécution | transition invalide | reste `Halted` |
+| `Halted`, `Stopped` | exécution | transition invalide | reste dans le même état |
 | `Running`, `Paused` | entrée / libération globale | état inchangé; entrée locale mise à jour après succès du cœur | la transition refusée n'est pas marquée comme appliquée |
 | `Empty`, `Halted` | entrée | transition invalide | état inchangé |
-| Tout état chargé (`Running`, `Paused`, `Halted`) | save state et récupération de média | état de session inchangé | erreur explicite; les capacités doivent être annoncées |
+| Tout état chargé (`Running`, `Paused`, `Halted`, `Stopped`) | save state et récupération de média | état de session inchangé | erreur explicite; les capacités doivent être annoncées |
 | `Empty` | save state ou récupération de média | transition invalide | état inchangé |
 
 ## Règles transversales
@@ -26,7 +26,7 @@ Ce document décrit les transitions garanties par `EmulationSession`. Il ne prom
 - Une erreur de cœur ne doit pas être interprétée comme une transition réussie. Pour le chargement et la restauration d'état, le contrat du cœur exige une validation avant mutation.
 - `run_for_events(n)` compte les appels au cœur, pas les cycles ni le temps mural. Il s'arrête au budget ou au premier événement autre que `Yielded`; un événement `Halted` fait passer la session à `Halted`.
 - La libération globale d'entrées est progressive : les contrôles libérés avec succès sont retirés immédiatement; un contrôle dont la libération échoue reste marqué comme maintenu afin de permettre une nouvelle tentative.
-- Une session n'expose pas encore d'opération publique `stop` distincte. `Halted` est un événement du cœur; `reset` ou le chargement d'un nouveau contenu permet de reprendre. La fermeture du processus hôte est hors du contrat de session.
+- `stop` arrête l'exécution pilotée par l'hôte sans décharger le contenu. Il libère d'abord les commandes maintenues; si une libération échoue, la session ne passe pas à `Stopped` et les contrôles déjà libérés restent réconciliés. `reset` ou le chargement réussi d'un nouveau contenu permet de reprendre. `Halted` reste distinct : il signifie que le cœur a signalé l'arrêt.
 
 ## Portée des garanties
 
