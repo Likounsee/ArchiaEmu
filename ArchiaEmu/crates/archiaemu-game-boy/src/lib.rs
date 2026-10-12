@@ -423,6 +423,7 @@ fn create_game_boy_core() -> Box<dyn archiaemu_core::EmulationCore> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use archiaemu_core::EmulationCore;
 
     fn valid_image() -> Vec<u8> {
         let mut image = vec![0; MINIMUM_HEADER_SIZE];
