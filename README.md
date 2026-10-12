@@ -22,7 +22,7 @@
 
 The shared Rust crate `archiaemu-core` defines validated system identifiers, capability metadata, a core registry, an independent-session lifecycle controller, bounded execution requests, common media payloads, and host-side input state with duplicate-transition suppression and explicit release recovery. Module selection/state persistence and host performance planning are also present as foundations. Runtime tests cover lifecycle transitions, error recovery, independent session creation, and shared input-state behavior.
 
-The Game Boy module is one unified `game-boy` target with cartridge-header classification for DMG-only, dual-compatible, and CGB-only titles. This classification selects a planned hardware mode; it does not mean those modes are already emulated. The project still lacks a complete console implementation, real renderer/audio backend, application frontend, and verified end-to-end game compatibility. No system is currently claimed as supported.
+The Game Boy module is one unified `game-boy` target with cartridge-header classification for DMG-only, dual-compatible, and CGB-only titles. The core now has an initial LR35902 instruction subset connected to a deliberately limited memory bus for ROM-only (mapper 0) cartridges. It can execute simple instructions from the cartridge entry point, but has no PPU/frame output, timer/interrupt controller, audio, joypad hardware, mapper banking, or complete opcode coverage. This is a development milestone, not playable-game support; no system is currently claimed as supported.
 
 ## Build and test
 
