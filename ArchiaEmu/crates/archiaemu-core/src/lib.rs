@@ -921,3 +921,72 @@ mod tests {
         assert!(!core.descriptor().capabilities.save_states);
     }
 }
+
+
+#[cfg(test)]
+mod core_instance_isolation_tests {
+    use super::*;
+
+    struct StatefulIsolationCore {
+        loaded: bool,
+    }
+
+    impl EmulationCore for StatefulIsolationCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                api_version: CURRENT_CORE_API_VERSION,
+                system_id: SystemId::new("isolation-test").unwrap(),
+                display_name: "Stateful isolation test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    ..CoreCapabilities::default()
+                },
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+            if content.is_empty() {
+                return Err(CoreError::InvalidContent("empty isolation test content"));
+            }
+            self.loaded = true;
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            if !self.loaded {
+                return Err(CoreError::NotInitialized);
+            }
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            if !self.loaded {
+                return Err(CoreError::NotInitialized);
+            }
+            Ok(CoreEvent::Yielded)
+        }
+    }
+
+    fn make_stateful_isolation_core() -> Box<dyn EmulationCore> {
+        Box::new(StatefulIsolationCore { loaded: false })
+    }
+
+    #[test]
+    fn registry_instances_do_not_share_mutable_machine_state() {
+        let id = SystemId::new("isolation-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_stateful_isolation_core).unwrap();
+
+        let mut first = registry.create(id).unwrap();
+        let mut second = registry.create(id).unwrap();
+
+        first.load_content(&[1]).unwrap();
+        assert_eq!(first.run_until_event(), Ok(CoreEvent::Yielded));
+        assert_eq!(second.run_until_event(), Err(CoreError::NotInitialized));
+
+        second.load_content(&[2]).unwrap();
+        assert_eq!(second.run_until_event(), Ok(CoreEvent::Yielded));
+        assert_eq!(first.run_until_event(), Ok(CoreEvent::Yielded));
+    }
+}
