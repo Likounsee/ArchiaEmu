@@ -566,6 +566,25 @@ mod tests {
     }
 
     #[test]
+    fn long_lifecycle_sequence_includes_stop_and_reload_recovery() {
+        let mut session = session();
+        session.load_content(&[1]).unwrap();
+        for _ in 0..3 {
+            session.pause().unwrap();
+            session.resume().unwrap();
+        }
+        assert_eq!(session.run_for_events(2).unwrap().events_processed, 2);
+        session.pause().unwrap();
+        session.reset().unwrap();
+        assert_eq!(session.state(), SessionState::Running);
+        session.stop().unwrap();
+        assert_eq!(session.state(), SessionState::Stopped);
+        session.load_content(&[2]).unwrap();
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
+    }
+
+    #[test]
     fn launch_pipeline_detects_selects_validates_and_starts_session() {
         let probe = PrefixProbe {
             id: "runtime-test",
@@ -1932,6 +1951,31 @@ mod shared_input_runtime_tests {
         assert!(!session.is_input_pressed(InputControl::Action1));
         assert!(session.is_input_pressed(InputControl::Action2));
         assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
+    fn failed_stop_keeps_state_and_only_unreleased_controls_held() {
+        let rejected_release = InputEvent {
+            control: InputControl::Action2,
+            pressed: false,
+        };
+        let core = RejectSpecificInputCore {
+            rejected_event: rejected_release,
+            reset_fails: false,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+        for control in [InputControl::Action1, InputControl::Action2] {
+            session.send_input(InputEvent { control, pressed: true }).unwrap();
+        }
+
+        assert_eq!(
+            session.stop(),
+            Err(SessionError::Core(CoreError::Execution("input rejected for test")))
+        );
+        assert_eq!(session.state(), SessionState::Running);
+        assert!(!session.is_input_pressed(InputControl::Action1));
+        assert!(session.is_input_pressed(InputControl::Action2));
     }
 
     #[test]
