@@ -137,7 +137,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [ ] Utiliser une implémentation cryptographique maintenue et auditée; ne pas inventer de cryptographie.
 - [ ] Vérifier la signature et la provenance avant de faire confiance au contenu d'un catalogue ou d'un paquet.
 - [ ] Rendre les mises à jour de catalogue résistantes au retour vers une ancienne révision, avec persistance durable.
-- [ ] Installer dans une zone temporaire, vérifier les fichiers, puis activer atomiquement; prévoir rollback.
+- [x] Ajouter le staging borné des artefacts : copie en flux avec taille exacte, fichier temporaire exclusif, synchronisation disque, vérification SHA-256 fournie par l'hôte et renommage seulement après validation. Le téléchargement réseau, le vérificateur cryptographique concret, l'extraction et l'activation/rollback restent à intégrer.
 - [ ] Définir les permissions, les chemins autorisés et la politique de liens symboliques.
 - [ ] Produire des diagnostics structurés avec contexte et causes, sans exposer les données sensibles.
 - [ ] Ajouter tests de fuzzing ciblés pour les parseurs et formats exposés à des fichiers non fiables.
