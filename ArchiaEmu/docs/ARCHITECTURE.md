@@ -40,3 +40,11 @@ A console with a system interface may expose a dashboard, home menu, settings UI
 ## Next architectural gates
 
 Before selecting a first console, inspect reliable public specifications and legally usable test programs. Choose based on manageable scope and testability. Add real bus/CPU tests before creating a UI that could imply the system is already emulated.
+
+## Console implementations are modules
+
+Every console implementation must be an independently testable workspace crate that depends on the shared core contract, not code embedded directly in the frontend. The host discovers modules through stable system IDs and registers factories in `CoreRegistry`; a selected module instance then implements `EmulationCore`. Console-specific CPU, bus, mapper, peripherals and hardware timing stay inside that module. Shared services and presentation remain outside it and communicate through explicit contracts.
+
+The first target follows this rule: `archiaemu-game-boy` is a separate crate and registers the `game-boy-dmg` system ID through `register_game_boy`. At this stage it validates and retains cartridge metadata only. Its descriptor deliberately advertises no execution capabilities, and reset/run return an explicit unsupported error until CPU and machine execution exist. This prevents module discovery or ROM-header parsing from being mistaken for a working emulator.
+
+Future consoles should use the same integration shape without forcing their hardware into Game Boy-specific abstractions. Optional console-specific system interfaces and graphics enhancements should be exposed through host presentation contracts or explicit module capabilities, not hardwired into the shared core.
