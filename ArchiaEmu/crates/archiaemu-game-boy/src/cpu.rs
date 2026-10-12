@@ -386,6 +386,43 @@ impl Cpu {
                 }
                 2
             }
+            // Conditional JP cc,a16.
+            0xC2 | 0xCA | 0xD2 | 0xDA => {
+                let low = self.fetch8(bus);
+                let high = self.fetch8(bus);
+                if self.condition_met((opcode >> 3) & 0x03) {
+                    self.registers.pc = u16::from_le_bytes([low, high]);
+                    4
+                } else {
+                    3
+                }
+            }
+            // Conditional CALL cc,a16.
+            0xC4 | 0xCC | 0xD4 | 0xDC => {
+                let low = self.fetch8(bus);
+                let high = self.fetch8(bus);
+                if self.condition_met((opcode >> 3) & 0x03) {
+                    self.push16(bus, self.registers.pc);
+                    self.registers.pc = u16::from_le_bytes([low, high]);
+                    6
+                } else {
+                    3
+                }
+            }
+            // Conditional RET cc.
+            0xC0 | 0xC8 | 0xD0 | 0xD8 => {
+                if self.condition_met((opcode >> 3) & 0x03) {
+                    self.registers.pc = self.pop16(bus);
+                    5
+                } else {
+                    2
+                }
+            }
+            // JP (HL).
+            0xE9 => {
+                self.registers.pc = self.registers.pair(RegisterPair::Hl);
+                1
+            }
             // CALL a16 / RET.
             0xCD => {
                 let low = self.fetch8(bus);
@@ -606,6 +643,15 @@ impl Cpu {
         })
     }
 
+    fn condition_met(&self, condition: u8) -> bool {
+        match condition & 0x03 {
+            0 => !self.registers.flag(flags::ZERO),
+            1 => self.registers.flag(flags::ZERO),
+            2 => !self.registers.flag(flags::CARRY),
+            _ => self.registers.flag(flags::CARRY),
+        }
+    }
+
     fn push_pair<B: CpuBus>(&mut self, bus: &mut B, pair: u8) {
         let value = match pair {
             0 => self.registers.pair(RegisterPair::Bc),
@@ -790,6 +836,23 @@ mod execution_tests {
         cpu.wake();
         assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x00);
         assert!(!cpu.is_halted());
+    }
+
+    #[test]
+    fn conditional_jump_uses_zero_flag_and_correct_taken_cycles() {
+        let mut cpu = Cpu::new();
+        cpu.registers.set_flag(flags::ZERO, true);
+        let mut bus = TestBus::with_program(&[
+            0xC2, 0x08, 0x00, // JP NZ,0x0008 (not taken)
+            0xCA, 0x08, 0x00, // JP Z,0x0008 (taken)
+            0x00, 0x00,
+            0x00,
+        ]);
+
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(cpu.registers.pc, 3);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(cpu.registers.pc, 8);
     }
 
     #[test]
