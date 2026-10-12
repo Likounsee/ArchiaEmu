@@ -528,7 +528,6 @@ mod tests {
         );
     }
 
-
     use super::*;
     use archiaemu_core::EmulationCore;
 
