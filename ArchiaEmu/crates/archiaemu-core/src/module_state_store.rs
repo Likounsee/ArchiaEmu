@@ -317,11 +317,24 @@ impl ModuleStateStore {
             let _ = fs::remove_file(&temp);
             return Err(error.into());
         }
-        if let Ok(directory) = File::open(parent) {
-            let _ = directory.sync_all();
-        }
+        sync_parent_directory(parent)?;
         Ok(())
     }
+}
+
+/// Makes a successful rename durable where the platform exposes directory
+/// synchronization. On Unix, failure is returned instead of silently claiming
+/// the replacement is durable. Other platforms currently rely on the flushed
+/// file and their filesystem's rename guarantees because opening directories as
+/// ordinary files is not uniformly supported by the standard library.
+#[cfg(unix)]
+fn sync_parent_directory(parent: &Path) -> io::Result<()> {
+    File::open(parent)?.sync_all()
+}
+
+#[cfg(not(unix))]
+fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
+    Ok(())
 }
 
 fn read_state(path: &Path) -> Result<ModuleManagerState, ModuleStateStoreError> {
@@ -358,6 +371,13 @@ mod tests {
             "archiaemu-module-state-{}-{unique}.state",
             std::process::id()
         ))
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn directory_sync_failure_is_reported() {
+        let missing_directory = temp_path().with_extension("missing-directory");
+        assert!(sync_parent_directory(&missing_directory).is_err());
     }
 
     #[test]
