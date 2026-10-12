@@ -331,6 +331,53 @@ impl Cpu {
                 self.halted = true;
                 1
             }
+            // LD r, r' (including (HL)); HALT is handled above.
+            0x40..=0x7F => {
+                let destination = (opcode >> 3) & 0x07;
+                let source = opcode & 0x07;
+                let value = self.read_register(bus, source);
+                self.write_register(bus, destination, value);
+                if source == 6 || destination == 6 { 2 } else { 1 }
+            }
+            // ADD A,r; SUB r; XOR A,r.
+            0x80..=0x87 => {
+                let value = self.read_register(bus, opcode & 0x07);
+                self.registers.add_a(value);
+                if opcode & 0x07 == 6 { 2 } else { 1 }
+            }
+            0x90..=0x97 => {
+                let value = self.read_register(bus, opcode & 0x07);
+                self.registers.subtract_a(value);
+                if opcode & 0x07 == 6 { 2 } else { 1 }
+            }
+            0xA8..=0xAF => {
+                let value = self.read_register(bus, opcode & 0x07);
+                self.registers.a ^= value;
+                self.registers.set_f(if self.registers.a == 0 { flags::ZERO } else { 0 });
+                if opcode & 0x07 == 6 { 2 } else { 1 }
+            }
+            // INC r / DEC r.
+            0x04 | 0x0C | 0x14 | 0x1C | 0x24 | 0x2C | 0x34 | 0x3C => {
+                let register = (opcode >> 3) & 0x07;
+                let value = self.read_register(bus, register);
+                let result = self.registers.increment8(value);
+                self.write_register(bus, register, result);
+                if register == 6 { 3 } else { 1 }
+            }
+            0x05 | 0x0D | 0x15 | 0x1D | 0x25 | 0x2D | 0x35 | 0x3D => {
+                let register = (opcode >> 3) & 0x07;
+                let value = self.read_register(bus, register);
+                let result = self.registers.decrement8(value);
+                self.write_register(bus, register, result);
+                if register == 6 { 3 } else { 1 }
+            }
+            // LD r,d8.
+            0x06 | 0x0E | 0x16 | 0x1E | 0x26 | 0x2E | 0x36 | 0x3E => {
+                let register = (opcode >> 3) & 0x07;
+                let value = self.fetch8(bus);
+                self.write_register(bus, register, value);
+                if register == 6 { 3 } else { 2 }
+            }
             _ => return Err(CpuError::UnsupportedOpcode { address, opcode }),
         };
 
@@ -338,6 +385,32 @@ impl Cpu {
             opcode,
             machine_cycles,
         })
+    }
+
+    fn read_register<B: CpuBus>(&self, bus: &mut B, register: u8) -> u8 {
+        match register {
+            0 => self.registers.b,
+            1 => self.registers.c,
+            2 => self.registers.d,
+            3 => self.registers.e,
+            4 => self.registers.h,
+            5 => self.registers.l,
+            6 => bus.read8(self.registers.pair(RegisterPair::Hl)),
+            _ => self.registers.a,
+        }
+    }
+
+    fn write_register<B: CpuBus>(&mut self, bus: &mut B, register: u8, value: u8) {
+        match register {
+            0 => self.registers.b = value,
+            1 => self.registers.c = value,
+            2 => self.registers.d = value,
+            3 => self.registers.e = value,
+            4 => self.registers.h = value,
+            5 => self.registers.l = value,
+            6 => bus.write8(self.registers.pair(RegisterPair::Hl), value),
+            _ => self.registers.a = value,
+        }
     }
 
     fn fetch8<B: CpuBus>(&mut self, bus: &mut B) -> u8 {
