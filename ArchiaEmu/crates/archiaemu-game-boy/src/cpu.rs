@@ -276,46 +276,6 @@ impl Cpu {
 
         let machine_cycles = match opcode {
             0x00 => 1, // NOP
-            0x06 => {
-                let value = self.fetch8(bus);
-                self.registers.b = value;
-                2
-            }
-            0x0E => {
-                let value = self.fetch8(bus);
-                self.registers.c = value;
-                2
-            }
-            0x16 => {
-                let value = self.fetch8(bus);
-                self.registers.d = value;
-                2
-            }
-            0x1E => {
-                let value = self.fetch8(bus);
-                self.registers.e = value;
-                2
-            }
-            0x26 => {
-                let value = self.fetch8(bus);
-                self.registers.h = value;
-                2
-            }
-            0x2E => {
-                let value = self.fetch8(bus);
-                self.registers.l = value;
-                2
-            }
-            0x36 => {
-                let value = self.fetch8(bus);
-                bus.write8(self.registers.pair(RegisterPair::Hl), value);
-                3
-            }
-            0x3E => {
-                let value = self.fetch8(bus);
-                self.registers.a = value;
-                2
-            }
             0xAF => {
                 self.registers.a = 0;
                 self.registers.set_f(flags::ZERO);
@@ -515,6 +475,40 @@ mod execution_tests {
         cpu.wake();
         assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x00);
         assert!(!cpu.is_halted());
+    }
+
+    #[test]
+    fn register_to_register_load_and_alu_group_execute() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[
+            0x06, 0x0F, // LD B,0x0F
+            0x78,       // LD A,B
+            0x80,       // ADD A,B
+            0xA8,       // XOR A,B
+        ]);
+
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0x0F);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0x1E);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0x11);
+        assert_eq!(cpu.registers.pc, 5);
+    }
+
+    #[test]
+    fn memory_register_load_and_increment_use_hl_bus_address() {
+        let mut cpu = Cpu::new();
+        cpu.registers.set_pair(RegisterPair::Hl, 0xC123);
+        let mut bus = TestBus::with_program(&[0x36, 0x0F, 0x34, 0x35]);
+
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(bus.0[0xC123], 0x0F);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(bus.0[0xC123], 0x10);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(bus.0[0xC123], 0x0F);
     }
 
     #[test]
