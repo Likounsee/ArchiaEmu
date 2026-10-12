@@ -1,10 +1,11 @@
 [package]
 name = "archiaemu-game-boy"
 version = "0.1.0"
-description = "Experimental Game Boy cartridge metadata parser for ArchiaEmu"
+description = "Experimental Game Boy DMG module and cartridge metadata parser for ArchiaEmu"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
 
 [dependencies]
+archiaemu-core = { path = "../archiaemu-core" }
