@@ -21,6 +21,42 @@ const NINTENDO_LOGO: [u8; 48] = [
     0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
 ];
 
+/// Probes for a Game Boy cartridge using its required Nintendo logo.
+///
+/// A match only means that the identifying logo and minimum header are present;
+/// the full header checksum, ROM length, mapper and execution support still
+/// require their dedicated validation paths.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct GameBoyCartridgeProbe;
+
+impl archiaemu_core::content::ContentFormatProbe for GameBoyCartridgeProbe {
+    fn format_id(&self) -> &'static str {
+        "game-boy-cartridge"
+    }
+
+    fn probe(&self, prefix: &[u8]) -> archiaemu_core::content::FormatProbeResult {
+        use archiaemu_core::content::FormatProbeResult;
+
+        const LOGO_START: usize = 0x0104;
+        const LOGO_END: usize = 0x0134;
+
+        if prefix.len() < LOGO_END {
+            return FormatProbeResult::NeedMoreData {
+                minimum_bytes: LOGO_END,
+            };
+        }
+        if prefix[LOGO_START..LOGO_END] != NINTENDO_LOGO {
+            return FormatProbeResult::NoMatch;
+        }
+        if prefix.len() < MINIMUM_HEADER_SIZE {
+            return FormatProbeResult::NeedMoreData {
+                minimum_bytes: MINIMUM_HEADER_SIZE,
+            };
+        }
+        FormatProbeResult::Match
+    }
+}
+
 /// Metadata extracted from a Game Boy cartridge header.
 ///
 /// Raw codes are retained rather than guessed into support claims. Mapper and
@@ -449,6 +485,47 @@ fn create_game_boy_core() -> Box<dyn archiaemu_core::EmulationCore> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn cartridge_probe_requires_the_logo_and_complete_header() {
+        use archiaemu_core::content::{ContentFormatProbe, FormatProbeResult};
+
+        let probe = GameBoyCartridgeProbe;
+        assert_eq!(
+            probe.probe(&[]),
+            FormatProbeResult::NeedMoreData {
+                minimum_bytes: 0x0134,
+            }
+        );
+
+        let mut image = vec![0; MINIMUM_HEADER_SIZE];
+        image[0x0104..0x0134].copy_from_slice(&NINTENDO_LOGO);
+        assert_eq!(probe.probe(&image[..0x0140]), FormatProbeResult::NeedMoreData {
+            minimum_bytes: MINIMUM_HEADER_SIZE,
+        });
+        assert_eq!(probe.probe(&image), FormatProbeResult::Match);
+
+        image[0x0104] ^= 0xFF;
+        assert_eq!(probe.probe(&image), FormatProbeResult::NoMatch);
+    }
+
+    #[test]
+    fn cartridge_probe_works_with_the_generic_detector() {
+        use archiaemu_core::content::{detect_content_formats, ContentDetection};
+
+        let probe = GameBoyCartridgeProbe;
+        let probes: [&dyn archiaemu_core::content::ContentFormatProbe; 1] = [&probe];
+        let mut image = vec![0; MINIMUM_HEADER_SIZE];
+        image[0x0104..0x0134].copy_from_slice(&NINTENDO_LOGO);
+        assert_eq!(
+            detect_content_formats(&image, &probes),
+            ContentDetection {
+                matches: vec!["game-boy-cartridge"],
+                needs_more_data: vec![],
+            }
+        );
+    }
+
+
     use super::*;
     use archiaemu_core::EmulationCore;
 

@@ -316,10 +316,7 @@ mod tests {
         for bytes in [&b""[..], &b"xxxx"[..], &b"ARX"[..]] {
             let detection = detect_content_formats(bytes, &probes);
             if bytes.is_empty() {
-                assert_eq!(
-                    detection.needs_more_data,
-                    vec![("test-format", 4)]
-                );
+                assert_eq!(detection.needs_more_data, vec![("test-format", 4)]);
             } else {
                 assert_eq!(detection, ContentDetection::default());
             }

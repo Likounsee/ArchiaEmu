@@ -57,9 +57,9 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Ajouter un helper dédié aux chemins/fichiers qui réutilise la même lecture bornée.
 - [x] Traiter les ROM Game Boy ROM-only tronquées : vérifier la taille déclarée avant de remplacer le contenu déjà chargé, avec test de régression.
 - [x] Rejeter un logo Nintendo incorrect et un checksum d'en-tête invalide sans remplacer la cartouche précédemment chargée ; les tests vérifient que l'ancienne cartouche reste exécutable.
-- [ ] Étendre les validateurs structurels et les tests de troncature aux autres formats ; le contrôle Game Boy vérifie maintenant aussi le logo Nintendo, en plus du checksum et des codes de taille, mais reste spécifique à ce cœur.
+- [ ] Étendre les validateurs structurels et les tests de troncature aux autres formats ; le cœur Game Boy expose maintenant une sonde branchée sur le contrat générique qui vérifie le logo et la longueur minimale, sans prétendre valider le checksum ou la ROM entière.
 - [x] Introduire un contrat de détection générique séparé de la validation structurelle et de l'acceptation par le cœur; les sondes examinent les octets, peuvent demander un préfixe plus long et peuvent signaler plusieurs candidats sans les déclarer valides.
-- [ ] Transmettre le contenu au cœur uniquement après validation des limites communes.
+- [x] La sonde Game Boy est utilisable via le détecteur générique après l'application des limites communes; la détection reste informative et ne remplace pas la validation par le cœur.
 - [x] La détection générique reçoit uniquement un préfixe d'octets et des sondes explicites; elle ne consulte ni extension ni chemin et ne valide pas elle-même le contenu.
 - [ ] Étendre les tests aux tailles limites et aux fichiers tronqués; la détection couvre maintenant les signatures partielles, les octets arbitraires et les candidats ambigus.
 - [ ] Ne pas exiger que le framework comprenne lui-même les formats propriétaires de chaque système.
