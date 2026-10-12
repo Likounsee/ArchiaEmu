@@ -696,3 +696,104 @@ mod runtime_manager_tests {
         ));
     }
 }
+
+
+#[cfg(test)]
+mod shared_input_runtime_tests {
+    use super::*;
+    use crate::{CoreCapabilities, SystemId};
+    use std::sync::{Arc, Mutex};
+
+    struct InputRecordingCore {
+        events: Arc<Mutex<Vec<InputEvent>>>,
+    }
+
+    impl EmulationCore for InputRecordingCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                system_id: SystemId::new("input-recording").unwrap(),
+                display_name: "Input recording test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities {
+                    input: true,
+                    ..CoreCapabilities::default()
+                },
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+            if content.is_empty() {
+                return Err(CoreError::InvalidContent("empty test content"));
+            }
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            Ok(CoreEvent::Yielded)
+        }
+
+        fn send_input(&mut self, event: InputEvent) -> Result<(), CoreError> {
+            self.events.lock().unwrap().push(event);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn session_deduplicates_input_and_releases_held_controls() {
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let core = InputRecordingCore {
+            events: Arc::clone(&events),
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        let press = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+        session.send_input(press).unwrap();
+        session.send_input(press).unwrap();
+        assert!(session.is_input_pressed(InputControl::Action1));
+        assert_eq!(events.lock().unwrap().as_slice(), &[press]);
+
+        session.release_all_inputs().unwrap();
+        assert!(!session.is_input_pressed(InputControl::Action1));
+        assert_eq!(
+            events.lock().unwrap().as_slice(),
+            &[
+                press,
+                InputEvent {
+                    control: InputControl::Action1,
+                    pressed: false,
+                },
+            ]
+        );
+        session.release_all_inputs().unwrap();
+        assert_eq!(events.lock().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn successful_reset_clears_host_input_state() {
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let core = InputRecordingCore {
+            events: Arc::clone(&events),
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+        session
+            .send_input(InputEvent {
+                control: InputControl::Start,
+                pressed: true,
+            })
+            .unwrap();
+
+        session.reset().unwrap();
+
+        assert!(!session.is_input_pressed(InputControl::Start));
+        assert_eq!(events.lock().unwrap().len(), 1);
+    }
+}
