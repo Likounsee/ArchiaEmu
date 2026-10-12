@@ -310,11 +310,11 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
             work_ram: &mut self.work_ram,
             high_ram: &mut self.high_ram,
         };
-        self.cpu
-            .step(&mut bus)
-            .map_err(|_| archiaemu_core::CoreError::Execution(
+        self.cpu.step(&mut bus).map_err(|_| {
+            archiaemu_core::CoreError::Execution(
                 "unsupported LR35902 opcode in current instruction subset",
-            ))?;
+            )
+        })?;
         if self.cpu.is_halted() {
             Ok(archiaemu_core::CoreEvent::Halted)
         } else {
@@ -337,7 +337,11 @@ struct GameBoyBus<'a> {
 impl CpuBus for GameBoyBus<'_> {
     fn read8(&mut self, address: u16) -> u8 {
         match address {
-            0x0000..=0x7FFF => self.image.get(usize::from(address)).copied().unwrap_or(0xFF),
+            0x0000..=0x7FFF => self
+                .image
+                .get(usize::from(address))
+                .copied()
+                .unwrap_or(0xFF),
             0xC000..=0xDFFF => self.work_ram[usize::from(address - 0xC000)],
             0xE000..=0xFDFF => self.work_ram[usize::from(address - 0xE000)],
             0xFF80..=0xFFFE => self.high_ram[usize::from(address - 0xFF80)],
