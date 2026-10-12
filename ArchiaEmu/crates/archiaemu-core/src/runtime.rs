@@ -1614,11 +1614,15 @@ mod tests {
                 Ok(CoreEvent::Yielded)
             }
 
-            fn take_video_frame(&mut self) -> Result<Option<crate::core_io::VideoFrame>, CoreError> {
+            fn take_video_frame(
+                &mut self,
+            ) -> Result<Option<crate::core_io::VideoFrame>, CoreError> {
                 Err(CoreError::Execution("video retrieval failed"))
             }
 
-            fn take_audio_buffer(&mut self) -> Result<Option<crate::core_io::AudioBuffer>, CoreError> {
+            fn take_audio_buffer(
+                &mut self,
+            ) -> Result<Option<crate::core_io::AudioBuffer>, CoreError> {
                 Err(CoreError::Execution("audio retrieval failed"))
             }
         }
@@ -1628,7 +1632,9 @@ mod tests {
 
         assert_eq!(
             session.take_video_frame(),
-            Err(SessionError::Core(CoreError::Execution("video retrieval failed")))
+            Err(SessionError::Core(CoreError::Execution(
+                "video retrieval failed"
+            )))
         );
         assert_eq!(
             session.last_core_error(),
@@ -1636,7 +1642,9 @@ mod tests {
         );
         assert_eq!(
             session.take_audio_buffer(),
-            Err(SessionError::Core(CoreError::Execution("audio retrieval failed")))
+            Err(SessionError::Core(CoreError::Execution(
+                "audio retrieval failed"
+            )))
         );
         assert_eq!(
             session.last_core_error(),
