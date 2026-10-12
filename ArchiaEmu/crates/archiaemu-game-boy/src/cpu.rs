@@ -334,7 +334,10 @@ impl Cpu {
             _ => return Err(CpuError::UnsupportedOpcode { address, opcode }),
         };
 
-        Ok(StepResult { opcode, machine_cycles })
+        Ok(StepResult {
+            opcode,
+            machine_cycles,
+        })
     }
 
     fn fetch8<B: CpuBus>(&mut self, bus: &mut B) -> u8 {
@@ -375,13 +378,19 @@ mod execution_tests {
 
         assert_eq!(
             cpu.step(&mut bus),
-            Ok(StepResult { opcode: 0x3E, machine_cycles: 2 })
+            Ok(StepResult {
+                opcode: 0x3E,
+                machine_cycles: 2
+            })
         );
         assert_eq!(cpu.registers.a, 0x42);
         assert_eq!(cpu.registers.pc, 2);
         assert_eq!(
             cpu.step(&mut bus),
-            Ok(StepResult { opcode: 0x00, machine_cycles: 1 })
+            Ok(StepResult {
+                opcode: 0x00,
+                machine_cycles: 1
+            })
         );
         assert_eq!(cpu.registers.pc, 3);
     }
@@ -442,7 +451,10 @@ mod execution_tests {
 
         assert_eq!(
             cpu.step(&mut bus),
-            Err(CpuError::UnsupportedOpcode { address: 0, opcode: 0xD3 })
+            Err(CpuError::UnsupportedOpcode {
+                address: 0,
+                opcode: 0xD3
+            })
         );
         assert_eq!(cpu.registers.pc, 1);
     }
