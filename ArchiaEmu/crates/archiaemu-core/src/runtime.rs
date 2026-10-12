@@ -1151,7 +1151,9 @@ mod tests {
         assert_eq!(session.run_until_event().unwrap(), CoreEvent::Halted);
     }
 
-    struct ResetFailureCore;
+    struct ResetFailureCore {
+        halts: bool,
+    }
 
     impl EmulationCore for ResetFailureCore {
         fn descriptor(&self) -> CoreDescriptor {
@@ -1180,22 +1182,43 @@ mod tests {
         }
 
         fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
-            Ok(CoreEvent::Yielded)
+            Ok(if self.halts {
+                CoreEvent::Halted
+            } else {
+                CoreEvent::Yielded
+            })
         }
     }
 
     #[test]
     fn failed_reset_preserves_the_previous_lifecycle_state() {
-        let mut session = EmulationSession::new(Box::new(ResetFailureCore));
-        session.load_content(&[1]).unwrap();
-        session.pause().unwrap();
-
+        let mut running = EmulationSession::new(Box::new(ResetFailureCore { halts: false }));
+        running.load_content(&[1]).unwrap();
         assert_eq!(
-            session.reset(),
+            running.reset(),
             Err(SessionError::Core(CoreError::Execution("reset failed")))
         );
-        assert_eq!(session.state(), SessionState::Paused);
-        assert!(session.run_until_event().is_err());
+        assert_eq!(running.state(), SessionState::Running);
+
+        let mut paused = EmulationSession::new(Box::new(ResetFailureCore { halts: false }));
+        paused.load_content(&[1]).unwrap();
+        paused.pause().unwrap();
+        assert_eq!(
+            paused.reset(),
+            Err(SessionError::Core(CoreError::Execution("reset failed")))
+        );
+        assert_eq!(paused.state(), SessionState::Paused);
+        assert!(paused.run_until_event().is_err());
+
+        let mut halted = EmulationSession::new(Box::new(ResetFailureCore { halts: true }));
+        halted.load_content(&[1]).unwrap();
+        assert_eq!(halted.run_until_event(), Ok(CoreEvent::Halted));
+        assert_eq!(
+            halted.reset(),
+            Err(SessionError::Core(CoreError::Execution("reset failed")))
+        );
+        assert_eq!(halted.state(), SessionState::Halted);
+        assert!(halted.run_until_event().is_err());
     }
 
     #[test]
