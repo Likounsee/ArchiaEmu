@@ -57,6 +57,8 @@ These contracts do not implement a host input mapper, renderer, audio device bac
 `runtime::EmulationSession` owns one core and enforces host-facing lifecycle transitions independently of the emulated system:
 
 - A new session starts in `Empty`; execution and media retrieval are rejected until content loads successfully.
+- Transition reference: `Empty -> Running` on successful load; `Running -> Paused` on pause; `Paused -> Running` on resume; `Running|Paused|Halted -> Running` on successful reset; `Running -> Halted` on a `Halted` event. Successful reload from any loaded state returns to `Running`.
+- Invalid pause/resume/reset transitions return `SessionError::InvalidTransition` and do not change the lifecycle state. A core error is propagated as `SessionError::Core`; the session state is only committed after successful load/reset, and a run error leaves the session state unchanged.
 - Successful content loading enters `Running`. A failed load leaves the session state unchanged.
 - `pause` and `resume` only accept their corresponding source states.
 - A `Halted` event moves the session to `Halted`; execution and input are then rejected until reset succeeds.
