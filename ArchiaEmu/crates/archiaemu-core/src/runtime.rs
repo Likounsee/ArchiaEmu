@@ -313,7 +313,10 @@ impl EmulationSession {
         }
         for control in InputControl::ALL {
             if self.input_state.is_pressed(control) {
-                let event = InputEvent { control, pressed: false };
+                let event = InputEvent {
+                    control,
+                    pressed: false,
+                };
                 let result = self.core.send_input(event);
                 self.record_core_result(result)?;
                 self.input_state.apply(event);
@@ -633,7 +636,13 @@ mod tests {
         session.load_content(&[1]).unwrap();
         session.stop().unwrap();
         assert_eq!(session.state(), SessionState::Stopped);
-        assert!(matches!(session.run_until_event(), Err(SessionError::InvalidTransition { operation: "run", state: SessionState::Stopped })));
+        assert!(matches!(
+            session.run_until_event(),
+            Err(SessionError::InvalidTransition {
+                operation: "run",
+                state: SessionState::Stopped
+            })
+        ));
         session.reset().unwrap();
         assert_eq!(session.state(), SessionState::Running);
         assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
@@ -1184,7 +1193,9 @@ mod tests {
 
     #[test]
     fn core_error_diagnostic_persists_until_explicitly_cleared() {
-        let core = ErrorOnceCore { fail_next_run: true };
+        let core = ErrorOnceCore {
+            fail_next_run: true,
+        };
         let mut session = EmulationSession::new(Box::new(core));
         session.load_content(&[1]).unwrap();
 
@@ -2303,7 +2314,10 @@ mod shared_input_runtime_tests {
         assert!(!session.is_input_pressed(InputControl::Action1));
         assert!(session.is_input_pressed(InputControl::Action2));
         assert_eq!(session.state(), SessionState::Running);
-        assert_eq!(session.last_core_error(), Some(CoreError::Execution("input rejected for test")));
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("input rejected for test"))
+        );
     }
 
     #[test]
@@ -2319,12 +2333,19 @@ mod shared_input_runtime_tests {
         let mut session = EmulationSession::new(Box::new(core));
         session.load_content(&[1]).unwrap();
         for control in [InputControl::Action1, InputControl::Action2] {
-            session.send_input(InputEvent { control, pressed: true }).unwrap();
+            session
+                .send_input(InputEvent {
+                    control,
+                    pressed: true,
+                })
+                .unwrap();
         }
 
         assert_eq!(
             session.stop(),
-            Err(SessionError::Core(CoreError::Execution("input rejected for test")))
+            Err(SessionError::Core(CoreError::Execution(
+                "input rejected for test"
+            )))
         );
         assert_eq!(session.state(), SessionState::Running);
         assert!(!session.is_input_pressed(InputControl::Action1));
