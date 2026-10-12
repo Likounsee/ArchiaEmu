@@ -944,6 +944,67 @@ mod tests {
     }
 
     #[test]
+    fn bounded_path_and_reader_launch_reject_empty_and_truncated_content() {
+        let probe = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let id = SystemId::new("runtime-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_runtime_test_core).unwrap();
+
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-launch-truncated-{}-{unique}.bin",
+            std::process::id()
+        ));
+
+        std::fs::write(&path, b"GA").unwrap();
+        let truncated_path =
+            launch_content_path(&path, ContentLimits::new(64), &probes, &registry);
+        let truncated_reader = launch_content_reader(
+            std::io::Cursor::new(b"GA".to_vec()),
+            ContentLimits::new(64),
+            &probes,
+            &registry,
+        );
+        assert!(matches!(
+            truncated_path,
+            Err(LaunchError::Registry(
+                RegistryError::IncompleteDetection(1)
+            ))
+        ));
+        assert!(matches!(
+            truncated_reader,
+            Err(LaunchError::Registry(
+                RegistryError::IncompleteDetection(1)
+            ))
+        ));
+
+        std::fs::write(&path, b"").unwrap();
+        let empty_path = launch_content_path(&path, ContentLimits::new(64), &probes, &registry);
+        let empty_reader = launch_content_reader(
+            std::io::Cursor::new(Vec::<u8>::new()),
+            ContentLimits::new(64),
+            &probes,
+            &registry,
+        );
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(
+            empty_path,
+            Err(LaunchError::Content(ContentError::Empty))
+        );
+        assert_eq!(
+            empty_reader,
+            Err(LaunchError::Content(ContentError::Empty))
+        );
+    }
+
+    #[test]
     fn bounded_load_rejects_invalid_size_without_calling_the_core() {
         let mut session = session();
         assert_eq!(
