@@ -1521,6 +1521,10 @@ mod tests {
         );
         assert_eq!(session.state(), SessionState::Paused);
         assert_eq!(session.save_state().unwrap(), vec![7]);
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::InvalidState("expected one byte"))
+        );
     }
 
     #[test]
