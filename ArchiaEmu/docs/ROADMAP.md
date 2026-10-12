@@ -32,7 +32,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] État d'entrée commun avec suppression des transitions dupliquées et relâchement explicite.
 - [x] API générique de sauvegarde/restauration d'état avec vérification de capacité.
 - [ ] Formaliser les transitions autorisées dans une table de référence et tester chaque transition valide/invalide.
-- [ ] Garantir un comportement documenté après chaque erreur du cœur : état de session, entrées maintenues, événements et possibilité de reprise.
+- [ ] Garantir un comportement documenté après chaque erreur du cœur : état de session, entrées maintenues, événements et possibilité de reprise. Les tests couvrent désormais le refus d'une pression et d'un relâchement d'entrée, mais pas encore toutes les catégories d'erreur.
 - [ ] Ajouter des tests de séquences longues : charger, démarrer, mettre en pause, reprendre, réinitialiser, arrêter et recharger.
 - [ ] Clarifier la sémantique d'arrêt et de réinitialisation pour chaque état, sans hypothèses spécifiques à une console.
 

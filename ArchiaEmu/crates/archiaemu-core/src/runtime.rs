@@ -1054,6 +1054,93 @@ mod shared_input_runtime_tests {
         assert_eq!(second_events.lock().unwrap().len(), 1);
     }
 
+    struct RejectSpecificInputCore {
+        rejected_event: InputEvent,
+    }
+
+    impl EmulationCore for RejectSpecificInputCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                system_id: SystemId::new("reject-input-test").unwrap(),
+                display_name: "Reject input test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities {
+                    input: true,
+                    ..CoreCapabilities::default()
+                },
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+            if content.is_empty() {
+                return Err(CoreError::InvalidContent("empty test content"));
+            }
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            Ok(CoreEvent::Yielded)
+        }
+
+        fn send_input(&mut self, event: InputEvent) -> Result<(), CoreError> {
+            if event == self.rejected_event {
+                return Err(CoreError::Execution("input rejected for test"));
+            }
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn failed_input_press_does_not_mark_control_as_held() {
+        let press = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+        let core = RejectSpecificInputCore {
+            rejected_event: press,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.send_input(press),
+            Err(SessionError::Core(CoreError::Execution(
+                "input rejected for test"
+            )))
+        );
+        assert!(!session.is_input_pressed(InputControl::Action1));
+    }
+
+    #[test]
+    fn failed_input_release_keeps_control_marked_as_held() {
+        let release = InputEvent {
+            control: InputControl::Action1,
+            pressed: false,
+        };
+        let core = RejectSpecificInputCore {
+            rejected_event: release,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+        let press = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+        session.send_input(press).unwrap();
+
+        assert_eq!(
+            session.release_all_inputs(),
+            Err(SessionError::Core(CoreError::Execution(
+                "input rejected for test"
+            )))
+        );
+        assert!(session.is_input_pressed(InputControl::Action1));
+    }
+
     #[test]
     fn successful_reset_clears_host_input_state() {
         let events = Arc::new(Mutex::new(Vec::new()));
