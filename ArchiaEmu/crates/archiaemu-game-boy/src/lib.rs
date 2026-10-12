@@ -317,15 +317,15 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         let header = CartridgeHeader::parse(content).map_err(|_| {
             archiaemu_core::CoreError::InvalidContent("invalid Game Boy cartridge header")
         })?;
-        if header.cartridge_type == 0x00 {
-            let required_size = expected_rom_size(header.rom_size_code).ok_or(
-                archiaemu_core::CoreError::InvalidContent("invalid ROM size code"),
-            )?;
-            if content.len() < required_size {
-                return Err(archiaemu_core::CoreError::InvalidContent(
-                    "ROM image is shorter than its declared size",
-                ));
-            }
+        // Validate the declared image length for every mapper, even when
+        // execution support for that mapper has not been implemented yet.
+        let required_size = expected_rom_size(header.rom_size_code).ok_or(
+            archiaemu_core::CoreError::InvalidContent("invalid ROM size code"),
+        )?;
+        if content.len() < required_size {
+            return Err(archiaemu_core::CoreError::InvalidContent(
+                "ROM image is shorter than its declared size",
+            ));
         }
         // Commit state only after validation succeeds, preserving any previously
         // loaded image if the caller supplies malformed replacement content.
@@ -723,6 +723,29 @@ mod tests {
     }
 
     #[test]
+    fn truncated_unsupported_mapper_does_not_replace_loaded_cartridge() {
+        let mut core = GameBoyCore::new();
+        archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
+        let before = *core.cartridge_header().unwrap();
+
+        let mut replacement = valid_image();
+        replacement[0x147] = 0x01;
+        replacement[0x148] = 0x01;
+        replacement[0x14D] = header_checksum(&replacement);
+        assert_eq!(
+            archiaemu_core::EmulationCore::load_content(&mut core, &replacement),
+            Err(archiaemu_core::CoreError::InvalidContent(
+                "ROM image is shorter than its declared size"
+            ))
+        );
+        assert_eq!(core.cartridge_header(), Some(&before));
+        assert_eq!(
+            archiaemu_core::EmulationCore::run_until_event(&mut core),
+            Ok(archiaemu_core::CoreEvent::Yielded)
+        );
+    }
+
+    #[test]
     fn accepts_special_rom_size_codes() {
         for code in [0x52, 0x53, 0x54] {
             let mut image = valid_image();
@@ -781,7 +804,7 @@ mod tests {
     #[test]
     fn execution_rejects_unimplemented_cartridge_mappers() {
         let mut core = GameBoyCore::new();
-        let mut image = valid_image();
+        let mut image = valid_rom();
         image[0x147] = 0x01;
         image[0x14D] = header_checksum(&image);
         archiaemu_core::EmulationCore::load_content(&mut core, &image).unwrap();
