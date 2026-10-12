@@ -10,7 +10,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 98 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 84 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
-| **P0** | Contrats de modules et capacités | 86 % | Modules isolés, capacités explicites, découverte et création prévisibles |
+| **P0** | Contrats de modules et capacités | 87 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
@@ -72,7 +72,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Ajouter un coordinateur d'installation qui persiste le journal à chaque jalon, orchestre téléchargement/vérification, extraction, activation et enregistrement de l'état via un backend hôte. Un jalon `Activating` durable est écrit avant le changement de version afin que la récupération inspecte le répertoire final après une interruption plutôt que de supprimer aveuglément le staging.
 - [x] Définir un contrat de métadonnées runtime : ID, version, version d'API, capacités, provenance éditeur, homepage optionnelle et dépendances/exigences hôte. La validation rejette les éditeurs invalides, les homepages non HTTPS, les dépendances auto-référencées/dupliquées et les exigences d'API incompatibles; la confiance cryptographique reste distincte de la métadonnée déclarative.
 - [x] Ajouter un planificateur d'activation runtime : validation des descripteurs, détection des ID dupliqués, dépendances manquantes et cycles, vérification des capacités exigées par l'hôte et ordre d'activation dépendances-d'abord avec parcours itératif.
-- [ ] Tester deux modules factices dans le même processus et vérifier l'absence de partage involontaire d'état.
+- [x] Tester deux modules factices distincts dans le même processus : le test de registre crée deux implémentations factices sous des ID différents, charge le premier sans initialiser le second, puis vérifie que les deux exécutent indépendamment.
 - [x] Définir les limites de confiance : un manifeste valide prouve la conformité des métadonnées, pas l'innocuité du code. Les règles et limites actuelles sont documentées dans `docs/MODULE_TRUST_BOUNDARIES.md`; aucun sandboxing n'est revendiqué.
 - [x] Documenter la stratégie future pour les modules natifs et les éventuels modules hors processus dans `docs/MODULE_TRUST_BOUNDARIES.md`, y compris les limites de la séparation en processus.
 
