@@ -276,10 +276,12 @@ mod tests {
         assert_eq!(session.run_until_event().unwrap(), CoreEvent::Halted);
         assert_eq!(session.state(), SessionState::Halted);
         assert!(session.run_until_event().is_err());
-        assert!(session.send_input(InputEvent {
-            control: crate::core_io::InputControl::Action1,
-            pressed: true,
-        }).is_err());
+        assert!(session
+            .send_input(InputEvent {
+                control: crate::core_io::InputControl::Action1,
+                pressed: true,
+            })
+            .is_err());
         session.reset().unwrap();
         assert_eq!(session.state(), SessionState::Running);
     }
