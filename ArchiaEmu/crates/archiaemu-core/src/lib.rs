@@ -42,6 +42,9 @@ pub mod module_state_store;
 /// Bounded package artifact staging and digest-verification boundary.
 pub mod artifact_staging;
 
+/// Cross-platform archive path validation before package extraction.
+pub mod archive_safety;
+
 /// Crash-recovery journal for package installation transactions.
 pub mod module_install_journal;
 
