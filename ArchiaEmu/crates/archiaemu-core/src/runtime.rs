@@ -858,6 +858,92 @@ mod tests {
     }
 
     #[test]
+    fn bounded_path_and_reader_launch_reject_ambiguous_detection() {
+        let first = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let second = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 2] = [&first, &second];
+        let id = SystemId::new("runtime-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_runtime_test_core).unwrap();
+
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-launch-ambiguous-{}-{unique}.bin",
+            std::process::id()
+        ));
+        std::fs::write(&path, b"GAME payload").unwrap();
+        let path_result = launch_content_path(&path, ContentLimits::new(64), &probes, &registry);
+        let _ = std::fs::remove_file(&path);
+
+        for result in [
+            path_result,
+            launch_content_reader(
+                std::io::Cursor::new(b"GAME payload".to_vec()),
+                ContentLimits::new(64),
+                &probes,
+                &registry,
+            ),
+        ] {
+            assert!(matches!(
+                result,
+                Err(LaunchError::Registry(
+                    RegistryError::AmbiguousDetectedFormats(2)
+                ))
+            ));
+        }
+    }
+
+    #[test]
+    fn bounded_path_and_reader_launch_preserve_core_validation_errors() {
+        let probe = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"REJECT",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let id = SystemId::new("runtime-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_runtime_test_core).unwrap();
+
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-launch-rejected-{}-{unique}.bin",
+            std::process::id()
+        ));
+        std::fs::write(&path, b"REJECT").unwrap();
+        let path_result = launch_content_path(&path, ContentLimits::new(64), &probes, &registry);
+        let _ = std::fs::remove_file(&path);
+
+        for result in [
+            path_result,
+            launch_content_reader(
+                std::io::Cursor::new(b"REJECT".to_vec()),
+                ContentLimits::new(64),
+                &probes,
+                &registry,
+            ),
+        ] {
+            assert!(matches!(
+                result,
+                Err(LaunchError::Session(SessionError::Core(
+                    CoreError::InvalidContent("rejected launch test content")
+                )))
+            ));
+        }
+    }
+
+    #[test]
     fn bounded_load_rejects_invalid_size_without_calling_the_core() {
         let mut session = session();
         assert_eq!(
