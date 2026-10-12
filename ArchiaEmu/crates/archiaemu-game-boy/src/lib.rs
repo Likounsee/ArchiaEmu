@@ -512,6 +512,23 @@ mod tests {
     }
 
     #[test]
+    fn cartridge_probe_match_does_not_bypass_header_validation() {
+        use archiaemu_core::content::{ContentFormatProbe, FormatProbeResult};
+
+        let probe = GameBoyCartridgeProbe;
+        let mut image = vec![0; MINIMUM_HEADER_SIZE];
+        image[0x0104..0x0134].copy_from_slice(&NINTENDO_LOGO);
+
+        // Identification is intentionally weaker than structural validation:
+        // the logo and length match, but this zero-filled header has a bad checksum.
+        assert_eq!(probe.probe(&image), FormatProbeResult::Match);
+        assert!(matches!(
+            CartridgeHeader::parse(&image),
+            Err(HeaderError::HeaderChecksumMismatch { .. })
+        ));
+    }
+
+    #[test]
     fn cartridge_probe_works_with_the_generic_detector() {
         use archiaemu_core::content::{detect_content_formats, ContentDetection};
 
