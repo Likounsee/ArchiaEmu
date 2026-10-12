@@ -12,3 +12,8 @@ All imported ROM images, firmware, save files, state files, metadata and configu
 - Avoid downloading or bundling copyrighted firmware or game images without permission.
 
 This is a policy baseline, not a completed security audit. No hostile-input fuzzing or native boundary currently exists.
+
+
+## Module catalogue trust boundary
+
+The core provides `module_manifest_trust::ManifestTrustPolicy`, which requires a publisher key ID pinned by the application, calls an injected signature verifier on the exact payload bytes before parsing, validates the resulting manifest, and rejects revisions at or below the accepted revision floor. The accepted revision must be persisted durably by the application to prevent rollback across restarts. This module intentionally does not ship a cryptographic primitive or JSON parser: production must connect a reviewed signature implementation (for example Ed25519), a strict parser that parses exactly the verified bytes, and a carefully managed key-rotation policy. The test verifier is deliberately non-cryptographic and must never be used outside tests. A SHA-256 digest detects artifact mismatch but is not publisher authentication.
