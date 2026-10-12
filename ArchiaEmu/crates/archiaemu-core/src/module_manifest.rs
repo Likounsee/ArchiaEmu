@@ -593,10 +593,8 @@ impl ModuleManifest {
         target: ModuleTarget,
     ) -> Result<Vec<ModuleUpdate<'a>>, ManifestError> {
         let installation = self.plan_installation_for_target(selected, app_version, target)?;
-        let installed_by_id: HashMap<&ModuleId, &InstalledModule> = installed
-            .iter()
-            .map(|entry| (&entry.id, entry))
-            .collect();
+        let installed_by_id: HashMap<&ModuleId, &InstalledModule> =
+            installed.iter().map(|entry| (&entry.id, entry)).collect();
 
         let mut updates = Vec::new();
         for module in installation {
