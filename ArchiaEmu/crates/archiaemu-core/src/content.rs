@@ -187,6 +187,21 @@ impl ContentImage {
     pub fn read_path(path: impl AsRef<Path>, limits: ContentLimits) -> Result<Self, ContentError> {
         let file =
             std::fs::File::open(path).map_err(|error| ContentError::ReadFailed(error.kind()))?;
+
+        // Reject obviously oversized files before reading their contents. The
+        // bounded stream read remains necessary because metadata can be stale
+        // or the file can grow after this check.
+        let size = file
+            .metadata()
+            .map_err(|error| ContentError::ReadFailed(error.kind()))?
+            .len();
+        if size > limits.max_bytes as u64 {
+            return Err(ContentError::TooLarge {
+                max_bytes: limits.max_bytes,
+                actual_bytes: usize::try_from(size).unwrap_or(usize::MAX),
+            });
+        }
+
         Self::read_from(file, limits)
     }
 
