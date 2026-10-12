@@ -40,6 +40,64 @@ impl ReleaseVersion {
     }
 }
 
+fn is_valid_https_url(value: &str) -> bool {
+    let Some(rest) = value.strip_prefix("https://") else {
+        return false;
+    };
+    if value
+        .bytes()
+        .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace() || byte == b'\\')
+    {
+        return false;
+    }
+
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+    if authority.is_empty() || authority.contains('@') {
+        return false;
+    }
+
+    let port = if let Some(bracketed) = authority.strip_prefix('[') {
+        let Some((address, suffix)) = bracketed.split_once(']') else {
+            return false;
+        };
+        if address.parse::<std::net::Ipv6Addr>().is_err() {
+            return false;
+        }
+        if suffix.is_empty() {
+            None
+        } else if let Some(port) = suffix.strip_prefix(':') {
+            Some(port)
+        } else {
+            return false;
+        }
+    } else {
+        let mut pieces = authority.split(':');
+        let host = pieces.next().unwrap_or("");
+        let port = pieces.next();
+        if pieces.next().is_some()
+            || host.is_empty()
+            || host.starts_with('.')
+            || host.ends_with('.')
+            || host.split('.').any(|label| {
+                label.is_empty()
+                    || label.starts_with('-')
+                    || label.ends_with('-')
+                    || !label
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+            })
+        {
+            return false;
+        }
+        port
+    };
+
+    match port {
+        None => true,
+        Some(port) => port.parse::<u16>().is_ok_and(|number| number != 0),
+    }
+}
+
 fn parse_component(value: &str) -> Result<u64, VersionParseError> {
     if value.is_empty()
         || (value.len() > 1 && value.starts_with('0'))
@@ -269,22 +327,7 @@ impl ModuleManifest {
                     ))
                 }
                 (Some(artifact), _) => {
-                    let authority = artifact
-                        .url
-                        .strip_prefix("https://")
-                        .and_then(|rest| rest.split(['/', '?', '#']).next())
-                        .unwrap_or("");
-                    let valid_url = !authority.is_empty()
-                        && !authority.starts_with(':')
-                        && !authority.contains('@')
-                        && !authority.contains('\\')
-                        && !authority.starts_with('.')
-                        && !authority.ends_with('.')
-                        && !authority.contains("..")
-                        && !artifact
-                            .url
-                            .bytes()
-                            .any(|b| b.is_ascii_control() || b.is_ascii_whitespace());
+                    let valid_url = is_valid_https_url(&artifact.url);
                     let valid_digest = artifact.sha256.len() == 64
                         && artifact
                             .sha256
@@ -494,6 +537,12 @@ mod tests {
             "https://.packages.example.invalid/file.tar",
             "https://packages.example.invalid./file.tar",
             "https://packages.example.invalid\\\\file.tar",
+            "https://packages.example.invalid:abc/file.tar",
+            "https://packages.example.invalid:0/file.tar",
+            "https://packages.example.invalid:65536/file.tar",
+            "https://-packages.example.invalid/file.tar",
+            "https://packages-.example.invalid/file.tar",
+            "https://[not-ipv6]/file.tar",
         ] {
             let mut entry = module("game-boy", &[]);
             entry.artifact.as_mut().unwrap().url = url.into();
@@ -517,6 +566,18 @@ mod tests {
             manifest(vec![entry]).validate(),
             Err(ManifestError::MissingArtifact(_))
         ));
+    }
+
+    #[test]
+    fn accepts_valid_https_authorities_and_ports() {
+        for url in [
+            "https://packages.example.invalid/file.tar",
+            "https://packages.example.invalid:443/file.tar",
+            "https://127.0.0.1:8443/file.tar",
+            "https://[::1]:8443/file.tar",
+        ] {
+            assert!(is_valid_https_url(url), "rejected valid HTTPS URL: {url}");
+        }
     }
 
     #[test]
