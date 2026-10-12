@@ -375,7 +375,8 @@ mod tests {
 
     #[test]
     fn bounded_reader_stops_after_detecting_oversized_input() {
-        let error = ContentImage::read_from(&b"abcdef"[..], ContentLimits::new(3)).unwrap_err();
+        let mut source: &[u8] = b"abcdef";
+        let error = ContentImage::read_from(&mut source, ContentLimits::new(3)).unwrap_err();
         assert_eq!(
             error,
             ContentError::TooLarge {
@@ -383,6 +384,7 @@ mod tests {
                 actual_bytes: 4,
             }
         );
+        assert_eq!(source, b"ef", "the reader must not consume beyond limit + 1");
     }
 
     #[test]

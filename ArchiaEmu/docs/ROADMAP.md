@@ -9,7 +9,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 79 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 55 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Chargement et validation du contenu | 56 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 72 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -53,7 +53,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 ### P0.3 — Chargement et validation du contenu
 - [x] Introduire un premier modèle générique de contenu possédé, avec limite de taille explicite et erreurs communes (les empreintes et la détection de format restent à faire).
 - [x] Rejeter les contenus vides et ceux dépassant la limite explicitement fournie, avant appel au cœur. L'API de session `load_content_bounded` valide une tranche empruntée avant d'allouer une copie et laisse la session vide en cas de rejet.
-- [x] Lire un flux avec une limite stricte (au plus limite + 1 octet pour détecter le dépassement), sans exposer un contenu partiellement lu en cas d’erreur ; test de régression avec échec de lecture après un préfixe partiel.
+- [x] Lire un flux avec une limite stricte (au plus limite + 1 octet pour détecter le dépassement), sans exposer un contenu partiellement lu en cas d’erreur ; les tests vérifient aussi que la source n'est pas consommée au-delà de cet octet de détection.
 - [x] Ajouter un helper dédié aux chemins/fichiers qui réutilise la même lecture bornée.
 - [x] Traiter les ROM Game Boy ROM-only tronquées : vérifier la taille déclarée avant de remplacer le contenu déjà chargé, avec test de régression.
 - [x] Rejeter un logo Nintendo incorrect et un checksum d'en-tête invalide sans remplacer la cartouche précédemment chargée ; les tests vérifient que l'ancienne cartouche reste exécutable.
