@@ -1142,6 +1142,27 @@ mod shared_input_runtime_tests {
     }
 
     #[test]
+    fn failed_content_reload_preserves_held_input_state() {
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let core = InputRecordingCore {
+            events: Arc::clone(&events),
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+        let press = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+        session.send_input(press).unwrap();
+
+        assert!(session.load_content(&[]).is_err());
+
+        assert_eq!(session.state(), SessionState::Running);
+        assert!(session.is_input_pressed(InputControl::Action1));
+        assert_eq!(events.lock().unwrap().as_slice(), &[press]);
+    }
+
+    #[test]
     fn successful_reset_clears_host_input_state() {
         let events = Arc::new(Mutex::new(Vec::new()));
         let core = InputRecordingCore {
