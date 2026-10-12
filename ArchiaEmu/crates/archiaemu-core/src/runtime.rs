@@ -840,7 +840,10 @@ impl fmt::Display for RuntimeError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Registry(error) => fmt::Display::fmt(error, formatter),
-            Self::IncompatibleApiVersion { required, supported } => write!(
+            Self::IncompatibleApiVersion {
+                required,
+                supported,
+            } => write!(
                 formatter,
                 "core contract API {}.{} is incompatible with host API {}.{}",
                 required.major, required.minor, supported.major, supported.minor
