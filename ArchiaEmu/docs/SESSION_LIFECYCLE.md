@@ -9,6 +9,7 @@ Ce document décrit les transitions garanties par `EmulationSession`. Il ne prom
 | `Empty` | `load_content` / chargement borné valide | `Running`, entrées hôte réinitialisées | reste `Empty`; le cœur doit valider avant mutation |
 | `Running` | `pause` | `Paused` | transition invalide, état inchangé |
 | `Paused` | `resume` | `Running` | transition invalide, état inchangé |
+| `Running`, `Paused`, `Halted`, `Stopped` | `stop` | `Stopped`, contenu conservé et entrées libérées | reste dans l'état courant; les entrées déjà libérées restent réconciliées |
 | `Running`, `Paused`, `Halted`, `Stopped` | `reset` | `Running`, entrées hôte réinitialisées | état et entrées hôte inchangés |
 | Tout état | rechargement réussi de contenu | `Running`, entrées hôte réinitialisées | état et entrées hôte inchangés |
 | `Running` | `run_until_event` / `run_for_events` | reste `Running`, sauf événement `Halted` | l'état hôte reste inchangé |
@@ -30,4 +31,4 @@ Ce document décrit les transitions garanties par `EmulationSession`. Il ne prom
 
 ## Portée des garanties
 
-Les tests de `runtime.rs` couvrent les transitions invalides principales, la pause/reprise, l'arrêt du runner sur `Halted`, la récupération par réinitialisation ou rechargement, les erreurs transitoires d'exécution, les échecs de réinitialisation/rechargement, les entrées maintenues et les limites du chargement borné. La matrice doit encore être complétée pour toutes les catégories d'erreur et tous les états/capacités.
+Les tests de `runtime.rs` couvrent les transitions invalides principales, la pause/reprise, l'arrêt du runner sur `Halted`, la récupération par réinitialisation, arrêt et rechargement, les erreurs transitoires d'exécution, les échecs de réinitialisation/rechargement, les entrées maintenues et les limites du chargement borné. La matrice doit encore être complétée pour toutes les catégories d'erreur et tous les états/capacités.
