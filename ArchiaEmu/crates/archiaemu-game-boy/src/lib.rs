@@ -678,6 +678,45 @@ mod tests {
     }
 
     #[test]
+    fn expected_rom_size_covers_all_defined_codes_and_rejects_reserved() {
+        for code in 0x00..=0x08 {
+            assert_eq!(
+                expected_rom_size(code),
+                Some(0x8000usize << code),
+                "standard ROM size code {code:#04X}"
+            );
+        }
+        assert_eq!(expected_rom_size(0x52), Some(72 * 0x4000));
+        assert_eq!(expected_rom_size(0x53), Some(80 * 0x4000));
+        assert_eq!(expected_rom_size(0x54), Some(96 * 0x4000));
+        for code in [0x09, 0x0A, 0x51, 0x55, 0xFF] {
+            assert_eq!(expected_rom_size(code), None, "reserved ROM size code {code:#04X}");
+        }
+    }
+
+    #[test]
+    fn truncated_special_size_rom_does_not_replace_loaded_cartridge() {
+        let mut core = GameBoyCore::new();
+        archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
+        let before = *core.cartridge_header().unwrap();
+
+        let mut replacement = valid_image();
+        replacement[0x148] = 0x52;
+        replacement[0x14D] = header_checksum(&replacement);
+        assert_eq!(
+            archiaemu_core::EmulationCore::load_content(&mut core, &replacement),
+            Err(archiaemu_core::CoreError::InvalidContent(
+                "ROM image is shorter than its declared size"
+            ))
+        );
+        assert_eq!(core.cartridge_header(), Some(&before));
+        assert_eq!(
+            archiaemu_core::EmulationCore::run_until_event(&mut core),
+            Ok(archiaemu_core::CoreEvent::Yielded)
+        );
+    }
+
+    #[test]
     fn accepts_special_rom_size_codes() {
         for code in [0x52, 0x53, 0x54] {
             let mut image = valid_image();
