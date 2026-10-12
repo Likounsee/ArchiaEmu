@@ -188,7 +188,14 @@ mod tests {
             (RegisterPair::Hl, 0xBCDE),
         ] {
             cpu.set_pair(pair, value);
-            assert_eq!(cpu.pair(pair), if pair == RegisterPair::Af { value & 0xFFF0 } else { value });
+            assert_eq!(
+                cpu.pair(pair),
+                if pair == RegisterPair::Af {
+                    value & 0xFFF0
+                } else {
+                    value
+                }
+            );
         }
     }
 
@@ -216,7 +223,10 @@ mod tests {
 
     #[test]
     fn add_a_sets_half_carry_and_carry() {
-        let mut cpu = CpuRegisters { a: 0x0F, ..CpuRegisters::default() };
+        let mut cpu = CpuRegisters {
+            a: 0x0F,
+            ..CpuRegisters::default()
+        };
         assert_eq!(cpu.add_a(0x01), 0x10);
         assert_eq!(cpu.a, 0x10);
         assert!(!cpu.flag(flags::ZERO));
@@ -233,7 +243,10 @@ mod tests {
 
     #[test]
     fn subtract_a_sets_half_borrow_and_borrow() {
-        let mut cpu = CpuRegisters { a: 0x10, ..CpuRegisters::default() };
+        let mut cpu = CpuRegisters {
+            a: 0x10,
+            ..CpuRegisters::default()
+        };
         assert_eq!(cpu.subtract_a(0x01), 0x0F);
         assert!(cpu.flag(flags::SUBTRACT));
         assert!(cpu.flag(flags::HALF_CARRY));
