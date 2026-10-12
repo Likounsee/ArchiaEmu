@@ -1,11 +1,11 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-//! Original Game Boy cartridge inspection and LR35902 CPU foundations.
+//! One Game Boy emulator target for original Game Boy and Game Boy Color games.
 //!
-//! The CPU register/arithmetic primitives are tested, but instruction execution,
-//! the memory bus, and peripherals remain unimplemented. A valid header does not
-//! imply that a cartridge can run.
+//! Cartridge metadata identifies whether a title is monochrome-only, compatible
+//! with both hardware modes, or requires Color hardware. This is still an early
+//! foundation: CPU execution, memory mapping, and peripherals remain incomplete.
 
 /// LR35902 register state and flag-accurate arithmetic primitives.
 pub mod cpu;
@@ -34,6 +34,32 @@ pub struct CartridgeHeader {
 }
 
 impl CartridgeHeader {
+    /// Interprets the cartridge's Color-capability flag without guessing
+    /// unsupported/reserved values.
+    pub const fn compatibility(&self) -> CartridgeCompatibility {
+        match self.cgb_flag {
+            0x00 => CartridgeCompatibility::DmgOnly,
+            0x80 => CartridgeCompatibility::DmgAndCgb,
+            0xC0 => CartridgeCompatibility::CgbOnly,
+            other => CartridgeCompatibility::Reserved(other),
+        }
+    }
+
+    /// Chooses the single emulator's hardware mode for this cartridge.
+    ///
+    /// Dual-compatible and Color-only cartridges prefer Color hardware. A
+    /// monochrome-only cartridge runs in original Game Boy mode. Reserved flags
+    /// return None so callers can report an explicit unknown/unsupported case.
+    pub const fn preferred_hardware_mode(&self) -> Option<HardwareMode> {
+        match self.compatibility() {
+            CartridgeCompatibility::DmgOnly => Some(HardwareMode::Dmg),
+            CartridgeCompatibility::DmgAndCgb | CartridgeCompatibility::CgbOnly => {
+                Some(HardwareMode::Cgb)
+            }
+            CartridgeCompatibility::Reserved(_) => None,
+        }
+    }
+
     /// Parses the header after validating image length, size code, and checksum.
     ///
     /// This does not validate the Nintendo logo, mapper support, the complete
@@ -121,8 +147,30 @@ const fn is_valid_rom_size_code(code: u8) -> bool {
     matches!(code, 0x00..=0x08 | 0x52..=0x54)
 }
 
-/// Stable identifier for the original monochrome Game Boy (DMG) module.
-pub const SYSTEM_ID: &str = "game-boy-dmg";
+/// Compatibility declared by the cartridge's CGB flag.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CartridgeCompatibility {
+    /// Game Boy monochrome hardware only.
+    DmgOnly,
+    /// Supports original Game Boy and Game Boy Color hardware.
+    DmgAndCgb,
+    /// Requires Game Boy Color hardware.
+    CgbOnly,
+    /// Reserved flag value; not treated as a supported compatibility claim.
+    Reserved(u8),
+}
+
+/// Hardware behavior selected inside the unified Game Boy emulator.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HardwareMode {
+    /// Original monochrome Game Boy behavior.
+    Dmg,
+    /// Game Boy Color behavior, including color hardware features.
+    Cgb,
+}
+
+/// Stable identifier shared by Game Boy and Game Boy Color game support.
+pub const SYSTEM_ID: &str = "game-boy";
 
 /// A module adapter that exposes Game Boy cartridge inspection through the
 /// shared ArchiaEmu core contract.
@@ -131,13 +179,13 @@ pub const SYSTEM_ID: &str = "game-boy-dmg";
 /// CPU execution, memory mapping, video, audio, interrupts, and input remain
 /// unimplemented. The adapter accepts and validates a ROM for inspection, but
 /// execution methods return an explicit unsupported error.
-pub struct GameBoyDmgCore {
+pub struct GameBoyCore {
     image: Option<Vec<u8>>,
     header: Option<CartridgeHeader>,
 }
 
-impl GameBoyDmgCore {
-    /// Creates an uninitialized Game Boy DMG module instance.
+impl GameBoyCore {
+    /// Creates an uninitialized unified Game Boy / Game Boy Color module instance.
     pub const fn new() -> Self {
         Self {
             image: None,
@@ -151,18 +199,18 @@ impl GameBoyDmgCore {
     }
 }
 
-impl Default for GameBoyDmgCore {
+impl Default for GameBoyCore {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl archiaemu_core::EmulationCore for GameBoyDmgCore {
+impl archiaemu_core::EmulationCore for GameBoyCore {
     fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
         archiaemu_core::CoreDescriptor {
             system_id: archiaemu_core::SystemId::new(SYSTEM_ID)
                 .expect("the built-in Game Boy system ID is valid"),
-            display_name: "Nintendo Game Boy (DMG)",
+            display_name: "Game Boy / Game Boy Color",
             core_version: env!("CARGO_PKG_VERSION"),
             // Do not advertise execution capabilities before they exist.
             capabilities: archiaemu_core::CoreCapabilities::default(),
@@ -199,7 +247,7 @@ impl archiaemu_core::EmulationCore for GameBoyDmgCore {
     }
 }
 
-/// Registers the Game Boy DMG module with the shared core registry.
+/// Registers the single Game Boy / Game Boy Color module with the shared core registry.
 ///
 /// Registration makes the module discoverable, but does not imply that game
 /// execution is implemented. The descriptor deliberately reports no execution
@@ -214,7 +262,7 @@ pub fn register_game_boy(
 }
 
 fn create_game_boy_core() -> Box<dyn archiaemu_core::EmulationCore> {
-    Box::new(GameBoyDmgCore::new())
+    Box::new(GameBoyCore::new())
 }
 
 #[cfg(test)]
@@ -317,7 +365,7 @@ mod tests {
 
     #[test]
     fn module_validates_rom_but_does_not_claim_execution_support() {
-        let mut core = GameBoyDmgCore::new();
+        let mut core = GameBoyCore::new();
         assert_eq!(
             archiaemu_core::EmulationCore::run_until_event(&mut core),
             Err(archiaemu_core::CoreError::NotInitialized)
@@ -339,7 +387,7 @@ mod tests {
 
     #[test]
     fn invalid_replacement_rom_does_not_destroy_previous_metadata() {
-        let mut core = GameBoyDmgCore::new();
+        let mut core = GameBoyCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_image()).unwrap();
         let before = *core.cartridge_header().unwrap();
 
