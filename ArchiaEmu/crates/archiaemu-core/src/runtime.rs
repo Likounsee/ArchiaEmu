@@ -697,7 +697,6 @@ mod runtime_manager_tests {
     }
 }
 
-
 #[cfg(test)]
 mod shared_input_runtime_tests {
     use super::*;
