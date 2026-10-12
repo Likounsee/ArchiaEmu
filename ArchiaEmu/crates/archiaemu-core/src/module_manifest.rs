@@ -258,6 +258,8 @@ pub enum ManifestError {
     DuplicateTarget(ModuleId),
     /// Module has no artifact for the selected host target.
     UnsupportedTarget(ModuleId),
+    /// A user-selected module ID does not exist in this manifest.
+    UnknownSelection(ModuleId),
     /// Application version is outside the module compatibility range.
     IncompatibleApplicationVersion(ModuleId),
 }
@@ -292,6 +294,7 @@ impl fmt::Display for ManifestError {
                 f,
                 "module '{id}' has no artifact for the current host target"
             ),
+            Self::UnknownSelection(id) => write!(f, "selected module {id} is absent from the manifest"),
             Self::IncompatibleApplicationVersion(id) => write!(
                 f,
                 "module '{id}' is incompatible with this ArchiaEmu version"
@@ -417,6 +420,78 @@ impl ModuleManifest {
             }
         }
         Ok(())
+    }
+
+    /// Resolves a user selection into a dependency-first installation plan.
+    ///
+    /// Only selected modules and their transitive dependencies are returned. Duplicate
+    /// selections are ignored while preserving the user's selection order for independent
+    /// modules. In-development modules, incompatible versions and unsupported targets are
+    /// rejected instead of being silently omitted.
+    pub fn plan_installation_for_target(
+        &self,
+        selected: &[ModuleId],
+        app_version: ReleaseVersion,
+        target: ModuleTarget,
+    ) -> Result<Vec<&ManifestModule>, ManifestError> {
+        self.validate()?;
+
+        let indices: HashMap<&ModuleId, usize> = self
+            .modules
+            .iter()
+            .enumerate()
+            .map(|(index, module)| (&module.id, index))
+            .collect();
+        let mut plan = Vec::new();
+        let mut included = vec![false; self.modules.len()];
+
+        for selected_id in selected {
+            let start = *indices
+                .get(selected_id)
+                .ok_or_else(|| ManifestError::UnknownSelection(selected_id.clone()))?;
+            let mut stack = vec![(start, false)];
+            while let Some((index, expanded)) = stack.pop() {
+                if included[index] {
+                    continue;
+                }
+                let module = &self.modules[index];
+                if !expanded {
+                    if module.readiness == ModuleReadiness::InDevelopment {
+                        return Err(ManifestError::ArtifactForInDevelopmentModule(
+                            module.id.clone(),
+                        ));
+                    }
+                    if app_version < module.min_app_version
+                        || module
+                            .max_app_version_exclusive
+                            .is_some_and(|max| app_version >= max)
+                    {
+                        return Err(ManifestError::IncompatibleApplicationVersion(
+                            module.id.clone(),
+                        ));
+                    }
+                    if module.artifact.is_none() {
+                        return Err(ManifestError::MissingArtifact(module.id.clone()));
+                    }
+                    if !module.targets.contains(&target) {
+                        return Err(ManifestError::UnsupportedTarget(module.id.clone()));
+                    }
+                    stack.push((index, true));
+                    for dependency in module.dependencies.iter().rev() {
+                        let dependency_index = *indices
+                            .get(dependency)
+                            .expect("manifest validation checked dependency existence");
+                        if !included[dependency_index] {
+                            stack.push((dependency_index, false));
+                        }
+                    }
+                } else if !included[index] {
+                    included[index] = true;
+                    plan.push(module);
+                }
+            }
+        }
+        Ok(plan)
     }
 
     /// Validates the manifest and filters entries for an explicit host and application version.
