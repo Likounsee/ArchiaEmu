@@ -649,8 +649,8 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        for index in 0..MODULE_COUNT - 1 {
-            descriptors[index]
+        for (index, descriptor) in descriptors.iter_mut().enumerate().take(MODULE_COUNT - 1) {
+            descriptor
                 .dependencies
                 .push(id(&format!("node-{}", index + 1)));
         }
