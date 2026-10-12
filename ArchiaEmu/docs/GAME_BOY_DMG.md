@@ -15,7 +15,7 @@ The first planned platform is the original monochrome Game Boy (DMG), identified
 7. **Audio and persistence:** only after CPU/bus/PPU contracts stabilize.
 8. **Compatibility gates:** documented public test ROMs, known hashes where legally appropriate, expected outcomes, and regression reports.
 
-## Correctness rules
+## Current CPU foundation\n\n`src/cpu.rs` contains only deterministic register/flag primitives. It is not an instruction interpreter and is not connected to the module's run loop yet. Its tests cover reserved flag bits, register-pair ordering, Z/N/H/C behavior for basic arithmetic, and carry preservation for INC/DEC. The core must continue to report execution as unsupported until a real instruction step and bus are integrated.\n\n## Correctness rules
 
 - Header parsing is not emulation, and a passing parser test is not a compatibility result.
 - Never panic on malformed cartridge bytes or allocate from untrusted size fields without bounds.
