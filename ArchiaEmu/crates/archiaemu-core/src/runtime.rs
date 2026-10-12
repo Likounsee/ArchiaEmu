@@ -463,6 +463,41 @@ mod tests {
     }
 
     #[test]
+    fn long_lifecycle_sequence_keeps_state_and_bounded_execution_consistent() {
+        let mut session = session();
+        assert_eq!(session.state(), SessionState::Empty);
+
+        session.load_content(&[1]).unwrap();
+        assert_eq!(session.state(), SessionState::Running);
+
+        session.pause().unwrap();
+        assert_eq!(session.state(), SessionState::Paused);
+        session.resume().unwrap();
+        assert_eq!(session.state(), SessionState::Running);
+
+        let report = session.run_for_events(3).unwrap();
+        assert_eq!(
+            report,
+            SessionRunReport {
+                events_processed: 3,
+                last_event: Some(CoreEvent::Yielded),
+                budget_exhausted: true,
+            }
+        );
+
+        session.pause().unwrap();
+        session.reset().unwrap();
+        assert_eq!(session.state(), SessionState::Running);
+
+        session.pause().unwrap();
+        session.resume().unwrap();
+        session.load_content(&[2]).unwrap();
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event().unwrap(), CoreEvent::Yielded);
+        assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
     fn release_all_inputs_rejects_cores_without_input_capability() {
         let mut session = session();
         session.load_content(&[1]).unwrap();
