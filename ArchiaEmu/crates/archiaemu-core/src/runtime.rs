@@ -184,6 +184,11 @@ impl EmulationSession {
         content: &[u8],
         limits: ContentLimits,
     ) -> Result<(), SessionError> {
+        if !self.core.descriptor().capabilities.content_loading {
+            return Err(SessionError::Core(CoreError::Unsupported(
+                "content loading",
+            )));
+        }
         let image = ContentImage::from_slice(content, limits)?;
         self.load_validated_content(&image)
     }
@@ -1320,6 +1325,12 @@ mod tests {
         assert_eq!(session.state(), SessionState::Empty);
         assert_eq!(
             session.load_content_bounded(&[1], ContentLimits::new(1)),
+            Err(SessionError::Core(CoreError::Unsupported(
+                "content loading"
+            )))
+        );
+        assert_eq!(
+            session.load_content_bounded(&[1, 2], ContentLimits::new(1)),
             Err(SessionError::Core(CoreError::Unsupported(
                 "content loading"
             )))
