@@ -342,7 +342,11 @@ impl Cpu {
             0x80..=0x87 => {
                 let value = self.read_register(bus, opcode & 0x07);
                 self.registers.add_a(value);
-                if opcode & 0x07 == 6 { 2 } else { 1 }
+                if opcode & 0x07 == 6 {
+                    2
+                } else {
+                    1
+                }
             }
             0x90..=0x97 => {
                 let value = self.read_register(bus, opcode & 0x07);
@@ -352,7 +356,11 @@ impl Cpu {
             0xA8..=0xAF => {
                 let value = self.read_register(bus, opcode & 0x07);
                 self.registers.a ^= value;
-                self.registers.set_f(if self.registers.a == 0 { flags::ZERO } else { 0 });
+                self.registers.set_f(if self.registers.a == 0 {
+                    flags::ZERO
+                } else {
+                    0
+                });
                 if opcode & 0x07 == 6 { 2 } else { 1 }
             }
             // INC r / DEC r.
@@ -361,7 +369,11 @@ impl Cpu {
                 let value = self.read_register(bus, register);
                 let result = self.registers.increment8(value);
                 self.write_register(bus, register, result);
-                if register == 6 { 3 } else { 1 }
+                if register == 6 {
+                    3
+                } else {
+                    1
+                }
             }
             0x05 | 0x0D | 0x15 | 0x1D | 0x25 | 0x2D | 0x35 | 0x3D => {
                 let register = (opcode >> 3) & 0x07;
@@ -375,7 +387,11 @@ impl Cpu {
                 let register = (opcode >> 3) & 0x07;
                 let value = self.fetch8(bus);
                 self.write_register(bus, register, value);
-                if register == 6 { 3 } else { 2 }
+                if register == 6 {
+                    3
+                } else {
+                    2
+                }
             }
             _ => return Err(CpuError::UnsupportedOpcode { address, opcode }),
         };
@@ -541,10 +557,10 @@ mod execution_tests {
         let mut cpu = Cpu::new();
         let mut bus = TestBus::with_program(&[
             0x01, 0xFF, 0x12, // LD BC,0x12FF
-            0x03,             // INC BC
+            0x03, // INC BC
             0x11, 0x34, 0x12, // LD DE,0x1234
-            0x12,             // LD (DE),A
-            0x0A,             // LD A,(BC)
+            0x12, // LD (DE),A
+            0x0A, // LD A,(BC)
         ]);
         cpu.registers.a = 0x5A;
 
@@ -566,9 +582,9 @@ mod execution_tests {
         let mut cpu = Cpu::new();
         let mut bus = TestBus::with_program(&[
             0x06, 0x0F, // LD B,0x0F
-            0x78,       // LD A,B
-            0x80,       // ADD A,B
-            0xA8,       // XOR A,B
+            0x78, // LD A,B
+            0x80, // ADD A,B
+            0xA8, // XOR A,B
         ]);
 
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
