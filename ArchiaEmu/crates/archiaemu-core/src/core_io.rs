@@ -211,6 +211,89 @@ impl AudioBuffer {
     }
 }
 
+
+/// Canonical host-side input state shared by all emulation cores.
+///
+/// It deduplicates repeated transitions and can synthesize releases when the
+/// host loses focus, preventing a key from remaining stuck in the emulated
+/// machine after its physical key-up event was missed.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct InputState {
+    pressed: [bool; 10],
+}
+
+impl InputState {
+    /// Creates an input state with every control released.
+    pub const fn new() -> Self {
+        Self { pressed: [false; 10] }
+    }
+
+    /// Returns whether a semantic control is currently held.
+    pub const fn is_pressed(&self, control: InputControl) -> bool {
+        self.pressed[control.index()]
+    }
+
+    /// Applies a transition and returns whether it changed the held state.
+    ///
+    /// Repeated key-down or key-up events are ignored and return false.
+    pub fn apply(&mut self, event: InputEvent) -> bool {
+        let state = &mut self.pressed[event.control.index()];
+        if *state == event.pressed {
+            return false;
+        }
+        *state = event.pressed;
+        true
+    }
+
+    /// Releases all held controls in a stable order and returns their events.
+    ///
+    /// Hosts should call this when focus is lost or a controller disconnects.
+    pub fn release_all(&mut self) -> Vec<InputEvent> {
+        let mut released = Vec::new();
+        for control in InputControl::ALL {
+            if self.apply(InputEvent { control, pressed: false }) {
+                released.push(InputEvent { control, pressed: false });
+            }
+        }
+        released
+    }
+
+    /// Returns the number of controls currently held.
+    pub fn pressed_count(&self) -> usize {
+        self.pressed.iter().filter(|pressed| **pressed).count()
+    }
+}
+
+impl InputControl {
+    const ALL: [Self; 10] = [
+        Self::Up,
+        Self::Down,
+        Self::Left,
+        Self::Right,
+        Self::Action1,
+        Self::Action2,
+        Self::Action3,
+        Self::Action4,
+        Self::Start,
+        Self::Select,
+    ];
+
+    const fn index(self) -> usize {
+        match self {
+            Self::Up => 0,
+            Self::Down => 1,
+            Self::Left => 2,
+            Self::Right => 3,
+            Self::Action1 => 4,
+            Self::Action2 => 5,
+            Self::Action3 => 6,
+            Self::Action4 => 7,
+            Self::Start => 8,
+            Self::Select => 9,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -249,6 +332,39 @@ mod tests {
         );
         let audio = AudioBuffer::new(48_000, 2, vec![1, -1, 2, -2]).unwrap();
         assert_eq!(audio.frame_count(), 2);
+    }
+
+
+    #[test]
+    fn input_state_deduplicates_repeated_transitions() {
+        let mut state = InputState::new();
+        let down = InputEvent { control: InputControl::Action1, pressed: true };
+        let up = InputEvent { control: InputControl::Action1, pressed: false };
+
+        assert!(state.apply(down));
+        assert!(!state.apply(down));
+        assert!(state.is_pressed(InputControl::Action1));
+        assert_eq!(state.pressed_count(), 1);
+        assert!(state.apply(up));
+        assert!(!state.apply(up));
+        assert_eq!(state.pressed_count(), 0);
+    }
+
+    #[test]
+    fn input_state_releases_all_held_controls_after_focus_loss() {
+        let mut state = InputState::new();
+        for control in [InputControl::Up, InputControl::Action2, InputControl::Start] {
+            assert!(state.apply(InputEvent { control, pressed: true }));
+        }
+
+        let released = state.release_all();
+        assert_eq!(released.len(), 3);
+        assert!(released.iter().all(|event| !event.pressed));
+        assert_eq!(released[0].control, InputControl::Up);
+        assert_eq!(released[1].control, InputControl::Action2);
+        assert_eq!(released[2].control, InputControl::Start);
+        assert_eq!(state.pressed_count(), 0);
+        assert!(state.release_all().is_empty());
     }
 
     #[test]
