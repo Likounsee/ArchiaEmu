@@ -25,6 +25,6 @@ Factories should be cheap to call and must not load user content or perform irre
 - Keep buffer ownership and lifetime explicit if audio/video buffers are added.
 - Avoid panics for malformed external content.
 
-## Stability
+## Audio/video/input boundary\n\nThe shared lifecycle contract deliberately does not prescribe a universal audio/video buffer or input representation yet. Before the host starts consuming these devices, define typed, owned frame/sample payloads and input events in a small additive contract, with explicit pixel/sample formats, dimensions/rates, buffer lifetime, timestamp/timing semantics, and reset behavior. Keep device-specific register semantics in each console crate; do not expose a native plugin ABI or build renderer/audio backends as a prerequisite for CPU work. The Game Boy CPU and bus can be developed independently while this host-facing boundary is specified.\n\n## Stability
 
 This API is an initial internal contract and may evolve before the first core is selected. It is not a stable plugin ABI. A native C ABI will only be designed if a real native core is chosen.
