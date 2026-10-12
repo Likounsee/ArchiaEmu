@@ -31,6 +31,8 @@ pub enum InstallPhase {
     Verified,
     /// Verified package has been unpacked into an isolated staging directory.
     Staged,
+    /// Activation is about to begin; recovery must inspect the final location.
+    Activating,
     /// Staged package has been activated at its final location.
     Activated,
     /// Installed state was persisted; the transaction is complete.
@@ -46,6 +48,7 @@ impl InstallPhase {
             Self::Downloading => "downloading",
             Self::Verified => "verified",
             Self::Staged => "staged",
+            Self::Activating => "activating",
             Self::Activated => "activated",
             Self::Committed => "committed",
             Self::Failed => "failed",
@@ -58,6 +61,7 @@ impl InstallPhase {
             "downloading" => Some(Self::Downloading),
             "verified" => Some(Self::Verified),
             "staged" => Some(Self::Staged),
+            "activating" => Some(Self::Activating),
             "activated" => Some(Self::Activated),
             "committed" => Some(Self::Committed),
             "failed" => Some(Self::Failed),
@@ -76,8 +80,10 @@ impl InstallPhase {
                 | (Downloading, Failed)
                 | (Verified, Staged)
                 | (Verified, Failed)
-                | (Staged, Activated)
+                | (Staged, Activating)
                 | (Staged, Failed)
+                | (Activating, Activated)
+                | (Activating, Failed)
                 | (Activated, Committed)
                 | (Activated, Failed)
                 | (Failed, Downloading)
@@ -150,7 +156,7 @@ impl InstallJournal {
     pub fn recovery_action(&self) -> InstallRecovery {
         match self.entry.phase {
             InstallPhase::Planned | InstallPhase::Downloading | InstallPhase::Verified | InstallPhase::Staged => InstallRecovery::DiscardStaging,
-            InstallPhase::Activated => InstallRecovery::ReconcileActivation,
+            InstallPhase::Activating | InstallPhase::Activated => InstallRecovery::ReconcileActivation,
             InstallPhase::Committed => InstallRecovery::CleanupCommitted,
             InstallPhase::Failed => InstallRecovery::InspectFailure,
         }
