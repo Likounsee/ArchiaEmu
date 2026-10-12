@@ -7,6 +7,7 @@
 use crate::module_management::{ModuleId, ModuleReadiness};
 use core::cmp::Ordering;
 use core::fmt;
+use std::collections::HashMap;
 
 /// Current supported schema version for module manifests.
 pub const SUPPORTED_MANIFEST_SCHEMA: u32 = 1;
@@ -362,10 +363,50 @@ impl ModuleManifest {
                 }
             }
         }
-        let mut visited = Vec::new();
-        let mut visiting = Vec::new();
-        for module in &self.modules {
-            self.visit(&module.id, &mut visited, &mut visiting)?;
+        // Dependencies have been checked above, and module IDs are unique. Use an
+        // explicit DFS stack so untrusted, deeply nested manifests cannot exhaust
+        // the call stack during cycle detection.
+        let indices: HashMap<ModuleId, usize> = self
+            .modules
+            .iter()
+            .enumerate()
+            .map(|(index, module)| (module.id.clone(), index))
+            .collect();
+        let mut state = vec![0_u8; self.modules.len()]; // 0 = unseen, 1 = active, 2 = complete
+        let mut stack: Vec<(usize, usize)> = Vec::new();
+
+        for start in 0..self.modules.len() {
+            if state[start] == 2 {
+                continue;
+            }
+            state[start] = 1;
+            stack.push((start, 0));
+
+            while !stack.is_empty() {
+                let last = stack.len() - 1;
+                let (current, next_dependency) = stack[last];
+                let dependencies = &self.modules[current].dependencies;
+
+                if next_dependency == dependencies.len() {
+                    state[current] = 2;
+                    stack.pop();
+                    continue;
+                }
+
+                let dependency = &dependencies[next_dependency];
+                stack[last].1 += 1;
+                let dependency_index = *indices
+                    .get(dependency)
+                    .expect("dependency existence was validated before graph traversal");
+                match state[dependency_index] {
+                    0 => {
+                        state[dependency_index] = 1;
+                        stack.push((dependency_index, 0));
+                    }
+                    1 => return Err(ManifestError::DependencyCycle(dependency.clone())),
+                    _ => {}
+                }
+            }
         }
         Ok(())
     }
@@ -401,31 +442,7 @@ impl ModuleManifest {
         Ok(compatible)
     }
 
-    fn visit(
-        &self,
-        id: &ModuleId,
-        visited: &mut Vec<ModuleId>,
-        visiting: &mut Vec<ModuleId>,
-    ) -> Result<(), ManifestError> {
-        if visited.contains(id) {
-            return Ok(());
-        }
-        if visiting.contains(id) {
-            return Err(ManifestError::DependencyCycle(id.clone()));
-        }
-        visiting.push(id.clone());
-        let module = self
-            .modules
-            .iter()
-            .find(|m| &m.id == id)
-            .expect("dependency existence was validated before graph traversal");
-        for dependency in &module.dependencies {
-            self.visit(dependency, visited, visiting)?;
-        }
-        visiting.pop();
-        visited.push(id.clone());
-        Ok(())
-    }
+
 }
 
 #[cfg(test)]
@@ -515,6 +532,38 @@ mod tests {
         ));
         assert!(matches!(
             manifest(vec![module("one", &["two"]), module("two", &["one"])]).validate(),
+            Err(ManifestError::DependencyCycle(_))
+        ));
+    }
+
+    #[test]
+    fn validates_deep_dependency_chain_without_recursive_traversal() {
+        const MODULE_COUNT: usize = 2048;
+        let mut modules = (0..MODULE_COUNT)
+            .map(|index| module(&format!("node-{index}"), &[]))
+            .collect::<Vec<_>>();
+        for index in 0..MODULE_COUNT - 1 {
+            modules[index].dependencies.push(id(&format!("node-{}", index + 1)));
+        }
+
+        assert!(manifest(modules).validate().is_ok());
+    }
+
+    #[test]
+    fn rejects_a_cycle_at_the_end_of_a_deep_dependency_chain() {
+        const MODULE_COUNT: usize = 1024;
+        let mut modules = (0..MODULE_COUNT)
+            .map(|index| module(&format!("node-{index}"), &[]))
+            .collect::<Vec<_>>();
+        for index in 0..MODULE_COUNT - 1 {
+            modules[index].dependencies.push(id(&format!("node-{}", index + 1)));
+        }
+        modules[MODULE_COUNT - 1]
+            .dependencies
+            .push(id("node-0"));
+
+        assert!(matches!(
+            manifest(modules).validate(),
             Err(ManifestError::DependencyCycle(_))
         ));
     }
