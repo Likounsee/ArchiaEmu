@@ -7,7 +7,7 @@
 use crate::module_management::{ModuleId, ModuleReadiness};
 use core::cmp::Ordering;
 use core::fmt;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Current supported schema version for module manifests.
 pub const SUPPORTED_MANIFEST_SCHEMA: u32 = 1;
@@ -300,21 +300,26 @@ impl ModuleManifest {
             return Err(ManifestError::InvalidRevision);
         }
 
+        // Build the ID index once. Besides powering iterative cycle detection,
+        // this makes duplicate-ID and dependency-existence checks expected O(1)
+        // rather than rescanning the entire untrusted catalogue for each entry.
+        let mut indices: HashMap<ModuleId, usize> = HashMap::with_capacity(self.modules.len());
         for (index, module) in self.modules.iter().enumerate() {
-            if self.modules[..index]
-                .iter()
-                .any(|prior| prior.id == module.id)
-            {
+            if indices.insert(module.id.clone(), index).is_some() {
                 return Err(ManifestError::DuplicateModule(module.id.clone()));
             }
+        }
+
+        for module in &self.modules {
             if module
                 .max_app_version_exclusive
                 .is_some_and(|max| max <= module.min_app_version)
             {
                 return Err(ManifestError::InvalidCompatibilityRange(module.id.clone()));
             }
-            for (target_index, target) in module.targets.iter().enumerate() {
-                if module.targets[..target_index].contains(target) {
+            let mut seen_targets = HashSet::with_capacity(module.targets.len());
+            for target in &module.targets {
+                if !seen_targets.insert(*target) {
                     return Err(ManifestError::DuplicateTarget(module.id.clone()));
                 }
             }
@@ -344,18 +349,15 @@ impl ModuleManifest {
                 }
                 (None, ModuleReadiness::InDevelopment) => {}
             }
-            for (dependency_index, dependency) in module.dependencies.iter().enumerate() {
-                if module.dependencies[..dependency_index].contains(dependency) {
+            let mut seen_dependencies = HashSet::with_capacity(module.dependencies.len());
+            for dependency in &module.dependencies {
+                if !seen_dependencies.insert(dependency) {
                     return Err(ManifestError::DuplicateDependency {
                         module: module.id.clone(),
                         dependency: dependency.clone(),
                     });
                 }
-                if !self
-                    .modules
-                    .iter()
-                    .any(|candidate| &candidate.id == dependency)
-                {
+                if !indices.contains_key(dependency) {
                     return Err(ManifestError::MissingDependency {
                         module: module.id.clone(),
                         dependency: dependency.clone(),
@@ -366,12 +368,6 @@ impl ModuleManifest {
         // Dependencies have been checked above, and module IDs are unique. Use an
         // explicit DFS stack so untrusted, deeply nested manifests cannot exhaust
         // the call stack during cycle detection.
-        let indices: HashMap<ModuleId, usize> = self
-            .modules
-            .iter()
-            .enumerate()
-            .map(|(index, module)| (module.id.clone(), index))
-            .collect();
         let mut state = vec![0_u8; self.modules.len()]; // 0 = unseen, 1 = active, 2 = complete
         let mut stack: Vec<(usize, usize)> = Vec::new();
 
