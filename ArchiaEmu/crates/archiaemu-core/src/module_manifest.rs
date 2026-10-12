@@ -165,7 +165,7 @@ pub enum ManifestError {
         module: ModuleId,
         /// Missing dependency ID.
         dependency: ModuleId,
-    }
+    },
     /// Dependency graph contains a cycle.
     DependencyCycle(ModuleId),
     /// Compatibility bounds contradict each other.
