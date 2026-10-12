@@ -835,6 +835,51 @@ mod tests {
     }
 
     #[test]
+    fn rejected_content_reload_preserves_paused_and_halted_states() {
+        let mut paused = EmulationSession::new(Box::new(TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Yielded,
+        }));
+        paused.load_content(&[1]).unwrap();
+        paused.pause().unwrap();
+
+        assert!(matches!(
+            paused.load_content(&[]),
+            Err(SessionError::Core(CoreError::InvalidContent("empty test content")))
+        ));
+        assert_eq!(paused.state(), SessionState::Paused);
+        assert!(matches!(
+            paused.run_until_event(),
+            Err(SessionError::InvalidTransition {
+                operation: "run",
+                state: SessionState::Paused,
+            })
+        ));
+
+        let mut halted = EmulationSession::new(Box::new(TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Halted,
+        }));
+        halted.load_content(&[1]).unwrap();
+        assert_eq!(halted.run_until_event(), Ok(CoreEvent::Halted));
+
+        assert!(matches!(
+            halted.load_content(&[]),
+            Err(SessionError::Core(CoreError::InvalidContent("empty test content")))
+        ));
+        assert_eq!(halted.state(), SessionState::Halted);
+        assert!(matches!(
+            halted.run_until_event(),
+            Err(SessionError::InvalidTransition {
+                operation: "run",
+                state: SessionState::Halted,
+            })
+        ));
+    }
+
+    #[test]
     fn failed_reset_preserves_the_previous_lifecycle_state() {
         let mut session = EmulationSession::new(Box::new(ResetFailureCore));
         session.load_content(&[1]).unwrap();
