@@ -2564,6 +2564,37 @@ mod shared_input_runtime_tests {
     }
 
     #[test]
+    fn cleared_core_diagnostic_is_recorded_again_after_a_new_failure() {
+        let rejected_press = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+        let core = RejectSpecificInputCore {
+            rejected_event: rejected_press,
+            reset_fails: false,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        assert!(session.send_input(rejected_press).is_err());
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("input rejected for test"))
+        );
+
+        session.clear_last_core_error();
+        assert_eq!(session.last_core_error(), None);
+
+        assert!(session.send_input(rejected_press).is_err());
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("input rejected for test"))
+        );
+        assert_eq!(session.state(), SessionState::Running);
+        assert!(!session.is_input_pressed(InputControl::Action1));
+    }
+
+    #[test]
     fn failed_input_release_keeps_control_marked_as_held() {
         let release = InputEvent {
             control: InputControl::Action1,
