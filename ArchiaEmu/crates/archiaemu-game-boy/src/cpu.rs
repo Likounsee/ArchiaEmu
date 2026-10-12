@@ -289,6 +289,28 @@ impl Cpu {
                 }
                 3
             }
+            // PUSH rr / POP rr.
+            0xC5 | 0xD5 | 0xE5 | 0xF5 => {
+                self.push_pair(bus, (opcode >> 4) & 0x03);
+                4
+            }
+            0xC1 | 0xD1 | 0xE1 | 0xF1 => {
+                self.pop_pair(bus, (opcode >> 4) & 0x03);
+                3
+            }
+            // CALL a16 / RET.
+            0xCD => {
+                let low = self.fetch8(bus);
+                let high = self.fetch8(bus);
+                let target = u16::from_le_bytes([low, high]);
+                self.push16(bus, self.registers.pc);
+                self.registers.pc = target;
+                6
+            }
+            0xC9 => {
+                self.registers.pc = self.pop16(bus);
+                4
+            }
             // Relative jumps use a signed displacement from the next instruction.
             0x18 | 0x20 | 0x28 | 0x30 | 0x38 => {
                 let displacement = self.fetch8(bus) as i8;
@@ -434,6 +456,42 @@ impl Cpu {
             opcode,
             machine_cycles,
         })
+    }
+
+    fn push_pair<B: CpuBus>(&mut self, bus: &mut B, pair: u8) {
+        let value = match pair {
+            0 => self.registers.pair(RegisterPair::Bc),
+            1 => self.registers.pair(RegisterPair::De),
+            2 => self.registers.pair(RegisterPair::Hl),
+            _ => self.registers.pair(RegisterPair::Af),
+        };
+        self.push16(bus, value);
+    }
+
+    fn pop_pair<B: CpuBus>(&mut self, bus: &mut B, pair: u8) {
+        let value = self.pop16(bus);
+        match pair {
+            0 => self.registers.set_pair(RegisterPair::Bc, value),
+            1 => self.registers.set_pair(RegisterPair::De, value),
+            2 => self.registers.set_pair(RegisterPair::Hl, value),
+            _ => self.registers.set_pair(RegisterPair::Af, value),
+        }
+    }
+
+    fn push16<B: CpuBus>(&mut self, bus: &mut B, value: u16) {
+        let [high, low] = value.to_be_bytes();
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+        bus.write8(self.registers.sp, high);
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+        bus.write8(self.registers.sp, low);
+    }
+
+    fn pop16<B: CpuBus>(&mut self, bus: &mut B) -> u16 {
+        let low = bus.read8(self.registers.sp);
+        self.registers.sp = self.registers.sp.wrapping_add(1);
+        let high = bus.read8(self.registers.sp);
+        self.registers.sp = self.registers.sp.wrapping_add(1);
+        u16::from_le_bytes([low, high])
     }
 
     fn adjust_pair(&mut self, pair: u8, increment: bool) {
@@ -584,6 +642,32 @@ mod execution_tests {
         cpu.wake();
         assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x00);
         assert!(!cpu.is_halted());
+    }
+
+    #[test]
+    fn call_return_and_stack_pairs_round_trip() {
+        let mut cpu = Cpu::new();
+        cpu.registers.sp = 0xC100;
+        cpu.registers.set_pair(RegisterPair::Bc, 0xBEEF);
+        let mut bus = TestBus::with_program(&[
+            0xC5,             // PUSH BC
+            0x01, 0x00, 0x00, // LD BC,0
+            0xC1,             // POP BC
+            0xCD, 0x0B, 0x00, // CALL 0x000B
+            0x00,             // return address 0x0009, then NOP
+            0xC9,             // RET
+        ]);
+
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(cpu.registers.sp, 0xC0FE);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(cpu.registers.pair(RegisterPair::Bc), 0);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(cpu.registers.pair(RegisterPair::Bc), 0xBEEF);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 6);
+        assert_eq!(cpu.registers.pc, 0x000B);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(cpu.registers.pc, 0x0009);
     }
 
     #[test]
