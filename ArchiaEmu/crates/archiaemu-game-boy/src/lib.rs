@@ -259,8 +259,10 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         self.cpu = Cpu::new();
         if header.cartridge_type == 0x00
             && header.preferred_hardware_mode().is_some()
-            && expected_rom_size(header.rom_size_code)
-                .map_or(false, |required| content.len() >= required)
+            && matches!(
+                expected_rom_size(header.rom_size_code),
+                Some(required) if content.len() >= required
+            )
         {
             // For complete supported ROM-only images, loading also establishes
             // the initial machine state so the runtime can execute immediately.
