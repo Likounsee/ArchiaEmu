@@ -11,4 +11,8 @@ Represent host devices through a shared, platform-neutral event model, then tran
 ## Validation
 
 Test remapping conflicts, disconnected devices, hot-plug, invalid configuration, repeat behavior and deterministic input replay. Never claim controller support until a real core consumes events and tests verify the mapping.
-\n\n## Shared event shape\n\nThe core crate now defines platform-neutral `InputEvent` state transitions and a small set of semantic `InputControl` values. Host keyboard/gamepad scan codes must be normalized before they reach a core; each system module remains responsible for mapping semantic controls to its own hardware. Device discovery, remapping, hotplug, per-system mappings, and delivery into a running core remain unimplemented.\n
+
+
+## Shared event shape
+
+The core crate defines platform-neutral `InputEvent` state transitions and a small set of semantic `InputControl` values. `EmulationCore::send_input` is the common delivery method; its default implementation explicitly reports unsupported input. Host keyboard/gamepad scan codes must be normalized before they reach a core, and each system module remains responsible for mapping semantic controls to its own hardware. Device discovery, remapping, hotplug, per-system mappings, and a real core consuming these events remain unimplemented.
