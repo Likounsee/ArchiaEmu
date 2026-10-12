@@ -408,6 +408,9 @@ mod tests {
             if content.is_empty() {
                 return Err(CoreError::InvalidContent("empty test content"));
             }
+            if content == b"REJECT" {
+                return Err(CoreError::InvalidContent("rejected launch test content"));
+            }
             self.loaded = true;
             Ok(())
         }
@@ -562,6 +565,44 @@ mod tests {
             Err(LaunchError::Registry(
                 RegistryError::AmbiguousDetectedFormats(2)
             ))
+        ));
+    }
+
+    #[test]
+    fn launch_pipeline_waits_for_all_probes_to_decide() {
+        let probe = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let id = SystemId::new("runtime-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_runtime_test_core).unwrap();
+
+        assert!(matches!(
+            launch_content(b"GA", ContentLimits::new(64), &probes, &registry),
+            Err(LaunchError::Registry(
+                RegistryError::IncompleteDetection(1)
+            ))
+        ));
+    }
+
+    #[test]
+    fn launch_pipeline_returns_core_validation_failure_instead_of_running() {
+        let probe = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"REJECT",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let id = SystemId::new("runtime-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_runtime_test_core).unwrap();
+
+        assert!(matches!(
+            launch_content(b"REJECT", ContentLimits::new(64), &probes, &registry),
+            Err(LaunchError::Session(SessionError::Core(
+                CoreError::InvalidContent("rejected launch test content")
+            )))
         ));
     }
 
