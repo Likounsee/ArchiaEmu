@@ -187,10 +187,10 @@ pub const SYSTEM_ID: &str = "game-boy";
 /// A module adapter that exposes Game Boy cartridge inspection through the
 /// shared ArchiaEmu core contract.
 ///
-/// This is intentionally not advertised as a functioning emulator yet:
-/// CPU execution, memory mapping, video, audio, interrupts, and input remain
-/// unimplemented. The adapter accepts and validates a ROM for inspection, but
-/// execution methods return an explicit unsupported error.
+/// This is an early execution foundation, not a functioning game emulator yet:
+/// a limited LR35902 instruction subset runs over a basic ROM/WRAM/HRAM bus.
+/// Video, audio, I/O devices, timers, interrupts, input, mapper banking, and most
+/// instructions remain unimplemented, so game compatibility is not claimed.
 pub struct GameBoyCore {
     image: Option<Vec<u8>>,
     header: Option<CartridgeHeader>,
@@ -526,7 +526,7 @@ mod tests {
     }
 
     #[test]
-    fn module_validates_rom_and_executes_the_first_instruction() {
+    fn module_validates_complete_rom_and_executes_the_first_instruction() {
         let mut core = GameBoyCore::new();
         assert_eq!(
             archiaemu_core::EmulationCore::run_until_event(&mut core),
