@@ -304,22 +304,32 @@ impl ModuleStateStore {
                 return Err(error.into());
             }
         }
-        if had_original {
-            if let Err(error) = fs::rename(&self.path, &backup) {
-                let _ = fs::remove_file(&temp);
-                return Err(error.into());
-            }
-        }
-        if let Err(error) = fs::rename(&temp, &self.path) {
-            if had_original {
-                let _ = fs::rename(&backup, &self.path);
-            }
-            let _ = fs::remove_file(&temp);
-            return Err(error.into());
-        }
+        replace_primary_with_temp(&self.path, &temp, &backup, had_original)?;
         sync_parent_directory(parent)?;
         Ok(())
     }
+}
+
+/// Installs a staged state file, restoring the previous primary if installation fails.
+fn replace_primary_with_temp(
+    primary: &Path,
+    temp: &Path,
+    backup: &Path,
+    had_original: bool,
+) -> io::Result<()> {
+    if had_original {
+        fs::rename(primary, backup)?;
+    }
+    if let Err(install_error) = fs::rename(temp, primary) {
+        if had_original {
+            // Preserve the installation error as the primary failure. If
+            // restoration also fails, the backup is intentionally left intact
+            // for recovery by ModuleStateStore::load.
+            let _ = fs::rename(backup, primary);
+        }
+        return Err(install_error);
+    }
+    Ok(())
 }
 
 /// Makes a successful rename durable where the platform exposes directory
@@ -371,6 +381,22 @@ mod tests {
             "archiaemu-module-state-{}-{unique}.state",
             std::process::id()
         ))
+    }
+
+    #[test]
+    fn failed_temp_install_restores_original_primary() {
+        let primary = temp_path();
+        let temp = primary.with_extension("missing-staged-file");
+        let backup = backup_path(&primary);
+        let mut original = ModuleManagerState::new();
+        original.mark_setup_completed();
+        fs::write(&primary, original.encode()).unwrap();
+
+        assert!(replace_primary_with_temp(&primary, &temp, &backup, true).is_err());
+        assert_eq!(read_state(&primary).unwrap(), original);
+        assert!(!backup.exists());
+
+        let _ = fs::remove_file(&primary);
     }
 
     #[cfg(unix)]
