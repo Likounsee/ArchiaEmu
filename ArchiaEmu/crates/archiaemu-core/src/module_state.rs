@@ -41,7 +41,7 @@ pub struct ModuleManagerState {
 }
 
 /// Error while updating persisted module state.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ModuleStateError {
     /// An installed package must have a non-empty version string.
     EmptyVersion,
