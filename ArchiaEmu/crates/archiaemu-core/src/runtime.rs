@@ -417,27 +417,27 @@ mod tests {
 
         assert!(matches!(
             session.pause(),
-            Err(SessionError::InvalidTransition { operation: "pause", state: SessionState::Empty })
+            Err(SessionError::InvalidTransition {\n                operation: "pause",\n                state: SessionState::Empty,\n            })
         ));
         assert!(matches!(
             session.resume(),
-            Err(SessionError::InvalidTransition { operation: "resume", state: SessionState::Empty })
+            Err(SessionError::InvalidTransition {\n                operation: "resume",\n                state: SessionState::Empty,\n            })
         ));
         assert!(matches!(
             session.reset(),
-            Err(SessionError::InvalidTransition { operation: "reset", state: SessionState::Empty })
+            Err(SessionError::InvalidTransition {\n                operation: "reset",\n                state: SessionState::Empty,\n            })
         ));
         assert_eq!(session.state(), SessionState::Empty);
 
         session.load_content(&[1]).unwrap();
         assert!(matches!(
             session.resume(),
-            Err(SessionError::InvalidTransition { operation: "resume", state: SessionState::Running })
+            Err(SessionError::InvalidTransition {\n                operation: "resume",\n                state: SessionState::Running,\n            })
         ));
         session.pause().unwrap();
         assert!(matches!(
             session.pause(),
-            Err(SessionError::InvalidTransition { operation: "pause", state: SessionState::Paused })
+            Err(SessionError::InvalidTransition {\n                operation: "pause",\n                state: SessionState::Paused,\n            })
         ));
         assert_eq!(session.state(), SessionState::Paused);
     }
