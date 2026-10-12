@@ -18,6 +18,9 @@ pub mod host_profile;
 /// Console-independent lifecycle controller for an active emulation session.
 pub mod runtime;
 
+/// Runtime-facing module metadata, capability and provenance contract.
+pub mod module_descriptor;
+
 /// Dependency-aware planning for optional console and shared-runtime modules.
 pub mod module_management;
 
