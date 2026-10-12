@@ -403,7 +403,10 @@ mod tests {
                 system_id: SystemId::new("runtime-test").unwrap(),
                 display_name: "Runtime test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    ..CoreCapabilities::default()
+                },
             }
         }
 
@@ -447,7 +450,10 @@ mod tests {
                 system_id: SystemId::new("error-once-test").unwrap(),
                 display_name: "Error-once test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    ..CoreCapabilities::default()
+                },
             }
         }
 
@@ -1147,7 +1153,10 @@ mod tests {
                 system_id: SystemId::new("reset-failure-test").unwrap(),
                 display_name: "Reset failure test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    ..CoreCapabilities::default()
+                },
             }
         }
 
@@ -1195,7 +1204,11 @@ mod tests {
                     system_id: SystemId::new("stateful-test").unwrap(),
                     display_name: "Stateful test core",
                     core_version: "0.0.0-test",
-                    capabilities: CoreCapabilities { content_loading: true, save_states: true, ..CoreCapabilities::default() },
+                    capabilities: CoreCapabilities {
+                        content_loading: true,
+                        save_states: true,
+                        ..CoreCapabilities::default()
+                    },
                 }
             }
 
@@ -1319,7 +1332,10 @@ mod tests {
                     system_id: SystemId::new("underreported-test").unwrap(),
                     display_name: "Underreported test core",
                     core_version: "0.0.0-test",
-                    capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
+                    capabilities: CoreCapabilities {
+                    content_loading: true,
+                    ..CoreCapabilities::default()
+                },
                 }
             }
 
@@ -1485,7 +1501,10 @@ mod runtime_manager_tests {
                 system_id: SystemId::new("manager-test").unwrap(),
                 display_name: "Manager test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    ..CoreCapabilities::default()
+                },
             }
         }
 
@@ -1575,7 +1594,11 @@ mod shared_input_runtime_tests {
                 system_id: SystemId::new("input-recording").unwrap(),
                 display_name: "Input recording test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities { content_loading: true, input: true, ..CoreCapabilities::default() },
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    input: true,
+                    ..CoreCapabilities::default()
+                },
             }
         }
 
@@ -1713,7 +1736,11 @@ mod shared_input_runtime_tests {
                 system_id: SystemId::new("reject-input-test").unwrap(),
                 display_name: "Reject input test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities { content_loading: true, input: true, ..CoreCapabilities::default() },
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    input: true,
+                    ..CoreCapabilities::default()
+                },
             }
         }
 
