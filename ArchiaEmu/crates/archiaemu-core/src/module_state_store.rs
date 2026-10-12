@@ -292,10 +292,12 @@ impl ModuleStateStore {
             return Err(error.into());
         }
 
-        if backup.exists() {
+        let had_original = self.path.exists();
+        // If the primary is missing, the backup may be the only recoverable
+        // copy. Keep it until the new primary has been installed successfully.
+        if had_original && backup.exists() {
             fs::remove_file(&backup)?;
         }
-        let had_original = self.path.exists();
         if had_original {
             fs::rename(&self.path, &backup)?;
         }
@@ -409,6 +411,26 @@ mod tests {
         assert!(matches!(store.load(), Err(ModuleStateStoreError::TooLarge)));
         let _ = fs::remove_file(&path);
         let _ = fs::remove_file(backup_path(&path));
+    }
+
+    #[test]
+    fn store_preserves_only_backup_when_primary_is_missing() {
+        let path = temp_path();
+        let backup = backup_path(&path);
+        let store = ModuleStateStore::new(&path);
+        let mut recoverable = ModuleManagerState::new();
+        recoverable.mark_setup_skipped();
+        fs::write(&backup, recoverable.encode()).unwrap();
+
+        let mut replacement = ModuleManagerState::new();
+        replacement.mark_setup_completed();
+        store.save(&replacement).unwrap();
+
+        assert_eq!(store.load().unwrap(), replacement);
+        assert!(backup.exists());
+        assert_eq!(read_state(&backup).unwrap(), recoverable);
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(&backup);
     }
 
     #[test]

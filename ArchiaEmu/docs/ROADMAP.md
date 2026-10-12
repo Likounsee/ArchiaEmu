@@ -109,6 +109,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 ## P2 — sécurité, confiance et diagnostic
 
 - [x] Appliquer aussi à l'écriture la limite de 4 Mio du stockage d'état; tests de rejet avant écriture et de fichier persistant trop volumineux.
+- [x] Préserver la sauvegarde valide lorsqu'il ne reste plus de fichier primaire, jusqu'à la création réussie du nouveau fichier; test de régression.
 
 - [ ] Compléter le traitement des manifestes et la validation des métadonnées avant toute installation.
 - [ ] Utiliser une implémentation cryptographique maintenue et auditée; ne pas inventer de cryptographie.
