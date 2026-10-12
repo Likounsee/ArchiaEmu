@@ -10,6 +10,8 @@
 /// LR35902 register state and flag-accurate arithmetic primitives.
 pub mod cpu;
 
+use cpu::{Cpu, CpuBus, RegisterPair};
+
 /// The minimum image length needed to include the complete cartridge header.
 pub const MINIMUM_HEADER_SIZE: usize = 0x150;
 
@@ -182,6 +184,9 @@ pub const SYSTEM_ID: &str = "game-boy";
 pub struct GameBoyCore {
     image: Option<Vec<u8>>,
     header: Option<CartridgeHeader>,
+    cpu: Cpu,
+    work_ram: [u8; 0x2000],
+    high_ram: [u8; 0x7F],
 }
 
 impl GameBoyCore {
@@ -190,6 +195,9 @@ impl GameBoyCore {
         Self {
             image: None,
             header: None,
+            cpu: Cpu::new(),
+            work_ram: [0; 0x2000],
+            high_ram: [0; 0x7F],
         }
     }
 
@@ -236,25 +244,115 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         // loaded image if the caller supplies malformed replacement content.
         self.image = Some(content.to_vec());
         self.header = Some(header);
+        self.work_ram.fill(0);
+        self.high_ram.fill(0);
+        self.cpu = Cpu::new();
         Ok(())
     }
 
     fn reset(&mut self) -> Result<(), archiaemu_core::CoreError> {
-        if self.image.is_none() {
-            return Err(archiaemu_core::CoreError::NotInitialized);
+        let header = self
+            .header
+            .as_ref()
+            .ok_or(archiaemu_core::CoreError::NotInitialized)?;
+        if header.cartridge_type != 0x00 {
+            return Err(archiaemu_core::CoreError::Unsupported(
+                "execution currently supports ROM-only cartridges (mapper 0)",
+            ));
         }
-        Err(archiaemu_core::CoreError::Unsupported(
-            "Game Boy CPU execution is not implemented yet",
-        ))
+
+        self.cpu = Cpu::new();
+        self.cpu.registers.pc = 0x0100;
+        self.cpu.registers.sp = 0xFFFE;
+        match header.preferred_hardware_mode() {
+            Some(HardwareMode::Dmg) => {
+                self.cpu.registers.a = 0x01;
+                self.cpu.registers.set_f(0xB0);
+                self.cpu.registers.set_pair(RegisterPair::Bc, 0x0013);
+                self.cpu.registers.set_pair(RegisterPair::De, 0x00D8);
+                self.cpu.registers.set_pair(RegisterPair::Hl, 0x014D);
+            }
+            Some(HardwareMode::Cgb) => {
+                self.cpu.registers.a = 0x11;
+                self.cpu.registers.set_f(0x80);
+                self.cpu.registers.set_pair(RegisterPair::Bc, 0x0000);
+                self.cpu.registers.set_pair(RegisterPair::De, 0xFF56);
+                self.cpu.registers.set_pair(RegisterPair::Hl, 0x000D);
+            }
+            None => {
+                return Err(archiaemu_core::CoreError::Unsupported(
+                    "reserved Game Boy Color compatibility flag",
+                ));
+            }
+        }
+        self.work_ram.fill(0);
+        self.high_ram.fill(0);
+        Ok(())
     }
 
     fn run_until_event(&mut self) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
-        if self.image.is_none() {
-            return Err(archiaemu_core::CoreError::NotInitialized);
+        let image = self
+            .image
+            .as_deref()
+            .ok_or(archiaemu_core::CoreError::NotInitialized)?;
+        let header = self
+            .header
+            .as_ref()
+            .ok_or(archiaemu_core::CoreError::NotInitialized)?;
+        if header.cartridge_type != 0x00 {
+            return Err(archiaemu_core::CoreError::Unsupported(
+                "execution currently supports ROM-only cartridges (mapper 0)",
+            ));
         }
-        Err(archiaemu_core::CoreError::Unsupported(
-            "Game Boy CPU execution is not implemented yet",
-        ))
+
+        let mut bus = GameBoyBus {
+            image,
+            work_ram: &mut self.work_ram,
+            high_ram: &mut self.high_ram,
+        };
+        self.cpu
+            .step(&mut bus)
+            .map_err(|_| archiaemu_core::CoreError::Execution(
+                "unsupported LR35902 opcode in current instruction subset",
+            ))?;
+        if self.cpu.is_halted() {
+            Ok(archiaemu_core::CoreEvent::Halted)
+        } else {
+            Ok(archiaemu_core::CoreEvent::Yielded)
+        }
+    }
+}
+
+/// A deliberately limited memory bus for the first executable CPU milestone.
+///
+/// Cartridge banking, video RAM, OAM, I/O devices, timers, and interrupt
+/// arbitration are not implemented. Unmapped or unavailable hardware reads as
+/// 0xFF; only ROM, work RAM/echo RAM, and high RAM have backing storage.
+struct GameBoyBus<'a> {
+    image: &'a [u8],
+    work_ram: &'a mut [u8; 0x2000],
+    high_ram: &'a mut [u8; 0x7F],
+}
+
+impl CpuBus for GameBoyBus<'_> {
+    fn read8(&mut self, address: u16) -> u8 {
+        match address {
+            0x0000..=0x7FFF => self.image.get(usize::from(address)).copied().unwrap_or(0xFF),
+            0xC000..=0xDFFF => self.work_ram[usize::from(address - 0xC000)],
+            0xE000..=0xFDFF => self.work_ram[usize::from(address - 0xE000)],
+            0xFF80..=0xFFFE => self.high_ram[usize::from(address - 0xFF80)],
+            _ => 0xFF,
+        }
+    }
+
+    fn write8(&mut self, address: u16, value: u8) {
+        match address {
+            0xC000..=0xDFFF => self.work_ram[usize::from(address - 0xC000)] = value,
+            0xE000..=0xFDFF => self.work_ram[usize::from(address - 0xE000)] = value,
+            0xFF80..=0xFFFE => self.high_ram[usize::from(address - 0xFF80)] = value,
+            // Cartridge ROM and currently unimplemented hardware regions ignore writes.
+            _ => {}
+        }
     }
 }
 
