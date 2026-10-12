@@ -154,14 +154,22 @@ impl CpuRegisters {
     /// ANDs an 8-bit value with A and updates Z/N/H/C.
     pub fn and_a(&mut self, value: u8) -> u8 {
         self.a &= value;
-        self.set_f(if self.a == 0 { flags::ZERO | flags::HALF_CARRY } else { flags::HALF_CARRY });
+        self.set_f(if self.a == 0 {
+            flags::ZERO | flags::HALF_CARRY
+        } else {
+            flags::HALF_CARRY
+        });
         self.a
     }
 
     /// ORs an 8-bit value with A and updates flags.
     pub fn or_a(&mut self, value: u8) -> u8 {
         self.a |= value;
-        self.set_f(if self.a == 0 { flags::ZERO } else { 0 });
+        self.set_f(if self.a == 0 {
+            flags::ZERO
+        } else {
+            0
+        });
         self.a
     }
 
@@ -367,7 +375,11 @@ impl Cpu {
                     0xE6 => { self.registers.and_a(value); }
                     0xEE => {
                         self.registers.a ^= value;
-                        self.registers.set_f(if self.registers.a == 0 { flags::ZERO } else { 0 });
+                        self.registers.set_f(if self.registers.a == 0 {
+                            flags::ZERO
+                        } else {
+                            0
+                        });
                     }
                     0xF6 => { self.registers.or_a(value); }
                     _ => self.registers.compare_a(value),
@@ -525,7 +537,11 @@ impl Cpu {
             0xA0..=0xA7 => {
                 let value = self.read_register(bus, opcode & 0x07);
                 self.registers.and_a(value);
-                if opcode & 0x07 == 6 { 2 } else { 1 }
+                if opcode & 0x07 == 6 {
+                    2
+                } else {
+                    1
+                }
             }
             0xA8..=0xAF => {
                 let value = self.read_register(bus, opcode & 0x07);
