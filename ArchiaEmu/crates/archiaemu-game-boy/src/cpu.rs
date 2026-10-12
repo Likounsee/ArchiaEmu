@@ -338,6 +338,51 @@ impl Cpu {
                 self.adjust_pair(opcode >> 4, false);
                 2
             }
+            // LD (a16),SP.
+            0x08 => {
+                let low = self.fetch8(bus);
+                let high = self.fetch8(bus);
+                let address = u16::from_le_bytes([low, high]);
+                let [sp_low, sp_high] = self.registers.sp.to_le_bytes();
+                bus.write8(address, sp_low);
+                bus.write8(address.wrapping_add(1), sp_high);
+                5
+            }
+            // LD (HL+/-),A and LD A,(HL+/-).
+            0x22 | 0x32 => {
+                let address = self.registers.pair(RegisterPair::Hl);
+                bus.write8(address, self.registers.a);
+                let next = if opcode == 0x22 {
+                    address.wrapping_add(1)
+                } else {
+                    address.wrapping_sub(1)
+                };
+                self.registers.set_pair(RegisterPair::Hl, next);
+                2
+            }
+            0x2A | 0x3A => {
+                let address = self.registers.pair(RegisterPair::Hl);
+                self.registers.a = bus.read8(address);
+                let next = if opcode == 0x2A {
+                    address.wrapping_add(1)
+                } else {
+                    address.wrapping_sub(1)
+                };
+                self.registers.set_pair(RegisterPair::Hl, next);
+                2
+            }
+            // LD (a16),A / LD A,(a16).
+            0xEA | 0xFA => {
+                let low = self.fetch8(bus);
+                let high = self.fetch8(bus);
+                let address = u16::from_le_bytes([low, high]);
+                if opcode == 0xEA {
+                    bus.write8(address, self.registers.a);
+                } else {
+                    self.registers.a = bus.read8(address);
+                }
+                4
+            }
             // Indirect A transfers through BC and DE.
             0x02 => {
                 bus.write8(self.registers.pair(RegisterPair::Bc), self.registers.a);
@@ -642,6 +687,32 @@ mod execution_tests {
         cpu.wake();
         assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x00);
         assert!(!cpu.is_halted());
+    }
+
+    #[test]
+    fn hl_auto_increment_and_absolute_memory_transfers_work() {
+        let mut cpu = Cpu::new();
+        cpu.registers.set_pair(RegisterPair::Hl, 0xC100);
+        cpu.registers.a = 0x42;
+        let mut bus = TestBus::with_program(&[
+            0x22,             // LD (HL+),A
+            0x3A,             // LD A,(HL-)
+            0xEA, 0x01, 0xC1, // LD (0xC101),A
+            0xFA, 0x01, 0xC1, // LD A,(0xC101)
+        ]);
+
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(bus.0[0xC100], 0x42);
+        assert_eq!(cpu.registers.pair(RegisterPair::Hl), 0xC101);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.a, 0xFF);
+        assert_eq!(cpu.registers.pair(RegisterPair::Hl), 0xC100);
+        cpu.registers.a = 0xA5;
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(bus.0[0xC101], 0xA5);
+        cpu.registers.a = 0;
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(cpu.registers.a, 0xA5);
     }
 
     #[test]
