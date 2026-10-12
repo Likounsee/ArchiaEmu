@@ -317,15 +317,28 @@ fn replace_primary_with_temp(
     backup: &Path,
     had_original: bool,
 ) -> io::Result<()> {
+    replace_primary_with_temp_using(primary, temp, backup, had_original, fs::rename)
+}
+
+fn replace_primary_with_temp_using<F>(
+    primary: &Path,
+    temp: &Path,
+    backup: &Path,
+    had_original: bool,
+    mut rename: F,
+) -> io::Result<()>
+where
+    F: FnMut(&Path, &Path) -> io::Result<()>,
+{
     if had_original {
-        fs::rename(primary, backup)?;
+        rename(primary, backup)?;
     }
-    if let Err(install_error) = fs::rename(temp, primary) {
+    if let Err(install_error) = rename(temp, primary) {
         if had_original {
             // Preserve the installation error as the primary failure. If
             // restoration also fails, the backup is intentionally left intact
             // for recovery by ModuleStateStore::load.
-            let _ = fs::rename(backup, primary);
+            let _ = rename(backup, primary);
         }
         return Err(install_error);
     }
@@ -381,6 +394,45 @@ mod tests {
             "archiaemu-module-state-{}-{unique}.state",
             std::process::id()
         ))
+    }
+
+    #[test]
+    fn failed_restore_keeps_backup_available_for_recovery() {
+        let primary = temp_path();
+        let temp = primary.with_extension("missing-staged-file");
+        let backup = backup_path(&primary);
+        let mut original = ModuleManagerState::new();
+        original.mark_setup_completed();
+        fs::write(&primary, original.encode()).unwrap();
+
+        let mut rename_calls = 0;
+        let result = replace_primary_with_temp_using(
+            &primary,
+            &temp,
+            &backup,
+            true,
+            |from, to| {
+                rename_calls += 1;
+                match rename_calls {
+                    1 => fs::rename(from, to),
+                    2 | 3 => Err(io::Error::new(
+                        io::ErrorKind::PermissionDenied,
+                        "injected rename failure",
+                    )),
+                    _ => unreachable!("replacement must make at most three rename calls"),
+                }
+            },
+        );
+
+        assert_eq!(rename_calls, 3);
+        assert!(result.is_err());
+        assert!(!primary.exists());
+        assert_eq!(read_state(&backup).unwrap(), original);
+
+        let mut store = ModuleStateStore::new(&primary);
+        assert_eq!(store.load().unwrap(), original);
+        let _ = fs::remove_file(&primary);
+        let _ = fs::remove_file(&backup);
     }
 
     #[test]
