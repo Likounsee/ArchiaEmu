@@ -336,7 +336,11 @@ impl Cpu {
                 let source = opcode & 0x07;
                 let value = self.read_register(bus, source);
                 self.write_register(bus, destination, value);
-                if source == 6 || destination == 6 { 2 } else { 1 }
+                if source == 6 || destination == 6 {
+                    2
+                } else {
+                    1
+                }
             }
             // ADD A,r; SUB r; XOR A,r.
             0x80..=0x87 => {
@@ -351,7 +355,11 @@ impl Cpu {
             0x90..=0x97 => {
                 let value = self.read_register(bus, opcode & 0x07);
                 self.registers.subtract_a(value);
-                if opcode & 0x07 == 6 { 2 } else { 1 }
+                if opcode & 0x07 == 6 {
+                    2
+                } else {
+                    1
+                }
             }
             0xA8..=0xAF => {
                 let value = self.read_register(bus, opcode & 0x07);
@@ -380,7 +388,11 @@ impl Cpu {
                 let value = self.read_register(bus, register);
                 let result = self.registers.decrement8(value);
                 self.write_register(bus, register, result);
-                if register == 6 { 3 } else { 1 }
+                if register == 6 {
+                    3
+                } else {
+                    1
+                }
             }
             // LD r,d8.
             0x06 | 0x0E | 0x16 | 0x1E | 0x26 | 0x2E | 0x36 | 0x3E => {
