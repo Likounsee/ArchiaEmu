@@ -497,6 +497,24 @@ mod tests {
     }
 
     #[test]
+    fn store_recovers_valid_backup_when_primary_exceeds_size_limit() {
+        let path = temp_path();
+        let backup = backup_path(&path);
+        let store = ModuleStateStore::new(&path);
+        let mut recoverable = ModuleManagerState::new();
+        recoverable.mark_setup_skipped();
+        fs::write(&backup, recoverable.encode()).unwrap();
+        fs::write(&path, vec![b'x'; MAX_STATE_FILE_BYTES as usize + 1]).unwrap();
+
+        assert_eq!(store.load().unwrap(), recoverable);
+        assert!(path.exists(), "recovery must not silently delete the oversized primary");
+        assert_eq!(fs::metadata(&path).unwrap().len(), MAX_STATE_FILE_BYTES + 1);
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(&backup);
+    }
+
+    #[test]
     fn store_persists_and_recovers_backup_after_corruption() {
         let path = temp_path();
         let store = ModuleStateStore::new(&path);
