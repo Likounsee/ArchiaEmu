@@ -653,7 +653,7 @@ mod execution_tests {
             0xC5,             // PUSH BC
             0x01, 0x00, 0x00, // LD BC,0
             0xC1,             // POP BC
-            0xCD, 0x0B, 0x00, // CALL 0x000B
+            0xCD, 0x09, 0x00, // CALL 0x0009
             0x00,             // return address 0x0009, then NOP
             0xC9,             // RET
         ]);
@@ -665,9 +665,9 @@ mod execution_tests {
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
         assert_eq!(cpu.registers.pair(RegisterPair::Bc), 0xBEEF);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 6);
-        assert_eq!(cpu.registers.pc, 0x000B);
-        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
         assert_eq!(cpu.registers.pc, 0x0009);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(cpu.registers.pc, 0x0008);
     }
 
     #[test]
