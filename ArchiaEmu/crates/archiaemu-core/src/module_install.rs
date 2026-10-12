@@ -131,14 +131,22 @@ pub fn install_module<B: ModuleInstallBackend>(
     advance_and_save(&mut journal, InstallPhase::Downloading, journal_path)?;
     if let Err(message) = backend.download_and_verify(&module, &version) {
         return Err(fail_before_activation(
-            backend, &mut journal, journal_path, InstallOperation::Download, message,
+            backend,
+            &mut journal,
+            journal_path,
+            InstallOperation::Download,
+            message,
         ));
     }
 
     advance_and_save(&mut journal, InstallPhase::Verified, journal_path)?;
     if let Err(message) = backend.extract_to_staging(&module, &version) {
         return Err(fail_before_activation(
-            backend, &mut journal, journal_path, InstallOperation::Extraction, message,
+            backend,
+            &mut journal,
+            journal_path,
+            InstallOperation::Extraction,
+            message,
         ));
     }
 
