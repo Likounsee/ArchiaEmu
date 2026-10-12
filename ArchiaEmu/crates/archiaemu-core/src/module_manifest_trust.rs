@@ -76,7 +76,9 @@ pub enum ManifestTrustError {
     InvalidManifest(ManifestError),
     /// Manifest revision is not newer than the previously accepted revision.
     RevisionRollback {
+        /// Revision supplied by the candidate manifest.
         received: u64,
+        /// Highest revision previously accepted by this policy instance.
         highest_accepted: u64,
     },
 }
