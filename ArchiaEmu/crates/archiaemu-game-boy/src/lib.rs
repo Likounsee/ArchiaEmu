@@ -126,6 +126,11 @@ impl CartridgeHeader {
             return Err(HeaderError::InvalidRomSizeCode(rom_size_code));
         }
 
+        let ram_size_code = image[0x149];
+        if !is_valid_ram_size_code(ram_size_code) {
+            return Err(HeaderError::InvalidRamSizeCode(ram_size_code));
+        }
+
         let expected = image[0x14D];
         let mut checksum = 0u8;
         for byte in &image[0x134..=0x14C] {
@@ -166,6 +171,8 @@ pub enum HeaderError {
     NintendoLogoMismatch,
     /// ROM size code is not one defined by the original Game Boy header format.
     InvalidRomSizeCode(u8),
+    /// RAM size code is not one defined by the original Game Boy header format.
+    InvalidRamSizeCode(u8),
     /// Header checksum differs from the checksum computed over 0x0134..=0x014C.
     HeaderChecksumMismatch {
         /// Checksum byte stored in the image.
@@ -187,6 +194,9 @@ impl core::fmt::Display for HeaderError {
             Self::InvalidRomSizeCode(code) => {
                 write!(formatter, "invalid Game Boy ROM size code: 0x{code:02X}")
             }
+            Self::InvalidRamSizeCode(code) => {
+                write!(formatter, "invalid Game Boy RAM size code: 0x{code:02X}")
+            }
             Self::HeaderChecksumMismatch { expected, actual } => write!(
                 formatter,
                 "Game Boy header checksum mismatch: stored 0x{expected:02X}, computed 0x{actual:02X}"
@@ -199,6 +209,10 @@ impl std::error::Error for HeaderError {}
 
 const fn is_valid_rom_size_code(code: u8) -> bool {
     matches!(code, 0x00..=0x08 | 0x52..=0x54)
+}
+
+const fn is_valid_ram_size_code(code: u8) -> bool {
+    matches!(code, 0x00..=0x05)
 }
 
 const fn expected_rom_size(code: u8) -> Option<usize> {
@@ -614,6 +628,29 @@ mod tests {
             CartridgeHeader::parse(&image),
             Err(HeaderError::InvalidRomSizeCode(0x09))
         );
+    }
+
+    #[test]
+    fn rejects_invalid_ram_size_codes() {
+        for code in [0x06, 0x07, 0xFF] {
+            let mut image = valid_image();
+            image[0x149] = code;
+            image[0x14D] = header_checksum(&image);
+            assert_eq!(
+                CartridgeHeader::parse(&image),
+                Err(HeaderError::InvalidRamSizeCode(code))
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_defined_ram_size_codes() {
+        for code in 0x00..=0x05 {
+            let mut image = valid_image();
+            image[0x149] = code;
+            image[0x14D] = header_checksum(&image);
+            assert_eq!(CartridgeHeader::parse(&image).unwrap().ram_size_code, code);
+        }
     }
 
     #[test]
