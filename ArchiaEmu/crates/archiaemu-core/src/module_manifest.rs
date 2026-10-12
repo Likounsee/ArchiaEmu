@@ -789,8 +789,8 @@ mod tests {
         let mut modules = (0..MODULE_COUNT)
             .map(|index| module(&format!("node-{index}"), &[]))
             .collect::<Vec<_>>();
-        for index in 0..MODULE_COUNT - 1 {
-            modules[index]
+        for (index, module) in modules.iter_mut().enumerate().take(MODULE_COUNT - 1) {
+            module
                 .dependencies
                 .push(id(&format!("node-{}", index + 1)));
         }
