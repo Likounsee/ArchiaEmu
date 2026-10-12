@@ -554,13 +554,13 @@ mod tests {
             matches: vec!["Not Canonical"],
             needs_more_data: vec![],
         };
-        assert_eq!(
-            registry.create_from_detection(&detection).unwrap_err(),
-            RegistryError::InvalidDetectedFormat {
+        assert!(matches!(
+            registry.create_from_detection(&detection),
+            Err(RegistryError::InvalidDetectedFormat {
                 format_id: "Not Canonical",
                 reason: IdentifierError::InvalidCharacter,
-            }
-        );
+            })
+        ));
     }
 
     #[test]
@@ -569,18 +569,18 @@ mod tests {
         let mut registry = CoreRegistry::new();
         registry.register(id, make_example_core).unwrap();
 
-        assert_eq!(
-            registry.create_from_detection(&content::ContentDetection::default()).unwrap_err(),
-            RegistryError::NoDetectedFormat
-        );
+        assert!(matches!(
+            registry.create_from_detection(&content::ContentDetection::default()),
+            Err(RegistryError::NoDetectedFormat)
+        ));
         let ambiguous = content::ContentDetection {
             matches: vec!["example", "other"],
             needs_more_data: vec![],
         };
-        assert_eq!(
-            registry.create_from_detection(&ambiguous).unwrap_err(),
-            RegistryError::AmbiguousDetectedFormats(2)
-        );
+        assert!(matches!(
+            registry.create_from_detection(&ambiguous),
+            Err(RegistryError::AmbiguousDetectedFormats(2))
+        ));
     }
 
     #[test]
