@@ -429,7 +429,7 @@ mod tests {
         assert!(!primary.exists());
         assert_eq!(read_state(&backup).unwrap(), original);
 
-        let mut store = ModuleStateStore::new(&primary);
+        let store = ModuleStateStore::new(&primary);
         assert_eq!(store.load().unwrap(), original);
         let _ = fs::remove_file(&primary);
         let _ = fs::remove_file(&backup);
