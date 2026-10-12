@@ -8,8 +8,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
-| **P0** | Fiabilité du runtime commun | 70 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 40 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Fiabilité du runtime commun | 75 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
+| **P0** | Chargement et validation du contenu | 46 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 72 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -31,7 +31,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Capacités déclarées et refus des opérations non annoncées.
 - [x] État d'entrée commun avec suppression des transitions dupliquées et relâchement explicite; la libération globale vérifie aussi la capacité d'entrée avant d'appeler le cœur.
 - [x] API générique de sauvegarde/restauration d'état avec vérification de capacité.
-- [ ] Formaliser les transitions autorisées dans une table de référence et tester chaque transition valide/invalide. Un test vérifie maintenant que l'événement Halted bloque l'exécution et pause/reprise, puis qu'une réinitialisation réussie permet de reprendre.
+- [ ] Formaliser les transitions autorisées dans une table de référence et tester chaque transition valide/invalide. Les tests vérifient que l'événement Halted bloque l'exécution et pause/reprise, qu'une réinitialisation réussie permet de reprendre, qu'un budget d'exécution nul ne lance aucun événement et qu'une exécution bornée s'arrête dès Halted sans déclarer le budget épuisé.
 - [ ] Garantir un comportement documenté après chaque erreur du cœur : état de session, entrées maintenues, événements et possibilité de reprise. Les tests couvrent le refus d'une pression, d'un relâchement individuel, d'une libération globale partielle (les commandes déjà libérées restent libérées) et d'une réinitialisation (qui doit conserver l'état d'entrée hôte), mais pas encore toutes les catégories d'erreur.
 - [ ] Ajouter des tests de séquences longues : charger, démarrer, mettre en pause, reprendre, réinitialiser, arrêter et recharger. Un premier test couvre maintenant charger, pause/reprise répétées, exécution bornée, réinitialisation depuis l'état en pause et rechargement; la sémantique d'arrêt reste à définir.
 - [ ] Clarifier la sémantique d'arrêt et de réinitialisation pour chaque état, sans hypothèses spécifiques à une console.

@@ -566,6 +566,51 @@ mod tests {
     }
 
     #[test]
+    fn zero_event_budget_does_not_advance_a_running_session() {
+        let mut session = session();
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.run_for_events(0),
+            Ok(SessionRunReport {
+                events_processed: 0,
+                last_event: None,
+                budget_exhausted: true,
+            })
+        );
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
+    }
+
+    #[test]
+    fn bounded_run_stops_at_halt_and_reports_budget_remaining() {
+        let core = TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Halted,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.run_for_events(8),
+            Ok(SessionRunReport {
+                events_processed: 1,
+                last_event: Some(CoreEvent::Halted),
+                budget_exhausted: false,
+            })
+        );
+        assert_eq!(session.state(), SessionState::Halted);
+        assert!(matches!(
+            session.run_for_events(1),
+            Err(SessionError::InvalidTransition {
+                operation: "run",
+                state: SessionState::Halted,
+            })
+        ));
+    }
+
+    #[test]
     fn halted_event_blocks_execution_until_reset_recovers_session() {
         let core = TestCore {
             loaded: false,
