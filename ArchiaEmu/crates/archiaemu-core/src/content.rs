@@ -123,6 +123,10 @@ pub fn detect_content_formats(
             FormatProbeResult::Match => detection.matches.push(probe.format_id()),
             FormatProbeResult::NoMatch => {}
             FormatProbeResult::NeedMoreData { minimum_bytes } => {
+                // A buggy or untrusted probe must not claim that the current
+                // prefix is already long enough while still requesting data.
+                // Normalize such answers to at least one additional byte.
+                let minimum_bytes = minimum_bytes.max(prefix.len().saturating_add(1));
                 detection
                     .needs_more_data
                     .push((probe.format_id(), minimum_bytes));
@@ -320,6 +324,37 @@ mod tests {
             } else {
                 assert_eq!(detection, ContentDetection::default());
             }
+        }
+    }
+
+    #[test]
+    fn format_detection_normalizes_invalid_incomplete_probe_lengths() {
+        struct InvalidIncompleteProbe {
+            minimum_bytes: usize,
+        }
+
+        impl ContentFormatProbe for InvalidIncompleteProbe {
+            fn format_id(&self) -> &'static str {
+                "invalid-incomplete"
+            }
+
+            fn probe(&self, _prefix: &[u8]) -> FormatProbeResult {
+                FormatProbeResult::NeedMoreData {
+                    minimum_bytes: self.minimum_bytes,
+                }
+            }
+        }
+
+        for reported_minimum in [0, 1, 3] {
+            let probe = InvalidIncompleteProbe {
+                minimum_bytes: reported_minimum,
+            };
+            let probes: [&dyn ContentFormatProbe; 1] = [&probe];
+            assert_eq!(
+                detect_content_formats(b"ABCD", &probes).needs_more_data,
+                vec![("invalid-incomplete", 5)],
+                "an incomplete probe must request bytes beyond the supplied prefix"
+            );
         }
     }
 
