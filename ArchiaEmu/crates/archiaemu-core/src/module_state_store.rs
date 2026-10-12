@@ -296,10 +296,16 @@ impl ModuleStateStore {
         // If the primary is missing, the backup may be the only recoverable
         // copy. Keep it until the new primary has been installed successfully.
         if had_original && backup.exists() {
-            fs::remove_file(&backup)?;
+            if let Err(error) = fs::remove_file(&backup) {
+                let _ = fs::remove_file(&temp);
+                return Err(error.into());
+            }
         }
         if had_original {
-            fs::rename(&self.path, &backup)?;
+            if let Err(error) = fs::rename(&self.path, &backup) {
+                let _ = fs::remove_file(&temp);
+                return Err(error.into());
+            }
         }
         if let Err(error) = fs::rename(&temp, &self.path) {
             if had_original {
@@ -436,6 +442,36 @@ mod tests {
         fs::write(&path, vec![b'x'; MAX_STATE_FILE_BYTES as usize + 1]).unwrap();
         let store = ModuleStateStore::new(&path);
         assert!(matches!(store.load(), Err(ModuleStateStoreError::TooLarge)));
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(backup_path(&path));
+    }
+
+    #[test]
+    fn store_cleans_temporary_file_when_backup_removal_fails() {
+        let path = temp_path();
+        let store = ModuleStateStore::new(&path);
+        let mut existing = ModuleManagerState::new();
+        existing.mark_setup_completed();
+        store.save(&existing).unwrap();
+
+        let backup = backup_path(&path);
+        fs::create_dir(&backup).unwrap();
+
+        assert!(store.save(&ModuleManagerState::new()).is_err());
+        assert_eq!(read_state(&path).unwrap(), existing);
+
+        let prefix = format!(
+            "{}.tmp-",
+            path.file_stem().unwrap().to_string_lossy()
+        );
+        let leftovers = fs::read_dir(path.parent().unwrap())
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with(&prefix))
+            .count();
+        assert_eq!(leftovers, 0, "failed save must remove its temporary file");
+
+        fs::remove_dir(&backup).unwrap();
         let _ = fs::remove_file(&path);
         let _ = fs::remove_file(backup_path(&path));
     }
