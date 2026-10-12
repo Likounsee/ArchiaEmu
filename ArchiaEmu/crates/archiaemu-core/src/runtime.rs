@@ -404,7 +404,7 @@ mod tests {
             session.run_until_event(),
             Err(SessionError::InvalidTransition {
                 operation: "run",
-                state: SessionState::Empty,
+                state: SessionState::Empty
             })
         );
         assert!(session.load_content(&[]).is_err());

@@ -192,7 +192,7 @@ mod tests {
             ContentImage::new(vec![1], ContentLimits::new(0)),
             Err(ContentError::TooLarge {
                 max_bytes: 0,
-                actual_bytes: 1,
+                actual_bytes: 1
             })
         ));
     }
