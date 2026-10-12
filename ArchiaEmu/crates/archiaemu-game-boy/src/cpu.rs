@@ -165,6 +165,262 @@ pub enum RegisterPair {
     Hl,
 }
 
+
+/// Minimal memory interface used by the instruction engine.
+///
+/// Implementations are responsible for Game Boy address decoding, cartridge
+/// banking, I/O registers, and memory access timing. A flat byte array is useful
+/// for CPU tests but is not a complete Game Boy memory bus.
+pub trait CpuBus {
+    /// Reads one byte from the specified 16-bit address.
+    fn read8(&mut self, address: u16) -> u8;
+
+    /// Writes one byte to the specified 16-bit address.
+    fn write8(&mut self, address: u16, value: u8);
+}
+
+/// Result of one successfully executed LR35902 instruction.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct StepResult {
+    /// Instruction opcode fetched before execution.
+    pub opcode: u8,
+    /// Machine cycles consumed (one machine cycle is four clock cycles).
+    pub machine_cycles: u8,
+}
+
+/// Failure to execute an instruction in the currently implemented subset.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CpuError {
+    /// The fetched opcode is not implemented by this execution engine.
+    UnsupportedOpcode {
+        /// Address from which the opcode was fetched.
+        address: u16,
+        /// Opcode byte that could not be executed.
+        opcode: u8,
+    },
+}
+
+impl core::fmt::Display for CpuError {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::UnsupportedOpcode { address, opcode } => write!(
+                formatter,
+                "unsupported LR35902 opcode 0x{opcode:02X} at 0x{address:04X}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for CpuError {}
+
+/// Executable LR35902 CPU state, separated from the system memory bus.
+///
+/// This is an initial instruction-execution foundation, not yet a complete
+/// Game Boy CPU: interrupt dispatch, delayed interrupt enable, STOP behavior,
+/// and most opcodes still need implementation and conformance testing.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Cpu {
+    /// Visible CPU registers.
+    pub registers: CpuRegisters,
+    halted: bool,
+}
+
+impl Cpu {
+    /// Creates a CPU with zeroed registers and execution enabled.
+    ///
+    /// This state is suitable for controlled tests; a console reset sequence
+    /// must initialize hardware-specific register values separately.
+    pub const fn new() -> Self {
+        Self {
+            registers: CpuRegisters {
+                a: 0,
+                f: 0,
+                b: 0,
+                c: 0,
+                d: 0,
+                e: 0,
+                h: 0,
+                l: 0,
+                sp: 0,
+                pc: 0,
+            },
+            halted: false,
+        }
+    }
+
+    /// Returns whether the processor is currently halted.
+    pub const fn is_halted(&self) -> bool {
+        self.halted
+    }
+
+    /// Leaves the halted state. Interrupt arbitration is not implemented yet.
+    pub fn wake(&mut self) {
+        self.halted = false;
+    }
+
+    /// Fetches and executes one instruction from the provided bus.
+    ///
+    /// The program counter wraps at 0xFFFF. Unsupported opcodes return an error
+    /// after the opcode byte has been fetched; no operands are consumed for an
+    /// unsupported instruction.
+    pub fn step<B: CpuBus>(&mut self, bus: &mut B) -> Result<StepResult, CpuError> {
+        if self.halted {
+            return Ok(StepResult {
+                opcode: 0x76,
+                machine_cycles: 1,
+            });
+        }
+
+        let address = self.registers.pc;
+        let opcode = bus.read8(address);
+        self.registers.pc = self.registers.pc.wrapping_add(1);
+
+        let machine_cycles = match opcode {
+            0x00 => 1, // NOP
+            0x06 => { let value = self.fetch8(bus); self.registers.b = value; 2 }
+            0x0E => { let value = self.fetch8(bus); self.registers.c = value; 2 }
+            0x16 => { let value = self.fetch8(bus); self.registers.d = value; 2 }
+            0x1E => { let value = self.fetch8(bus); self.registers.e = value; 2 }
+            0x26 => { let value = self.fetch8(bus); self.registers.h = value; 2 }
+            0x2E => { let value = self.fetch8(bus); self.registers.l = value; 2 }
+            0x36 => {
+                let value = self.fetch8(bus);
+                bus.write8(self.registers.pair(RegisterPair::Hl), value);
+                3
+            }
+            0x3E => { let value = self.fetch8(bus); self.registers.a = value; 2 }
+            0xAF => {
+                self.registers.a = 0;
+                self.registers.set_f(flags::ZERO);
+                1
+            }
+            0xC3 => {
+                let low = self.fetch8(bus);
+                let high = self.fetch8(bus);
+                self.registers.pc = u16::from_le_bytes([low, high]);
+                4
+            }
+            0x76 => {
+                self.halted = true;
+                1
+            }
+            _ => return Err(CpuError::UnsupportedOpcode { address, opcode }),
+        };
+
+        Ok(StepResult { opcode, machine_cycles })
+    }
+
+    fn fetch8<B: CpuBus>(&mut self, bus: &mut B) -> u8 {
+        let value = bus.read8(self.registers.pc);
+        self.registers.pc = self.registers.pc.wrapping_add(1);
+        value
+    }
+}
+
+#[cfg(test)]
+mod execution_tests {
+    use super::*;
+
+    struct TestBus([u8; 0x10000]);
+
+    impl TestBus {
+        fn with_program(program: &[u8]) -> Self {
+            let mut bus = Self([0; 0x10000]);
+            bus.0[..program.len()].copy_from_slice(program);
+            bus
+        }
+    }
+
+    impl CpuBus for TestBus {
+        fn read8(&mut self, address: u16) -> u8 {
+            self.0[usize::from(address)]
+        }
+
+        fn write8(&mut self, address: u16, value: u8) {
+            self.0[usize::from(address)] = value;
+        }
+    }
+
+    #[test]
+    fn immediate_load_advances_pc_and_reports_machine_cycles() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[0x3E, 0x42, 0x00]);
+
+        assert_eq!(
+            cpu.step(&mut bus),
+            Ok(StepResult { opcode: 0x3E, machine_cycles: 2 })
+        );
+        assert_eq!(cpu.registers.a, 0x42);
+        assert_eq!(cpu.registers.pc, 2);
+        assert_eq!(
+            cpu.step(&mut bus),
+            Ok(StepResult { opcode: 0x00, machine_cycles: 1 })
+        );
+        assert_eq!(cpu.registers.pc, 3);
+    }
+
+    #[test]
+    fn stores_immediate_value_through_hl() {
+        let mut cpu = Cpu::new();
+        cpu.registers.set_pair(RegisterPair::Hl, 0xC123);
+        let mut bus = TestBus::with_program(&[0x36, 0xA5]);
+
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(bus.0[0xC123], 0xA5);
+        assert_eq!(cpu.registers.pc, 2);
+    }
+
+    #[test]
+    fn xor_a_sets_zero_and_clears_other_flags() {
+        let mut cpu = Cpu::new();
+        cpu.registers.a = 0xFF;
+        cpu.registers.set_f(0xF0);
+        let mut bus = TestBus::with_program(&[0xAF]);
+
+        cpu.step(&mut bus).unwrap();
+        assert_eq!(cpu.registers.a, 0);
+        assert_eq!(cpu.registers.f(), flags::ZERO);
+    }
+
+    #[test]
+    fn absolute_jump_reads_little_endian_target() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[0xC3, 0x34, 0x12]);
+
+        let result = cpu.step(&mut bus).unwrap();
+        assert_eq!(result.machine_cycles, 4);
+        assert_eq!(cpu.registers.pc, 0x1234);
+    }
+
+    #[test]
+    fn halt_is_stable_until_explicitly_woken() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[0x76, 0x00]);
+
+        assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x76);
+        assert!(cpu.is_halted());
+        assert_eq!(cpu.registers.pc, 1);
+        assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x76);
+        assert_eq!(cpu.registers.pc, 1);
+
+        cpu.wake();
+        assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x00);
+        assert!(!cpu.is_halted());
+    }
+
+    #[test]
+    fn unsupported_opcode_is_reported_with_fetch_address() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[0xD3]);
+
+        assert_eq!(
+            cpu.step(&mut bus),
+            Err(CpuError::UnsupportedOpcode { address: 0, opcode: 0xD3 })
+        );
+        assert_eq!(cpu.registers.pc, 1);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
