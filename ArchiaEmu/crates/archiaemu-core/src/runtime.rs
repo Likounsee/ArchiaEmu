@@ -41,7 +41,7 @@ impl fmt::Display for SessionError {
             Self::InvalidTransition { operation, state } => {
                 write!(formatter, "cannot {operation} while session is {state:?}")
             }
-            Self::Core(error) => error.fmt(formatter),
+            Self::Core(error) => fmt::Display::fmt(error, formatter),
         }
     }
 }
