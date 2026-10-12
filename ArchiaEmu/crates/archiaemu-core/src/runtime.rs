@@ -1580,6 +1580,72 @@ mod tests {
     }
 
     #[test]
+    fn failed_media_retrieval_is_retained_as_a_core_diagnostic() {
+        struct FailingMediaCore;
+
+        impl EmulationCore for FailingMediaCore {
+            fn descriptor(&self) -> CoreDescriptor {
+                CoreDescriptor {
+                    api_version: crate::CURRENT_CORE_API_VERSION,
+                    system_id: SystemId::new("failing-media-test").unwrap(),
+                    display_name: "Failing media test core",
+                    core_version: "0.0.0-test",
+                    capabilities: CoreCapabilities {
+                        content_loading: true,
+                        video_output: true,
+                        audio_output: true,
+                        ..CoreCapabilities::default()
+                    },
+                }
+            }
+
+            fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+                if content.is_empty() {
+                    return Err(CoreError::InvalidContent("empty test content"));
+                }
+                Ok(())
+            }
+
+            fn reset(&mut self) -> Result<(), CoreError> {
+                Ok(())
+            }
+
+            fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+                Ok(CoreEvent::Yielded)
+            }
+
+            fn take_video_frame(&mut self) -> Result<Option<crate::core_io::VideoFrame>, CoreError> {
+                Err(CoreError::Execution("video retrieval failed"))
+            }
+
+            fn take_audio_buffer(&mut self) -> Result<Option<crate::core_io::AudioBuffer>, CoreError> {
+                Err(CoreError::Execution("audio retrieval failed"))
+            }
+        }
+
+        let mut session = EmulationSession::new(Box::new(FailingMediaCore));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.take_video_frame(),
+            Err(SessionError::Core(CoreError::Execution("video retrieval failed")))
+        );
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("video retrieval failed"))
+        );
+        assert_eq!(
+            session.take_audio_buffer(),
+            Err(SessionError::Core(CoreError::Execution("audio retrieval failed")))
+        );
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("audio retrieval failed"))
+        );
+        assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
     fn save_states_require_a_loaded_session_and_advertised_capability() {
         let mut session = session();
         assert!(session.save_state().is_err());
