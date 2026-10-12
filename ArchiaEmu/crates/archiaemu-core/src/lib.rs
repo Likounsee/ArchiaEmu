@@ -212,9 +212,7 @@ pub trait EmulationCore {
     ///
     /// Returns `Ok(None)` when no frame is waiting. The host must not assume
     /// a frame exists merely because the core supports video output.
-    fn take_video_frame(
-        &mut self,
-    ) -> Result<Option<crate::core_io::VideoFrame>, CoreError> {
+    fn take_video_frame(&mut self) -> Result<Option<crate::core_io::VideoFrame>, CoreError> {
         Err(CoreError::Unsupported("video output"))
     }
 
@@ -222,9 +220,7 @@ pub trait EmulationCore {
     ///
     /// Returns `Ok(None)` when no audio is waiting. Buffers use the common
     /// PCM contract; the host remains responsible for playback and resampling.
-    fn take_audio_buffer(
-        &mut self,
-    ) -> Result<Option<crate::core_io::AudioBuffer>, CoreError> {
+    fn take_audio_buffer(&mut self) -> Result<Option<crate::core_io::AudioBuffer>, CoreError> {
         Err(CoreError::Unsupported("audio output"))
     }
 }
