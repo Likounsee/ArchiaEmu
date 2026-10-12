@@ -996,6 +996,41 @@ mod tests {
     }
 
     #[test]
+    fn logical_operations_and_compare_set_documented_flags() {
+        let mut cpu = CpuRegisters {
+            a: 0xF0,
+            ..CpuRegisters::default()
+        };
+        assert_eq!(cpu.and_a(0x0F), 0);
+        assert_eq!(cpu.f(), flags::ZERO | flags::HALF_CARRY);
+        assert_eq!(cpu.or_a(0x81), 0x81);
+        assert_eq!(cpu.f(), 0);
+        cpu.a = 0x10;
+        cpu.compare_a(0x11);
+        assert_eq!(cpu.a, 0x10);
+        assert_eq!(cpu.f(), flags::SUBTRACT | flags::HALF_CARRY | flags::CARRY);
+    }
+
+    #[test]
+    fn add_and_subtract_with_carry_consume_the_previous_carry_flag() {
+        let mut cpu = CpuRegisters {
+            a: 0x0F,
+            ..CpuRegisters::default()
+        };
+        cpu.set_flag(flags::CARRY, true);
+        assert_eq!(cpu.add_a_with_carry(0), 0x10);
+        assert!(cpu.flag(flags::HALF_CARRY));
+        assert!(!cpu.flag(flags::CARRY));
+
+        cpu.a = 0;
+        cpu.set_flag(flags::CARRY, true);
+        assert_eq!(cpu.subtract_a_with_carry(0), 0xFF);
+        assert!(cpu.flag(flags::SUBTRACT));
+        assert!(cpu.flag(flags::CARRY));
+        assert!(cpu.flag(flags::HALF_CARRY));
+    }
+
+    #[test]
     fn subtract_a_sets_half_borrow_and_borrow() {
         let mut cpu = CpuRegisters {
             a: 0x10,
