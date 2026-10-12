@@ -496,21 +496,28 @@ mod tests {
     fn validates_deep_catalogue_without_recursive_traversal() {
         const MODULE_COUNT: usize = 2048;
         let mut descriptors = (0..MODULE_COUNT)
-            .map(|index| descriptor(
-                &format!("node-{index}"),
-                "Node",
-                ModuleReadiness::Installable,
-                &[],
-            ))
+            .map(|index| {
+                descriptor(
+                    &format!("node-{index}"),
+                    "Node",
+                    ModuleReadiness::Installable,
+                    &[],
+                )
+            })
             .collect::<Vec<_>>();
         for index in 0..MODULE_COUNT - 1 {
-            descriptors[index].dependencies.push(id(&format!("node-{}", index + 1)));
+            descriptors[index]
+                .dependencies
+                .push(id(&format!("node-{}", index + 1)));
         }
         let catalog = ModuleCatalog::new(&descriptors);
         assert!(catalog.validate().is_ok());
         let plan = catalog.plan_install(&[id("node-0")], &[]).unwrap();
         assert_eq!(plan.install_order.len(), MODULE_COUNT);
-        assert_eq!(plan.install_order.first(), Some(&id(&format!("node-{}", MODULE_COUNT - 1))));
+        assert_eq!(
+            plan.install_order.first(),
+            Some(&id(&format!("node-{}", MODULE_COUNT - 1)))
+        );
         assert_eq!(plan.install_order.last(), Some(&id("node-0")));
     }
 
@@ -518,17 +525,21 @@ mod tests {
     fn iterative_catalogue_validation_rejects_deep_cycle() {
         const MODULE_COUNT: usize = 1024;
         let mut descriptors = (0..MODULE_COUNT)
-            .map(|index| descriptor(
-                &format!("node-{index}"),
-                "Node",
-                ModuleReadiness::Installable,
-                &[],
-            ))
+            .map(|index| {
+                descriptor(
+                    &format!("node-{index}"),
+                    "Node",
+                    ModuleReadiness::Installable,
+                    &[],
+                )
+            })
             .collect::<Vec<_>>();
         for index in 0..MODULE_COUNT - 1 {
             descriptors[index].dependencies.push(id(&format!("node-{}", index + 1)));
         }
-        descriptors[MODULE_COUNT - 1].dependencies.push(id("node-0"));
+        descriptors[MODULE_COUNT - 1]
+            .dependencies
+            .push(id("node-0"));
         assert_eq!(
             ModuleCatalog::new(&descriptors).validate(),
             Err(CatalogError::DependencyCycle(id("node-0")))
