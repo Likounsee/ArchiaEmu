@@ -93,11 +93,20 @@ pub enum ModuleDescriptorError {
 impl fmt::Display for ModuleDescriptorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidPublisher => f.write_str("module publisher must be non-empty and contain no control characters"),
-            Self::InvalidHomepage => f.write_str("module publisher homepage must be a valid HTTPS URL"),
+            Self::InvalidPublisher => {
+                f.write_str("module publisher must be non-empty and contain no control characters")
+            }
+            Self::InvalidHomepage => {
+                f.write_str("module publisher homepage must be a valid HTTPS URL")
+            }
             Self::SelfDependency => f.write_str("module cannot depend on itself"),
-            Self::DuplicateDependency(id) => write!(f, "module dependency '{id}' is declared more than once"),
-            Self::IncompatibleHostApi { required, supported } => write!(
+            Self::DuplicateDependency(id) => {
+                write!(f, "module dependency '{id}' is declared more than once")
+            }
+            Self::IncompatibleHostApi {
+                required,
+                supported,
+            } => write!(
                 f,
                 "module requires host API {}.{}, but this host supports {}.{}",
                 required.major, required.minor, supported.major, supported.minor
@@ -131,7 +140,9 @@ impl ModuleDescriptor {
                 return Err(ModuleDescriptorError::SelfDependency);
             }
             if !seen.insert(dependency) {
-                return Err(ModuleDescriptorError::DuplicateDependency(dependency.clone()));
+                return Err(ModuleDescriptorError::DuplicateDependency(
+                    dependency.clone(),
+                ));
             }
         }
         let supported = CURRENT_CORE_API_VERSION;
@@ -178,7 +189,10 @@ fn valid_https_homepage(value: &str) -> bool {
     let Some(rest) = value.strip_prefix("https://") else {
         return false;
     };
-    if value.bytes().any(|b| b.is_ascii_control() || b.is_ascii_whitespace() || b == b'\\') {
+    if value
+        .bytes()
+        .any(|b| b.is_ascii_control() || b.is_ascii_whitespace() || b == b'\\')
+    {
         return false;
     }
     let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
@@ -194,6 +208,8 @@ fn valid_https_homepage(value: &str) -> bool {
                 && label.len() <= 63
                 && !label.starts_with('-')
                 && !label.ends_with('-')
-                && label.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+                && label
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'-')
         })
 }
