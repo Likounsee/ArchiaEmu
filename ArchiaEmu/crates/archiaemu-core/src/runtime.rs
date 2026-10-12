@@ -209,6 +209,9 @@ impl EmulationSession {
         if !matches!(self.state, SessionState::Running | SessionState::Paused) {
             return Err(self.invalid_transition("send input"));
         }
+        if !self.core.descriptor().capabilities.input {
+            return Err(SessionError::Core(CoreError::Unsupported("input")));
+        }
         if self.input_state.is_pressed(event.control) == event.pressed {
             return Ok(());
         }
@@ -249,12 +252,18 @@ impl EmulationSession {
     /// Retrieves the next video frame from a loaded session, if one is waiting.
     pub fn take_video_frame(&mut self) -> Result<Option<VideoFrame>, SessionError> {
         self.require_loaded("retrieve video")?;
+        if !self.core.descriptor().capabilities.video_output {
+            return Err(SessionError::Core(CoreError::Unsupported("video output")));
+        }
         Ok(self.core.take_video_frame()?)
     }
 
     /// Retrieves the next audio buffer from a loaded session, if one is waiting.
     pub fn take_audio_buffer(&mut self) -> Result<Option<AudioBuffer>, SessionError> {
         self.require_loaded("retrieve audio")?;
+        if !self.core.descriptor().capabilities.audio_output {
+            return Err(SessionError::Core(CoreError::Unsupported("audio output")));
+        }
         Ok(self.core.take_audio_buffer()?)
     }
 
