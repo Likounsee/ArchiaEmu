@@ -298,3 +298,131 @@ mod tests {
         ));
     }
 }
+
+
+/// Errors returned while selecting or creating a core for a runtime session.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RuntimeError {
+    /// The requested core could not be found or constructed correctly.
+    Registry(crate::RegistryError),
+}
+
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Registry(error) => fmt::Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl std::error::Error for RuntimeError {}
+
+impl From<crate::RegistryError> for RuntimeError {
+    fn from(error: crate::RegistryError) -> Self {
+        Self::Registry(error)
+    }
+}
+
+/// Shared, console-independent entry point for discovering cores and opening sessions.
+///
+/// The runtime owns the registry, not active sessions. Each call to
+/// `create_session` constructs a fresh core, so separate sessions never
+/// accidentally share mutable machine state.
+#[derive(Default)]
+pub struct EmulationRuntime {
+    registry: crate::CoreRegistry,
+}
+
+impl EmulationRuntime {
+    /// Creates an empty runtime with no installed core factories.
+    pub const fn new() -> Self {
+        Self {
+            registry: crate::CoreRegistry::new(),
+        }
+    }
+
+    /// Registers a core factory under its stable system identifier.
+    pub fn register_core(
+        &mut self,
+        id: crate::SystemId,
+        factory: crate::CoreFactory,
+    ) -> Result<(), crate::RegistryError> {
+        self.registry.register(id, factory)
+    }
+
+    /// Returns registered system identifiers in stable registration order.
+    pub fn available_systems(&self) -> impl Iterator<Item = crate::SystemId> + '_ {
+        self.registry.system_ids()
+    }
+
+    /// Creates a fresh, initially empty session for a registered system.
+    pub fn create_session(
+        &self,
+        id: crate::SystemId,
+    ) -> Result<EmulationSession, RuntimeError> {
+        Ok(EmulationSession::new(self.registry.create(id)?))
+    }
+}
+
+#[cfg(test)]
+mod runtime_manager_tests {
+    use super::*;
+    use crate::{
+        CoreCapabilities, CoreDescriptor, CoreError, CoreEvent, EmulationCore, SystemId,
+    };
+
+    struct ManagerTestCore;
+
+    impl EmulationCore for ManagerTestCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                system_id: SystemId::new("manager-test").unwrap(),
+                display_name: "Manager test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities::default(),
+            }
+        }
+
+        fn load_content(&mut self, _: &[u8]) -> Result<(), CoreError> {
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            Ok(CoreEvent::Yielded)
+        }
+    }
+
+    fn manager_test_factory() -> Box<dyn EmulationCore> {
+        Box::new(ManagerTestCore)
+    }
+
+    #[test]
+    fn runtime_lists_registered_systems_and_opens_fresh_sessions() {
+        let id = SystemId::new("manager-test").unwrap();
+        let mut runtime = EmulationRuntime::new();
+        assert_eq!(runtime.available_systems().count(), 0);
+        runtime.register_core(id, manager_test_factory).unwrap();
+
+        assert_eq!(runtime.available_systems().collect::<Vec<_>>(), vec![id]);
+        let first = runtime.create_session(id).unwrap();
+        let second = runtime.create_session(id).unwrap();
+        assert_eq!(first.state(), SessionState::Empty);
+        assert_eq!(second.state(), SessionState::Empty);
+        assert_eq!(first.descriptor().system_id, id);
+        assert_eq!(second.descriptor().system_id, id);
+    }
+
+    #[test]
+    fn runtime_reports_unknown_system_without_creating_a_session() {
+        let runtime = EmulationRuntime::new();
+        let id = SystemId::new("missing").unwrap();
+        assert_eq!(
+            runtime.create_session(id).unwrap_err(),
+            RuntimeError::Registry(crate::RegistryError::UnknownSystem(id))
+        );
+    }
+}
