@@ -576,6 +576,14 @@ mod tests {
 
     #[test]
     fn rejects_invalid_artifacts() {
+        let mut oversized_label = module("game-boy", &[]);
+        oversized_label.artifact.as_mut().unwrap().url =
+            format!("https://{}.example.invalid/file.tar", "a".repeat(64));
+        assert!(matches!(
+            manifest(vec![oversized_label]).validate(),
+            Err(ManifestError::InvalidArtifact(_))
+        ));
+
         let mut entry = module("game-boy", &[]);
         entry.artifact.as_mut().unwrap().url = "http://example.invalid/file".into();
         assert!(matches!(
@@ -597,7 +605,6 @@ mod tests {
             "https://packages.example.invalid:65536/file.tar",
             "https://-packages.example.invalid/file.tar",
             "https://packages-.example.invalid/file.tar",
-            "https://${"a".repeat(64)}.example.invalid/file.tar",
             "https://999.999.999.999/file.tar",
             "https://192.168.1.999/file.tar",
             "https://[not-ipv6]/file.tar",
