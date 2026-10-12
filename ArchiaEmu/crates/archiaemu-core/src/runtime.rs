@@ -1214,8 +1214,16 @@ mod tests {
             )))
         );
         assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("transient test failure"))
+        );
         assert_eq!(session.run_until_event().unwrap(), CoreEvent::Yielded);
         assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("transient test failure"))
+        );
     }
 
     #[test]
@@ -1223,9 +1231,22 @@ mod tests {
         let mut session = session();
         session.load_content(&[1]).unwrap();
 
-        assert!(session.load_content(&[]).is_err());
+        assert_eq!(
+            session.load_content(&[]),
+            Err(SessionError::Core(CoreError::InvalidContent(
+                "empty test content"
+            )))
+        );
         assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::InvalidContent("empty test content"))
+        );
         assert_eq!(session.run_until_event().unwrap(), CoreEvent::Yielded);
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::InvalidContent("empty test content"))
+        );
     }
 
     #[test]
