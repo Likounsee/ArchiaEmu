@@ -20,9 +20,9 @@
 
 ## Current implementation
 
-The shared Rust crate `archiaemu-core` currently defines validated system identifiers, core capability metadata, lifecycle/error contracts, and a registry that maps system IDs to factories. Registry creation checks that the created core's descriptor matches the registered ID. Unit tests cover identifier validation, conservative capability defaults, unsupported save-state behavior, registry lookup/duplicates/mismatched factories, and error messages.
+The shared Rust crate `archiaemu-core` defines validated system identifiers, capability metadata, a core registry, an independent-session lifecycle controller, bounded execution requests, common media payloads, and host-side input state with duplicate-transition suppression and explicit release recovery. Module selection/state persistence and host performance planning are also present as foundations. Runtime tests cover lifecycle transitions, error recovery, independent session creation, and shared input-state behavior.
 
-The project does **not** yet implement a console CPU, memory map, graphics, audio, input, game loading, persistent saves or a usable frontend. No system is currently supported.
+These are infrastructure contracts, not a playable emulator: the project still lacks a complete console implementation, real renderer/audio backend, application frontend, and verified end-to-end game compatibility. No system is currently claimed as supported.
 
 ## Build and test
 
@@ -41,8 +41,8 @@ GitHub Actions runs formatting, locked tests and warning-free API documentation 
 ## Roadmap
 
 - **P0 — Foundations:** workspace, shared contracts, registry, CI, tests, documentation and licensing review.
-- **P1 — First console:** select a target after auditing specifications and lawful test availability; implement and test real hardware behavior.
-- **P2 — Runtime I/O:** graphics, audio, input and synchronization.
+- **P1 — First console: Game Boy Color (GBC):** target the color-capable hardware first, including the compatibility mode required for original monochrome Game Boy (DMG) games. Validate the mode distinction against lawful test ROMs and documented hardware behavior before claiming compatibility.
+- **P2 — Runtime I/O:** integrate the common input state with a real host loop, then implement video presentation, audio playback and deterministic timing/synchronization.
 - **Presentation/UI:** host-side interface recreation and optional visual enhancements, implemented per system only after a real core and renderer exist.
 - **P3 — Library and saves:** content management, persistent data and validated save states.
 - **P4 — Performance:** reproducible baselines, profiling and measured optimizations.
