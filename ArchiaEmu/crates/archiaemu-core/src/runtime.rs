@@ -149,10 +149,7 @@ impl EmulationSession {
     /// stopping). A zero budget performs no core execution. As with the single
     /// step method, the core is responsible for making each individual call
     /// return at an observable boundary.
-    pub fn run_for_events(
-        &mut self,
-        max_events: usize,
-    ) -> Result<SessionRunReport, SessionError> {
+    pub fn run_for_events(&mut self, max_events: usize) -> Result<SessionRunReport, SessionError> {
         self.require_state("run", SessionState::Running)?;
         let mut report = SessionRunReport {
             events_processed: 0,
@@ -332,7 +329,6 @@ mod tests {
         session.reset().unwrap();
         assert_eq!(session.state(), SessionState::Running);
     }
-
 
     #[test]
     fn bounded_runner_stops_at_budget_or_host_visible_event() {
