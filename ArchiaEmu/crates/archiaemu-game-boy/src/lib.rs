@@ -297,4 +297,51 @@ mod tests {
         image[0x14D] = header_checksum(&image);
         assert!(CartridgeHeader::parse(&image).is_ok());
     }
+
+    #[test]
+    fn game_boy_is_discoverable_through_the_shared_registry() {
+        let mut registry = archiaemu_core::CoreRegistry::new();
+        register_game_boy(&mut registry).unwrap();
+
+        let id = archiaemu_core::SystemId::new(SYSTEM_ID).unwrap();
+        assert!(registry.contains(id));
+        let core = registry.create(id).unwrap();
+        assert_eq!(core.descriptor().display_name, "Nintendo Game Boy (DMG)");
+        assert_eq!(
+            core.descriptor().capabilities,
+            archiaemu_core::CoreCapabilities::default()
+        );
+    }
+
+    #[test]
+    fn module_validates_rom_but_does_not_claim_execution_support() {
+        let mut core = GameBoyDmgCore::new();
+        assert_eq!(
+            archiaemu_core::EmulationCore::run_until_event(&mut core),
+            Err(archiaemu_core::CoreError::NotInitialized)
+        );
+
+        let image = valid_image();
+        archiaemu_core::EmulationCore::load_content(&mut core, &image).unwrap();
+        assert_eq!(
+            core.cartridge_header().unwrap().cartridge_type,
+            image[0x147]
+        );
+        assert_eq!(
+            archiaemu_core::EmulationCore::run_until_event(&mut core),
+            Err(archiaemu_core::CoreError::Unsupported(
+                "Game Boy CPU execution is not implemented yet"
+            ))
+        );
+    }
+
+    #[test]
+    fn invalid_replacement_rom_does_not_destroy_previous_metadata() {
+        let mut core = GameBoyDmgCore::new();
+        archiaemu_core::EmulationCore::load_content(&mut core, &valid_image()).unwrap();
+        let before = *core.cartridge_header().unwrap();
+
+        assert!(archiaemu_core::EmulationCore::load_content(&mut core, &[0; 8]).is_err());
+        assert_eq!(core.cartridge_header(), Some(&before));
+    }
 }
