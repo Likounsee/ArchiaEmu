@@ -6,7 +6,10 @@
 //! This crate deliberately contains no console implementation. A system is not
 //! supported merely because it can be represented by these types.
 
-/// Platform-neutral input and owned audio/video payload contracts.\npub mod core_io;\n\n/// Dependency-aware planning for optional console and shared-runtime modules.
+/// Platform-neutral input and owned audio/video payload contracts.
+pub mod core_io;
+
+/// Dependency-aware planning for optional console and shared-runtime modules.
 pub mod module_management;
 
 /// Schema and compatibility validation for versioned module manifests.
