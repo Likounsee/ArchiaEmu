@@ -384,7 +384,10 @@ mod tests {
                 actual_bytes: 4,
             }
         );
-        assert_eq!(source, b"ef", "the reader must not consume beyond limit + 1");
+        assert_eq!(
+            source, b"ef",
+            "the reader must not consume beyond limit + 1"
+        );
     }
 
     #[test]
