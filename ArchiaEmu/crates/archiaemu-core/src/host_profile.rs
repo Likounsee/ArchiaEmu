@@ -30,7 +30,11 @@ impl HostCapabilities {
         hardware_video_backend: bool,
     ) -> Self {
         Self {
-            logical_cpu_count: if logical_cpu_count == 0 { 1 } else { logical_cpu_count },
+            logical_cpu_count: if logical_cpu_count == 0 {
+                1
+            } else {
+                logical_cpu_count
+            },
             available_memory_bytes,
             hardware_video_backend,
         }
@@ -110,13 +114,12 @@ impl PerformancePolicy {
             capabilities.logical_cpu_count
         };
 
-        let video_backend = if preferences.prefer_hardware_video
-            && capabilities.hardware_video_backend
-        {
-            VideoBackendPreference::Hardware
-        } else {
-            VideoBackendPreference::Software
-        };
+        let video_backend =
+            if preferences.prefer_hardware_video && capabilities.hardware_video_backend {
+                VideoBackendPreference::Hardware
+            } else {
+                VideoBackendPreference::Software
+            };
 
         let memory_budget_bytes = match (
             capabilities.available_memory_bytes,
@@ -135,7 +138,11 @@ impl PerformancePolicy {
         };
 
         PerformancePlan {
-            worker_threads: if worker_threads == 0 { 1 } else { worker_threads },
+            worker_threads: if worker_threads == 0 {
+                1
+            } else {
+                worker_threads
+            },
             video_backend,
             memory_budget_bytes,
             optional_enhancements_allowed: preferences.allow_optional_enhancements,
