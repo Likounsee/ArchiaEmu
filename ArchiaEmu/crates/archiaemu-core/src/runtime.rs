@@ -534,13 +534,13 @@ mod tests {
         let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
         let registry = CoreRegistry::new();
 
-        assert_eq!(
-            launch_content(b"GAME", ContentLimits::new(3), &probes, &registry).unwrap_err(),
-            LaunchError::Content(ContentError::TooLarge {
+        assert!(matches!(
+            launch_content(b"GAME", ContentLimits::new(3), &probes, &registry),
+            Err(LaunchError::Content(ContentError::TooLarge {
                 max_bytes: 3,
                 actual_bytes: 4,
-            })
-        );
+            }))
+        ));
     }
 
     #[test]
@@ -558,10 +558,12 @@ mod tests {
         let mut registry = CoreRegistry::new();
         registry.register(id, make_runtime_test_core).unwrap();
 
-        assert_eq!(
-            launch_content(b"GAME", ContentLimits::new(64), &probes, &registry).unwrap_err(),
-            LaunchError::Registry(RegistryError::AmbiguousDetectedFormats(2))
-        );
+        assert!(matches!(
+            launch_content(b"GAME", ContentLimits::new(64), &probes, &registry),
+            Err(LaunchError::Registry(
+                RegistryError::AmbiguousDetectedFormats(2)
+            ))
+        ));
     }
 
     #[test]
