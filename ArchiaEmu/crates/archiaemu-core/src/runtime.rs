@@ -589,6 +589,77 @@ mod tests {
     }
 
     #[test]
+    fn save_state_round_trip_restores_machine_data_without_changing_lifecycle() {
+        struct StatefulCore {
+            value: u8,
+        }
+
+        impl EmulationCore for StatefulCore {
+            fn descriptor(&self) -> CoreDescriptor {
+                CoreDescriptor {
+                    system_id: SystemId::new("stateful-test").unwrap(),
+                    display_name: "Stateful test core",
+                    core_version: "0.0.0-test",
+                    capabilities: CoreCapabilities {
+                        save_states: true,
+                        ..CoreCapabilities::default()
+                    },
+                }
+            }
+
+            fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+                let Some(value) = content.first() else {
+                    return Err(CoreError::InvalidContent("empty test content"));
+                };
+                self.value = *value;
+                Ok(())
+            }
+
+            fn reset(&mut self) -> Result<(), CoreError> {
+                self.value = 0;
+                Ok(())
+            }
+
+            fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+                self.value = self.value.wrapping_add(1);
+                Ok(CoreEvent::Yielded)
+            }
+
+            fn save_state(&self) -> Result<Vec<u8>, CoreError> {
+                Ok(vec![self.value])
+            }
+
+            fn load_state(&mut self, state: &[u8]) -> Result<(), CoreError> {
+                if state.len() != 1 {
+                    return Err(CoreError::InvalidState("expected one byte"));
+                }
+                self.value = state[0];
+                Ok(())
+            }
+        }
+
+        let mut session = EmulationSession::new(Box::new(StatefulCore { value: 0 }));
+        session.load_content(&[7]).unwrap();
+        let saved = session.save_state().unwrap();
+        session.run_until_event().unwrap();
+        assert_eq!(session.save_state().unwrap(), vec![8]);
+
+        session.pause().unwrap();
+        session.load_state(&saved).unwrap();
+
+        assert_eq!(session.state(), SessionState::Paused);
+        assert_eq!(session.save_state().unwrap(), vec![7]);
+        assert_eq!(
+            session.load_state(&[1, 2]),
+            Err(SessionError::Core(CoreError::InvalidState(
+                "expected one byte"
+            )))
+        );
+        assert_eq!(session.state(), SessionState::Paused);
+        assert_eq!(session.save_state().unwrap(), vec![7]);
+    }
+
+    #[test]
     fn save_states_require_a_loaded_session_and_advertised_capability() {
         let mut session = session();
         assert!(session.save_state().is_err());
