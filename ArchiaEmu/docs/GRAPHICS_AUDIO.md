@@ -16,4 +16,8 @@ No video renderer, audio backend, synchronization loop or frame/sample buffers a
 ## Validation
 
 A future pipeline must test output dimensions/formats, boundary cases, audio sample counts, synchronization drift, device-loss handling, and prolonged sessions. Performance claims require reproducible measurements on named hardware/software configurations.
-\n\n## Shared data types\n\nThe core crate now provides owned `VideoFrame` and `AudioBuffer` payload types in `core_io.rs`. Video is currently defined as row-major RGBA8888 with exact dimensions and no implicit row padding. Audio is interleaved signed 16-bit PCM with an explicit sample rate and channel count. These contracts make payload size and ownership explicit, but do not yet connect a core to a renderer, audio backend, or synchronized host loop. No core currently claims video or audio output capability.\n
+
+
+## Shared data types
+
+The core crate provides owned `VideoFrame` and `AudioBuffer` payload types in `core_io.rs`. Video is row-major RGBA8888 with exact dimensions and no implicit row padding. Audio is interleaved signed 16-bit PCM with an explicit sample rate and channel count. `EmulationCore::take_video_frame` and `take_audio_buffer` provide an additive host boundary, but their default implementations report unsupported output. No renderer, audio backend, synchronized host loop, or core that emits real media is implemented yet.
