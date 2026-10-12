@@ -8,7 +8,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
-| **P0** | Fiabilité du runtime commun | 81 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
+| **P0** | Fiabilité du runtime commun | 82 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 73 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 74 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
@@ -31,7 +31,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Capacités déclarées et refus des opérations non annoncées.
 - [x] État d'entrée commun avec suppression des transitions dupliquées et relâchement explicite; la libération globale vérifie aussi la capacité d'entrée avant d'appeler le cœur.
 - [x] API générique de sauvegarde/restauration d'état avec vérification de capacité.
-- [ ] Formaliser les transitions autorisées dans une table de référence et tester chaque transition valide/invalide. Les tests vérifient que l'événement Halted bloque l'exécution et pause/reprise, qu'une réinitialisation réussie permet de reprendre, qu'un budget d'exécution nul ne lance aucun événement et qu'une exécution bornée s'arrête dès Halted sans déclarer le budget épuisé.
+- [x] Formaliser les transitions autorisées dans une table de référence dans `docs/SESSION_LIFECYCLE.md`; les tests vérifient les transitions invalides principales, pause/reprise, réinitialisation, budget nul et arrêt sur `Halted`. La couverture exhaustive de chaque combinaison reste à compléter dans les tâches ci-dessous.
 - [ ] Garantir un comportement documenté après chaque erreur du cœur : état de session, entrées maintenues, événements et possibilité de reprise. Les gardes d'entrée sont aussi testées avant chargement et après Halted pour la pression et la libération globale. Le runner borné a aussi un test de reprise après erreur transitoire du cœur. Les tests couvrent le refus d'une pression, d'un relâchement individuel, d'une libération globale partielle (les commandes déjà libérées restent libérées), d'une réinitialisation et d'un rechargement invalide depuis les états en pause, arrêté et maintenant Halted; ils ne couvrent pas encore toutes les catégories d'erreur.
 - [ ] Ajouter des tests de séquences longues : charger, démarrer, mettre en pause, reprendre, réinitialiser, arrêter et recharger. Un premier test couvre maintenant charger, pause/reprise répétées, exécution bornée, réinitialisation depuis l'état en pause et rechargement; la sémantique d'arrêt reste à définir.
 - [ ] Clarifier la sémantique d'arrêt et de réinitialisation pour chaque état, sans hypothèses spécifiques à une console.
