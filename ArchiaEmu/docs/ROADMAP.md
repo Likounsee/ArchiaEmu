@@ -29,7 +29,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Contrat de cœur commun et erreurs explicites.
 - [x] États de session et contrôles d'opérations selon l'état.
 - [x] Capacités déclarées et refus des opérations non annoncées.
-- [x] État d'entrée commun avec suppression des transitions dupliquées et relâchement explicite.
+- [x] État d'entrée commun avec suppression des transitions dupliquées et relâchement explicite; la libération globale vérifie aussi la capacité d'entrée avant d'appeler le cœur.
 - [x] API générique de sauvegarde/restauration d'état avec vérification de capacité.
 - [ ] Formaliser les transitions autorisées dans une table de référence et tester chaque transition valide/invalide.
 - [ ] Garantir un comportement documenté après chaque erreur du cœur : état de session, entrées maintenues, événements et possibilité de reprise. Les tests couvrent le refus d'une pression, d'un relâchement et d'une réinitialisation (qui doit conserver l'état d'entrée hôte), mais pas encore toutes les catégories d'erreur.

@@ -241,6 +241,9 @@ impl EmulationSession {
         if !matches!(self.state, SessionState::Running | SessionState::Paused) {
             return Err(self.invalid_transition("release inputs"));
         }
+        if !self.core.descriptor().capabilities.input {
+            return Err(SessionError::Core(CoreError::Unsupported("input")));
+        }
 
         for control in InputControl::ALL {
             if self.input_state.is_pressed(control) {
@@ -457,6 +460,18 @@ mod tests {
             })
         ));
         assert_eq!(session.state(), SessionState::Paused);
+    }
+
+    #[test]
+    fn release_all_inputs_rejects_cores_without_input_capability() {
+        let mut session = session();
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.release_all_inputs(),
+            Err(SessionError::Core(CoreError::Unsupported("input")))
+        );
+        assert_eq!(session.state(), SessionState::Running);
     }
 
     #[test]
