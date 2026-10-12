@@ -53,7 +53,9 @@ impl fmt::Display for ModuleStateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyVersion => f.write_str("installed module version cannot be empty"),
-            Self::DuplicateModuleInBatch(id) => write!(f, "module '{id}' occurs more than once in the state update"),
+            Self::DuplicateModuleInBatch(id) => {
+                write!(f, "module '{id}' occurs more than once in the state update")
+            }
         }
     }
 }
@@ -189,13 +191,11 @@ impl ModuleManagerState {
     /// IDs absent from the installed list are ignored. The caller is responsible for
     /// validating dependency safety and completing filesystem removal before this call.
     /// The returned count is the number of records removed.
-    pub fn record_uninstalled_batch(
-        &mut self,
-        ids: impl IntoIterator<Item = ModuleId>,
-    ) -> usize {
+    pub fn record_uninstalled_batch(&mut self, ids: impl IntoIterator<Item = ModuleId>) -> usize {
         let ids: std::collections::HashSet<ModuleId> = ids.into_iter().collect();
         let before = self.installed_modules.len();
-        self.installed_modules.retain(|module| !ids.contains(&module.id));
+        self.installed_modules
+            .retain(|module| !ids.contains(&module.id));
         before - self.installed_modules.len()
     }
 
