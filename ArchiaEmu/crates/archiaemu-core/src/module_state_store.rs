@@ -283,7 +283,9 @@ impl ModuleStateStore {
             .write(true)
             .create_new(true)
             .open(&temp)?;
-        let write_result = file.write_all(encoded.as_bytes()).and_then(|()| file.sync_all());
+        let write_result = file
+            .write_all(encoded.as_bytes())
+            .and_then(|()| file.sync_all());
         drop(file);
         if let Err(error) = write_result {
             let _ = fs::remove_file(&temp);
