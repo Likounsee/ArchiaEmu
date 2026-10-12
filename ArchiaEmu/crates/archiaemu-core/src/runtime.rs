@@ -1018,6 +1018,39 @@ mod shared_input_runtime_tests {
     }
 
     #[test]
+    fn sessions_keep_input_state_and_events_independent() {
+        let first_events = Arc::new(Mutex::new(Vec::new()));
+        let second_events = Arc::new(Mutex::new(Vec::new()));
+        let mut first = EmulationSession::new(Box::new(InputRecordingCore {
+            events: Arc::clone(&first_events),
+        }));
+        let mut second = EmulationSession::new(Box::new(InputRecordingCore {
+            events: Arc::clone(&second_events),
+        }));
+        first.load_content(&[1]).unwrap();
+        second.load_content(&[1]).unwrap();
+
+        first.send_input(InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        }).unwrap();
+
+        assert!(first.is_input_pressed(InputControl::Action1));
+        assert!(!second.is_input_pressed(InputControl::Action1));
+        assert_eq!(first_events.lock().unwrap().len(), 1);
+        assert!(second_events.lock().unwrap().is_empty());
+
+        second.send_input(InputEvent {
+            control: InputControl::Start,
+            pressed: true,
+        }).unwrap();
+        assert!(second.is_input_pressed(InputControl::Start));
+        assert!(!first.is_input_pressed(InputControl::Start));
+        assert_eq!(first_events.lock().unwrap().len(), 1);
+        assert_eq!(second_events.lock().unwrap().len(), 1);
+    }
+
+    #[test]
     fn successful_reset_clears_host_input_state() {
         let events = Arc::new(Mutex::new(Vec::new()));
         let core = InputRecordingCore {
