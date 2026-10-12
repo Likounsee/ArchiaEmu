@@ -9,7 +9,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 79 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 68 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Chargement et validation du contenu | 70 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 72 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -65,7 +65,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [ ] Étendre les tests aux tailles limites et aux fichiers tronqués; la détection couvre maintenant les signatures partielles, les octets arbitraires et les candidats ambigus.
 - [x] Ajouter au registre un point d'entrée qui crée le cœur correspondant à un résultat de détection unique, en refusant l'absence de candidat, les résultats ambigus, les IDs invalides et les sondes encore indécises; le chargement par le cœur reste obligatoire pour valider réellement le contenu.
 - [x] Ajouter un pipeline de lancement générique qui borne et possède le contenu, exécute les sondes sur ces octets, refuse les détections absentes/ambiguës/incomplètes, crée le cœur du registre et retourne une session Running uniquement après acceptation du contenu par le cœur. Les tests couvrent le lancement réussi, la limite de taille et l'ambiguïté.
-- [ ] Étendre les tests du pipeline aux erreurs de validation du cœur, aux sondes incomplètes et aux identifiants non enregistrés; définir ensuite son intégration dans une application hôte.
+- [x] Tester les erreurs de validation du cœur et les sondes incomplètes dans le pipeline de lancement.
+- [ ] Ajouter un test de bout en bout pour un identifiant de cœur non enregistré et définir l'intégration du pipeline dans une application hôte.
 - [ ] Ne pas exiger que le framework comprenne lui-même les formats propriétaires de chaque système.
 
 **Critère de sortie :** le framework rejette proprement les contenus invalides et fournit au module un contenu borné avec des métadonnées fiables.
@@ -164,4 +165,4 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
-La CI du commit `a7dbcc7d3306d8645ac99e93a50f11217fa8195f` a réussi sur Linux, Windows et macOS. Cela confirme les contrôles configurés sur ce commit, mais ne constitue pas une preuve d'émulation complète.
+La CI du commit `75299439a4b171879499de392f30d9483fe19b58` a réussi sur Linux, Windows et macOS. Cela confirme les contrôles configurés sur ce commit, mais ne constitue pas une preuve d'émulation complète.

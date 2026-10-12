@@ -270,6 +270,8 @@ mod tests {
             trust.verify_and_parse(&invalid, &TestVerifier, |_| panic!("must not parse")),
             Err(ManifestTrustError::InvalidSignature)
         ));
+        // Rejected envelopes must never poison the anti-rollback floor.
+        assert_eq!(trust.highest_accepted_revision(), 0);
     }
 
     #[test]
@@ -279,6 +281,11 @@ mod tests {
             trust.verify_and_parse(&envelope(4), &TestVerifier, |_| Ok(manifest(4))),
             Err(ManifestTrustError::RevisionRollback { .. })
         ));
+        assert!(matches!(
+            trust.verify_and_parse(&envelope(5), &TestVerifier, |_| Err(())),
+            Err(ManifestTrustError::InvalidPayload)
+        ));
+        assert_eq!(trust.highest_accepted_revision(), 4);
         assert!(matches!(
             trust.verify_and_parse(&envelope(5), &TestVerifier, |_| Ok(manifest(0))),
             Err(ManifestTrustError::InvalidManifest(_))
