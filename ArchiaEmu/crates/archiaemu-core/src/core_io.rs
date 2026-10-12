@@ -206,7 +206,7 @@ impl AudioBuffer {
     }
 
     /// Returns the number of complete sample frames in this buffer.
-    pub const fn frame_count(&self) -> usize {
+    pub fn frame_count(&self) -> usize {
         self.samples.len() / self.channels as usize
     }
 }
