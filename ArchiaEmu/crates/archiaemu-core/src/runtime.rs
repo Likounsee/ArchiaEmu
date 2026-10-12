@@ -4,6 +4,8 @@
 //! Console-independent lifecycle controller for a single emulation session.
 
 use core::fmt;
+use std::io::Read;
+use std::path::Path;
 
 use crate::content::{
     detect_content_formats, ContentDetection, ContentError, ContentFormatProbe, ContentImage,
@@ -48,6 +50,42 @@ pub fn launch_content(
     registry: &CoreRegistry,
 ) -> Result<EmulationSession, LaunchError> {
     let image = ContentImage::from_slice(bytes, limits).map_err(LaunchError::Content)?;
+    launch_content_image(image, probes, registry)
+}
+
+/// Reads a content file with a strict size limit, detects its format and launches it.
+///
+/// File metadata is used for early rejection, but the actual read remains bounded
+/// so stale metadata or a file that grows during reading cannot bypass the limit.
+pub fn launch_content_path(
+    path: impl AsRef<Path>,
+    limits: ContentLimits,
+    probes: &[&dyn ContentFormatProbe],
+    registry: &CoreRegistry,
+) -> Result<EmulationSession, LaunchError> {
+    let image = ContentImage::read_path(path, limits).map_err(LaunchError::Content)?;
+    launch_content_image(image, probes, registry)
+}
+
+/// Reads content from a stream with a strict size limit before format detection.
+///
+/// This is suitable for host-provided streams such as archive entries or downloaded
+/// payloads. The stream is consumed only up to the configured limit plus one byte.
+pub fn launch_content_reader<R: Read>(
+    reader: R,
+    limits: ContentLimits,
+    probes: &[&dyn ContentFormatProbe],
+    registry: &CoreRegistry,
+) -> Result<EmulationSession, LaunchError> {
+    let image = ContentImage::read_from(reader, limits).map_err(LaunchError::Content)?;
+    launch_content_image(image, probes, registry)
+}
+
+fn launch_content_image(
+    image: ContentImage,
+    probes: &[&dyn ContentFormatProbe],
+    registry: &CoreRegistry,
+) -> Result<EmulationSession, LaunchError> {
     let detection: ContentDetection = detect_content_formats(image.as_bytes(), probes);
     let core = registry
         .create_from_detection(&detection)
