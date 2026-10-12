@@ -2429,6 +2429,10 @@ mod shared_input_runtime_tests {
         assert_eq!(session.state(), SessionState::Running);
         assert!(session.is_input_pressed(InputControl::Action1));
         assert_eq!(events.lock().unwrap().as_slice(), &[press]);
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::InvalidContent("empty test content"))
+        );
     }
 
     #[test]
