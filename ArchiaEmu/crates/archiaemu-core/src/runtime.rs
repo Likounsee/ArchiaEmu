@@ -1030,20 +1030,24 @@ mod shared_input_runtime_tests {
         first.load_content(&[1]).unwrap();
         second.load_content(&[1]).unwrap();
 
-        first.send_input(InputEvent {
-            control: InputControl::Action1,
-            pressed: true,
-        }).unwrap();
+        first
+            .send_input(InputEvent {
+                control: InputControl::Action1,
+                pressed: true,
+            })
+            .unwrap();
 
         assert!(first.is_input_pressed(InputControl::Action1));
         assert!(!second.is_input_pressed(InputControl::Action1));
         assert_eq!(first_events.lock().unwrap().len(), 1);
         assert!(second_events.lock().unwrap().is_empty());
 
-        second.send_input(InputEvent {
-            control: InputControl::Start,
-            pressed: true,
-        }).unwrap();
+        second
+            .send_input(InputEvent {
+                control: InputControl::Start,
+                pressed: true,
+            })
+            .unwrap();
         assert!(second.is_input_pressed(InputControl::Start));
         assert!(!first.is_input_pressed(InputControl::Start));
         assert_eq!(first_events.lock().unwrap().len(), 1);
