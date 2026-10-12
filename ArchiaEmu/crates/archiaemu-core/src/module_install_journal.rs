@@ -319,7 +319,9 @@ pub enum InstallJournalError {
     InvalidVersion,
     /// A requested phase transition is not permitted.
     InvalidTransition {
+        /// Current phase recorded in the journal.
         from: InstallPhase,
+        /// Requested next phase.
         to: InstallPhase,
     },
     /// Destination path does not name a file.
