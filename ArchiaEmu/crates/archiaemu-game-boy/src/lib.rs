@@ -356,7 +356,7 @@ mod tests {
         let id = archiaemu_core::SystemId::new(SYSTEM_ID).unwrap();
         assert!(registry.contains(id));
         let core = registry.create(id).unwrap();
-        assert_eq!(core.descriptor().display_name, "Nintendo Game Boy (DMG)");
+        assert_eq!(core.descriptor().display_name, "Game Boy / Game Boy Color");
         assert_eq!(
             core.descriptor().capabilities,
             archiaemu_core::CoreCapabilities::default()
@@ -383,6 +383,36 @@ mod tests {
                 "Game Boy CPU execution is not implemented yet"
             ))
         );
+    }
+
+    #[test]
+    fn one_core_selects_hardware_mode_from_cartridge_flag() {
+        let mut image = valid_image();
+        let header = CartridgeHeader::parse(&image).unwrap();
+        assert_eq!(header.compatibility(), CartridgeCompatibility::DmgAndCgb);
+        assert_eq!(header.preferred_hardware_mode(), Some(HardwareMode::Cgb));
+
+        image[0x143] = 0x00;
+        image[0x14D] = header_checksum(&image);
+        let header = CartridgeHeader::parse(&image).unwrap();
+        assert_eq!(header.compatibility(), CartridgeCompatibility::DmgOnly);
+        assert_eq!(header.preferred_hardware_mode(), Some(HardwareMode::Dmg));
+
+        image[0x143] = 0xC0;
+        image[0x14D] = header_checksum(&image);
+        let header = CartridgeHeader::parse(&image).unwrap();
+        assert_eq!(header.compatibility(), CartridgeCompatibility::CgbOnly);
+        assert_eq!(header.preferred_hardware_mode(), Some(HardwareMode::Cgb));
+    }
+
+    #[test]
+    fn reserved_color_flag_is_not_silently_guessed() {
+        let mut image = valid_image();
+        image[0x143] = 0x40;
+        image[0x14D] = header_checksum(&image);
+        let header = CartridgeHeader::parse(&image).unwrap();
+        assert_eq!(header.compatibility(), CartridgeCompatibility::Reserved(0x40));
+        assert_eq!(header.preferred_hardware_mode(), None);
     }
 
     #[test]
