@@ -9,6 +9,9 @@
 /// Platform-neutral input and owned audio/video payload contracts.
 pub mod core_io;
 
+/// Host capability facts and console-independent performance planning.
+pub mod host_profile;
+
 /// Console-independent lifecycle controller for an active emulation session.
 pub mod runtime;
 
