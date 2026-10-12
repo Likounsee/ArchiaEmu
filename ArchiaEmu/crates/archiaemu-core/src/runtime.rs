@@ -1221,6 +1221,39 @@ mod shared_input_runtime_tests {
     }
 
     #[test]
+    fn failed_bulk_release_preserves_only_controls_not_yet_released() {
+        let rejected_release = InputEvent {
+            control: InputControl::Action2,
+            pressed: false,
+        };
+        let core = RejectSpecificInputCore {
+            rejected_event: rejected_release,
+            reset_fails: false,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        for control in [InputControl::Action1, InputControl::Action2] {
+            session
+                .send_input(InputEvent {
+                    control,
+                    pressed: true,
+                })
+                .unwrap();
+        }
+
+        assert_eq!(
+            session.release_all_inputs(),
+            Err(SessionError::Core(CoreError::Execution(
+                "input rejected for test"
+            )))
+        );
+        assert!(!session.is_input_pressed(InputControl::Action1));
+        assert!(session.is_input_pressed(InputControl::Action2));
+        assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
     fn failed_reset_preserves_held_input_for_recovery() {
         let press = InputEvent {
             control: InputControl::Action1,
