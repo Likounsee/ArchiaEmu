@@ -302,7 +302,7 @@ impl Cpu {
                 if condition {
                     self.registers.pc = (i32::from(self.registers.pc)
                         + i32::from(displacement)) as u16;
-                    if opcode == 0x18 { 3 } else { 3 }
+                    3
                 } else {
                     2
                 }
