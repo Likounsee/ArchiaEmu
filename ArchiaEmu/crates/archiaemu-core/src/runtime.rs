@@ -685,6 +685,69 @@ mod tests {
     }
 
     #[test]
+    fn runtime_rejects_operations_not_advertised_by_the_core() {
+        struct UnderreportedCore;
+
+        impl EmulationCore for UnderreportedCore {
+            fn descriptor(&self) -> CoreDescriptor {
+                CoreDescriptor {
+                    system_id: SystemId::new("underreported-test").unwrap(),
+                    display_name: "Underreported test core",
+                    core_version: "0.0.0-test",
+                    capabilities: CoreCapabilities::default(),
+                }
+            }
+
+            fn load_content(&mut self, _: &[u8]) -> Result<(), CoreError> {
+                Ok(())
+            }
+
+            fn reset(&mut self) -> Result<(), CoreError> {
+                Ok(())
+            }
+
+            fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+                Ok(CoreEvent::Yielded)
+            }
+
+            fn send_input(&mut self, _: InputEvent) -> Result<(), CoreError> {
+                Ok(())
+            }
+
+            fn take_video_frame(&mut self) -> Result<Option<VideoFrame>, CoreError> {
+                Ok(Some(
+                    VideoFrame::new(1, 1, crate::core_io::PixelFormat::Rgba8888, vec![0; 4])
+                        .unwrap(),
+                ))
+            }
+
+            fn take_audio_buffer(&mut self) -> Result<Option<AudioBuffer>, CoreError> {
+                Ok(Some(AudioBuffer::new(48_000, 1, vec![0]).unwrap()))
+            }
+        }
+
+        let mut session = EmulationSession::new(Box::new(UnderreportedCore));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.send_input(InputEvent {
+                control: InputControl::Action1,
+                pressed: true,
+            }),
+            Err(SessionError::Core(CoreError::Unsupported("input")))
+        );
+        assert_eq!(
+            session.take_video_frame(),
+            Err(SessionError::Core(CoreError::Unsupported("video output")))
+        );
+        assert_eq!(
+            session.take_audio_buffer(),
+            Err(SessionError::Core(CoreError::Unsupported("audio output")))
+        );
+        assert!(!session.is_input_pressed(InputControl::Action1));
+    }
+
+    #[test]
     fn media_cannot_be_retrieved_before_content_is_loaded() {
         let mut session = session();
         assert!(session.take_video_frame().is_err());
