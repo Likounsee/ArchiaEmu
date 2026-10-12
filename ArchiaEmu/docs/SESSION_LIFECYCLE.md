@@ -15,7 +15,7 @@ Ce document décrit les transitions garanties par `EmulationSession`. Il ne prom
 | `Paused` | exécution | transition invalide | reste `Paused` |
 | `Halted`, `Stopped` | exécution | transition invalide | reste dans le même état |
 | `Running`, `Paused` | entrée / libération globale | état inchangé; entrée locale mise à jour après succès du cœur | la transition refusée n'est pas marquée comme appliquée |
-| `Empty`, `Halted` | entrée | transition invalide | état inchangé |
+| `Empty`, `Halted`, `Stopped` | entrée | transition invalide | état inchangé |
 | Tout état chargé (`Running`, `Paused`, `Halted`, `Stopped`) | save state et récupération de média | état de session inchangé | erreur explicite; les capacités doivent être annoncées |
 | `Empty` | save state ou récupération de média | transition invalide | état inchangé |
 
