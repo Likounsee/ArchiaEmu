@@ -22,14 +22,18 @@ pub struct ModuleRuntimeCatalog<'a> {
 pub enum RuntimePlanError {
     /// A descriptor failed its own metadata/API validation.
     InvalidDescriptor {
+        /// ID of the descriptor that failed validation.
         module: ModuleId,
+        /// Underlying descriptor validation error.
         source: ModuleDescriptorError,
     },
     /// Two descriptors use the same module ID.
     DuplicateModule(ModuleId),
     /// A dependency is not present in this runtime catalogue.
     MissingDependency {
+        /// Module that declares the dependency.
         module: ModuleId,
+        /// Referenced module absent from the catalogue.
         dependency: ModuleId,
     },
     /// A dependency cycle was found.
@@ -38,7 +42,9 @@ pub enum RuntimePlanError {
     UnknownModule(ModuleId),
     /// The selected module does not advertise a required capability.
     MissingCapability {
+        /// Module that lacks the required capability.
         module: ModuleId,
+        /// Capability required by the host or selected module.
         capability: ModuleCapability,
     },
 }
