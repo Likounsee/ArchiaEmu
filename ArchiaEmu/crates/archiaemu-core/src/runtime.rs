@@ -994,14 +994,14 @@ mod tests {
             &registry,
         );
         let _ = std::fs::remove_file(&path);
-        assert_eq!(
+        assert!(matches!(
             empty_path,
             Err(LaunchError::Content(ContentError::Empty))
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             empty_reader,
             Err(LaunchError::Content(ContentError::Empty))
-        );
+        ));
     }
 
     #[test]
