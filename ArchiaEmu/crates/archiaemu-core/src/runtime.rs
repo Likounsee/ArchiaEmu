@@ -139,6 +139,7 @@ pub struct EmulationSession {
     core: Box<dyn EmulationCore>,
     state: SessionState,
     input_state: InputState,
+    last_core_error: Option<CoreError>,
 }
 
 impl EmulationSession {
@@ -148,6 +149,31 @@ impl EmulationSession {
             core,
             state: SessionState::Empty,
             input_state: InputState::new(),
+            last_core_error: None,
+        }
+    }
+
+    /// Returns the most recent error reported by a mutable core operation.
+    ///
+    /// Successful operations do not erase this diagnostic; a later core error
+    /// replaces it. Use `clear_last_core_error` after the host has recorded or
+    /// handled the failure.
+    pub fn last_core_error(&self) -> Option<CoreError> {
+        self.last_core_error
+    }
+
+    /// Clears the retained core-error diagnostic without changing session state.
+    pub fn clear_last_core_error(&mut self) {
+        self.last_core_error = None;
+    }
+
+    fn record_core_result<T>(&mut self, result: Result<T, CoreError>) -> Result<T, SessionError> {
+        match result {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.last_core_error = Some(error);
+                Err(SessionError::Core(error))
+            }
         }
     }
 
@@ -171,7 +197,8 @@ impl EmulationSession {
                 "content loading",
             )));
         }
-        self.core.load_content(content)?;
+        let result = self.core.load_content(content);
+        self.record_core_result(result)?;
         self.input_state = InputState::new();
         self.state = SessionState::Running;
         Ok(())
@@ -225,7 +252,8 @@ impl EmulationSession {
         if self.state == SessionState::Empty {
             return Err(self.invalid_transition("reset"));
         }
-        self.core.reset()?;
+        let result = self.core.reset();
+        self.record_core_result(result)?;
         self.input_state = InputState::new();
         self.state = SessionState::Running;
         Ok(())
@@ -248,7 +276,8 @@ impl EmulationSession {
         for control in InputControl::ALL {
             if self.input_state.is_pressed(control) {
                 let event = InputEvent { control, pressed: false };
-                self.core.send_input(event)?;
+                let result = self.core.send_input(event);
+                self.record_core_result(result)?;
                 self.input_state.apply(event);
             }
         }
@@ -260,7 +289,8 @@ impl EmulationSession {
     /// Runs the core to its next observable event while the session is running.
     pub fn run_until_event(&mut self) -> Result<CoreEvent, SessionError> {
         self.require_state("run", SessionState::Running)?;
-        let event = self.core.run_until_event()?;
+        let result = self.core.run_until_event();
+        let event = self.record_core_result(result)?;
         if event == CoreEvent::Halted {
             self.state = SessionState::Halted;
         }
@@ -319,7 +349,8 @@ impl EmulationSession {
         if !self.core.descriptor().capabilities.save_states {
             return Err(SessionError::Core(CoreError::Unsupported("save states")));
         }
-        self.core.load_state(state)?;
+        let result = self.core.load_state(state);
+        self.record_core_result(result)?;
         Ok(())
     }
 
@@ -337,7 +368,8 @@ impl EmulationSession {
         if self.input_state.is_pressed(event.control) == event.pressed {
             return Ok(());
         }
-        self.core.send_input(event)?;
+        let result = self.core.send_input(event);
+        self.record_core_result(result)?;
         self.input_state.apply(event);
         Ok(())
     }
@@ -1027,6 +1059,23 @@ mod tests {
         assert_eq!(session.state(), SessionState::Running);
         assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
         assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
+    fn core_error_diagnostic_persists_until_explicitly_cleared() {
+        let core = ErrorOnceCore { fail_next_run: true };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        let error = CoreError::Execution("transient test failure");
+        assert_eq!(session.run_until_event(), Err(SessionError::Core(error)));
+        assert_eq!(session.last_core_error(), Some(error));
+        assert_eq!(session.state(), SessionState::Running);
+
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
+        assert_eq!(session.last_core_error(), Some(error));
+        session.clear_last_core_error();
+        assert_eq!(session.last_core_error(), None);
     }
 
     #[test]
