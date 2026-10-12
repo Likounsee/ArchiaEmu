@@ -276,6 +276,11 @@ impl ModuleManifest {
                         .unwrap_or("");
                     let valid_url = !authority.is_empty()
                         && !authority.starts_with(':')
+                        && !authority.contains('@')
+                        && !authority.contains('\\')
+                        && !authority.starts_with('.')
+                        && !authority.ends_with('.')
+                        && !authority.contains("..")
                         && !artifact
                             .url
                             .bytes()
@@ -479,7 +484,17 @@ mod tests {
             manifest(vec![entry]).validate(),
             Err(ManifestError::InvalidArtifact(_))
         ));
-        for url in ["https://", "https:///file.tar", "https://?download=1", "https://:443/file"] {
+        for url in [
+            "https://",
+            "https:///file.tar",
+            "https://?download=1",
+            "https://:443/file",
+            "https://user@packages.example.invalid/file.tar",
+            "https://packages..example.invalid/file.tar",
+            "https://.packages.example.invalid/file.tar",
+            "https://packages.example.invalid./file.tar",
+            "https://packages.example.invalid\\\\file.tar",
+        ] {
             let mut entry = module("game-boy", &[]);
             entry.artifact.as_mut().unwrap().url = url.into();
             assert!(
