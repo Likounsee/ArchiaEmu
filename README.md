@@ -7,6 +7,8 @@
 - Build shared components primarily in stable Rust, with explicit errors and testable boundaries.
 - Integrate C or C++ only when a mature, legally reusable library or a concrete interoperability/performance need justifies it.
 - Keep cores independent of the UI and make audio/video ownership and timing explicit.
+- For consoles with software interfaces, aim to reproduce or independently recreate their dashboards, system menus, launchers and settings interfaces when feasible.
+- Provide optional, reversible visual enhancements for older systems, while retaining a faithful original-presentation mode and clearly distinguishing recreated interfaces from original firmware.
 - Validate platform behavior with reproducible tests rather than treating compilation as compatibility.
 - Treat game images, firmware, configuration and save files as untrusted input.
 
@@ -41,6 +43,7 @@ GitHub Actions runs formatting, locked tests and warning-free API documentation 
 - **P0 — Foundations:** workspace, shared contracts, registry, CI, tests, documentation and licensing review.
 - **P1 — First console:** select a target after auditing specifications and lawful test availability; implement and test real hardware behavior.
 - **P2 — Runtime I/O:** graphics, audio, input and synchronization.
+- **Presentation/UI:** host-side interface recreation and optional visual enhancements, implemented per system only after a real core and renderer exist.
 - **P3 — Library and saves:** content management, persistent data and validated save states.
 - **P4 — Performance:** reproducible baselines, profiling and measured optimizations.
 - **P5–P7 — Expansion and release:** second platform, more complex systems, security/legal review and reproducible packaging.
