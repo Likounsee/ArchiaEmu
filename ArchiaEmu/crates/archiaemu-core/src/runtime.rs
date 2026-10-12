@@ -2376,6 +2376,10 @@ mod shared_input_runtime_tests {
         assert_eq!(session.state(), SessionState::Running);
         assert!(!session.is_input_pressed(InputControl::Action1));
         assert!(session.is_input_pressed(InputControl::Action2));
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("input rejected for test"))
+        );
     }
 
     #[test]
