@@ -8,6 +8,7 @@
 
 use core::fmt;
 use std::io::{ErrorKind, Read};
+use std::path::Path;
 
 /// Caller-selected limits applied before content reaches an emulation core.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -89,6 +90,16 @@ impl ContentImage {
         Ok(Self { bytes })
     }
 
+    /// Opens a filesystem path and reads it with the same strict size bound.
+    ///
+    /// File metadata is not trusted for the size decision: the stream reader
+    /// enforces the limit even if the file changes while being read.
+    pub fn read_path(path: impl AsRef<Path>, limits: ContentLimits) -> Result<Self, ContentError> {
+        let file = std::fs::File::open(path)
+            .map_err(|error| ContentError::ReadFailed(error.kind()))?;
+        Self::read_from(file, limits)
+    }
+
     /// Reads at most the configured limit plus one byte from a stream.
     ///
     /// The extra byte detects oversized inputs without reading an unbounded
@@ -131,6 +142,31 @@ impl ContentImage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_a_file_with_the_same_size_limit() {
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-content-test-{}.bin",
+            std::process::id()
+        ));
+        std::fs::write(&path, b"file bytes").unwrap();
+        let result = ContentImage::read_path(&path, ContentLimits::new(10));
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(result.unwrap().as_bytes(), b"file bytes");
+    }
+
+    #[test]
+    fn reports_file_open_errors() {
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-content-missing-{}.bin",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        assert!(matches!(
+            ContentImage::read_path(path, ContentLimits::new(10)),
+            Err(ContentError::ReadFailed(_))
+        ));
+    }
 
     #[test]
     fn reads_a_stream_within_the_limit() {
