@@ -174,11 +174,11 @@ impl ManifestTrustPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::module_management::{ModuleId, ModuleReadiness};
     use crate::module_manifest::{
         ManifestModule, ModuleManifest, ModuleTarget, PackageArtifact, ReleaseVersion, TargetArch,
         TargetOs,
-};
-    use crate::module_management::{ModuleId, ModuleReadiness};
+    };
 
     struct TestVerifier;
     impl ManifestSignatureVerifier for TestVerifier {
