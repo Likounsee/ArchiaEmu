@@ -94,7 +94,9 @@ fn is_valid_https_url(value: &str) -> bool {
         }
         // Numeric dotted hosts are IPv4 literals, not DNS names. Reject malformed
         // forms rather than accepting an invalid address as a hostname.
-        if host.bytes().all(|byte| byte.is_ascii_digit() || byte == b'.')
+        if host
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || byte == b'.')
             && host.contains('.')
             && host.parse::<std::net::Ipv4Addr>().is_err()
         {
@@ -565,7 +567,9 @@ mod tests {
             .map(|index| module(&format!("node-{index}"), &[]))
             .collect::<Vec<_>>();
         for index in 0..MODULE_COUNT - 1 {
-            modules[index].dependencies.push(id(&format!("node-{}", index + 1)));
+            modules[index]
+                .dependencies
+                .push(id(&format!("node-{}", index + 1)));
         }
         modules[MODULE_COUNT - 1].dependencies.push(id("node-0"));
 
