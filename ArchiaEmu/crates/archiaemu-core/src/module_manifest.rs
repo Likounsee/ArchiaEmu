@@ -77,16 +77,26 @@ fn is_valid_https_url(value: &str) -> bool {
         let port = pieces.next();
         if pieces.next().is_some()
             || host.is_empty()
+            || host.len() > 253
             || host.starts_with('.')
             || host.ends_with('.')
             || host.split('.').any(|label| {
                 label.is_empty()
+                    || label.len() > 63
                     || label.starts_with('-')
                     || label.ends_with('-')
                     || !label
                         .bytes()
                         .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
             })
+        {
+            return false;
+        }
+        // Numeric dotted hosts are IPv4 literals, not DNS names. Reject malformed
+        // forms rather than accepting an invalid address as a hostname.
+        if host.bytes().all(|byte| byte.is_ascii_digit() || byte == b'.')
+            && host.contains('.')
+            && host.parse::<std::net::Ipv4Addr>().is_err()
         {
             return false;
         }
@@ -587,6 +597,9 @@ mod tests {
             "https://packages.example.invalid:65536/file.tar",
             "https://-packages.example.invalid/file.tar",
             "https://packages-.example.invalid/file.tar",
+            "https://${"a".repeat(64)}.example.invalid/file.tar",
+            "https://999.999.999.999/file.tar",
+            "https://192.168.1.999/file.tar",
             "https://[not-ipv6]/file.tar",
         ] {
             let mut entry = module("game-boy", &[]);
