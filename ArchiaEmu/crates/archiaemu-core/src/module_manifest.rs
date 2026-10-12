@@ -269,8 +269,13 @@ impl ModuleManifest {
                     ))
                 }
                 (Some(artifact), _) => {
-                    let valid_url = artifact.url.starts_with("https://")
-                        && artifact.url.len() > "https://".len()
+                    let authority = artifact
+                        .url
+                        .strip_prefix("https://")
+                        .and_then(|rest| rest.split(['/', '?', '#']).next())
+                        .unwrap_or("");
+                    let valid_url = !authority.is_empty()
+                        && !authority.starts_with(':')
                         && !artifact
                             .url
                             .bytes()
@@ -474,6 +479,15 @@ mod tests {
             manifest(vec![entry]).validate(),
             Err(ManifestError::InvalidArtifact(_))
         ));
+        for url in ["https://", "https:///file.tar", "https://?download=1", "https://:443/file"] {
+            let mut entry = module("game-boy", &[]);
+            entry.artifact.as_mut().unwrap().url = url.into();
+            assert!(matches!(
+                manifest(vec![entry]).validate(),
+                Err(ManifestError::InvalidArtifact(_)),
+                "accepted invalid HTTPS authority: {url}"
+            ));
+        }
         let mut entry = module("game-boy", &[]);
         entry.artifact.as_mut().unwrap().sha256 = "not-a-hash".into();
         assert!(matches!(
