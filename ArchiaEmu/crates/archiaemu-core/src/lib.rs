@@ -282,6 +282,13 @@ pub type CoreFactory = fn() -> Box<dyn EmulationCore>;
 pub enum RegistryError {
     /// Format detection found no matching candidate.
     NoDetectedFormat,
+    /// A detected format ID is not a valid canonical system identifier.
+    InvalidDetectedFormat {
+        /// ID returned by the format probe.
+        format_id: &'static str,
+        /// Reason the ID is not canonical.
+        reason: IdentifierError,
+    },
     /// Format detection found multiple candidates, so automatic selection is unsafe.
     AmbiguousDetectedFormats(usize),
     /// A core with this identifier is already registered.
@@ -301,6 +308,9 @@ impl fmt::Display for RegistryError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NoDetectedFormat => formatter.write_str("content format was not detected"),
+            Self::InvalidDetectedFormat { format_id, reason } => {
+                write!(formatter, "detected format ID '{format_id}' is invalid: {reason}")
+            }
             Self::AmbiguousDetectedFormats(count) => write!(
                 formatter,
                 "content format detection returned {count} candidates; explicit selection is required"
@@ -376,8 +386,12 @@ impl CoreRegistry {
     ) -> Result<Box<dyn EmulationCore>, RegistryError> {
         let id = match detection.matches.as_slice() {
             [] => return Err(RegistryError::NoDetectedFormat),
-            [format_id] => SystemId::new(format_id)
-                .expect("format probe IDs must use canonical system identifiers"),
+            [format_id] => SystemId::new(format_id).map_err(|reason| {
+                RegistryError::InvalidDetectedFormat {
+                    format_id,
+                    reason,
+                }
+            })?,
             candidates => {
                 return Err(RegistryError::AmbiguousDetectedFormats(candidates.len()));
             }
@@ -530,6 +544,22 @@ mod tests {
         assert_eq!(
             registry.create_from_detection(&detection).unwrap().descriptor().system_id,
             id
+        );
+    }
+
+    #[test]
+    fn registry_rejects_noncanonical_detected_format_ids_without_panicking() {
+        let registry = CoreRegistry::new();
+        let detection = content::ContentDetection {
+            matches: vec!["Not Canonical"],
+            needs_more_data: vec![],
+        };
+        assert_eq!(
+            registry.create_from_detection(&detection).unwrap_err(),
+            RegistryError::InvalidDetectedFormat {
+                format_id: "Not Canonical",
+                reason: IdentifierError::InvalidCharacter,
+            }
         );
     }
 
@@ -689,6 +719,14 @@ mod tests {
         assert_eq!(
             RegistryError::NoDetectedFormat.to_string(),
             "content format was not detected"
+        );
+        assert_eq!(
+            RegistryError::InvalidDetectedFormat {
+                format_id: "Not Canonical",
+                reason: IdentifierError::InvalidCharacter,
+            }
+            .to_string(),
+            "detected format ID 'Not Canonical' is invalid: system identifier must contain only lowercase ASCII letters, digits, and hyphens"
         );
         assert_eq!(
             RegistryError::AmbiguousDetectedFormats(2).to_string(),
