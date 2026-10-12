@@ -330,13 +330,17 @@ mod tests {
 
     #[test]
     fn execution_error_preserves_session_state_and_allows_recovery() {
-        let core = ErrorOnceCore { fail_next_run: true };
+        let core = ErrorOnceCore {
+            fail_next_run: true,
+        };
         let mut session = EmulationSession::new(Box::new(core));
         session.load_content(&[1]).unwrap();
 
         assert_eq!(
             session.run_until_event(),
-            Err(SessionError::Core(CoreError::Execution("transient test failure")))
+            Err(SessionError::Core(CoreError::Execution(
+                "transient test failure"
+            )))
         );
         assert_eq!(session.state(), SessionState::Running);
         assert_eq!(session.run_until_event().unwrap(), CoreEvent::Yielded);
