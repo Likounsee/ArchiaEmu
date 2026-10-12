@@ -198,10 +198,7 @@ mod tests {
                     self.remaining = &self.remaining[count..];
                     return Ok(count);
                 }
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "injected stream failure",
-                ))
+                Err(std::io::Error::other("injected stream failure"))
             }
         }
 
