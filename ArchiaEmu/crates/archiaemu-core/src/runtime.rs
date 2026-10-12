@@ -715,6 +715,58 @@ mod tests {
     }
 
     #[test]
+    fn input_operations_are_rejected_before_load_and_after_halt() {
+        let mut empty = session();
+        let press = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+
+        assert_eq!(
+            empty.send_input(press),
+            Err(SessionError::InvalidTransition {
+                operation: "send input",
+                state: SessionState::Empty,
+            })
+        );
+        assert_eq!(
+            empty.release_all_inputs(),
+            Err(SessionError::InvalidTransition {
+                operation: "release inputs",
+                state: SessionState::Empty,
+            })
+        );
+        assert_eq!(empty.state(), SessionState::Empty);
+        assert!(!empty.is_input_pressed(InputControl::Action1));
+
+        let core = TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Halted,
+        };
+        let mut halted = EmulationSession::new(Box::new(core));
+        halted.load_content(&[1]).unwrap();
+        assert_eq!(halted.run_until_event(), Ok(CoreEvent::Halted));
+
+        assert_eq!(
+            halted.send_input(press),
+            Err(SessionError::InvalidTransition {
+                operation: "send input",
+                state: SessionState::Halted,
+            })
+        );
+        assert_eq!(
+            halted.release_all_inputs(),
+            Err(SessionError::InvalidTransition {
+                operation: "release inputs",
+                state: SessionState::Halted,
+            })
+        );
+        assert_eq!(halted.state(), SessionState::Halted);
+        assert!(!halted.is_input_pressed(InputControl::Action1));
+    }
+
+    #[test]
     fn long_lifecycle_sequence_keeps_state_and_bounded_execution_consistent() {
         let mut session = session();
         assert_eq!(session.state(), SessionState::Empty);
