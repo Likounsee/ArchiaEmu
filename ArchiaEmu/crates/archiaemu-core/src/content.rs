@@ -95,8 +95,8 @@ impl ContentImage {
     /// File metadata is not trusted for the size decision: the stream reader
     /// enforces the limit even if the file changes while being read.
     pub fn read_path(path: impl AsRef<Path>, limits: ContentLimits) -> Result<Self, ContentError> {
-        let file = std::fs::File::open(path)
-            .map_err(|error| ContentError::ReadFailed(error.kind()))?;
+        let file =
+            std::fs::File::open(path).map_err(|error| ContentError::ReadFailed(error.kind()))?;
         Self::read_from(file, limits)
     }
 
@@ -145,10 +145,8 @@ mod tests {
 
     #[test]
     fn reads_a_file_with_the_same_size_limit() {
-        let path = std::env::temp_dir().join(format!(
-            "archiaemu-content-test-{}.bin",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("archiaemu-content-test-{}.bin", std::process::id()));
         std::fs::write(&path, b"file bytes").unwrap();
         let result = ContentImage::read_path(&path, ContentLimits::new(10));
         let _ = std::fs::remove_file(&path);
