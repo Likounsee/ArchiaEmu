@@ -814,7 +814,7 @@ mod tests {
     fn invalid_ram_size_replacement_preserves_loaded_cartridge() {
         let mut core = GameBoyCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
-        let before = *core.cartridge_header();
+        let before = *core.cartridge_header().unwrap();
 
         let mut replacement = valid_rom();
         replacement[0x149] = 0x06;
