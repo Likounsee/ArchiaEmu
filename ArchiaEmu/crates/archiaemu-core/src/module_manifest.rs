@@ -260,6 +260,8 @@ pub enum ManifestError {
     UnsupportedTarget(ModuleId),
     /// A user-selected module ID does not exist in this manifest.
     UnknownSelection(ModuleId),
+    /// A selected module is marked as still in development.
+    ModuleNotInstallable(ModuleId),
     /// Application version is outside the module compatibility range.
     IncompatibleApplicationVersion(ModuleId),
 }
@@ -295,6 +297,7 @@ impl fmt::Display for ManifestError {
                 "module '{id}' has no artifact for the current host target"
             ),
             Self::UnknownSelection(id) => write!(f, "selected module {id} is absent from the manifest"),
+            Self::ModuleNotInstallable(id) => write!(f, "module {id} is not installable yet"),
             Self::IncompatibleApplicationVersion(id) => write!(
                 f,
                 "module '{id}' is incompatible with this ArchiaEmu version"
@@ -457,9 +460,7 @@ impl ModuleManifest {
                 let module = &self.modules[index];
                 if !expanded {
                     if module.readiness == ModuleReadiness::InDevelopment {
-                        return Err(ManifestError::ArtifactForInDevelopmentModule(
-                            module.id.clone(),
-                        ));
+                        return Err(ManifestError::ModuleNotInstallable(module.id.clone()));
                     }
                     if app_version < module.min_app_version
                         || module
