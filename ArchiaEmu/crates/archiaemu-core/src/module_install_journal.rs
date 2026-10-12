@@ -121,7 +121,7 @@ impl InstallJournal {
     /// Starts a transaction after the install plan has been validated.
     pub fn new(module: ModuleId, version: impl Into<String>) -> Result<Self, InstallJournalError> {
         let version = version.into();
-        if version.trim().is_empty() || version.contains(['\n', '\r', '\t']) {
+        if version.trim().is_empty() || version.chars().any(|ch| matches!(ch, '\n' | '\r' | '\t')) {
             return Err(InstallJournalError::InvalidVersion);
         }
         Ok(Self {
@@ -187,7 +187,7 @@ impl InstallJournal {
                 ["version", value] if version.is_none() => {
                     let bytes = decode_hex(value)?;
                     let value = String::from_utf8(bytes).map_err(|_| InstallJournalError::InvalidFormat)?;
-                    if value.trim().is_empty() || value.contains(['\n', '\r', '\t']) {
+                    if value.trim().is_empty() || value.chars().any(|ch| matches!(ch, '\n' | '\r' | '\t')) {
                         return Err(InstallJournalError::InvalidVersion);
                     }
                     version = Some(value);
