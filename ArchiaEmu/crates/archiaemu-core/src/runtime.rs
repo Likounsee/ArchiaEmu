@@ -680,6 +680,33 @@ mod tests {
     }
 
     #[test]
+    fn failed_reload_preserves_paused_and_halted_lifecycle_states() {
+        let mut paused = session();
+        paused.load_content(&[1]).unwrap();
+        paused.pause().unwrap();
+
+        assert!(paused.load_content(&[]).is_err());
+        assert_eq!(paused.state(), SessionState::Paused);
+        paused.resume().unwrap();
+        assert_eq!(paused.run_until_event(), Ok(CoreEvent::Yielded));
+
+        let core = TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Halted,
+        };
+        let mut halted = EmulationSession::new(Box::new(core));
+        halted.load_content(&[1]).unwrap();
+        assert_eq!(halted.run_until_event(), Ok(CoreEvent::Halted));
+        assert_eq!(halted.state(), SessionState::Halted);
+
+        assert!(halted.load_content(&[]).is_err());
+        assert_eq!(halted.state(), SessionState::Halted);
+        halted.reset().unwrap();
+        assert_eq!(halted.state(), SessionState::Running);
+    }
+
+    #[test]
     fn pause_resume_and_reset_follow_valid_transitions() {
         let mut session = session();
         session.load_content(&[1]).unwrap();
