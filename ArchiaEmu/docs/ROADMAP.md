@@ -9,7 +9,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 80 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 71 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Chargement et validation du contenu | 72 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 72 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -87,7 +87,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [ ] Définir des blocs audio avec fréquence, canaux, format d'échantillon et règles de propriété explicites.
 - [ ] Séparer horloge/cadence d'émulation et horloge de présentation hôte.
 - [ ] Gérer pause, reprise, arrêt, retard de l'hôte et files pleines sans blocage indéfini.
-- [ ] Tester tailles invalides, buffers vides, cadence irrégulière et back-pressure.
+- [ ] Tester tailles invalides, buffers vides, cadence irrégulière et back-pressure. Les tests couvrent maintenant le dépassement de taille vidéo en arithmétique et le tampon audio vide à zéro frame.
 - [ ] Conserver les interfaces sans dépendance obligatoire à une bibliothèque graphique ou audio unique.
 
 ### P1.3 — Sauvegardes et restauration
