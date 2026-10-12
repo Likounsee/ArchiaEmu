@@ -23,6 +23,11 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 > **Point de départ réel :** le workspace Rust, le contrat de cœur, le registre, une partie du cycle de vie de session, les capacités, l'état d'entrée partagé, les fonctions de sauvegarde/restauration déléguées au cœur, la gestion de modules et le CI existent déjà. Il n'existe pas encore d'application complète permettant de charger un jeu et de l'émuler avec audio et vidéo de bout en bout. La réussite du CI vérifie les contrôles configurés, pas la compatibilité d'une console.
 
+## Vérification transversale P0 — persistance du state store
+
+- [x] Supprimer les fichiers temporaires lorsqu'une suppression de sauvegarde ou un renommage primaire-vers-backup échoue; un test de régression force l'échec de suppression de la sauvegarde et vérifie la préservation du primaire ainsi que l'absence de fichier temporaire orphelin.
+- [ ] Tester les autres pannes d'E/S du remplacement (échec du renommage temporaire, restauration de secours et synchronisation du répertoire) sur les plateformes CI prises en charge; ne pas considérer les échecs de synchronisation comme validés tant qu'ils ne sont pas observables et testés.
+
 ## P0 — rendre le runtime commun fiable
 
 ### P0.1 — Cycle de vie de session
