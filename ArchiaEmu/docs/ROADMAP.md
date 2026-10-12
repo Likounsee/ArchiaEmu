@@ -31,7 +31,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Capacités déclarées et refus des opérations non annoncées.
 - [x] État d'entrée commun avec suppression des transitions dupliquées et relâchement explicite; la libération globale vérifie aussi la capacité d'entrée avant d'appeler le cœur.
 - [x] API générique de sauvegarde/restauration d'état avec vérification de capacité.
-- [ ] Formaliser les transitions autorisées dans une table de référence et tester chaque transition valide/invalide.
+- [ ] Formaliser les transitions autorisées dans une table de référence et tester chaque transition valide/invalide. Un test vérifie maintenant que l'événement Halted bloque l'exécution et pause/reprise, puis qu'une réinitialisation réussie permet de reprendre.
 - [ ] Garantir un comportement documenté après chaque erreur du cœur : état de session, entrées maintenues, événements et possibilité de reprise. Les tests couvrent le refus d'une pression, d'un relâchement individuel, d'une libération globale partielle (les commandes déjà libérées restent libérées) et d'une réinitialisation (qui doit conserver l'état d'entrée hôte), mais pas encore toutes les catégories d'erreur.
 - [ ] Ajouter des tests de séquences longues : charger, démarrer, mettre en pause, reprendre, réinitialiser, arrêter et recharger. Un premier test couvre maintenant charger, pause/reprise répétées, exécution bornée, réinitialisation depuis l'état en pause et rechargement; la sémantique d'arrêt reste à définir.
 - [ ] Clarifier la sémantique d'arrêt et de réinitialisation pour chaque état, sans hypothèses spécifiques à une console.

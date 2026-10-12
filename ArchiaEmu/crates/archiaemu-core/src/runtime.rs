@@ -510,6 +510,46 @@ mod tests {
     }
 
     #[test]
+    fn halted_event_blocks_execution_until_reset_recovers_session() {
+        let core = TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Halted,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Halted));
+        assert_eq!(session.state(), SessionState::Halted);
+        assert_eq!(
+            session.run_until_event(),
+            Err(SessionError::InvalidTransition {
+                operation: "run",
+                state: SessionState::Halted,
+            })
+        );
+        assert_eq!(
+            session.pause(),
+            Err(SessionError::InvalidTransition {
+                operation: "pause",
+                state: SessionState::Halted,
+            })
+        );
+        assert_eq!(
+            session.resume(),
+            Err(SessionError::InvalidTransition {
+                operation: "resume",
+                state: SessionState::Halted,
+            })
+        );
+
+        session.reset().unwrap();
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
+        assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
     fn execution_error_preserves_session_state_and_allows_recovery() {
         let core = ErrorOnceCore {
             fail_next_run: true,
