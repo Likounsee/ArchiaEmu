@@ -33,6 +33,9 @@ pub mod module_state;
 /// Versioned disk persistence for first-launch and module state.
 pub mod module_state_store;
 
+/// Bounded package artifact staging and digest-verification boundary.
+pub mod artifact_staging;
+
 /// Crash-recovery journal for package installation transactions.
 pub mod module_install_journal;
 
