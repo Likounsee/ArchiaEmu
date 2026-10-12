@@ -658,6 +658,85 @@ mod tests {
     }
 
     #[test]
+    fn bounded_path_and_reader_launch_share_the_detection_pipeline() {
+        let probe = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let id = SystemId::new("runtime-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_runtime_test_core).unwrap();
+
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-launch-path-{}-{unique}.bin",
+            std::process::id()
+        ));
+        std::fs::write(&path, b"GAME payload").unwrap();
+
+        let path_result = launch_content_path(&path, ContentLimits::new(64), &probes, &registry);
+        let _ = std::fs::remove_file(&path);
+        let path_session = path_result.unwrap();
+        assert_eq!(path_session.descriptor().system_id, id);
+        assert_eq!(path_session.state(), SessionState::Running);
+
+        let reader_session = launch_content_reader(
+            std::io::Cursor::new(b"GAME payload".to_vec()),
+            ContentLimits::new(64),
+            &probes,
+            &registry,
+        )
+        .unwrap();
+        assert_eq!(reader_session.descriptor().system_id, id);
+        assert_eq!(reader_session.state(), SessionState::Running);
+    }
+
+    #[test]
+    fn bounded_path_and_reader_launch_reject_oversized_content_before_detection() {
+        let probe = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let registry = CoreRegistry::new();
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-launch-oversized-{}-{unique}.bin",
+            std::process::id()
+        ));
+        std::fs::write(&path, b"GAME").unwrap();
+
+        let path_result = launch_content_path(&path, ContentLimits::new(3), &probes, &registry);
+        let _ = std::fs::remove_file(&path);
+        assert!(matches!(
+            path_result,
+            Err(LaunchError::Content(ContentError::TooLarge {
+                max_bytes: 3,
+                actual_bytes: 4,
+            }))
+        ));
+        assert!(matches!(
+            launch_content_reader(
+                std::io::Cursor::new(b"GAME".to_vec()),
+                ContentLimits::new(3),
+                &probes,
+                &registry,
+            ),
+            Err(LaunchError::Content(ContentError::TooLarge {
+                max_bytes: 3,
+                actual_bytes: 4,
+            }))
+        ));
+    }
+
+    #[test]
     fn launch_pipeline_detects_selects_validates_and_starts_session() {
         let probe = PrefixProbe {
             id: "runtime-test",
