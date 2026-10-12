@@ -166,6 +166,13 @@ pub enum ManifestError {
         /// Missing dependency ID.
         dependency: ModuleId,
     },
+    /// A module declares the same direct dependency more than once.
+    DuplicateDependency {
+        /// Module declaring the duplicate dependency.
+        module: ModuleId,
+        /// Dependency that was repeated.
+        dependency: ModuleId,
+    },
     /// Dependency graph contains a cycle.
     DependencyCycle(ModuleId),
     /// Compatibility bounds contradict each other.
@@ -193,6 +200,10 @@ impl fmt::Display for ManifestError {
             Self::MissingDependency { module, dependency } => write!(
                 f,
                 "module '{module}' requires missing module '{dependency}'"
+            ),
+            Self::DuplicateDependency { module, dependency } => write!(
+                f,
+                "module '{module}' declares dependency '{dependency}' more than once"
             ),
             Self::DependencyCycle(id) => write!(f, "module dependency cycle includes '{id}'"),
             Self::InvalidCompatibilityRange(id) => write!(
@@ -279,7 +290,13 @@ impl ModuleManifest {
                 }
                 (None, ModuleReadiness::InDevelopment) => {}
             }
-            for dependency in &module.dependencies {
+            for (dependency_index, dependency) in module.dependencies.iter().enumerate() {
+                if module.dependencies[..dependency_index].contains(dependency) {
+                    return Err(ManifestError::DuplicateDependency {
+                        module: module.id.clone(),
+                        dependency: dependency.clone(),
+                    });
+                }
                 if !self
                     .modules
                     .iter()
@@ -437,6 +454,11 @@ mod tests {
         assert!(matches!(
             manifest(vec![module("one", &["missing"])]).validate(),
             Err(ManifestError::MissingDependency { .. })
+        ));
+        assert!(matches!(
+            manifest(vec![module("shared", &[]), module("one", &["shared", "shared"])])
+                .validate(),
+            Err(ManifestError::DuplicateDependency { .. })
         ));
         assert!(matches!(
             manifest(vec![module("one", &["two"]), module("two", &["one"])]).validate(),
