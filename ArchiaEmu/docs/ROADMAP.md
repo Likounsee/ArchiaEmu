@@ -10,7 +10,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 82 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 75 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
-| **P0** | Contrats de modules et capacités | 82 % | Modules isolés, capacités explicites, découverte et création prévisibles |
+| **P0** | Contrats de modules et capacités | 85 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
@@ -48,7 +48,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Identifiants système stables, registre et vérifications de cohérence des descripteurs.
 - [x] Déclarations de capacités par module.
 - [x] Refuser le chargement de contenu quand un cœur ne déclare pas la capacité `content_loading`; test de régression sur les API directe et bornée.
-- [x] Planification de dépendances et détection des dépendances manquantes/cycles; le manifeste rejette aussi les dépendances directes dupliquées avec une erreur de régression. Les parcours du manifeste et du catalogue de modules utilisent maintenant un DFS itératif à pile explicite, et le plan d'installation construit aussi son ordre sans récursion. Des tests couvrent une chaîne de 2 048 modules avec ordre d'installation dépendances-d'abord et un cycle profond de 1 024 modules dans chaque validateur.
+- [x] Planification de dépendances et détection des dépendances manquantes/cycles; le manifeste rejette aussi les dépendances directes dupliquées avec une erreur de régression. Les parcours du manifeste et du catalogue de modules utilisent un DFS itératif à pile explicite, et le plan d'installation construit aussi son ordre sans récursion. La validation du catalogue indexe désormais les ID et dépendances avec des tables de hachage au lieu de rescanner toute la liste pour chaque entrée. Des tests couvrent une chaîne de 2 048 modules avec ordre d'installation dépendances-d'abord et un cycle profond de 1 024 modules dans chaque validateur.
 - [x] Renforcer la validation structurelle des URL d'artefacts HTTPS : autorités et hôtes vides/malformés, identifiants utilisateur, antislashs, labels invalides, ports non numériques/hors plage et IPv6 entre crochets; des tests couvrent aussi les hôtes/ports valides. Ce contrôle dédié ne remplace pas un parseur d'URL complet.
 - [x] Définir la version du contrat API et une règle de compatibilité : même version majeure et version mineure requise inférieure ou égale à celle de l'hôte. Le runtime refuse la création de session pour un cœur incompatible. Une matrice de tests couvre aussi la règle de compatibilité majeur/mineur. Le registre applique maintenant aussi cette vérification à toutes les voies de création, y compris le pipeline de lancement par détection; tests sur création directe et création depuis une détection.
 - [ ] Définir les métadonnées minimales du module : ID, version, version de contrat, capacités, provenance et exigences.
