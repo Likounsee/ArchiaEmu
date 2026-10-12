@@ -15,7 +15,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
 | **P1** | Frontend minimal du framework | 0 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
-| **P2** | Sécurité et distribution des modules | 45 % | Frontières de confiance, provenance, installation atomique et récupération |
+| **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
 | **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
 | **P3** | Performance et stabilité | 10 % | Benchmarks reproductibles et optimisation guidée par les mesures |
 | **P4** | Extension du catalogue de systèmes | En attente | Ajouter des cœurs seulement après stabilisation des interfaces partagées |
@@ -65,6 +65,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Pré-vérifier le budget de téléchargement d'une installation complète : additionner les tailles déclarées de chaque paquet et de ses dépendances une seule fois, détecter les dépassements arithmétiques et refuser les plans dépassant la limite configurée avant tout téléchargement.
 - [x] Calculer un plan de mise à jour sélectif : ne retourner que les modules absents ou dont la version diffère du catalogue, en conservant l'ordre dépendances-d'abord et en omettant les dépendances déjà à jour.
 - [x] Ajouter un journal d'installation versionné et borné, avec transitions de phases contrôlées, sauvegarde atomique par fichier temporaire et action de récupération calculée à partir du dernier jalon durable.
+- [x] Ajouter un coordinateur d'installation qui persiste le journal à chaque jalon, orchestre téléchargement/vérification, extraction, activation et enregistrement de l'état via un backend hôte, et conserve les transactions nécessitant une réconciliation après activation.
 - [x] Définir un contrat de métadonnées runtime : ID, version, version d'API, capacités, provenance éditeur, homepage optionnelle et dépendances/exigences hôte. La validation rejette les éditeurs invalides, les homepages non HTTPS, les dépendances auto-référencées/dupliquées et les exigences d'API incompatibles; la confiance cryptographique reste distincte de la métadonnée déclarative.
 - [x] Ajouter un planificateur d'activation runtime : validation des descripteurs, détection des ID dupliqués, dépendances manquantes et cycles, vérification des capacités exigées par l'hôte et ordre d'activation dépendances-d'abord avec parcours itératif.
 - [ ] Tester deux modules factices dans le même processus et vérifier l'absence de partage involontaire d'état.
