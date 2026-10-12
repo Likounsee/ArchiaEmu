@@ -1323,13 +1323,13 @@ mod tests {
         let mut session = EmulationSession::new(Box::new(core));
         session.load_content(&[1]).unwrap();
 
+        let transient_error = CoreError::Execution("transient test failure");
         assert_eq!(
             session.run_for_events(2),
-            Err(SessionError::Core(CoreError::Execution(
-                "transient test failure"
-            )))
+            Err(SessionError::Core(transient_error))
         );
         assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.last_core_error(), Some(transient_error));
 
         assert_eq!(
             session.run_for_events(2),
@@ -1340,6 +1340,7 @@ mod tests {
             })
         );
         assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.last_core_error(), Some(transient_error));
     }
 
     #[test]
