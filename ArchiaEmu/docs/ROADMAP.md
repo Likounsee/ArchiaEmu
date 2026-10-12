@@ -56,7 +56,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Lire un flux avec une limite stricte (au plus limite + 1 octet pour détecter le dépassement), sans exposer un contenu partiellement lu en cas d’erreur ; test de régression avec échec de lecture après un préfixe partiel.
 - [x] Ajouter un helper dédié aux chemins/fichiers qui réutilise la même lecture bornée.
 - [x] Traiter les ROM Game Boy ROM-only tronquées : vérifier la taille déclarée avant de remplacer le contenu déjà chargé, avec test de régression.
-- [x] Rejeter un logo Nintendo incorrect sans remplacer la cartouche précédemment chargée ; un test vérifie que l'ancienne cartouche reste exécutable.
+- [x] Rejeter un logo Nintendo incorrect et un checksum d'en-tête invalide sans remplacer la cartouche précédemment chargée ; les tests vérifient que l'ancienne cartouche reste exécutable.
 - [ ] Étendre les validateurs structurels et les tests de troncature aux autres formats ; le contrôle Game Boy vérifie maintenant aussi le logo Nintendo, en plus du checksum et des codes de taille, mais reste spécifique à ce cœur.
 - [ ] Séparer détection du format, validation structurelle et acceptation par un module.
 - [ ] Transmettre le contenu au cœur uniquement après validation des limites communes.
