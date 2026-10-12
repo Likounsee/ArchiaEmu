@@ -296,7 +296,9 @@ impl fmt::Display for ManifestError {
                 f,
                 "module '{id}' has no artifact for the current host target"
             ),
-            Self::UnknownSelection(id) => write!(f, "selected module {id} is absent from the manifest"),
+            Self::UnknownSelection(id) => {
+                write!(f, "selected module {id} is absent from the manifest")
+            }
             Self::ModuleNotInstallable(id) => write!(f, "module {id} is not installable yet"),
             Self::IncompatibleApplicationVersion(id) => write!(
                 f,
