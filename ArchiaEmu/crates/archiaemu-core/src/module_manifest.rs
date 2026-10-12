@@ -454,7 +454,10 @@ mod tests {
         ));
         let mut entry = module("game-boy", &[]);
         entry.artifact.as_mut().unwrap().sha256 = "not-a-hash".into();
-        assert!(matches!(manifest(vec![entry]).validate(), Err(ManifestError::InvalidArtifact(_))));
+        assert!(matches!(
+            manifest(vec![entry]).validate(),
+            Err(ManifestError::InvalidArtifact(_))
+        ));
         let mut entry = module("game-boy", &[]);
         entry.artifact = None;
         assert!(matches!(
