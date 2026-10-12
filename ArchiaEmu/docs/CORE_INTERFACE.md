@@ -48,7 +48,9 @@ These contracts do not implement a host input mapper, renderer, audio device bac
 - Reset requires loaded content and returns the session to `Running` only after the core reset succeeds.
 - Semantic input may be sent while running or paused. Media can be retrieved while loaded, including while paused or halted.
 
-The session deliberately does not implement a wall-clock scheduler, pacing, renderer, audio device, or thread model. A future host loop can build on these explicit transitions without embedding console-specific assumptions in the shared core crate.
+`EmulationRuntime` combines the registry with session creation: it enumerates registered systems and opens a fresh `EmulationSession` for a requested `SystemId`. Each created session owns a separate core instance; unknown IDs and factory/descriptor mismatches are explicit errors. `EmulationSession::run_for_events(max_events)` offers a bounded host-loop primitive: the budget counts core event calls (not cycles or elapsed time), and execution stops early at any event other than `Yielded` so the host can process media, debugger, or halt boundaries. A zero budget performs no execution. Each individual core call must still return at an observable boundary.
+
+The runtime deliberately does not implement a wall-clock scheduler, pacing, renderer, audio device, or thread model. A future host loop can build on these explicit transitions without embedding console-specific assumptions in the shared core crate.
 
 ## Stability
 
