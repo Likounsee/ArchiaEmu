@@ -1200,7 +1200,10 @@ mod tests {
         session.load_content(&[1]).unwrap();
 
         let error = CoreError::Execution("transient test failure");
-        assert_eq!(session.run_until_event(), Err(SessionError::Core(error.clone())));
+        assert_eq!(
+            session.run_until_event(),
+            Err(SessionError::Core(error.clone()))
+        );
         assert_eq!(session.last_core_error(), Some(error.clone()));
         assert_eq!(session.state(), SessionState::Running);
 
