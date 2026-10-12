@@ -428,7 +428,10 @@ mod tests {
         image[0x143] = 0x40;
         image[0x14D] = header_checksum(&image);
         let header = CartridgeHeader::parse(&image).unwrap();
-        assert_eq!(header.compatibility(), CartridgeCompatibility::Reserved(0x40));
+        assert_eq!(
+            header.compatibility(),
+            CartridgeCompatibility::Reserved(0x40)
+        );
         assert_eq!(header.preferred_hardware_mode(), None);
     }
 
