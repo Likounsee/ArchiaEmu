@@ -692,7 +692,11 @@ mod tests {
         assert_eq!(expected_rom_size(0x53), Some(80 * 0x4000));
         assert_eq!(expected_rom_size(0x54), Some(96 * 0x4000));
         for code in [0x09, 0x0A, 0x51, 0x55, 0xFF] {
-            assert_eq!(expected_rom_size(code), None, "reserved ROM size code {code:#04X}");
+            assert_eq!(
+                expected_rom_size(code),
+                None,
+                "reserved ROM size code {code:#04X}"
+            );
         }
     }
 
