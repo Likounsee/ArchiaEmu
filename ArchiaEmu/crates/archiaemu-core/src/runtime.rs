@@ -70,6 +70,8 @@ pub enum SessionState {
     Paused,
     /// The core reported that the emulated machine halted.
     Halted,
+    /// Execution was explicitly stopped by the host; loaded content is retained.
+    Stopped,
 }
 
 /// An invalid lifecycle operation or an error reported by a core.
@@ -226,6 +228,32 @@ impl EmulationSession {
         self.core.reset()?;
         self.input_state = InputState::new();
         self.state = SessionState::Running;
+        Ok(())
+    }
+
+    /// Stops host-driven execution while retaining the loaded machine.
+    ///
+    /// Held controls are released in deterministic order before the state changes.
+    /// If a release fails, the session does not enter Stopped; already released
+    /// controls stay released and the remaining controls can be retried. Calling
+    /// reset or successfully loading new content resumes execution.
+    pub fn stop(&mut self) -> Result<(), SessionError> {
+        if self.state == SessionState::Empty {
+            return Err(self.invalid_transition("stop"));
+        }
+        let has_held_controls = self.input_state.pressed_count() > 0;
+        if has_held_controls && !self.core.descriptor().capabilities.input {
+            return Err(SessionError::Core(CoreError::Unsupported("input")));
+        }
+        for control in InputControl::ALL {
+            if self.input_state.is_pressed(control) {
+                let event = InputEvent { control, pressed: false };
+                self.core.send_input(event)?;
+                self.input_state.apply(event);
+            }
+        }
+        self.input_state = InputState::new();
+        self.state = SessionState::Stopped;
         Ok(())
     }
 
@@ -523,6 +551,18 @@ mod tests {
             calls: 0,
             next_event: CoreEvent::Yielded,
         })
+    }
+
+    #[test]
+    fn explicit_stop_retains_content_and_reset_resumes_execution() {
+        let mut session = session();
+        session.load_content(&[1]).unwrap();
+        session.stop().unwrap();
+        assert_eq!(session.state(), SessionState::Stopped);
+        assert!(matches!(session.run_until_event(), Err(SessionError::InvalidTransition { operation: "run", state: SessionState::Stopped })));
+        session.reset().unwrap();
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
     }
 
     #[test]
