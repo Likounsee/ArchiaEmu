@@ -117,7 +117,6 @@ const fn is_valid_rom_size_code(code: u8) -> bool {
     matches!(code, 0x00..=0x08 | 0x52..=0x54)
 }
 
-
 /// Stable identifier for the original monochrome Game Boy (DMG) module.
 pub const SYSTEM_ID: &str = "game-boy-dmg";
 
@@ -205,8 +204,7 @@ pub fn register_game_boy(
     registry: &mut archiaemu_core::CoreRegistry,
 ) -> Result<(), archiaemu_core::RegistryError> {
     registry.register(
-        archiaemu_core::SystemId::new(SYSTEM_ID)
-            .expect("the built-in Game Boy system ID is valid"),
+        archiaemu_core::SystemId::new(SYSTEM_ID).expect("the built-in Game Boy system ID is valid"),
         create_game_boy_core,
     )
 }
