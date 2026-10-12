@@ -928,6 +928,8 @@ mod core_instance_isolation_tests {
     use super::*;
 
     struct StatefulIsolationCore {
+        system_id: &'static str,
+        display_name: &'static str,
         loaded: bool,
     }
 
@@ -935,8 +937,8 @@ mod core_instance_isolation_tests {
         fn descriptor(&self) -> CoreDescriptor {
             CoreDescriptor {
                 api_version: CURRENT_CORE_API_VERSION,
-                system_id: SystemId::new("isolation-test").unwrap(),
-                display_name: "Stateful isolation test core",
+                system_id: SystemId::new(self.system_id).unwrap(),
+                display_name: self.display_name,
                 core_version: "0.0.0-test",
                 capabilities: CoreCapabilities {
                     content_loading: true,
@@ -968,19 +970,35 @@ mod core_instance_isolation_tests {
         }
     }
 
-    fn make_stateful_isolation_core() -> Box<dyn EmulationCore> {
-        Box::new(StatefulIsolationCore { loaded: false })
+    fn make_first_isolation_module() -> Box<dyn EmulationCore> {
+        Box::new(StatefulIsolationCore {
+            system_id: "isolation-test",
+            display_name: "First fake isolation module",
+            loaded: false,
+        })
+    }
+
+    fn make_second_isolation_module() -> Box<dyn EmulationCore> {
+        Box::new(StatefulIsolationCore {
+            system_id: "isolation-test-two",
+            display_name: "Second fake isolation module",
+            loaded: false,
+        })
     }
 
     #[test]
-    fn registry_instances_do_not_share_mutable_machine_state() {
-        let id = SystemId::new("isolation-test").unwrap();
+    fn distinct_fake_modules_do_not_share_mutable_machine_state() {
+        let first_id = SystemId::new("isolation-test").unwrap();
+        let second_id = SystemId::new("isolation-test-two").unwrap();
         let mut registry = CoreRegistry::new();
-        registry.register(id, make_stateful_isolation_core).unwrap();
+        registry.register(first_id, make_first_isolation_module).unwrap();
+        registry.register(second_id, make_second_isolation_module).unwrap();
 
-        let mut first = registry.create(id).unwrap();
-        let mut second = registry.create(id).unwrap();
+        let mut first = registry.create(first_id).unwrap();
+        let mut second = registry.create(second_id).unwrap();
 
+        assert_eq!(first.descriptor().system_id, first_id);
+        assert_eq!(second.descriptor().system_id, second_id);
         first.load_content(&[1]).unwrap();
         assert_eq!(first.run_until_event(), Ok(CoreEvent::Yielded));
         assert_eq!(second.run_until_event(), Err(CoreError::NotInitialized));
