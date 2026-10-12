@@ -859,6 +859,33 @@ mod tests {
     }
 
     #[test]
+    fn bounded_runner_recovers_after_a_transient_execution_error() {
+        let core = ErrorOnceCore {
+            fail_next_run: true,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.run_for_events(2),
+            Err(SessionError::Core(CoreError::Execution(
+                "transient test failure"
+            )))
+        );
+        assert_eq!(session.state(), SessionState::Running);
+
+        assert_eq!(
+            session.run_for_events(2),
+            Ok(SessionRunReport {
+                events_processed: 2,
+                last_event: Some(CoreEvent::Yielded),
+                budget_exhausted: true,
+            })
+        );
+        assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
     fn halted_event_blocks_execution_until_reset_recovers_session() {
         let core = TestCore {
             loaded: false,
