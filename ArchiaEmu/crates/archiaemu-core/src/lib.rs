@@ -542,7 +542,11 @@ mod tests {
         };
 
         assert_eq!(
-            registry.create_from_detection(&detection).unwrap().descriptor().system_id,
+            registry
+                .create_from_detection(&detection)
+                .unwrap()
+                .descriptor()
+                .system_id,
             id
         );
     }
