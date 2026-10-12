@@ -1,10 +1,14 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-//! Defensive parsing of the original Game Boy cartridge header.
+//! Original Game Boy cartridge inspection and LR35902 CPU foundations.
 //!
-//! This crate does not yet emulate the CPU, memory bus, or peripherals. A valid
-//! parsed header is metadata only and does not imply that a cartridge can run.
+//! The CPU register/arithmetic primitives are tested, but instruction execution,
+//! the memory bus, and peripherals remain unimplemented. A valid header does not
+//! imply that a cartridge can run.
+
+/// LR35902 register state and flag-accurate arithmetic primitives.
+pub mod cpu;
 
 /// The minimum image length needed to include the complete cartridge header.
 pub const MINIMUM_HEADER_SIZE: usize = 0x150;
