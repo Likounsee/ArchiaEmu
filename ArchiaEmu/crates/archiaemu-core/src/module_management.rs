@@ -8,6 +8,7 @@
 //! deterministic plan and perform verified package installation.
 
 use core::fmt;
+use std::collections::HashMap;
 
 /// Stable, machine-readable identifier for a distributable module.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -209,10 +210,47 @@ impl<'a> ModuleCatalog<'a> {
             }
         }
 
-        let mut visited = Vec::new();
-        let mut visiting = Vec::new();
-        for descriptor in self.descriptors {
-            self.visit(&descriptor.id, &mut visited, &mut visiting)?;
+        // Validate the graph iteratively: catalogue input may be deeply nested,
+        // so recursive DFS could exhaust the process stack.
+        let indices: HashMap<ModuleId, usize> = self
+            .descriptors
+            .iter()
+            .enumerate()
+            .map(|(index, descriptor)| (descriptor.id.clone(), index))
+            .collect();
+        let mut state = vec![0_u8; self.descriptors.len()]; // 0 = unseen, 1 = active, 2 = complete
+        let mut stack: Vec<(usize, usize)> = Vec::new();
+
+        for start in 0..self.descriptors.len() {
+            if state[start] == 2 {
+                continue;
+            }
+            state[start] = 1;
+            stack.push((start, 0));
+            while !stack.is_empty() {
+                let last = stack.len() - 1;
+                let (current, next_dependency) = stack[last];
+                let dependencies = &self.descriptors[current].dependencies;
+                if next_dependency == dependencies.len() {
+                    state[current] = 2;
+                    stack.pop();
+                    continue;
+                }
+
+                let dependency = &dependencies[next_dependency];
+                stack[last].1 += 1;
+                let dependency_index = *indices
+                    .get(dependency)
+                    .expect("dependency existence was validated before graph traversal");
+                match state[dependency_index] {
+                    0 => {
+                        state[dependency_index] = 1;
+                        stack.push((dependency_index, 0));
+                    }
+                    1 => return Err(CatalogError::DependencyCycle(dependency.clone())),
+                    _ => {}
+                }
+            }
         }
         Ok(())
     }
@@ -228,79 +266,77 @@ impl<'a> ModuleCatalog<'a> {
         installed: &[ModuleId],
     ) -> Result<ModuleInstallPlan, PlanError> {
         self.validate().map_err(PlanError::InvalidCatalog)?;
-        let mut visited = Vec::new();
-        let mut visiting = Vec::new();
+        let indices: HashMap<ModuleId, usize> = self
+            .descriptors
+            .iter()
+            .enumerate()
+            .map(|(index, descriptor)| (descriptor.id.clone(), index))
+            .collect();
+        let mut state = vec![0_u8; self.descriptors.len()]; // 0 = unseen, 1 = active, 2 = complete
+        let mut stack: Vec<(usize, usize)> = Vec::new();
         let mut order = Vec::new();
+
         for id in requested {
-            if self.descriptor(id).is_none() {
+            let Some(&start) = indices.get(id) else {
                 return Err(PlanError::UnknownModule(id.clone()));
+            };
+            if state[start] == 2 {
+                continue;
             }
-            self.plan_visit(id, installed, &mut visited, &mut visiting, &mut order)?;
+            let descriptor = &self.descriptors[start];
+            if !installed.contains(id) && descriptor.readiness == ModuleReadiness::InDevelopment {
+                return Err(PlanError::NotInstallable {
+                    module: id.clone(),
+                    readiness: descriptor.readiness,
+                });
+            }
+            state[start] = 1;
+            stack.push((start, 0));
+
+            while !stack.is_empty() {
+                let last = stack.len() - 1;
+                let (current, next_dependency) = stack[last];
+                let descriptor = &self.descriptors[current];
+                if next_dependency == descriptor.dependencies.len() {
+                    state[current] = 2;
+                    stack.pop();
+                    if !installed.contains(&descriptor.id) {
+                        order.push(descriptor.id.clone());
+                    }
+                    continue;
+                }
+
+                let dependency = &descriptor.dependencies[next_dependency];
+                stack[last].1 += 1;
+                let dependency_index = *indices
+                    .get(dependency)
+                    .expect("catalogue validation guarantees every dependency exists");
+                match state[dependency_index] {
+                    0 => {
+                        let dependency_descriptor = &self.descriptors[dependency_index];
+                        if !installed.contains(dependency)
+                            && dependency_descriptor.readiness == ModuleReadiness::InDevelopment
+                        {
+                            return Err(PlanError::NotInstallable {
+                                module: dependency.clone(),
+                                readiness: dependency_descriptor.readiness,
+                            });
+                        }
+                        state[dependency_index] = 1;
+                        stack.push((dependency_index, 0));
+                    }
+                    1 => {
+                        return Err(PlanError::InvalidCatalog(CatalogError::DependencyCycle(
+                            dependency.clone(),
+                        )));
+                    }
+                    _ => {}
+                }
+            }
         }
         Ok(ModuleInstallPlan {
             install_order: order,
         })
-    }
-
-    fn visit(
-        &self,
-        id: &ModuleId,
-        visited: &mut Vec<ModuleId>,
-        visiting: &mut Vec<ModuleId>,
-    ) -> Result<(), CatalogError> {
-        if visited.contains(id) {
-            return Ok(());
-        }
-        if visiting.contains(id) {
-            return Err(CatalogError::DependencyCycle(id.clone()));
-        }
-        visiting.push(id.clone());
-        let descriptor = self
-            .descriptor(id)
-            .expect("validated dependency must exist");
-        for dependency in &descriptor.dependencies {
-            self.visit(dependency, visited, visiting)?;
-        }
-        visiting.pop();
-        visited.push(id.clone());
-        Ok(())
-    }
-
-    fn plan_visit(
-        &self,
-        id: &ModuleId,
-        installed: &[ModuleId],
-        visited: &mut Vec<ModuleId>,
-        visiting: &mut Vec<ModuleId>,
-        order: &mut Vec<ModuleId>,
-    ) -> Result<(), PlanError> {
-        if visited.contains(id) {
-            return Ok(());
-        }
-        if visiting.contains(id) {
-            return Err(PlanError::InvalidCatalog(CatalogError::DependencyCycle(
-                id.clone(),
-            )));
-        }
-        visiting.push(id.clone());
-        let descriptor = self
-            .descriptor(id)
-            .ok_or_else(|| PlanError::UnknownModule(id.clone()))?;
-        if !installed.contains(id) && descriptor.readiness == ModuleReadiness::InDevelopment {
-            return Err(PlanError::NotInstallable {
-                module: id.clone(),
-                readiness: descriptor.readiness,
-            });
-        }
-        for dependency in &descriptor.dependencies {
-            self.plan_visit(dependency, installed, visited, visiting, order)?;
-        }
-        visiting.pop();
-        visited.push(id.clone());
-        if !installed.contains(id) {
-            order.push(id.clone());
-        }
-        Ok(())
     }
 
     fn descriptor(&self, id: &ModuleId) -> Option<&ModuleDescriptor> {
@@ -453,6 +489,49 @@ mod tests {
         assert_eq!(
             ModuleCatalog::new(&descriptors).validate(),
             Err(CatalogError::DependencyCycle(id("cycle-a")))
+        );
+    }
+
+    #[test]
+    fn validates_deep_catalogue_without_recursive_traversal() {
+        const MODULE_COUNT: usize = 2048;
+        let mut descriptors = (0..MODULE_COUNT)
+            .map(|index| descriptor(
+                &format!("node-{index}"),
+                "Node",
+                ModuleReadiness::Installable,
+                &[],
+            ))
+            .collect::<Vec<_>>();
+        for index in 0..MODULE_COUNT - 1 {
+            descriptors[index].dependencies.push(id(&format!("node-{}", index + 1)));
+        }
+        let catalog = ModuleCatalog::new(&descriptors);
+        assert!(catalog.validate().is_ok());
+        let plan = catalog.plan_install(&[id("node-0")], &[]).unwrap();
+        assert_eq!(plan.install_order.len(), MODULE_COUNT);
+        assert_eq!(plan.install_order.first(), Some(&id(&format!("node-{}", MODULE_COUNT - 1))));
+        assert_eq!(plan.install_order.last(), Some(&id("node-0")));
+    }
+
+    #[test]
+    fn iterative_catalogue_validation_rejects_deep_cycle() {
+        const MODULE_COUNT: usize = 1024;
+        let mut descriptors = (0..MODULE_COUNT)
+            .map(|index| descriptor(
+                &format!("node-{index}"),
+                "Node",
+                ModuleReadiness::Installable,
+                &[],
+            ))
+            .collect::<Vec<_>>();
+        for index in 0..MODULE_COUNT - 1 {
+            descriptors[index].dependencies.push(id(&format!("node-{}", index + 1)));
+        }
+        descriptors[MODULE_COUNT - 1].dependencies.push(id("node-0"));
+        assert_eq!(
+            ModuleCatalog::new(&descriptors).validate(),
+            Err(CatalogError::DependencyCycle(id("node-0")))
         );
     }
 
