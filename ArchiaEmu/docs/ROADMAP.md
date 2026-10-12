@@ -65,7 +65,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Pré-vérifier le budget de téléchargement d'une installation complète : additionner les tailles déclarées de chaque paquet et de ses dépendances une seule fois, détecter les dépassements arithmétiques et refuser les plans dépassant la limite configurée avant tout téléchargement.
 - [x] Calculer un plan de mise à jour sélectif : ne retourner que les modules absents ou dont la version diffère du catalogue, en conservant l'ordre dépendances-d'abord et en omettant les dépendances déjà à jour.
 - [x] Ajouter un journal d'installation versionné et borné, avec transitions de phases contrôlées, sauvegarde atomique par fichier temporaire et action de récupération calculée à partir du dernier jalon durable.
-- [ ] Définir les métadonnées minimales du module : ID, version, version de contrat, capacités, provenance et exigences.
+- [x] Définir un contrat de métadonnées runtime : ID, version, version d'API, capacités, provenance éditeur, homepage optionnelle et dépendances/exigences hôte. La validation rejette les éditeurs invalides, les homepages non HTTPS, les dépendances auto-référencées/dupliquées et les exigences d'API incompatibles; la confiance cryptographique reste distincte de la métadonnée déclarative.
 - [ ] Tester deux modules factices dans le même processus et vérifier l'absence de partage involontaire d'état.
 - [ ] Définir les limites de confiance : un module tiers n'est pas sûr simplement parce que son manifeste est valide.
 - [ ] Documenter la stratégie future pour les modules natifs et les éventuels modules hors processus.
