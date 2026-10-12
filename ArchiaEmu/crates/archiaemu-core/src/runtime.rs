@@ -654,6 +654,35 @@ mod tests {
     }
 
     #[test]
+    fn oversized_bounded_reload_preserves_halted_state() {
+        let core = TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Halted,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Halted));
+        assert_eq!(session.state(), SessionState::Halted);
+
+        assert_eq!(
+            session.load_content_bounded(&[1, 2], ContentLimits::new(1)),
+            Err(SessionError::Content(ContentError::TooLarge {
+                max_bytes: 1,
+                actual_bytes: 2,
+            }))
+        );
+        assert_eq!(session.state(), SessionState::Halted);
+        assert_eq!(
+            session.run_until_event(),
+            Err(SessionError::InvalidTransition {
+                operation: "run",
+                state: SessionState::Halted,
+            })
+        );
+    }
+
+    #[test]
     fn execution_is_blocked_until_content_is_loaded() {
         let mut session = session();
         assert_eq!(session.state(), SessionState::Empty);
@@ -1565,6 +1594,36 @@ mod shared_input_runtime_tests {
         );
         session.release_all_inputs().unwrap();
         assert_eq!(events.lock().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn oversized_bounded_reload_preserves_paused_input_state() {
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let core = InputRecordingCore {
+            events: Arc::clone(&events),
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+        let press = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+        session.send_input(press).unwrap();
+        session.pause().unwrap();
+
+        assert_eq!(
+            session.load_content_bounded(&[1, 2], ContentLimits::new(1)),
+            Err(SessionError::Content(ContentError::TooLarge {
+                max_bytes: 1,
+                actual_bytes: 2,
+            }))
+        );
+        assert_eq!(session.state(), SessionState::Paused);
+        assert!(session.is_input_pressed(InputControl::Action1));
+        assert_eq!(events.lock().unwrap().as_slice(), &[press]);
+
+        session.resume().unwrap();
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
     }
 
     #[test]
