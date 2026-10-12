@@ -9,9 +9,9 @@
 use core::fmt;
 use std::collections::HashSet;
 
-use crate::{CoreApiVersion, CURRENT_CORE_API_VERSION};
 use crate::module_management::ModuleId;
 use crate::module_manifest::ReleaseVersion;
+use crate::{CoreApiVersion, CURRENT_CORE_API_VERSION};
 
 /// Capabilities that a module declares to the host.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
