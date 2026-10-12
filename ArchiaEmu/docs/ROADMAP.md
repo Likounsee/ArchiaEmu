@@ -1,58 +1,158 @@
-# Roadmap and verified status
+# ArchiaEmu — roadmap du framework global
 
-Percentages reflect the checked-in implementation and verified tests, not time spent or planned features.
+Cette feuille de route priorise le **socle commun de l'émulateur**, pas le développement d'une console en particulier. Les cœurs de console servent à vérifier que les contrats communs sont réellement utilisables, mais ne doivent pas dicter l'architecture ni monopoliser les prochaines étapes.
 
-| Phase | Current estimate | Remaining acceptance work |
-| --- | ---: | --- |
-| P0 — foundations | 75% (estimate) | Validate module planner and disk-backed state store in CI; implement signed catalogue, secure installer trust checks, and release artifact validation |
-| P1 — first console | 5% | Implement cartridge size/mapper validation, memory bus, LR35902 CPU and peripherals; run reproducible authorized tests |
-| P2 — audio/video/input | 0% | Real platform output and controls; synchronization and latency tests |
-| P3 — library/saves | 0% | Real content library, persistent saves and validated/versioned save states |
-| P4 — performance | 0% | Baseline benchmarks, profiling and measured optimizations |
-| P5 — second platform | 0% | Second independently tested core and host selection |
-| P6 — complex systems | 0% | Per-system hardware, diagnostics and compatibility evidence |
-| P7 — release | 0% | Security/legal review, reproducible packaging, support policy and release validation |
+Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le code présent et les tests vérifiés. Ils ne représentent ni le temps passé ni une promesse de compatibilité. Une phase n'est terminée que lorsque ses critères d'acceptation sont démontrés par des tests reproductibles.
 
-## P0 acceptance checklist
+## Priorités et état actuel
 
-- [x] Root README describes the current implementation and its limitations.
-- [x] Rust workspace and committed lockfile are present.
-- [x] Shared core metadata and lifecycle/error contract is implemented.
-- [x] Stable system identifier validation has unit tests.
-- [x] Core registry supports unique IDs, deterministic enumeration, factory creation and descriptor/key consistency checks.
-- [x] Tests cover duplicate/unknown IDs, mismatched factories and selected stable error messages.
-- [x] Edge-case tests cover whitespace/non-ASCII identifiers, deterministic registration order, duplicate rejection without registry mutation, repeated factory creation, and explicit unsupported save/load-state operations.
-- [x] Testing policy documents the CI scope and limitations of cross-platform checks.
-- [x] CI generates API documentation with rustdoc warnings treated as errors on all three host operating systems.
-- [x] Tests cover every public error enum's display messages and empty-registry behavior; repeated creation verifies factory invocation.
-- [x] Repository-level CI workflow runs formatting, tests, Clippy, rustdoc, package checks and dependency policy checks.
-- [x] GitHub Actions passed on commit `28d7d9ddbc91ea477155954304bda860cc8a6928`.
-- [x] MIT and Apache-2.0 license texts are checked in; third-party policy is documented.
-- [x] Architecture, interface, language, supported-system, graphics/audio, input, performance, testing, security, and legal documentation reviewed against the current source and repository metadata.
-- [x] Dependency advisory, license and source-origin checks are configured through cargo-deny.
-- [x] Workspace package-content validation is part of CI.
-- [ ] Confirm dependency/package gates, disk-backed module-state tests, and platform-specific path handling pass on the latest CI run; release artifact validation remains.
-- [x] Add a pure module catalogue/dependency planner with runtime-validated IDs, duplicate/missing dependency and cycle validation, topological installation order, shared dependency de-duplication, installed-module handling, and explicit in-development rejection.
-- [x] Add a first-launch and module-state model for skip/completion status, deduplicated selection, installed versions, version updates and post-removal bookkeeping.
-- [x] Add a versioned disk-backed state store with strict decoding, size limits, per-user path resolution, staged writes and backup recovery tests.
-- [x] Add strict release-version parsing, app compatibility bounds, explicit OS/architecture targets, and structural validation for module manifest dependencies and artifact metadata.
-- [x] Add a pinned-key trust-policy boundary, signature-before-parse ordering, and in-memory catalogue revision rollback protection; production cryptographic implementation, strict payload parser, and durable revision persistence remain.
-- [x] Document first-launch selection, offline/skip behavior, secure staged installation requirements, later module management, and the distinction between a catalogue entry and a working emulator.
-- [x] First target selected and isolated in a dedicated crate; header parser validates minimum length, ROM size code and header checksum.
-- [x] Cross-platform CI matrix passed on Linux, Windows and macOS on commit `72d2460575a561ffc44d0348081491384aabc86f`.
+| Priorité | Domaine | État estimé | Résultat attendu |
+| --- | --- | ---: | --- |
+| **P0** | Fiabilité du runtime commun | 65 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
+| **P0** | Chargement et validation du contenu | 20 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Contrats de modules et capacités | 65 % | Modules isolés, capacités explicites, découverte et création prévisibles |
+| **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
+| **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
+| **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
+| **P1** | Frontend minimal du framework | 0 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
+| **P2** | Sécurité et distribution des modules | 45 % | Frontières de confiance, provenance, installation atomique et récupération |
+| **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
+| **P3** | Performance et stabilité | 10 % | Benchmarks reproductibles et optimisation guidée par les mesures |
+| **P4** | Extension du catalogue de systèmes | En attente | Ajouter des cœurs seulement après stabilisation des interfaces partagées |
+| **P5** | Préparation de versions | 10 % | Paquets reproductibles, politique de support et critères de publication |
 
-The original Game Boy (DMG) is selected as the first target. The current crate only parses limited header metadata; it is not a functioning emulator. See `docs/GAME_BOY_DMG.md`.
+> **Point de départ réel :** le workspace Rust, le contrat de cœur, le registre, une partie du cycle de vie de session, les capacités, l'état d'entrée partagé, les fonctions de sauvegarde/restauration déléguées au cœur, la gestion de modules et le CI existent déjà. Il n'existe pas encore d'application complète permettant de charger un jeu et de l'émuler avec audio et vidéo de bout en bout. La réussite du CI vérifie les contrôles configurés, pas la compatibilité d'une console.
 
-## User-facing interfaces and visual enhancements
+## P0 — rendre le runtime commun fiable
 
-This is a product requirement, not a claim of current support. ArchiaEmu should support recreating console software interfaces when a system actually has one and when the relevant behavior can be researched and implemented. Examples include system menus, launchers, dashboards, settings screens and other built-in software environments; not every console has a general-purpose operating-system interface.
+### P0.1 — Cycle de vie de session
+- [x] Contrat de cœur commun et erreurs explicites.
+- [x] États de session et contrôles d'opérations selon l'état.
+- [x] Capacités déclarées et refus des opérations non annoncées.
+- [x] État d'entrée commun avec suppression des transitions dupliquées et relâchement explicite.
+- [x] API générique de sauvegarde/restauration d'état avec vérification de capacité.
+- [ ] Formaliser les transitions autorisées dans une table de référence et tester chaque transition valide/invalide.
+- [ ] Garantir un comportement documenté après chaque erreur du cœur : état de session, entrées maintenues, événements et possibilité de reprise.
+- [ ] Ajouter des tests de séquences longues : charger, démarrer, mettre en pause, reprendre, réinitialiser, arrêter et recharger.
+- [ ] Clarifier la sémantique d'arrêt et de réinitialisation pour chaque état, sans hypothèses spécifiques à une console.
 
-- [ ] Define a host-side interface/rendering layer that is separate from emulated hardware and core execution.
-- [ ] For each target, document whether a system UI exists, what hardware/software it depends on, and whether faithful recreation or execution of original system software is feasible.
-- [ ] Where lawful and technically feasible, support both a faithful original presentation and optional redesigned high-resolution interface themes.
-- [ ] Design graphics enhancement as opt-in, per-system capabilities: integer scaling, aspect-ratio handling, appropriate filtering, color correction, and system-specific enhancements only where supported.
-- [ ] Preserve a faithful mode and make enhancements individually configurable; do not silently change timing, game logic, input behavior or original output semantics.
-- [ ] Use reference screenshots/specifications and regression tests to distinguish authentic output from enhanced output.
-- [ ] Respect firmware/software copyright: do not bundle proprietary system UI assets, BIOS files or firmware without authorization. Reimplement behavior and artwork independently where appropriate.
+**Critère de sortie :** chaque opération publique possède des préconditions, des effets et une politique d'erreur testés; aucune erreur ne laisse la session dans un état non documenté.
 
-These items remain unimplemented until actual frontend, renderer and console-core code plus tests are checked in.
+### P0.2 — Contrats et isolation des modules
+- [x] Identifiants système stables, registre et vérifications de cohérence des descripteurs.
+- [x] Déclarations de capacités par module.
+- [x] Planification de dépendances et détection des dépendances manquantes/cycles.
+- [ ] Définir la version du contrat API et une règle de compatibilité entre hôte et module.
+- [ ] Définir les métadonnées minimales du module : ID, version, version de contrat, capacités, provenance et exigences.
+- [ ] Tester deux modules factices dans le même processus et vérifier l'absence de partage involontaire d'état.
+- [ ] Définir les limites de confiance : un module tiers n'est pas sûr simplement parce que son manifeste est valide.
+- [ ] Documenter la stratégie future pour les modules natifs et les éventuels modules hors processus.
+
+**Critère de sortie :** l'hôte peut découvrir, vérifier et instancier un module compatible sans dépendre de son implémentation interne.
+
+### P0.3 — Chargement et validation du contenu
+- [ ] Introduire un modèle générique de contenu (source, taille, empreinte, type détecté, métadonnées et erreurs).
+- [ ] Limiter les tailles et les allocations avant lecture complète; traiter les entrées vides, tronquées et malformées.
+- [ ] Séparer détection du format, validation structurelle et acceptation par un module.
+- [ ] Transmettre le contenu au cœur uniquement après validation des limites communes.
+- [ ] Éviter de supposer qu'une extension de fichier garantit son format.
+- [ ] Ajouter des tests avec données arbitraires, tailles limites et fichiers tronqués.
+- [ ] Ne pas exiger que le framework comprenne lui-même les formats propriétaires de chaque système.
+
+**Critère de sortie :** le framework rejette proprement les contenus invalides et fournit au module un contenu borné avec des métadonnées fiables.
+
+## P1 — construire le chemin complet de lancement
+
+### P1.1 — Orchestrateur et multi-sessions
+- [ ] Créer une couche hôte qui relie catalogue, registre, chargement de contenu et sessions.
+- [ ] Distinguer identifiant de session, système sélectionné et identité du contenu.
+- [ ] Permettre la création et la fermeture de plusieurs sessions indépendantes.
+- [ ] Définir les limites de ressources et la politique de concurrence avant tout parallélisme.
+- [ ] Ajouter des tests d'isolation, d'échec de lancement et de fermeture répétée.
+
+### P1.2 — Entrées, vidéo, audio et cadence
+- [ ] Stabiliser des contrats d'entrée génériques, y compris la perte de focus et la libération de toutes les commandes.
+- [ ] Définir des formats de trames vidéo avec dimensions, stride, format de pixel et durée de vie du tampon explicites.
+- [ ] Définir des blocs audio avec fréquence, canaux, format d'échantillon et règles de propriété explicites.
+- [ ] Séparer horloge/cadence d'émulation et horloge de présentation hôte.
+- [ ] Gérer pause, reprise, arrêt, retard de l'hôte et files pleines sans blocage indéfini.
+- [ ] Tester tailles invalides, buffers vides, cadence irrégulière et back-pressure.
+- [ ] Conserver les interfaces sans dépendance obligatoire à une bibliothèque graphique ou audio unique.
+
+### P1.3 — Sauvegardes et restauration
+- [ ] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur.
+- [ ] Définir un conteneur de save state versionné, avec ID/version du cœur, version de format, taille et intégrité.
+- [ ] Valider les métadonnées et limites avant d'appeler le cœur.
+- [ ] Écrire de façon atomique et prévoir récupération après interruption.
+- [ ] Documenter que chaque cœur reste responsable de la validation de son état interne avant mutation.
+- [ ] Tester état corrompu, version inconnue, fichier trop grand, restauration échouée et reprise après crash.
+
+### P1.4 — Première application hôte minimale
+- [ ] Ajouter une interface simple pour sélectionner un contenu et un module, puis lancer/mettre en pause/arrêter.
+- [ ] Afficher les erreurs, capacités indisponibles et informations de diagnostic sans planter.
+- [ ] Ne pas créer de menus ou d'améliorations propres à une console avant que le chemin de lancement générique fonctionne.
+- [ ] Séparer les réglages d'interface des réglages de matériel émulé.
+
+**Critère de sortie P1 :** un test d'intégration peut sélectionner un module, valider un contenu de test, démarrer une session, échanger des entrées et des sorties simulées, sauvegarder/restaurer, puis fermer proprement le tout.
+
+## P2 — sécurité, confiance et diagnostic
+
+- [ ] Compléter le traitement des manifestes et la validation des métadonnées avant toute installation.
+- [ ] Utiliser une implémentation cryptographique maintenue et auditée; ne pas inventer de cryptographie.
+- [ ] Vérifier la signature et la provenance avant de faire confiance au contenu d'un catalogue ou d'un paquet.
+- [ ] Rendre les mises à jour de catalogue résistantes au retour vers une ancienne révision, avec persistance durable.
+- [ ] Installer dans une zone temporaire, vérifier les fichiers, puis activer atomiquement; prévoir rollback.
+- [ ] Définir les permissions, les chemins autorisés et la politique de liens symboliques.
+- [ ] Produire des diagnostics structurés avec contexte et causes, sans exposer les données sensibles.
+- [ ] Ajouter tests de fuzzing ciblés pour les parseurs et formats exposés à des fichiers non fiables.
+- [ ] Vérifier dépendances, licences, provenance et contenu des paquets dans la CI.
+
+**Critère de sortie :** les opérations sur les contenus et modules non fiables sont bornées, traçables et récupérables; les contrôles de sécurité sont démontrés par des tests.
+
+## P3 — qualité et performance mesurées
+
+- [ ] Ajouter des benchmarks de référence pour le chargement, les changements d'état, le transfert de trames et les files audio.
+- [ ] Mesurer latence d'entrée, temps de lancement, mémoire et stabilité sur des charges définies.
+- [ ] Ajouter des tests de longue durée et des tests de non-régression.
+- [ ] Définir des budgets de mémoire et de file pour éviter une croissance non bornée.
+- [ ] Optimiser uniquement après profilage, en conservant des résultats reproductibles.
+
+## P4 — ajouter des systèmes sans casser le framework
+
+- [ ] Garder chaque cœur dans un crate indépendant qui dépend du contrat commun, pas du frontend.
+- [ ] Créer une suite de conformité réutilisable pour tous les cœurs.
+- [ ] Utiliser un cœur factice de test pour valider le framework sans dépendre d'une console réelle.
+- [ ] Garder Game Boy comme cible de validation, pas comme centre de la roadmap actuelle.
+- [ ] Ne déclarer aucun système pris en charge sur la seule base de la compilation : exiger des tests de comportement et des preuves reproductibles.
+- [ ] Ajouter d'autres systèmes lorsque les interfaces, l'I/O et le pipeline de lancement sont assez stables.
+
+## P5 — interface utilisateur et publication
+
+- [ ] Ajouter bibliothèque de contenus, paramètres et rapports de diagnostic dans l'application hôte.
+- [ ] Pour les systèmes ayant une interface logicielle, évaluer séparément la faisabilité d'une exécution légale, d'une recréation fidèle et de thèmes modernisés.
+- [ ] Garder les améliorations visuelles optionnelles, réversibles et séparées du comportement matériel.
+- [ ] Vérifier les licences, les notices, les ressources fournies par l'utilisateur et les restrictions de redistribution.
+- [ ] Construire des paquets reproductibles par plateforme, avec manifeste, empreintes et procédure de mise à jour/retour arrière.
+- [ ] Documenter les systèmes réellement pris en charge, les limites connues et la procédure de rapport de bugs.
+
+## Règles de priorité
+
+1. **Le framework global passe avant l'avancement d'un cœur spécifique.**
+2. Corriger d'abord les régressions du build/CI et les erreurs de contrat.
+3. Favoriser les fonctionnalités génériques réutilisables et les tests de conformité.
+4. N'ajouter aucune dépendance lourde sans besoin concret et revue de licence/sécurité.
+5. Ne jamais confondre code présent, test réussi, compatibilité théorique et émulation jouable.
+6. Tous les changements du projet restent sur la branche `ArchiaEmu`; ne pas modifier `main`.
+
+## Vérification CI
+
+Commandes de référence depuis `ArchiaEmu/` :
+
+```sh
+cargo fmt --all -- --check
+cargo test --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
+```
+
+La CI du commit `a7dbcc7d3306d8645ac99e93a50f11217fa8195f` a réussi sur Linux, Windows et macOS. Cela confirme les contrôles configurés sur ce commit, mais ne constitue pas une preuve d'émulation complète.
