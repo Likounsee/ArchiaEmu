@@ -251,6 +251,16 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         let header = CartridgeHeader::parse(content).map_err(|_| {
             archiaemu_core::CoreError::InvalidContent("invalid Game Boy cartridge header")
         })?;
+        if header.cartridge_type == 0x00 {
+            let required_size = expected_rom_size(header.rom_size_code).ok_or(
+                archiaemu_core::CoreError::InvalidContent("invalid ROM size code"),
+            )?;
+            if content.len() < required_size {
+                return Err(archiaemu_core::CoreError::InvalidContent(
+                    "ROM image is shorter than its declared size",
+                ));
+            }
+        }
         // Commit state only after validation succeeds, preserving any previously
         // loaded image if the caller supplies malformed replacement content.
         self.image = Some(content.to_vec());
@@ -602,7 +612,7 @@ mod tests {
         let mut core = GameBoyCore::new();
         assert_eq!(core.hardware_mode(), None);
 
-        let color_compatible_image = valid_image();
+        let color_compatible_image = valid_rom();
         archiaemu_core::EmulationCore::load_content(&mut core, &color_compatible_image).unwrap();
         assert_eq!(core.hardware_mode(), Some(HardwareMode::Cgb));
         assert_eq!(
@@ -610,7 +620,7 @@ mod tests {
             archiaemu_core::SystemId::new("game-boy").unwrap()
         );
 
-        let mut monochrome_image = valid_image();
+        let mut monochrome_image = valid_rom();
         monochrome_image[0x143] = 0x00;
         monochrome_image[0x14D] = header_checksum(&monochrome_image);
         archiaemu_core::EmulationCore::load_content(&mut core, &monochrome_image).unwrap();
@@ -622,12 +632,31 @@ mod tests {
     }
 
     #[test]
-    fn invalid_replacement_rom_does_not_destroy_previous_metadata() {
+    fn rejects_truncated_rom_before_replacing_loaded_cartridge() {
         let mut core = GameBoyCore::new();
-        archiaemu_core::EmulationCore::load_content(&mut core, &valid_image()).unwrap();
+        archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
         let before = *core.cartridge_header().unwrap();
 
-        assert!(archiaemu_core::EmulationCore::load_content(&mut core, &[0; 8]).is_err());
+        assert_eq!(
+            archiaemu_core::EmulationCore::load_content(&mut core, &valid_image()),
+            Err(archiaemu_core::CoreError::InvalidContent(
+                "ROM image is shorter than its declared size"
+            ))
+        );
+        assert_eq!(core.cartridge_header(), Some(&before));
+        assert_eq!(
+            archiaemu_core::EmulationCore::run_until_event(&mut core),
+            Ok(archiaemu_core::CoreEvent::Yielded)
+        );
+    }
+
+    #[test]
+    fn invalid_replacement_rom_does_not_destroy_previous_metadata() {
+        let mut core = GameBoyCore::new();
+        archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
+        let before = *core.cartridge_header().unwrap();
+
+        assert!(archiaemu_core::EmulationCore::load_content(&mut core, &valid_image()).is_err());
         assert_eq!(core.cartridge_header(), Some(&before));
     }
 }
