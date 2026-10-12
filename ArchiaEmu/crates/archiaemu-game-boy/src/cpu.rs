@@ -700,6 +700,7 @@ mod execution_tests {
             0xEA, 0x01, 0xC1, // LD (0xC101),A
             0xFA, 0x01, 0xC1, // LD A,(0xC101)
         ]);
+        bus.0[0xC101] = 0xFF;
 
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
         assert_eq!(bus.0[0xC100], 0x42);
