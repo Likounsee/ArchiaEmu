@@ -270,6 +270,41 @@ mod tests {
         }
     }
 
+    struct ErrorOnceCore {
+        fail_next_run: bool,
+    }
+
+    impl EmulationCore for ErrorOnceCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                system_id: SystemId::new("error-once-test").unwrap(),
+                display_name: "Error-once test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities::default(),
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+            if content.is_empty() {
+                return Err(CoreError::InvalidContent("empty test content"));
+            }
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            self.fail_next_run = false;
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            if self.fail_next_run {
+                self.fail_next_run = false;
+                return Err(CoreError::Execution("transient test failure"));
+            }
+            Ok(CoreEvent::Yielded)
+        }
+    }
+
     fn session() -> EmulationSession {
         EmulationSession::new(Box::new(TestCore {
             loaded: false,
@@ -291,6 +326,21 @@ mod tests {
         );
         assert!(session.load_content(&[]).is_err());
         assert_eq!(session.state(), SessionState::Empty);
+    }
+
+    #[test]
+    fn execution_error_preserves_session_state_and_allows_recovery() {
+        let core = ErrorOnceCore { fail_next_run: true };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.run_until_event(),
+            Err(SessionError::Core(CoreError::Execution("transient test failure")))
+        );
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event().unwrap(), CoreEvent::Yielded);
+        assert_eq!(session.state(), SessionState::Running);
     }
 
     #[test]
