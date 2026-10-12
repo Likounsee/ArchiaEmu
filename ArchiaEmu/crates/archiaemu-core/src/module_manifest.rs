@@ -447,8 +447,6 @@ impl ModuleManifest {
         }
         Ok(compatible)
     }
-
-
 }
 
 #[cfg(test)]
@@ -532,8 +530,11 @@ mod tests {
             Err(ManifestError::MissingDependency { .. })
         ));
         assert!(matches!(
-            manifest(vec![module("shared", &[]), module("one", &["shared", "shared"])])
-                .validate(),
+            manifest(vec![
+                module("shared", &[]),
+                module("one", &["shared", "shared"])
+            ])
+            .validate(),
             Err(ManifestError::DuplicateDependency { .. })
         ));
         assert!(matches!(
@@ -549,7 +550,9 @@ mod tests {
             .map(|index| module(&format!("node-{index}"), &[]))
             .collect::<Vec<_>>();
         for index in 0..MODULE_COUNT - 1 {
-            modules[index].dependencies.push(id(&format!("node-{}", index + 1)));
+            modules[index]
+                .dependencies
+                .push(id(&format!("node-{}", index + 1)));
         }
 
         assert!(manifest(modules).validate().is_ok());
@@ -564,9 +567,7 @@ mod tests {
         for index in 0..MODULE_COUNT - 1 {
             modules[index].dependencies.push(id(&format!("node-{}", index + 1)));
         }
-        modules[MODULE_COUNT - 1]
-            .dependencies
-            .push(id("node-0"));
+        modules[MODULE_COUNT - 1].dependencies.push(id("node-0"));
 
         assert!(matches!(
             manifest(modules).validate(),
