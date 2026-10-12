@@ -33,6 +33,9 @@ pub mod module_state;
 /// Versioned disk persistence for first-launch and module state.
 pub mod module_state_store;
 
+/// Crash-recovery journal for package installation transactions.
+pub mod module_install_journal;
+
 use core::fmt;
 
 /// Stable machine-readable identifier for an emulated system.
