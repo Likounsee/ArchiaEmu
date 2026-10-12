@@ -294,6 +294,16 @@ mod tests {
     }
 
     #[test]
+    fn failed_content_reload_preserves_the_existing_session_state() {
+        let mut session = session();
+        session.load_content(&[1]).unwrap();
+
+        assert!(session.load_content(&[]).is_err());
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event().unwrap(), CoreEvent::Yielded);
+    }
+
+    #[test]
     fn pause_resume_and_reset_follow_valid_transitions() {
         let mut session = session();
         session.load_content(&[1]).unwrap();
