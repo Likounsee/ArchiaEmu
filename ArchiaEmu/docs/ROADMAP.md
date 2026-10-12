@@ -9,7 +9,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 82 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 75 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Chargement et validation du contenu | 77 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 85 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -30,6 +30,10 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [ ] Tester les autres pannes d'E/S du remplacement (échec du renommage temporaire, restauration de secours et synchronisation du répertoire) sur les plateformes CI prises en charge; ne pas considérer les échecs de synchronisation comme validés tant qu'ils ne sont pas observables et testés.
 
 ## P0 — rendre le runtime commun fiable
+
+### P0.3 — Chargement et validation du contenu
+- [x] Le détecteur de formats normalise les réponses `NeedMoreData` incohérentes des probes : une probe ne peut plus demander « plus de données » tout en indiquant une longueur déjà couverte par le préfixe. Un test vérifie les longueurs nulles, trop courtes et égales au préfixe.
+
 
 ### P0.1 — Cycle de vie de session
 - [x] Contrat de cœur commun et erreurs explicites.
