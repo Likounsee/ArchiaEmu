@@ -205,7 +205,9 @@ mod tests {
             }
         }
 
-        let reader = FailsAfterPrefix { remaining: b"partial" };
+        let reader = FailsAfterPrefix {
+            remaining: b"partial",
+        };
         assert_eq!(
             ContentImage::read_from(reader, ContentLimits::new(32)),
             Err(ContentError::ReadFailed(std::io::ErrorKind::Other))
