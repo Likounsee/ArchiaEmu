@@ -404,6 +404,33 @@ mod tests {
     }
 
     #[test]
+    fn store_rejects_oversized_replacement_without_changing_existing_state() {
+        let path = temp_path();
+        let store = ModuleStateStore::new(&path);
+        let mut existing = ModuleManagerState::new();
+        existing.mark_setup_completed();
+        store.save(&existing).unwrap();
+
+        let mut oversized = ModuleManagerState::new();
+        oversized
+            .record_installed(
+                ModuleId::new("large-module").unwrap(),
+                "v".repeat(MAX_STATE_FILE_BYTES as usize),
+            )
+            .unwrap();
+
+        assert!(matches!(
+            store.save(&oversized),
+            Err(ModuleStateStoreError::TooLarge)
+        ));
+        assert_eq!(store.load().unwrap(), existing);
+        assert!(!backup_path(&path).exists());
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(backup_path(&path));
+    }
+
+    #[test]
     fn store_rejects_oversized_persisted_file() {
         let path = temp_path();
         fs::write(&path, vec![b'x'; MAX_STATE_FILE_BYTES as usize + 1]).unwrap();
