@@ -9,9 +9,8 @@ use crate::content::{
     detect_content_formats, ContentDetection, ContentError, ContentFormatProbe, ContentImage,
     ContentLimits,
 };
-use crate::{CoreRegistry, RegistryError};
 use crate::core_io::{AudioBuffer, InputControl, InputEvent, InputState, VideoFrame};
-use crate::{CoreDescriptor, CoreError, CoreEvent, EmulationCore};
+use crate::{CoreDescriptor, CoreError, CoreEvent, CoreRegistry, EmulationCore, RegistryError};
 
 /// Failure while launching a session from untrusted content.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -518,8 +517,8 @@ mod tests {
         let mut registry = CoreRegistry::new();
         registry.register(id, make_runtime_test_core).unwrap();
 
-        let session = launch_content(b"GAME payload", ContentLimits::new(64), &probes, &registry)
-            .unwrap();
+        let session =
+            launch_content(b"GAME payload", ContentLimits::new(64), &probes, &registry).unwrap();
 
         assert_eq!(session.descriptor().system_id, id);
         assert_eq!(session.state(), SessionState::Running);
