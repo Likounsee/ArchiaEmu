@@ -52,7 +52,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 ### P0.3 — Chargement et validation du contenu
 - [x] Introduire un premier modèle générique de contenu possédé, avec limite de taille explicite et erreurs communes (les empreintes et la détection de format restent à faire).
-- [x] Rejeter les contenus vides et ceux dépassant la limite explicitement fournie, avant appel au cœur.
+- [x] Rejeter les contenus vides et ceux dépassant la limite explicitement fournie, avant appel au cœur. L'API de session `load_content_bounded` valide une tranche empruntée avant d'allouer une copie et laisse la session vide en cas de rejet.
 - [x] Lire un flux avec une limite stricte (au plus limite + 1 octet pour détecter le dépassement), sans exposer un contenu partiellement lu en cas d’erreur ; test de régression avec échec de lecture après un préfixe partiel.
 - [x] Ajouter un helper dédié aux chemins/fichiers qui réutilise la même lecture bornée.
 - [x] Traiter les ROM Game Boy ROM-only tronquées : vérifier la taille déclarée avant de remplacer le contenu déjà chargé, avec test de régression.

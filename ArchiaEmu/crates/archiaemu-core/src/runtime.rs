@@ -5,6 +5,7 @@
 
 use core::fmt;
 
+use crate::content::{ContentError, ContentImage, ContentLimits};
 use crate::core_io::{AudioBuffer, InputControl, InputEvent, InputState, VideoFrame};
 use crate::{CoreDescriptor, CoreError, CoreEvent, EmulationCore};
 
@@ -31,6 +32,8 @@ pub enum SessionError {
         /// Current lifecycle state.
         state: SessionState,
     },
+    /// Common content validation failed before the core was called.
+    Content(ContentError),
     /// The core rejected the requested operation.
     Core(CoreError),
 }
@@ -41,12 +44,19 @@ impl fmt::Display for SessionError {
             Self::InvalidTransition { operation, state } => {
                 write!(formatter, "cannot {operation} while session is {state:?}")
             }
+            Self::Content(error) => fmt::Display::fmt(error, formatter),
             Self::Core(error) => fmt::Display::fmt(error, formatter),
         }
     }
 }
 
 impl std::error::Error for SessionError {}
+
+impl From<ContentError> for SessionError {
+    fn from(error: ContentError) -> Self {
+        Self::Content(error)
+    }
+}
 
 impl From<CoreError> for SessionError {
     fn from(error: CoreError) -> Self {
@@ -108,6 +118,19 @@ impl EmulationSession {
         self.input_state = InputState::new();
         self.state = SessionState::Running;
         Ok(())
+    }
+
+    /// Validates borrowed content against common limits before allocating a copy
+    /// or invoking the core.
+    ///
+    /// If validation fails, neither the core nor the session state is changed.
+    pub fn load_content_bounded(
+        &mut self,
+        content: &[u8],
+        limits: ContentLimits,
+    ) -> Result<(), SessionError> {
+        let image = ContentImage::from_slice(content, limits)?;
+        self.load_validated_content(&image)
     }
 
     /// Loads a payload that has passed the framework's common size checks.
@@ -399,6 +422,29 @@ mod tests {
             calls: 0,
             next_event: CoreEvent::Yielded,
         }))
+    }
+
+    #[test]
+    fn bounded_load_rejects_invalid_size_without_calling_the_core() {
+        let mut session = session();
+        assert_eq!(
+            session.load_content_bounded(&[1, 2], ContentLimits::new(1)),
+            Err(SessionError::Content(ContentError::TooLarge {
+                max_bytes: 1,
+                actual_bytes: 2,
+            }))
+        );
+        assert_eq!(session.state(), SessionState::Empty);
+        assert!(matches!(
+            session.load_content_bounded(&[], ContentLimits::new(1)),
+            Err(SessionError::Content(ContentError::Empty))
+        ));
+        assert_eq!(session.state(), SessionState::Empty);
+
+        session
+            .load_content_bounded(&[1], ContentLimits::new(1))
+            .unwrap();
+        assert_eq!(session.state(), SessionState::Running);
     }
 
     #[test]

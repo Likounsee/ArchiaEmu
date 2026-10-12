@@ -90,6 +90,25 @@ impl ContentImage {
         Ok(Self { bytes })
     }
 
+    /// Copies a borrowed payload only after checking the common size limits.
+    ///
+    /// This avoids allocating a second copy when a caller supplies a slice that
+    /// already exceeds the configured maximum.
+    pub fn from_slice(bytes: &[u8], limits: ContentLimits) -> Result<Self, ContentError> {
+        if bytes.is_empty() {
+            return Err(ContentError::Empty);
+        }
+        if bytes.len() > limits.max_bytes {
+            return Err(ContentError::TooLarge {
+                max_bytes: limits.max_bytes,
+                actual_bytes: bytes.len(),
+            });
+        }
+        Ok(Self {
+            bytes: bytes.to_vec(),
+        })
+    }
+
     /// Opens a filesystem path and reads it with the same strict size bound.
     ///
     /// File metadata is not trusted for the size decision: the stream reader
@@ -142,6 +161,27 @@ impl ContentImage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn borrowed_content_is_checked_before_it_is_copied() {
+        assert_eq!(
+            ContentImage::from_slice(b"", ContentLimits::new(3)),
+            Err(ContentError::Empty)
+        );
+        assert_eq!(
+            ContentImage::from_slice(b"four", ContentLimits::new(3)),
+            Err(ContentError::TooLarge {
+                max_bytes: 3,
+                actual_bytes: 4,
+            })
+        );
+        assert_eq!(
+            ContentImage::from_slice(b"abc", ContentLimits::new(3))
+                .unwrap()
+                .as_bytes(),
+            b"abc"
+        );
+    }
 
     #[test]
     fn reads_a_file_with_the_same_size_limit() {
