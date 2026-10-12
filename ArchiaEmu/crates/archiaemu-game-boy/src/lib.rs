@@ -499,9 +499,12 @@ mod tests {
 
         let mut image = vec![0; MINIMUM_HEADER_SIZE];
         image[0x0104..0x0134].copy_from_slice(&NINTENDO_LOGO);
-        assert_eq!(probe.probe(&image[..0x0140]), FormatProbeResult::NeedMoreData {
-            minimum_bytes: MINIMUM_HEADER_SIZE,
-        });
+        assert_eq!(
+            probe.probe(&image[..0x0140]),
+            FormatProbeResult::NeedMoreData {
+                minimum_bytes: MINIMUM_HEADER_SIZE,
+            }
+        );
         assert_eq!(probe.probe(&image), FormatProbeResult::Match);
 
         image[0x0104] ^= 0xFF;
