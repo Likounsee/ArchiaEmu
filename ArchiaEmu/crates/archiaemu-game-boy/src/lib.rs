@@ -197,6 +197,17 @@ impl GameBoyCore {
     pub const fn cartridge_header(&self) -> Option<&CartridgeHeader> {
         self.header.as_ref()
     }
+
+    /// Returns the hardware mode selected for the loaded cartridge, if known.
+    ///
+    /// The same core instance handles both modes; this value is not a separate
+    /// emulator/module selection.
+    pub const fn hardware_mode(&self) -> Option<HardwareMode> {
+        match self.header.as_ref() {
+            Some(header) => header.preferred_hardware_mode(),
+            None => None,
+        }
+    }
 }
 
 impl Default for GameBoyCore {
@@ -413,6 +424,30 @@ mod tests {
         let header = CartridgeHeader::parse(&image).unwrap();
         assert_eq!(header.compatibility(), CartridgeCompatibility::Reserved(0x40));
         assert_eq!(header.preferred_hardware_mode(), None);
+    }
+
+    #[test]
+    fn unified_core_selects_mode_without_changing_system_identity() {
+        let mut core = GameBoyCore::new();
+        assert_eq!(core.hardware_mode(), None);
+
+        let color_compatible_image = valid_image();
+        archiaemu_core::EmulationCore::load_content(&mut core, &color_compatible_image).unwrap();
+        assert_eq!(core.hardware_mode(), Some(HardwareMode::Cgb));
+        assert_eq!(
+            core.descriptor().system_id,
+            archiaemu_core::SystemId::new("game-boy").unwrap()
+        );
+
+        let mut monochrome_image = valid_image();
+        monochrome_image[0x143] = 0x00;
+        monochrome_image[0x14D] = header_checksum(&monochrome_image);
+        archiaemu_core::EmulationCore::load_content(&mut core, &monochrome_image).unwrap();
+        assert_eq!(core.hardware_mode(), Some(HardwareMode::Dmg));
+        assert_eq!(
+            core.descriptor().system_id,
+            archiaemu_core::SystemId::new("game-boy").unwrap()
+        );
     }
 
     #[test]
