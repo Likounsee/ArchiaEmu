@@ -188,11 +188,7 @@ impl AudioBuffer {
     }
 
     /// Creates an audio buffer with a valid format and complete sample frames.
-    pub fn new(
-        sample_rate: u32,
-        channels: u8,
-        samples: Vec<i16>,
-    ) -> Result<Self, MediaDataError> {
+    pub fn new(sample_rate: u32, channels: u8, samples: Vec<i16>) -> Result<Self, MediaDataError> {
         if sample_rate == 0 || channels == 0 {
             return Err(MediaDataError::InvalidAudioFormat);
         }
