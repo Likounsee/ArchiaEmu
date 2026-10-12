@@ -535,7 +535,9 @@ mod tests {
             })
             .collect::<Vec<_>>();
         for index in 0..MODULE_COUNT - 1 {
-            descriptors[index].dependencies.push(id(&format!("node-{}", index + 1)));
+            descriptors[index]
+                .dependencies
+                .push(id(&format!("node-{}", index + 1)));
         }
         descriptors[MODULE_COUNT - 1]
             .dependencies
