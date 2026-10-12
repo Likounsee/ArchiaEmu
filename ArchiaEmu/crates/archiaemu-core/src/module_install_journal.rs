@@ -131,7 +131,11 @@ impl InstallJournal {
             return Err(InstallJournalError::InvalidVersion);
         }
         Ok(Self {
-            entry: InstallJournalEntry { module, version, phase: InstallPhase::Planned },
+            entry: InstallJournalEntry {
+                module,
+                version,
+                phase: InstallPhase::Planned,
+            },
         })
     }
 
@@ -155,8 +159,13 @@ impl InstallJournal {
     /// Returns the startup recovery action for the last recorded milestone.
     pub fn recovery_action(&self) -> InstallRecovery {
         match self.entry.phase {
-            InstallPhase::Planned | InstallPhase::Downloading | InstallPhase::Verified | InstallPhase::Staged => InstallRecovery::DiscardStaging,
-            InstallPhase::Activating | InstallPhase::Activated => InstallRecovery::ReconcileActivation,
+            InstallPhase::Planned
+            | InstallPhase::Downloading
+            | InstallPhase::Verified
+            | InstallPhase::Staged => InstallRecovery::DiscardStaging,
+            InstallPhase::Activating | InstallPhase::Activated => {
+                InstallRecovery::ReconcileActivation
+            }
             InstallPhase::Committed => InstallRecovery::CleanupCommitted,
             InstallPhase::Failed => InstallRecovery::InspectFailure,
         }
@@ -188,18 +197,24 @@ impl InstallJournal {
             let fields: Vec<_> = line.split('\t').collect();
             match fields.as_slice() {
                 ["module", value] if module.is_none() => {
-                    module = Some(ModuleId::new(*value).map_err(|_| InstallJournalError::InvalidFormat)?);
+                    module = Some(
+                        ModuleId::new(*value).map_err(|_| InstallJournalError::InvalidFormat)?,
+                    );
                 }
                 ["version", value] if version.is_none() => {
                     let bytes = decode_hex(value)?;
-                    let value = String::from_utf8(bytes).map_err(|_| InstallJournalError::InvalidFormat)?;
-                    if value.trim().is_empty() || value.chars().any(|ch| matches!(ch, '\n' | '\r' | '\t')) {
+                    let value =
+                        String::from_utf8(bytes).map_err(|_| InstallJournalError::InvalidFormat)?;
+                    if value.trim().is_empty()
+                        || value.chars().any(|ch| matches!(ch, '\n' | '\r' | '\t'))
+                    {
                         return Err(InstallJournalError::InvalidVersion);
                     }
                     version = Some(value);
                 }
                 ["phase", value] if phase.is_none() => {
-                    phase = Some(InstallPhase::parse(value).ok_or(InstallJournalError::InvalidFormat)?);
+                    phase =
+                        Some(InstallPhase::parse(value).ok_or(InstallJournalError::InvalidFormat)?);
                 }
                 _ => return Err(InstallJournalError::InvalidFormat),
             }
@@ -220,7 +235,8 @@ impl InstallJournal {
             return Err(InstallJournalError::TooLarge);
         }
         let mut input = String::new();
-        file.take(MAX_INSTALL_JOURNAL_BYTES + 1).read_to_string(&mut input)?;
+        file.take(MAX_INSTALL_JOURNAL_BYTES + 1)
+            .read_to_string(&mut input)?;
         Self::decode(&input)
     }
 
@@ -230,14 +246,20 @@ impl InstallJournal {
     /// durability on filesystems that do not support directory synchronization.
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), InstallJournalError> {
         let path = path.as_ref();
-        let parent = path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
+        let parent = path
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
         let name = path.file_name().ok_or(InstallJournalError::InvalidPath)?;
         let sequence = TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let mut temp_name = name.to_os_string();
         temp_name.push(format!(".tmp-{}-{sequence}", std::process::id()));
         let temp_path: PathBuf = parent.join(temp_name);
         let result = (|| {
-            let mut file = OpenOptions::new().write(true).create_new(true).open(&temp_path)?;
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temp_path)?;
             file.write_all(self.encode().as_bytes())?;
             file.sync_all()?;
             drop(file);
@@ -265,11 +287,15 @@ fn decode_hex(value: &str) -> Result<Vec<u8>, InstallJournalError> {
     if value.len() % 2 != 0 {
         return Err(InstallJournalError::InvalidFormat);
     }
-    value.as_bytes().chunks_exact(2).map(|pair| {
-        let high = hex_digit(pair[0]).ok_or(InstallJournalError::InvalidFormat)?;
-        let low = hex_digit(pair[1]).ok_or(InstallJournalError::InvalidFormat)?;
-        Ok((high << 4) | low)
-    }).collect()
+    value
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| {
+            let high = hex_digit(pair[0]).ok_or(InstallJournalError::InvalidFormat)?;
+            let low = hex_digit(pair[1]).ok_or(InstallJournalError::InvalidFormat)?;
+            Ok((high << 4) | low)
+        })
+        .collect()
 }
 
 fn hex_digit(value: u8) -> Option<u8> {
@@ -292,7 +318,10 @@ pub enum InstallJournalError {
     /// Package version is empty or contains record separators.
     InvalidVersion,
     /// A requested phase transition is not permitted.
-    InvalidTransition { from: InstallPhase, to: InstallPhase },
+    InvalidTransition {
+        from: InstallPhase,
+        to: InstallPhase,
+    },
     /// Destination path does not name a file.
     InvalidPath,
 }
@@ -304,7 +333,9 @@ impl fmt::Display for InstallJournalError {
             Self::TooLarge => f.write_str("installation journal exceeds 1 MiB"),
             Self::InvalidFormat => f.write_str("invalid installation journal format"),
             Self::InvalidVersion => f.write_str("invalid package version in installation journal"),
-            Self::InvalidTransition { from, to } => write!(f, "invalid install phase transition: {from:?} -> {to:?}"),
+            Self::InvalidTransition { from, to } => {
+                write!(f, "invalid install phase transition: {from:?} -> {to:?}")
+            }
             Self::InvalidPath => f.write_str("installation journal path must name a file"),
         }
     }
@@ -312,5 +343,7 @@ impl fmt::Display for InstallJournalError {
 
 impl std::error::Error for InstallJournalError {}
 impl From<io::Error> for InstallJournalError {
-    fn from(value: io::Error) -> Self { Self::Io(value) }
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
+    }
 }
