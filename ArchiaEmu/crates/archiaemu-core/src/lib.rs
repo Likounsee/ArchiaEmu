@@ -745,10 +745,13 @@ mod tests {
         };
         assert_eq!(registry.create(id).err().unwrap(), expected);
         assert_eq!(
-            registry.create_from_detection(&content::ContentDetection {
-                matches: vec!["incompatible"],
-                needs_more_data: vec![],
-            }).err().unwrap(),
+            registry
+                .create_from_detection(&content::ContentDetection {
+                    matches: vec!["incompatible"],
+                    needs_more_data: vec![],
+                })
+                .err()
+                .unwrap(),
             expected
         );
     }
