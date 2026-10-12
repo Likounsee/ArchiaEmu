@@ -1238,6 +1238,32 @@ mod tests {
     }
 
     #[test]
+    fn bounded_content_precondition_preserves_core_diagnostic() {
+        let core = ErrorOnceCore {
+            fail_next_run: true,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        let core_error = CoreError::Execution("transient test failure");
+        assert_eq!(
+            session.run_until_event(),
+            Err(SessionError::Core(core_error))
+        );
+        session.pause().unwrap();
+
+        assert_eq!(
+            session.load_content_bounded(&[1, 2], ContentLimits::new(1)),
+            Err(SessionError::Content(ContentError::TooLarge {
+                max_bytes: 1,
+                actual_bytes: 2,
+            }))
+        );
+        assert_eq!(session.state(), SessionState::Paused);
+        assert_eq!(session.last_core_error(), Some(core_error));
+    }
+
+    #[test]
     fn execution_error_preserves_session_state_and_allows_recovery() {
         let core = ErrorOnceCore {
             fail_next_run: true,
