@@ -28,9 +28,17 @@ pub enum ArtifactStageError {
     /// Temporary and destination paths refer to the same path.
     PathsMustDiffer,
     /// The artifact contained more bytes than its declared size.
-    TooLarge { expected: u64 },
+    TooLarge {
+        /// Maximum byte count declared by the caller.
+        expected: u64,
+    },
     /// The stream ended before its declared size.
-    TooSmall { expected: u64, actual: u64 },
+    TooSmall {
+        /// Byte count declared by the caller.
+        expected: u64,
+        /// Number of bytes actually read.
+        actual: u64,
+    },
     /// The digest verifier rejected the staged bytes.
     DigestMismatch,
     /// The destination already exists and will not be overwritten.
