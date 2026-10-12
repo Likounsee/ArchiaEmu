@@ -210,7 +210,6 @@ impl AudioBuffer {
         self.samples.len() / self.channels as usize
     }
 }
-
 /// Canonical host-side input state shared by all emulation cores.
 ///
 /// It deduplicates repeated transitions and can synthesize releases when the
@@ -224,7 +223,9 @@ pub struct InputState {
 impl InputState {
     /// Creates an input state with every control released.
     pub const fn new() -> Self {
-        Self { pressed: [false; 10] }
+        Self {
+            pressed: [false; 10],
+        }
     }
 
     /// Returns whether a semantic control is currently held.
@@ -250,8 +251,14 @@ impl InputState {
     pub fn release_all(&mut self) -> Vec<InputEvent> {
         let mut released = Vec::new();
         for control in InputControl::ALL {
-            if self.apply(InputEvent { control, pressed: false }) {
-                released.push(InputEvent { control, pressed: false });
+            if self.apply(InputEvent {
+                control,
+                pressed: false,
+            }) {
+                released.push(InputEvent {
+                    control,
+                    pressed: false,
+                });
             }
         }
         released
