@@ -52,6 +52,14 @@ These contracts do not implement a host input mapper, renderer, audio device bac
 
 The runtime deliberately does not implement a wall-clock scheduler, pacing, renderer, audio device, or thread model. A future host loop can build on these explicit transitions without embedding console-specific assumptions in the shared core crate.
 
+## Host capabilities and performance policy
+
+The shared `host_profile` module separates host facts from user preferences. A host application supplies the logical CPU count, known available-memory estimate, and whether an accelerated video backend is usable. `PerformancePolicy::plan` then derives a worker-thread ceiling, a hardware/software video preference, a conservative memory ceiling, and permission for optional enhancements.
+
+This is deliberately a policy model, not hardware detection: no operating-system or GPU probing is performed by the core crate yet. The host must validate any reported measurements and connect the plan to real schedulers, allocators, and renderer backends. The worker count is an upper bound for independent host work, not a claim that a core's emulated CPU can be parallelized. A software-video fallback remains available when acceleration is absent or not preferred.
+
+The policy reserves at most 75% of reported available memory and honors a lower explicit user budget. If available memory is unknown, it remains unknown unless the user provides a budget. Zero CPU reports and zero worker limits are normalized to one worker. Optional enhancements are only permitted by preference; this does not claim that a core implements them. None of these choices may change emulated hardware semantics, guest timing, or deterministic results.
+
 ## Stability
 
 
