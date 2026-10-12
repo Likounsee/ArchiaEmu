@@ -9,6 +9,9 @@
 /// Platform-neutral input and owned audio/video payload contracts.
 pub mod core_io;
 
+/// Console-independent lifecycle controller for an active emulation session.
+pub mod runtime;
+
 /// Dependency-aware planning for optional console and shared-runtime modules.
 pub mod module_management;
 
