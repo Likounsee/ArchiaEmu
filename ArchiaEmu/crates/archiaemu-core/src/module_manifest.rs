@@ -439,11 +439,11 @@ impl ModuleManifest {
     ) -> Result<Vec<&ManifestModule>, ManifestError> {
         self.validate()?;
 
-        let indices: HashMap<&ModuleId, usize> = self
+        let indices: HashMap<ModuleId, usize> = self
             .modules
             .iter()
             .enumerate()
-            .map(|(index, module)| (&module.id, index))
+            .map(|(index, module)| (module.id.clone(), index))
             .collect();
         let mut plan = Vec::new();
         let mut included = vec![false; self.modules.len()];
