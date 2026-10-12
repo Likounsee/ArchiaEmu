@@ -113,5 +113,4 @@ pub fn validate_archive_entry_path(value: &str) -> Result<SafeArchivePath, Archi
     Ok(SafeArchivePath {
         normalized: parts.join("/"),
     })
-
 }
