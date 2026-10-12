@@ -964,8 +964,7 @@ mod tests {
         ));
 
         std::fs::write(&path, b"GA").unwrap();
-        let truncated_path =
-            launch_content_path(&path, ContentLimits::new(64), &probes, &registry);
+        let truncated_path = launch_content_path(&path, ContentLimits::new(64), &probes, &registry);
         let truncated_reader = launch_content_reader(
             std::io::Cursor::new(b"GA".to_vec()),
             ContentLimits::new(64),
@@ -974,9 +973,7 @@ mod tests {
         );
         assert!(matches!(
             truncated_path,
-            Err(LaunchError::Registry(
-                RegistryError::IncompleteDetection(1)
-            ))
+            Err(LaunchError::Registry(RegistryError::IncompleteDetection(1)))
         ));
         assert!(matches!(
             truncated_reader,
