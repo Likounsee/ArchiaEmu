@@ -418,6 +418,22 @@ mod tests {
     }
 
     #[test]
+    fn zero_limit_stream_reads_only_one_byte_to_detect_oversize() {
+        let mut source: &[u8] = b"not-empty";
+        assert_eq!(
+            ContentImage::read_from(&mut source, ContentLimits::new(0)),
+            Err(ContentError::TooLarge {
+                max_bytes: 0,
+                actual_bytes: 1,
+            })
+        );
+        assert_eq!(
+            source, b"ot-empty",
+            "a zero-byte limit must consume at most one detection byte"
+        );
+    }
+
+    #[test]
     fn rejects_empty_streams() {
         assert_eq!(
             ContentImage::read_from(&b""[..], ContentLimits::new(3)),
