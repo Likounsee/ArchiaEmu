@@ -12,6 +12,9 @@ pub mod module_management;
 /// Schema and compatibility validation for versioned module manifests.
 pub mod module_manifest;
 
+/// Pinned-key trust policy and anti-rollback checks for signed manifests.
+pub mod module_manifest_trust;
+
 /// First-launch decisions and installed module state.
 pub mod module_state;
 
