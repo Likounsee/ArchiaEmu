@@ -338,8 +338,14 @@ mod tests {
     #[test]
     fn input_state_deduplicates_repeated_transitions() {
         let mut state = InputState::new();
-        let down = InputEvent { control: InputControl::Action1, pressed: true };
-        let up = InputEvent { control: InputControl::Action1, pressed: false };
+        let down = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+        let up = InputEvent {
+            control: InputControl::Action1,
+            pressed: false,
+        };
 
         assert!(state.apply(down));
         assert!(!state.apply(down));
@@ -354,7 +360,10 @@ mod tests {
     fn input_state_releases_all_held_controls_after_focus_loss() {
         let mut state = InputState::new();
         for control in [InputControl::Up, InputControl::Action2, InputControl::Start] {
-            assert!(state.apply(InputEvent { control, pressed: true }));
+            assert!(state.apply(InputEvent {
+                control,
+                pressed: true,
+            }));
         }
 
         let released = state.release_all();
