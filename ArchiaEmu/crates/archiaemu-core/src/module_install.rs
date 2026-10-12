@@ -143,6 +143,9 @@ pub fn install_module<B: ModuleInstallBackend>(
     }
 
     advance_and_save(&mut journal, InstallPhase::Staged, journal_path)?;
+    // Persist intent before touching the final location. If the process stops
+    // mid-activation, recovery knows to inspect rather than blindly discard staging.
+    advance_and_save(&mut journal, InstallPhase::Activating, journal_path)?;
     if let Err(message) = backend.activate_staged(&module, &version) {
         // Activation may have partially changed the final location. Preserve the
         // journal as Failed and require explicit recovery rather than deleting data.
