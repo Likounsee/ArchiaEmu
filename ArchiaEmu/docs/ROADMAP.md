@@ -66,7 +66,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Ajouter au registre un point d'entrée qui crée le cœur correspondant à un résultat de détection unique, en refusant l'absence de candidat, les résultats ambigus, les IDs invalides et les sondes encore indécises; le chargement par le cœur reste obligatoire pour valider réellement le contenu.
 - [x] Ajouter un pipeline de lancement générique qui borne et possède le contenu, exécute les sondes sur ces octets, refuse les détections absentes/ambiguës/incomplètes, crée le cœur du registre et retourne une session Running uniquement après acceptation du contenu par le cœur. Les tests couvrent le lancement réussi, la limite de taille et l'ambiguïté.
 - [x] Tester les erreurs de validation du cœur et les sondes incomplètes dans le pipeline de lancement.
-- [ ] Ajouter un test de bout en bout pour un identifiant de cœur non enregistré et définir l'intégration du pipeline dans une application hôte.
+- [x] Tester le refus d'un identifiant de cœur détecté mais non enregistré dans le pipeline de lancement.
+- [ ] Définir l'intégration du pipeline dans une application hôte.
 - [ ] Ne pas exiger que le framework comprenne lui-même les formats propriétaires de chaque système.
 
 **Critère de sortie :** le framework rejette proprement les contenus invalides et fournit au module un contenu borné avec des métadonnées fiables.

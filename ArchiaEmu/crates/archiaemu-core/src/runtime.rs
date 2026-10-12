@@ -569,6 +569,22 @@ mod tests {
     }
 
     #[test]
+    fn launch_pipeline_rejects_detected_system_without_registered_core() {
+        let probe = PrefixProbe {
+            id: "unknown-system",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let registry = CoreRegistry::new();
+
+        assert!(matches!(
+            launch_content(b"GAME", ContentLimits::new(64), &probes, &registry),
+            Err(LaunchError::Registry(RegistryError::UnknownSystem(id)))
+                if id.as_str() == "unknown-system"
+        ));
+    }
+
+    #[test]
     fn launch_pipeline_waits_for_all_probes_to_decide() {
         let probe = PrefixProbe {
             id: "runtime-test",
