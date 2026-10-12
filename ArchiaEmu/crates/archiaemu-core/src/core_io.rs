@@ -325,6 +325,19 @@ mod tests {
     }
 
     #[test]
+    fn video_frame_rejects_dimensions_whose_byte_size_overflows() {
+        assert_eq!(
+            VideoFrame::new(
+                u32::MAX,
+                u32::MAX,
+                PixelFormat::Rgba8888,
+                Vec::new(),
+            ),
+            Err(MediaDataError::FrameSizeOverflow)
+        );
+    }
+
+    #[test]
     fn audio_buffer_requires_valid_format_and_complete_interleaved_frames() {
         assert_eq!(
             AudioBuffer::new(0, 2, vec![]),
@@ -339,6 +352,13 @@ mod tests {
         );
         let audio = AudioBuffer::new(48_000, 2, vec![1, -1, 2, -2]).unwrap();
         assert_eq!(audio.frame_count(), 2);
+    }
+
+    #[test]
+    fn empty_audio_buffer_is_a_valid_zero_frame_buffer() {
+        let audio = AudioBuffer::new(48_000, 2, Vec::new()).unwrap();
+        assert_eq!(audio.frame_count(), 0);
+        assert!(audio.samples().is_empty());
     }
 
     #[test]
