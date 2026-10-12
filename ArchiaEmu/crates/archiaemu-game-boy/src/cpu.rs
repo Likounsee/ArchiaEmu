@@ -289,6 +289,24 @@ impl Cpu {
                 }
                 3
             }
+            // Relative jumps use a signed displacement from the next instruction.
+            0x18 | 0x20 | 0x28 | 0x30 | 0x38 => {
+                let displacement = self.fetch8(bus) as i8;
+                let condition = match opcode {
+                    0x18 => true,
+                    0x20 => !self.registers.flag(flags::ZERO),
+                    0x28 => self.registers.flag(flags::ZERO),
+                    0x30 => !self.registers.flag(flags::CARRY),
+                    _ => self.registers.flag(flags::CARRY),
+                };
+                if condition {
+                    self.registers.pc = (i32::from(self.registers.pc)
+                        + i32::from(displacement)) as u16;
+                    if opcode == 0x18 { 3 } else { 3 }
+                } else {
+                    2
+                }
+            }
             // INC rr / DEC rr (flags are not affected).
             0x03 | 0x13 | 0x23 | 0x33 => {
                 self.adjust_pair(opcode >> 4, true);
@@ -562,6 +580,22 @@ mod execution_tests {
         cpu.wake();
         assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x00);
         assert!(!cpu.is_halted());
+    }
+
+    #[test]
+    fn relative_jumps_apply_signed_offsets_and_test_flags() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[
+            0x18, 0x02, // JR +2: skip the next two bytes
+            0x06, 0x11,
+            0x20, 0xFC, // JR NZ,-4 (not taken because Z is set below)
+        ]);
+
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(cpu.registers.pc, 4);
+        cpu.registers.set_flag(flags::ZERO, true);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.pc, 6);
     }
 
     #[test]
