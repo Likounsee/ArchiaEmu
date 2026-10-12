@@ -43,11 +43,19 @@ impl std::fmt::Display for ArtifactStageError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EmptyArtifact => f.write_str("artifact size must be greater than zero"),
-            Self::InvalidDigest => f.write_str("expected SHA-256 must be 64 lowercase hexadecimal characters"),
+            Self::InvalidDigest => {
+                f.write_str("expected SHA-256 must be 64 lowercase hexadecimal characters")
+            }
             Self::PathsMustDiffer => f.write_str("temporary and destination paths must differ"),
-            Self::TooLarge { expected } => write!(f, "artifact exceeds declared size of {expected} bytes"),
-            Self::TooSmall { expected, actual } => write!(f, "artifact ended at {actual} bytes; expected {expected}"),
-            Self::DigestMismatch => f.write_str("artifact SHA-256 digest does not match the manifest"),
+            Self::TooLarge { expected } => {
+                write!(f, "artifact exceeds declared size of {expected} bytes")
+            }
+            Self::TooSmall { expected, actual } => {
+                write!(f, "artifact ended at {actual} bytes; expected {expected}")
+            }
+            Self::DigestMismatch => {
+                f.write_str("artifact SHA-256 digest does not match the manifest")
+            }
             Self::DestinationExists => f.write_str("artifact destination already exists"),
             Self::Io(error) => write!(f, "artifact staging I/O failed: {error}"),
         }
@@ -139,7 +147,9 @@ fn stage_inner<R: Read, V: ArtifactDigestVerifier>(
         }
         let next = total.saturating_add(count as u64);
         if next > expected_size {
-            return Err(ArtifactStageError::TooLarge { expected: expected_size });
+            return Err(ArtifactStageError::TooLarge {
+                expected: expected_size,
+            });
         }
         file.write_all(&buffer[..count])?;
         total = next;
