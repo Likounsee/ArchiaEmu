@@ -15,6 +15,14 @@ use cpu::{Cpu, CpuBus, RegisterPair};
 /// The minimum image length needed to include the complete cartridge header.
 pub const MINIMUM_HEADER_SIZE: usize = 0x150;
 
+const NINTENDO_LOGO: [u8; 48] = [
+    0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83,
+    0x00, 0x0C, 0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E,
+    0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63,
+    0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
+];
+
+
 /// Metadata extracted from a Game Boy cartridge header.
 ///
 /// Raw codes are retained rather than guessed into support claims. Mapper and
@@ -62,16 +70,21 @@ impl CartridgeHeader {
         }
     }
 
-    /// Parses the header after validating image length, size code, and checksum.
+    /// Parses the header after validating image length, Nintendo logo, size code,
+    /// and header checksum.
     ///
-    /// This does not validate the Nintendo logo, mapper support, the complete
-    /// ROM length against its size code, or whether the image can be executed.
+    /// This does not validate mapper support, the complete ROM length against its
+    /// size code, or whether the image can be executed.
     pub fn parse(image: &[u8]) -> Result<Self, HeaderError> {
         if image.len() < MINIMUM_HEADER_SIZE {
             return Err(HeaderError::ImageTooShort {
                 minimum: MINIMUM_HEADER_SIZE,
                 actual: image.len(),
             });
+        }
+
+        if image[0x0104..0x0134] != NINTENDO_LOGO {
+            return Err(HeaderError::NintendoLogoMismatch);
         }
 
         let rom_size_code = image[0x148];
@@ -115,6 +128,8 @@ pub enum HeaderError {
         /// Actual number of bytes supplied.
         actual: usize,
     },
+    /// The 48-byte Nintendo logo in the cartridge header does not match the defined bytes.
+    NintendoLogoMismatch,
     /// ROM size code is not one defined by the original Game Boy header format.
     InvalidRomSizeCode(u8),
     /// Header checksum differs from the checksum computed over 0x0134..=0x014C.
@@ -131,6 +146,9 @@ impl core::fmt::Display for HeaderError {
         match self {
             Self::ImageTooShort { minimum, actual } => {
                 write!(formatter, "cartridge image too short: need at least {minimum} bytes, got {actual}")
+            }
+            Self::NintendoLogoMismatch => {
+                formatter.write_str("Game Boy cartridge Nintendo logo mismatch")
             }
             Self::InvalidRomSizeCode(code) => {
                 write!(formatter, "invalid Game Boy ROM size code: 0x{code:02X}")
@@ -438,6 +456,7 @@ mod tests {
 
     fn valid_image() -> Vec<u8> {
         let mut image = vec![0; MINIMUM_HEADER_SIZE];
+        image[0x0104..0x0134].copy_from_slice(&NINTENDO_LOGO);
         image[0x134..0x13B].copy_from_slice(b"ARCHIA!");
         image[0x143] = 0x80;
         image[0x147] = 0x00;
@@ -479,6 +498,16 @@ mod tests {
                 minimum: MINIMUM_HEADER_SIZE,
                 actual: MINIMUM_HEADER_SIZE - 1,
             })
+        );
+    }
+
+    #[test]
+    fn rejects_nintendo_logo_mismatch() {
+        let mut image = valid_image();
+        image[0x0104] ^= 0xFF;
+        assert_eq!(
+            CartridgeHeader::parse(&image),
+            Err(HeaderError::NintendoLogoMismatch)
         );
     }
 
