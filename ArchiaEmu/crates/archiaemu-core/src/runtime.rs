@@ -581,9 +581,7 @@ mod tests {
 
         assert!(matches!(
             launch_content(b"GA", ContentLimits::new(64), &probes, &registry),
-            Err(LaunchError::Registry(
-                RegistryError::IncompleteDetection(1)
-            ))
+            Err(LaunchError::Registry(RegistryError::IncompleteDetection(1)))
         ));
     }
 
