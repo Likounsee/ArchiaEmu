@@ -197,7 +197,7 @@ impl EmulationSession {
     /// replaces it. Use `clear_last_core_error` after the host has recorded or
     /// handled the failure.
     pub fn last_core_error(&self) -> Option<CoreError> {
-        self.last_core_error
+        self.last_core_error.clone()
     }
 
     /// Clears the retained core-error diagnostic without changing session state.
@@ -209,7 +209,7 @@ impl EmulationSession {
         match result {
             Ok(value) => Ok(value),
             Err(error) => {
-                self.last_core_error = Some(error);
+                self.last_core_error = Some(error.clone());
                 Err(SessionError::Core(error))
             }
         }
@@ -1200,8 +1200,8 @@ mod tests {
         session.load_content(&[1]).unwrap();
 
         let error = CoreError::Execution("transient test failure");
-        assert_eq!(session.run_until_event(), Err(SessionError::Core(error)));
-        assert_eq!(session.last_core_error(), Some(error));
+        assert_eq!(session.run_until_event(), Err(SessionError::Core(error.clone())));
+        assert_eq!(session.last_core_error(), Some(error.clone()));
         assert_eq!(session.state(), SessionState::Running);
 
         assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
@@ -1221,9 +1221,9 @@ mod tests {
         let core_error = CoreError::Execution("transient test failure");
         assert_eq!(
             session.run_until_event(),
-            Err(SessionError::Core(core_error))
+            Err(SessionError::Core(core_error.clone()))
         );
-        assert_eq!(session.last_core_error(), Some(core_error));
+        assert_eq!(session.last_core_error(), Some(core_error.clone()));
 
         session.pause().unwrap();
         assert_eq!(
