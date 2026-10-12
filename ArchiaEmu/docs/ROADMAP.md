@@ -9,7 +9,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 98 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 82 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Chargement et validation du contenu | 84 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 86 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -38,7 +38,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Exposer le pipeline de lancement borné pour les entrées réelles : `launch_content_path` lit un fichier sous limite, `launch_content_reader` lit un flux sous limite, puis les deux réutilisent la même détection et la même validation par le cœur que `launch_content`.
 - [x] Couvrir le lancement borné depuis chemin et flux : détection réussie, dépassement de limite, détection ambiguë, rejet par le cœur, signature tronquée et contenu vide. Les tests vérifient que les erreurs sont propagées au lieu de sélectionner arbitrairement un format ou de démarrer une session invalide.
 - [x] Vérifier la propagation des erreurs de lecture des sources : chemin absent (NotFound) et flux en échec (PermissionDenied), sans exposer de contenu partiellement lu.
-- [ ] Exécuter et valider cette couverture sur toutes les plateformes CI prises en charge avant de clôturer P0.3.
+- [x] Exécuter et valider la couverture courante sur Linux, Windows et macOS : les quality gates Rust ont réussi sur les trois plateformes pour le commit `a3c9d046347694cd338e0b61d7f77bd50a95a00a`. Les validateurs et tests propres aux formats supplémentaires restent à étendre avant la clôture complète de P0.3.
 
 
 ### P0.1 — Cycle de vie de session
@@ -91,7 +91,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] La sonde Game Boy est utilisable via le détecteur générique après l'application des limites communes; la détection reste informative et ne remplace pas la validation par le cœur.
 - [x] La détection générique reçoit uniquement un préfixe d'octets et des sondes explicites; elle ne consulte ni extension ni chemin et ne valide pas elle-même le contenu.
 - [x] Relier détection, sélection d'un cœur enregistré et chargement borné dans un pipeline de lancement unique; les tests couvrent lancement réussi, limite dépassée, détection ambiguë, préfixe incomplet et refus du contenu par le cœur.
-- [ ] Étendre les tests aux tailles limites et aux fichiers tronqués des formats pris en charge. Pour Game Boy, les tailles ROM standard `0x00`–`0x08` et spéciales `0x52`–`0x54` sont maintenant vérifiées contre leur taille attendue, les codes réservés sont rejetés et une ROM tronquée déclarant une taille spéciale ne remplace pas la cartouche active. La détection couvre aussi les signatures partielles, les octets arbitraires et les candidats ambigus; la lecture de fichier teste le dépassement exact de la limite d'un octet.
+- [x] Étendre les tests aux tailles limites et aux fichiers tronqués du format Game Boy actuellement pris en charge : les tailles ROM standard `0x00`–`0x08` et spéciales `0x52`–`0x54` sont vérifiées contre leur taille attendue, les codes réservés sont rejetés et une ROM tronquée déclarant une taille spéciale ne remplace pas la cartouche active. La détection générique couvre aussi les signatures partielles, les octets arbitraires et les candidats ambigus; la lecture bornée teste le dépassement exact de la limite d'un octet. Les autres formats devront recevoir leurs propres validateurs et tests lorsqu'ils seront ajoutés.
 - [x] Ajouter au registre un point d'entrée qui crée le cœur correspondant à un résultat de détection unique, en refusant l'absence de candidat, les résultats ambigus, les IDs invalides et les sondes encore indécises; le chargement par le cœur reste obligatoire pour valider réellement le contenu.
 - [x] Ajouter un pipeline de lancement générique qui borne et possède le contenu, exécute les sondes sur ces octets, refuse les détections absentes/ambiguës/incomplètes, crée le cœur du registre et retourne une session Running uniquement après acceptation du contenu par le cœur. Les tests couvrent le lancement réussi, la limite de taille et l'ambiguïté.
 - [x] Tester les erreurs de validation du cœur et les sondes incomplètes dans le pipeline de lancement.
