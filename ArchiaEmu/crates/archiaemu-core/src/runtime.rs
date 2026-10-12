@@ -394,7 +394,8 @@ impl EmulationSession {
                     control,
                     pressed: false,
                 };
-                self.core.send_input(event)?;
+                let result = self.core.send_input(event);
+                self.record_core_result(result)?;
                 self.input_state.apply(event);
             }
         }
@@ -412,7 +413,8 @@ impl EmulationSession {
         if !self.core.descriptor().capabilities.video_output {
             return Err(SessionError::Core(CoreError::Unsupported("video output")));
         }
-        Ok(self.core.take_video_frame()?)
+        let result = self.core.take_video_frame();
+        self.record_core_result(result)
     }
 
     /// Retrieves the next audio buffer from a loaded session, if one is waiting.
@@ -421,7 +423,8 @@ impl EmulationSession {
         if !self.core.descriptor().capabilities.audio_output {
             return Err(SessionError::Core(CoreError::Unsupported("audio output")));
         }
-        Ok(self.core.take_audio_buffer()?)
+        let result = self.core.take_audio_buffer();
+        self.record_core_result(result)
     }
 
     fn require_state(
