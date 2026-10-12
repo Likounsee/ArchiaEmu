@@ -6,6 +6,9 @@
 //! This crate deliberately contains no console implementation. A system is not
 //! supported merely because it can be represented by these types.
 
+/// Generic bounded content envelopes for untrusted payloads.
+pub mod content;
+
 /// Platform-neutral input and owned audio/video payload contracts.
 pub mod core_io;
 

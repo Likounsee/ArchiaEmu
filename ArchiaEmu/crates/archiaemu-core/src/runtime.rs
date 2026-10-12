@@ -110,6 +110,17 @@ impl EmulationSession {
         Ok(())
     }
 
+    /// Loads a payload that has passed the framework's common size checks.
+    ///
+    /// The core still validates the content format and system compatibility.
+    /// On failure, the session lifecycle and host input state remain unchanged.
+    pub fn load_validated_content(
+        &mut self,
+        content: &crate::content::ContentImage,
+    ) -> Result<(), SessionError> {
+        self.load_content(content.as_bytes())
+    }
+
     /// Pauses a running session without discarding machine state.
     pub fn pause(&mut self) -> Result<(), SessionError> {
         self.require_state("pause", SessionState::Running)?;

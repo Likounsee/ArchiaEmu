@@ -16,6 +16,18 @@ A concrete core reports a stable `SystemId`, a display name, its implementation 
 
 Factories should be cheap to call and must not load user content or perform irreversible side effects. Registry validation is not a substitute for validating ROMs, firmware, or machine state inside a concrete core.
 
+## Generic content envelope
+
+`content::ContentImage` owns a non-empty payload that has passed an explicit
+caller-provided maximum-size check. Hosts should construct this envelope before
+calling `EmulationSession::load_validated_content`. The limit must be selected
+by policy rather than guessed globally, since legitimate content sizes vary by
+system. This common check does not detect file formats, validate firmware,
+authenticate a source, or replace the core's format-specific parser. A core
+must still validate its input before mutating machine state. The raw
+`load_content(&[u8])` API remains available for internal/test callers, so hosts
+handling untrusted files should prefer the validated path.
+
 ## Error and data rules
 
 - Reject malformed or unsupported content with `CoreError::InvalidContent`.

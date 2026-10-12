@@ -51,8 +51,9 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 **Critère de sortie :** l'hôte peut découvrir, vérifier et instancier un module compatible sans dépendre de son implémentation interne.
 
 ### P0.3 — Chargement et validation du contenu
-- [ ] Introduire un modèle générique de contenu (source, taille, empreinte, type détecté, métadonnées et erreurs).
-- [ ] Limiter les tailles et les allocations avant lecture complète; traiter les entrées vides, tronquées et malformées.
+- [x] Introduire un premier modèle générique de contenu possédé, avec limite de taille explicite et erreurs communes (les empreintes et la détection de format restent à faire).
+- [x] Rejeter les contenus vides et ceux dépassant la limite explicitement fournie, avant appel au cœur.
+- [ ] Limiter les allocations lors de la lecture depuis un chemin/fichier; traiter les entrées tronquées et malformées.
 - [ ] Séparer détection du format, validation structurelle et acceptation par un module.
 - [ ] Transmettre le contenu au cœur uniquement après validation des limites communes.
 - [ ] Éviter de supposer qu'une extension de fichier garantit son format.
