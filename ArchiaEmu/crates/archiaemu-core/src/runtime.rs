@@ -164,6 +164,9 @@ impl EmulationSession {
     /// On failure, the session state is left unchanged. Core implementations
     /// are required to validate content before mutating machine state.
     pub fn load_content(&mut self, content: &[u8]) -> Result<(), SessionError> {
+        if !self.core.descriptor().capabilities.content_loading {
+            return Err(SessionError::Core(CoreError::Unsupported("content loading")));
+        }
         self.core.load_content(content)?;
         self.input_state = InputState::new();
         self.state = SessionState::Running;
@@ -400,7 +403,7 @@ mod tests {
                 system_id: SystemId::new("runtime-test").unwrap(),
                 display_name: "Runtime test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities::default(),
+                capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
             }
         }
 
@@ -444,7 +447,7 @@ mod tests {
                 system_id: SystemId::new("error-once-test").unwrap(),
                 display_name: "Error-once test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities::default(),
+                capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
             }
         }
 
@@ -1144,7 +1147,7 @@ mod tests {
                 system_id: SystemId::new("reset-failure-test").unwrap(),
                 display_name: "Reset failure test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities::default(),
+                capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
             }
         }
 
@@ -1192,10 +1195,7 @@ mod tests {
                     system_id: SystemId::new("stateful-test").unwrap(),
                     display_name: "Stateful test core",
                     core_version: "0.0.0-test",
-                    capabilities: CoreCapabilities {
-                        save_states: true,
-                        ..CoreCapabilities::default()
-                    },
+                    capabilities: CoreCapabilities { content_loading: true, save_states: true, ..CoreCapabilities::default() },
                 }
             }
 
@@ -1268,6 +1268,47 @@ mod tests {
     }
 
     #[test]
+    fn content_loading_is_rejected_when_capability_is_not_advertised() {
+        struct NoContentLoadingCore;
+
+        impl EmulationCore for NoContentLoadingCore {
+            fn descriptor(&self) -> CoreDescriptor {
+                CoreDescriptor {
+                    api_version: crate::CURRENT_CORE_API_VERSION,
+                    system_id: SystemId::new("no-content-loading-test").unwrap(),
+                    display_name: "No content loading test core",
+                    core_version: "0.0.0-test",
+                    capabilities: CoreCapabilities::default(),
+                }
+            }
+
+            fn load_content(&mut self, _: &[u8]) -> Result<(), CoreError> {
+                Ok(())
+            }
+
+            fn reset(&mut self) -> Result<(), CoreError> {
+                Ok(())
+            }
+
+            fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+                Ok(CoreEvent::Yielded)
+            }
+        }
+
+        let mut session = EmulationSession::new(Box::new(NoContentLoadingCore));
+        assert_eq!(
+            session.load_content(&[1]),
+            Err(SessionError::Core(CoreError::Unsupported("content loading")))
+        );
+        assert_eq!(session.state(), SessionState::Empty);
+        assert_eq!(
+            session.load_content_bounded(&[1], ContentLimits::new(1)),
+            Err(SessionError::Core(CoreError::Unsupported("content loading")))
+        );
+        assert_eq!(session.state(), SessionState::Empty);
+    }
+
+    #[test]
     fn runtime_rejects_operations_not_advertised_by_the_core() {
         struct UnderreportedCore;
 
@@ -1278,7 +1319,7 @@ mod tests {
                     system_id: SystemId::new("underreported-test").unwrap(),
                     display_name: "Underreported test core",
                     core_version: "0.0.0-test",
-                    capabilities: CoreCapabilities::default(),
+                    capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
                 }
             }
 
@@ -1444,7 +1485,7 @@ mod runtime_manager_tests {
                 system_id: SystemId::new("manager-test").unwrap(),
                 display_name: "Manager test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities::default(),
+                capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
             }
         }
 
@@ -1534,10 +1575,7 @@ mod shared_input_runtime_tests {
                 system_id: SystemId::new("input-recording").unwrap(),
                 display_name: "Input recording test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities {
-                    input: true,
-                    ..CoreCapabilities::default()
-                },
+                capabilities: CoreCapabilities { content_loading: true, input: true, ..CoreCapabilities::default() },
             }
         }
 
@@ -1675,10 +1713,7 @@ mod shared_input_runtime_tests {
                 system_id: SystemId::new("reject-input-test").unwrap(),
                 display_name: "Reject input test core",
                 core_version: "0.0.0-test",
-                capabilities: CoreCapabilities {
-                    input: true,
-                    ..CoreCapabilities::default()
-                },
+                capabilities: CoreCapabilities { content_loading: true, input: true, ..CoreCapabilities::default() },
             }
         }
 
