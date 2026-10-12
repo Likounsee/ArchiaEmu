@@ -405,7 +405,6 @@ mod tests {
     }
 }
 
-
 /// Errors returned while selecting or creating a core for a runtime session.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RuntimeError {
@@ -462,10 +461,7 @@ impl EmulationRuntime {
     }
 
     /// Creates a fresh, initially empty session for a registered system.
-    pub fn create_session(
-        &self,
-        id: crate::SystemId,
-    ) -> Result<EmulationSession, RuntimeError> {
+    pub fn create_session(&self, id: crate::SystemId) -> Result<EmulationSession, RuntimeError> {
         Ok(EmulationSession::new(self.registry.create(id)?))
     }
 }
@@ -473,9 +469,7 @@ impl EmulationRuntime {
 #[cfg(test)]
 mod runtime_manager_tests {
     use super::*;
-    use crate::{
-        CoreCapabilities, CoreDescriptor, CoreError, CoreEvent, EmulationCore, SystemId,
-    };
+    use crate::{CoreCapabilities, CoreDescriptor, CoreError, CoreEvent, EmulationCore, SystemId};
 
     struct ManagerTestCore;
 
