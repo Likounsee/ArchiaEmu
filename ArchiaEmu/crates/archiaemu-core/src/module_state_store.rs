@@ -4,8 +4,8 @@
 //! Versioned, dependency-free persistence for first-launch and module state.
 
 use core::fmt;
-use std::fs::{self, File, OpenOptions};
 use std::collections::HashSet;
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -463,10 +463,7 @@ mod tests {
         assert!(store.save(&ModuleManagerState::new()).is_err());
         assert_eq!(read_state(&path).unwrap(), existing);
 
-        let prefix = format!(
-            "{}.tmp-",
-            path.file_stem().unwrap().to_string_lossy()
-        );
+        let prefix = format!("{}.tmp-", path.file_stem().unwrap().to_string_lossy());
         let leftovers = fs::read_dir(path.parent().unwrap())
             .unwrap()
             .filter_map(Result::ok)
@@ -510,7 +507,10 @@ mod tests {
         fs::write(&path, vec![b'x'; MAX_STATE_FILE_BYTES as usize + 1]).unwrap();
 
         assert_eq!(store.load().unwrap(), recoverable);
-        assert!(path.exists(), "recovery must not silently delete the oversized primary");
+        assert!(
+            path.exists(),
+            "recovery must not silently delete the oversized primary"
+        );
         assert_eq!(fs::metadata(&path).unwrap().len(), MAX_STATE_FILE_BYTES + 1);
 
         let _ = fs::remove_file(&path);
