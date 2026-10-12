@@ -369,12 +369,13 @@ impl EmulationSession {
     ///
     /// The session must have loaded content. The returned bytes are owned by the
     /// caller and can be persisted or transferred without borrowing the core.
-    pub fn save_state(&self) -> Result<Vec<u8>, SessionError> {
+    pub fn save_state(&mut self) -> Result<Vec<u8>, SessionError> {
         self.require_loaded("save state")?;
         if !self.core.descriptor().capabilities.save_states {
             return Err(SessionError::Core(CoreError::Unsupported("save states")));
         }
-        Ok(self.core.save_state()?)
+        let result = self.core.save_state();
+        self.record_core_result(result)
     }
 
     /// Restores a machine state when the core advertises save-state support.
@@ -1520,6 +1521,52 @@ mod tests {
         );
         assert_eq!(session.state(), SessionState::Paused);
         assert_eq!(session.save_state().unwrap(), vec![7]);
+    }
+
+    #[test]
+    fn failed_save_state_is_retained_as_a_core_diagnostic() {
+        struct FailingSaveCore;
+
+        impl EmulationCore for FailingSaveCore {
+            fn descriptor(&self) -> CoreDescriptor {
+                CoreDescriptor {
+                    api_version: crate::CURRENT_CORE_API_VERSION,
+                    system_id: SystemId::new("failing-save-test").unwrap(),
+                    display_name: "Failing save test core",
+                    core_version: "0.0.0-test",
+                    capabilities: CoreCapabilities {
+                        content_loading: true,
+                        save_states: true,
+                        ..CoreCapabilities::default()
+                    },
+                }
+            }
+
+            fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+                if content.is_empty() {
+                    return Err(CoreError::InvalidContent("empty test content"));
+                }
+                Ok(())
+            }
+
+            fn reset(&mut self) -> Result<(), CoreError> { Ok(()) }
+
+            fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+                Ok(CoreEvent::Yielded)
+            }
+
+            fn save_state(&self) -> Result<Vec<u8>, CoreError> {
+                Err(CoreError::Execution("save serialization failed"))
+            }
+        }
+
+        let mut session = EmulationSession::new(Box::new(FailingSaveCore));
+        session.load_content(&[1]).unwrap();
+        assert_eq!(session.save_state(), Err(SessionError::Core(CoreError::Execution("save serialization failed"))));
+        assert_eq!(session.last_core_error(), Some(CoreError::Execution("save serialization failed")));
+        assert_eq!(session.state(), SessionState::Running);
+        session.clear_last_core_error();
+        assert_eq!(session.last_core_error(), None);
     }
 
     #[test]
