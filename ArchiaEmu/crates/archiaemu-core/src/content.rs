@@ -355,6 +355,26 @@ mod tests {
     }
 
     #[test]
+    fn rejects_a_file_that_exceeds_the_limit_by_one_byte() {
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-content-oversized-{}-{}.bin",
+            std::process::id(),
+            std::thread::current().name().unwrap_or("test")
+        ));
+        std::fs::write(&path, b"abcd").unwrap();
+        let result = ContentImage::read_path(&path, ContentLimits::new(3));
+        let _ = std::fs::remove_file(&path);
+
+        assert_eq!(
+            result,
+            Err(ContentError::TooLarge {
+                max_bytes: 3,
+                actual_bytes: 4,
+            })
+        );
+    }
+
+    #[test]
     fn reports_file_open_errors() {
         let path = std::env::temp_dir().join(format!(
             "archiaemu-content-missing-{}.bin",
