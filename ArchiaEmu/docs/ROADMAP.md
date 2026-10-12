@@ -42,3 +42,17 @@ Percentages reflect the checked-in implementation and verified tests, not time s
 - [x] Cross-platform CI matrix passed on Linux, Windows and macOS on commit `72d2460575a561ffc44d0348081491384aabc86f`.
 
 The original Game Boy (DMG) is selected as the first target. The current crate only parses limited header metadata; it is not a functioning emulator. See `docs/GAME_BOY_DMG.md`.
+
+## User-facing interfaces and visual enhancements
+
+This is a product requirement, not a claim of current support. ArchiaEmu should support recreating console software interfaces when a system actually has one and when the relevant behavior can be researched and implemented. Examples include system menus, launchers, dashboards, settings screens and other built-in software environments; not every console has a general-purpose operating-system interface.
+
+- [ ] Define a host-side interface/rendering layer that is separate from emulated hardware and core execution.
+- [ ] For each target, document whether a system UI exists, what hardware/software it depends on, and whether faithful recreation or execution of original system software is feasible.
+- [ ] Where lawful and technically feasible, support both a faithful original presentation and optional redesigned high-resolution interface themes.
+- [ ] Design graphics enhancement as opt-in, per-system capabilities: integer scaling, aspect-ratio handling, appropriate filtering, color correction, and system-specific enhancements only where supported.
+- [ ] Preserve a faithful mode and make enhancements individually configurable; do not silently change timing, game logic, input behavior or original output semantics.
+- [ ] Use reference screenshots/specifications and regression tests to distinguish authentic output from enhanced output.
+- [ ] Respect firmware/software copyright: do not bundle proprietary system UI assets, BIOS files or firmware without authorization. Reimplement behavior and artwork independently where appropriate.
+
+These items remain unimplemented until actual frontend, renderer and console-core code plus tests are checked in.
