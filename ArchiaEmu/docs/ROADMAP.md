@@ -73,8 +73,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Définir un contrat de métadonnées runtime : ID, version, version d'API, capacités, provenance éditeur, homepage optionnelle et dépendances/exigences hôte. La validation rejette les éditeurs invalides, les homepages non HTTPS, les dépendances auto-référencées/dupliquées et les exigences d'API incompatibles; la confiance cryptographique reste distincte de la métadonnée déclarative.
 - [x] Ajouter un planificateur d'activation runtime : validation des descripteurs, détection des ID dupliqués, dépendances manquantes et cycles, vérification des capacités exigées par l'hôte et ordre d'activation dépendances-d'abord avec parcours itératif.
 - [ ] Tester deux modules factices dans le même processus et vérifier l'absence de partage involontaire d'état.
-- [ ] Définir les limites de confiance : un module tiers n'est pas sûr simplement parce que son manifeste est valide.
-- [ ] Documenter la stratégie future pour les modules natifs et les éventuels modules hors processus.
+- [x] Définir les limites de confiance : un manifeste valide prouve la conformité des métadonnées, pas l'innocuité du code. Les règles et limites actuelles sont documentées dans `docs/MODULE_TRUST_BOUNDARIES.md`; aucun sandboxing n'est revendiqué.
+- [x] Documenter la stratégie future pour les modules natifs et les éventuels modules hors processus dans `docs/MODULE_TRUST_BOUNDARIES.md`, y compris les limites de la séparation en processus.
 
 **Critère de sortie :** l'hôte peut découvrir, vérifier et instancier un module compatible sans dépendre de son implémentation interne.
 
