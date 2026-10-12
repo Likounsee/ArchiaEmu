@@ -5,9 +5,60 @@
 
 use core::fmt;
 
-use crate::content::{ContentError, ContentImage, ContentLimits};
+use crate::content::{
+    detect_content_formats, ContentDetection, ContentError, ContentFormatProbe, ContentImage,
+    ContentLimits,
+};
+use crate::{CoreRegistry, RegistryError};
 use crate::core_io::{AudioBuffer, InputControl, InputEvent, InputState, VideoFrame};
 use crate::{CoreDescriptor, CoreError, CoreEvent, EmulationCore};
+
+/// Failure while launching a session from untrusted content.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LaunchError {
+    /// Common size or emptiness checks rejected the content.
+    Content(ContentError),
+    /// Format detection could not select exactly one registered core.
+    Registry(RegistryError),
+    /// The selected core rejected the content during format-specific validation.
+    Session(SessionError),
+}
+
+impl fmt::Display for LaunchError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Content(error) => fmt::Display::fmt(error, formatter),
+            Self::Registry(error) => fmt::Display::fmt(error, formatter),
+            Self::Session(error) => fmt::Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl std::error::Error for LaunchError {}
+
+/// Detects a content format, constructs its registered core, and loads a bounded image.
+///
+/// The full input is first copied into a bounded owned image. Probes inspect only
+/// those bounded bytes. The registry rejects absent, ambiguous, invalid, or
+/// incomplete detections; finally, the selected core must accept the image
+/// before this function returns a running session.
+pub fn launch_content(
+    bytes: &[u8],
+    limits: ContentLimits,
+    probes: &[&dyn ContentFormatProbe],
+    registry: &CoreRegistry,
+) -> Result<EmulationSession, LaunchError> {
+    let image = ContentImage::from_slice(bytes, limits).map_err(LaunchError::Content)?;
+    let detection: ContentDetection = detect_content_formats(image.as_bytes(), probes);
+    let core = registry
+        .create_from_detection(&detection)
+        .map_err(LaunchError::Registry)?;
+    let mut session = EmulationSession::new(core);
+    session
+        .load_validated_content(&image)
+        .map_err(LaunchError::Session)?;
+    Ok(session)
+}
 
 /// Observable lifecycle state of an emulation session.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -422,6 +473,95 @@ mod tests {
             calls: 0,
             next_event: CoreEvent::Yielded,
         }))
+    }
+
+    struct PrefixProbe {
+        id: &'static str,
+        prefix: &'static [u8],
+    }
+
+    impl crate::content::ContentFormatProbe for PrefixProbe {
+        fn format_id(&self) -> &'static str {
+            self.id
+        }
+
+        fn probe(&self, bytes: &[u8]) -> crate::content::FormatProbeResult {
+            if bytes.len() < self.prefix.len() && self.prefix.starts_with(bytes) {
+                return crate::content::FormatProbeResult::NeedMoreData {
+                    minimum_bytes: self.prefix.len(),
+                };
+            }
+            if bytes.starts_with(self.prefix) {
+                crate::content::FormatProbeResult::Match
+            } else {
+                crate::content::FormatProbeResult::NoMatch
+            }
+        }
+    }
+
+    fn make_runtime_test_core() -> Box<dyn EmulationCore> {
+        Box::new(TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Yielded,
+        })
+    }
+
+    #[test]
+    fn launch_pipeline_detects_selects_validates_and_starts_session() {
+        let probe = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let id = SystemId::new("runtime-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_runtime_test_core).unwrap();
+
+        let session = launch_content(b"GAME payload", ContentLimits::new(64), &probes, &registry)
+            .unwrap();
+
+        assert_eq!(session.descriptor().system_id, id);
+        assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
+    fn launch_pipeline_rejects_size_before_running_any_probe_or_core() {
+        let probe = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let registry = CoreRegistry::new();
+
+        assert_eq!(
+            launch_content(b"GAME", ContentLimits::new(3), &probes, &registry).unwrap_err(),
+            LaunchError::Content(ContentError::TooLarge {
+                max_bytes: 3,
+                actual_bytes: 4,
+            })
+        );
+    }
+
+    #[test]
+    fn launch_pipeline_does_not_guess_when_detection_is_ambiguous() {
+        let first = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let second = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 2] = [&first, &second];
+        let id = SystemId::new("runtime-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_runtime_test_core).unwrap();
+
+        assert_eq!(
+            launch_content(b"GAME", ContentLimits::new(64), &probes, &registry).unwrap_err(),
+            LaunchError::Registry(RegistryError::AmbiguousDetectedFormats(2))
+        );
     }
 
     #[test]
