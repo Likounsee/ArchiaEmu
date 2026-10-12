@@ -1000,6 +1000,55 @@ mod tests {
     }
 
     #[test]
+    fn bounded_path_and_reader_launch_propagate_source_read_errors() {
+        struct FailingReader;
+
+        impl std::io::Read for FailingReader {
+            fn read(&mut self, _buffer: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::PermissionDenied,
+                    "intentional content source failure",
+                ))
+            }
+        }
+
+        let probe = PrefixProbe {
+            id: "runtime-test",
+            prefix: b"GAME",
+        };
+        let probes: [&dyn crate::content::ContentFormatProbe; 1] = [&probe];
+        let id = SystemId::new("runtime-test").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_runtime_test_core).unwrap();
+
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let missing_path = std::env::temp_dir().join(format!(
+            "archiaemu-launch-missing-{}-{unique}.bin",
+            std::process::id()
+        ));
+        let path_result =
+            launch_content_path(&missing_path, ContentLimits::new(64), &probes, &registry);
+        let reader_result =
+            launch_content_reader(FailingReader, ContentLimits::new(64), &probes, &registry);
+
+        assert!(matches!(
+            path_result,
+            Err(LaunchError::Content(ContentError::ReadFailed(
+                std::io::ErrorKind::NotFound
+            )))
+        ));
+        assert!(matches!(
+            reader_result,
+            Err(LaunchError::Content(ContentError::ReadFailed(
+                std::io::ErrorKind::PermissionDenied
+            )))
+        ));
+    }
+
+    #[test]
     fn bounded_load_rejects_invalid_size_without_calling_the_core() {
         let mut session = session();
         assert_eq!(
