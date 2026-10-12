@@ -211,7 +211,6 @@ impl AudioBuffer {
     }
 }
 
-
 /// Canonical host-side input state shared by all emulation cores.
 ///
 /// It deduplicates repeated transitions and can synthesize releases when the
@@ -265,7 +264,8 @@ impl InputState {
 }
 
 impl InputControl {
-    const ALL: [Self; 10] = [
+    /// All semantic controls in the canonical release order.
+    pub const ALL: [Self; 10] = [
         Self::Up,
         Self::Down,
         Self::Left,
@@ -333,7 +333,6 @@ mod tests {
         let audio = AudioBuffer::new(48_000, 2, vec![1, -1, 2, -2]).unwrap();
         assert_eq!(audio.frame_count(), 2);
     }
-
 
     #[test]
     fn input_state_deduplicates_repeated_transitions() {
