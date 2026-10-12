@@ -198,6 +198,35 @@ pub trait EmulationCore {
     fn load_state(&mut self, _state: &[u8]) -> Result<(), CoreError> {
         Err(CoreError::Unsupported("save states"))
     }
+
+    /// Sends a platform-neutral input transition to the emulated machine.
+    ///
+    /// Cores should map semantic controls to their own hardware and handle
+    /// repeated or already-released transitions deterministically. The default
+    /// implementation makes unsupported input explicit.
+    fn send_input(&mut self, _event: crate::core_io::InputEvent) -> Result<(), CoreError> {
+        Err(CoreError::Unsupported("input"))
+    }
+
+    /// Transfers ownership of the next complete video frame to the host.
+    ///
+    /// Returns `Ok(None)` when no frame is waiting. The host must not assume
+    /// a frame exists merely because the core supports video output.
+    fn take_video_frame(
+        &mut self,
+    ) -> Result<Option<crate::core_io::VideoFrame>, CoreError> {
+        Err(CoreError::Unsupported("video output"))
+    }
+
+    /// Transfers ownership of the next audio buffer to the host.
+    ///
+    /// Returns `Ok(None)` when no audio is waiting. Buffers use the common
+    /// PCM contract; the host remains responsible for playback and resampling.
+    fn take_audio_buffer(
+        &mut self,
+    ) -> Result<Option<crate::core_io::AudioBuffer>, CoreError> {
+        Err(CoreError::Unsupported("audio output"))
+    }
 }
 
 /// Factory function used to construct a fresh instance of a registered core.
@@ -497,6 +526,27 @@ mod tests {
             Err(RegistryError::DescriptorMismatch { registered: found_registered, actual: found_actual })
                 if found_registered == registered && found_actual == actual
         ));
+    }
+
+    #[test]
+    fn optional_host_io_methods_fail_explicitly_by_default() {
+        let id = SystemId::new("example").unwrap();
+        let mut core = RegistryTestCore { id };
+        assert_eq!(
+            core.send_input(crate::core_io::InputEvent {
+                control: crate::core_io::InputControl::Action1,
+                pressed: true,
+            }),
+            Err(CoreError::Unsupported("input"))
+        );
+        assert_eq!(
+            core.take_video_frame(),
+            Err(CoreError::Unsupported("video output"))
+        );
+        assert_eq!(
+            core.take_audio_buffer(),
+            Err(CoreError::Unsupported("audio output"))
+        );
     }
 
     #[test]
