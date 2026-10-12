@@ -53,7 +53,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 ### P0.3 — Chargement et validation du contenu
 - [x] Introduire un premier modèle générique de contenu possédé, avec limite de taille explicite et erreurs communes (les empreintes et la détection de format restent à faire).
 - [x] Rejeter les contenus vides et ceux dépassant la limite explicitement fournie, avant appel au cœur.
-- [x] Lire un flux avec une limite stricte (au plus limite + 1 octet pour détecter le dépassement), sans exposer un contenu partiellement lu en cas d’erreur.
+- [x] Lire un flux avec une limite stricte (au plus limite + 1 octet pour détecter le dépassement), sans exposer un contenu partiellement lu en cas d’erreur ; test de régression avec échec de lecture après un préfixe partiel.
 - [x] Ajouter un helper dédié aux chemins/fichiers qui réutilise la même lecture bornée.
 - [ ] Traiter les formats tronqués ou malformés via validation propre à chaque format.
 - [ ] Séparer détection du format, validation structurelle et acceptation par un module.

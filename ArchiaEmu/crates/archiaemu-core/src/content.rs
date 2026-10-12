@@ -185,6 +185,34 @@ mod tests {
     }
 
     #[test]
+    fn stream_read_errors_do_not_expose_partially_read_content() {
+        struct FailsAfterPrefix {
+            remaining: &'static [u8],
+        }
+
+        impl Read for FailsAfterPrefix {
+            fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+                if !self.remaining.is_empty() {
+                    let count = buffer.len().min(self.remaining.len());
+                    buffer[..count].copy_from_slice(&self.remaining[..count]);
+                    self.remaining = &self.remaining[count..];
+                    return Ok(count);
+                }
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::Interrupted,
+                    "injected stream failure",
+                ))
+            }
+        }
+
+        let reader = FailsAfterPrefix { remaining: b"partial" };
+        assert_eq!(
+            ContentImage::read_from(reader, ContentLimits::new(32)),
+            Err(ContentError::ReadFailed(std::io::ErrorKind::Interrupted))
+        );
+    }
+
+    #[test]
     fn rejects_empty_streams() {
         assert_eq!(
             ContentImage::read_from(&b""[..], ContentLimits::new(3)),
