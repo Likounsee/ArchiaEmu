@@ -22,7 +22,7 @@
 
 The shared Rust crate `archiaemu-core` defines validated system identifiers, capability metadata, a core registry, an independent-session lifecycle controller, bounded execution requests, common media payloads, and host-side input state with duplicate-transition suppression and explicit release recovery. Module selection/state persistence and host performance planning are also present as foundations. Runtime tests cover lifecycle transitions, error recovery, independent session creation, and shared input-state behavior.
 
-These are infrastructure contracts, not a playable emulator: the project still lacks a complete console implementation, real renderer/audio backend, application frontend, and verified end-to-end game compatibility. No system is currently claimed as supported.
+The Game Boy module is one unified `game-boy` target with cartridge-header classification for DMG-only, dual-compatible, and CGB-only titles. This classification selects a planned hardware mode; it does not mean those modes are already emulated. The project still lacks a complete console implementation, real renderer/audio backend, application frontend, and verified end-to-end game compatibility. No system is currently claimed as supported.
 
 ## Build and test
 
@@ -41,7 +41,7 @@ GitHub Actions runs formatting, locked tests and warning-free API documentation 
 ## Roadmap
 
 - **P0 — Foundations:** workspace, shared contracts, registry, CI, tests, documentation and licensing review.
-- **P1 — First console: Game Boy Color (GBC):** target the color-capable hardware first, including the compatibility mode required for original monochrome Game Boy (DMG) games. Validate the mode distinction against lawful test ROMs and documented hardware behavior before claiming compatibility.
+- **P1 — First console: one unified Game Boy emulator:** expose one user-facing entry named **Game Boy / Game Boy Color** and one stable system ID (`game-boy`). Detect cartridge compatibility from the ROM header and select DMG or CGB hardware behavior internally; do not ship separate DMG and CGB emulators. Validate both modes against documented behavior and lawful test ROMs before claiming compatibility.
 - **P2 — Runtime I/O:** integrate the common input state with a real host loop, then implement video presentation, audio playback and deterministic timing/synchronization.
 - **Presentation/UI:** host-side interface recreation and optional visual enhancements, implemented per system only after a real core and renderer exist.
 - **P3 — Library and saves:** content management, persistent data and validated save states.
