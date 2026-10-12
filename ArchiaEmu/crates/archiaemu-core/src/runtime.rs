@@ -449,6 +449,79 @@ mod tests {
     }
 
     #[test]
+    fn successful_content_reload_resumes_a_paused_session() {
+        let mut session = session();
+        session.load_content(&[1]).unwrap();
+        session.pause().unwrap();
+
+        session.load_content(&[2]).unwrap();
+
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event().unwrap(), CoreEvent::Yielded);
+    }
+
+    #[test]
+    fn successful_content_reload_recovers_a_halted_session() {
+        let core = TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Halted,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+        assert_eq!(session.run_until_event().unwrap(), CoreEvent::Halted);
+        assert_eq!(session.state(), SessionState::Halted);
+
+        session.load_content(&[2]).unwrap();
+
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.run_until_event().unwrap(), CoreEvent::Halted);
+    }
+
+    struct ResetFailureCore;
+
+    impl EmulationCore for ResetFailureCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                system_id: SystemId::new("reset-failure-test").unwrap(),
+                display_name: "Reset failure test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities::default(),
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+            if content.is_empty() {
+                Err(CoreError::InvalidContent("empty test content"))
+            } else {
+                Ok(())
+            }
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            Err(CoreError::Execution("reset failed"))
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            Ok(CoreEvent::Yielded)
+        }
+    }
+
+    #[test]
+    fn failed_reset_preserves_the_previous_lifecycle_state() {
+        let mut session = EmulationSession::new(Box::new(ResetFailureCore));
+        session.load_content(&[1]).unwrap();
+        session.pause().unwrap();
+
+        assert_eq!(
+            session.reset(),
+            Err(SessionError::Core(CoreError::Execution("reset failed")))
+        );
+        assert_eq!(session.state(), SessionState::Paused);
+        assert!(session.run_until_event().is_err());
+    }
+
+    #[test]
     fn media_cannot_be_retrieved_before_content_is_loaded() {
         let mut session = session();
         assert!(session.take_video_frame().is_err());
