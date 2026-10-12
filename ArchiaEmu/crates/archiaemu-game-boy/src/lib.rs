@@ -149,6 +149,16 @@ const fn is_valid_rom_size_code(code: u8) -> bool {
     matches!(code, 0x00..=0x08 | 0x52..=0x54)
 }
 
+const fn expected_rom_size(code: u8) -> Option<usize> {
+    match code {
+        0x00..=0x08 => Some(0x8000usize << code),
+        0x52 => Some(72 * 0x4000),
+        0x53 => Some(80 * 0x4000),
+        0x54 => Some(96 * 0x4000),
+        _ => None,
+    }
+}
+
 /// Compatibility declared by the cartridge's CGB flag.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CartridgeCompatibility {
@@ -265,6 +275,13 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
                 "execution currently supports ROM-only cartridges (mapper 0)",
             ));
         }
+        let required_size = expected_rom_size(header.rom_size_code)
+            .ok_or(archiaemu_core::CoreError::InvalidContent("invalid ROM size code"))?;
+        if self.image.as_ref().map_or(0, Vec::len) < required_size {
+            return Err(archiaemu_core::CoreError::InvalidContent(
+                "ROM image is shorter than its declared size",
+            ));
+        }
 
         self.cpu = Cpu::new();
         self.cpu.registers.pc = 0x0100;
@@ -307,6 +324,13 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         if header.cartridge_type != 0x00 {
             return Err(archiaemu_core::CoreError::Unsupported(
                 "execution currently supports ROM-only cartridges (mapper 0)",
+            ));
+        }
+        let required_size = expected_rom_size(header.rom_size_code)
+            .ok_or(archiaemu_core::CoreError::InvalidContent("invalid ROM size code"))?;
+        if image.len() < required_size {
+            return Err(archiaemu_core::CoreError::InvalidContent(
+                "ROM image is shorter than its declared size",
             ));
         }
         if header.preferred_hardware_mode().is_none() {
@@ -404,6 +428,12 @@ mod tests {
         image
     }
 
+    fn valid_rom() -> Vec<u8> {
+        let mut image = valid_image();
+        image.resize(0x8000, 0);
+        image
+    }
+
     fn header_checksum(image: &[u8]) -> u8 {
         image[0x134..=0x14C].iter().fold(0u8, |checksum, byte| {
             checksum.wrapping_sub(*byte).wrapping_sub(1)
@@ -496,7 +526,7 @@ mod tests {
             Err(archiaemu_core::CoreError::NotInitialized)
         );
 
-        let image = valid_image();
+        let image = valid_rom();
         archiaemu_core::EmulationCore::load_content(&mut core, &image).unwrap();
         assert_eq!(
             core.cartridge_header().unwrap().cartridge_type,
