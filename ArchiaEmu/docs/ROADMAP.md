@@ -108,6 +108,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 ## P2 — sécurité, confiance et diagnostic
 
+- [x] Appliquer aussi à l'écriture la limite de 4 Mio du stockage d'état; tests de rejet avant écriture et de fichier persistant trop volumineux.
+
 - [ ] Compléter le traitement des manifestes et la validation des métadonnées avant toute installation.
 - [ ] Utiliser une implémentation cryptographique maintenue et auditée; ne pas inventer de cryptographie.
 - [ ] Vérifier la signature et la provenance avant de faire confiance au contenu d'un catalogue ou d'un paquet.

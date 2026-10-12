@@ -269,6 +269,10 @@ impl ModuleStateStore {
             .parent()
             .filter(|p| !p.as_os_str().is_empty())
             .unwrap_or_else(|| Path::new("."));
+        let encoded = state.encode();
+        if encoded.len() as u64 > MAX_STATE_FILE_BYTES {
+            return Err(ModuleStateStoreError::TooLarge);
+        }
         fs::create_dir_all(parent)?;
         let sequence = TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let temp = self
@@ -279,9 +283,7 @@ impl ModuleStateStore {
             .write(true)
             .create_new(true)
             .open(&temp)?;
-        let write_result = file
-            .write_all(state.encode().as_bytes())
-            .and_then(|()| file.sync_all());
+        let write_result = file.write_all(encoded.as_bytes()).and_then(|()| file.sync_all());
         drop(file);
         if let Err(error) = write_result {
             let _ = fs::remove_file(&temp);
@@ -375,6 +377,36 @@ mod tests {
             ),
             Err(StateFormatError::DuplicateModule)
         );
+    }
+
+    #[test]
+    fn store_rejects_oversized_state_before_creating_or_replacing_files() {
+        let path = temp_path();
+        let store = ModuleStateStore::new(&path);
+        let mut state = ModuleManagerState::new();
+        state
+            .record_installed(
+                ModuleId::new("large-module").unwrap(),
+                "v".repeat(MAX_STATE_FILE_BYTES as usize),
+            )
+            .unwrap();
+
+        assert!(matches!(
+            store.save(&state),
+            Err(ModuleStateStoreError::TooLarge)
+        ));
+        assert!(!path.exists());
+        assert!(!backup_path(&path).exists());
+    }
+
+    #[test]
+    fn store_rejects_oversized_persisted_file() {
+        let path = temp_path();
+        fs::write(&path, vec![b'x'; MAX_STATE_FILE_BYTES as usize + 1]).unwrap();
+        let store = ModuleStateStore::new(&path);
+        assert!(matches!(store.load(), Err(ModuleStateStoreError::TooLarge)));
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(backup_path(&path));
     }
 
     #[test]
