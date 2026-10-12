@@ -7,6 +7,7 @@
 //! cores remain responsible for validating their own formats and compatibility.
 
 use core::fmt;
+use std::io::{ErrorKind, Read};
 
 /// Caller-selected limits applied before content reaches an emulation core.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -34,6 +35,8 @@ impl ContentLimits {
 pub enum ContentError {
     /// Empty payloads are never accepted as launchable content.
     Empty,
+    /// Reading from a content source failed.
+    ReadFailed(ErrorKind),
     /// Payload exceeds the explicit caller-provided size limit.
     TooLarge {
         /// Configured maximum payload size in bytes.
@@ -47,7 +50,11 @@ impl fmt::Display for ContentError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => formatter.write_str("content payload cannot be empty"),
-            Self::TooLarge { max_bytes, actual_bytes } => write!(
+            Self::ReadFailed(kind) => write!(formatter, "failed to read content source: {kind}"),
+            Self::TooLarge {
+                max_bytes,
+                actual_bytes,
+            } => write!(
                 formatter,
                 "content payload is too large: maximum {max_bytes} bytes, got {actual_bytes}"
             ),
@@ -82,6 +89,29 @@ impl ContentImage {
         Ok(Self { bytes })
     }
 
+    /// Reads at most the configured limit plus one byte from a stream.
+    ///
+    /// The extra byte detects oversized inputs without reading an unbounded
+    /// source into memory. For oversized input, `actual_bytes` reports the
+    /// number of bytes observed (at least the configured limit plus one), not
+    /// necessarily the source's total length. A stream error is returned as
+    /// `ReadFailed`; no partially read payload is exposed.
+    pub fn read_from<R: Read>(reader: R, limits: ContentLimits) -> Result<Self, ContentError> {
+        let read_limit = limits.max_bytes.saturating_add(1) as u64;
+        let mut bytes = Vec::new();
+        reader
+            .take(read_limit)
+            .read_to_end(&mut bytes)
+            .map_err(|error| ContentError::ReadFailed(error.kind()))?;
+        if bytes.len() > limits.max_bytes {
+            return Err(ContentError::TooLarge {
+                max_bytes: limits.max_bytes,
+                actual_bytes: bytes.len(),
+            });
+        }
+        Self::new(bytes, limits)
+    }
+
     /// Returns the payload bytes for format-specific core validation.
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes
@@ -93,7 +123,7 @@ impl ContentImage {
     }
 
     /// Returns whether the payload is empty. Valid instances are never empty.
-    pub const fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.bytes.is_empty()
     }
 }
@@ -101,6 +131,33 @@ impl ContentImage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_a_stream_within_the_limit() {
+        let image = ContentImage::read_from(&b"abc"[..], ContentLimits::new(3)).unwrap();
+        assert_eq!(image.as_bytes(), b"abc");
+    }
+
+    #[test]
+    fn bounded_reader_stops_after_detecting_oversized_input() {
+        let error =
+            ContentImage::read_from(&b"abcdef"[..], ContentLimits::new(3)).unwrap_err();
+        assert_eq!(
+            error,
+            ContentError::TooLarge {
+                max_bytes: 3,
+                actual_bytes: 4,
+            }
+        );
+    }
+
+    #[test]
+    fn rejects_empty_streams() {
+        assert_eq!(
+            ContentImage::read_from(&b""[..], ContentLimits::new(3)),
+            Err(ContentError::Empty)
+        );
+    }
 
     #[test]
     fn accepts_payload_at_exact_size_limit() {
@@ -133,7 +190,10 @@ mod tests {
     fn zero_limit_rejects_non_empty_payloads() {
         assert!(matches!(
             ContentImage::new(vec![1], ContentLimits::new(0)),
-            Err(ContentError::TooLarge { max_bytes: 0, actual_bytes: 1 })
+            Err(ContentError::TooLarge {
+                max_bytes: 0,
+                actual_bytes: 1,
+            })
         ));
     }
 }
