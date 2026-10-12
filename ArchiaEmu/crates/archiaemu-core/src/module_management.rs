@@ -155,6 +155,15 @@ pub enum PlanError {
     },
     /// The catalogue must be validated before planning.
     InvalidCatalog(CatalogError),
+    /// A requested module is not currently installed.
+    NotInstalled(ModuleId),
+    /// An installed module still depends on a module selected for removal.
+    RequiredBy {
+        /// Module that cannot yet be removed.
+        module: ModuleId,
+        /// Installed dependent that requires it.
+        dependent: ModuleId,
+    },
 }
 
 impl fmt::Display for PlanError {
@@ -167,6 +176,11 @@ impl fmt::Display for PlanError {
                 module, readiness
             ),
             Self::InvalidCatalog(error) => write!(f, "invalid module catalogue: {error}"),
+            Self::NotInstalled(id) => write!(f, "module '{id}' is not installed"),
+            Self::RequiredBy { module, dependent } => write!(
+                f,
+                "module '{module}' cannot be removed while installed module '{dependent}' depends on it"
+            ),
         }
     }
 }
@@ -178,6 +192,13 @@ impl std::error::Error for PlanError {}
 pub struct ModuleInstallPlan {
     /// Modules to install in order. Already-installed modules are omitted.
     pub install_order: Vec<ModuleId>,
+}
+
+/// Deterministic removal order with dependants removed before their dependencies.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ModuleRemovalPlan {
+    /// Modules to remove in order. Dependants always precede requested dependencies.
+    pub removal_order: Vec<ModuleId>,
 }
 
 impl<'a> ModuleCatalog<'a> {
@@ -339,6 +360,103 @@ impl<'a> ModuleCatalog<'a> {
         })
     }
 
+    /// Plans a safe uninstall without removing dependencies implicitly.
+    ///
+    /// Every requested module must be installed. Removal is rejected if any installed
+    /// module outside the removal set transitively depends on a requested module. When
+    /// multiple dependent modules are selected together, dependants are ordered first.
+    pub fn plan_uninstall(
+        &self,
+        requested: &[ModuleId],
+        installed: &[ModuleId],
+    ) -> Result<ModuleRemovalPlan, PlanError> {
+        self.validate().map_err(PlanError::InvalidCatalog)?;
+        let indices: HashMap<ModuleId, usize> = self
+            .descriptors
+            .iter()
+            .enumerate()
+            .map(|(index, descriptor)| (descriptor.id.clone(), index))
+            .collect();
+        let mut removal = HashSet::new();
+        for id in requested {
+            if !indices.contains_key(id) {
+                return Err(PlanError::UnknownModule(id.clone()));
+            }
+            if !installed.contains(id) {
+                return Err(PlanError::NotInstalled(id.clone()));
+            }
+            removal.insert(id.clone());
+        }
+
+        for dependent in installed {
+            if removal.contains(dependent) {
+                continue;
+            }
+            let Some(&start) = indices.get(dependent) else {
+                continue;
+            };
+            let mut visited = HashSet::new();
+            let mut stack = vec![start];
+            while let Some(index) = stack.pop() {
+                for dependency in &self.descriptors[index].dependencies {
+                    if removal.contains(dependency) {
+                        return Err(PlanError::RequiredBy {
+                            module: dependency.clone(),
+                            dependent: dependent.clone(),
+                        });
+                    }
+                    if let Some(&dependency_index) = indices.get(dependency) {
+                        if visited.insert(dependency_index) {
+                            stack.push(dependency_index);
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut state = vec![0_u8; self.descriptors.len()];
+        let mut install_order = Vec::new();
+        let mut stack: Vec<(usize, usize)> = Vec::new();
+        for id in requested {
+            let start = indices[id];
+            if state[start] == 2 {
+                continue;
+            }
+            state[start] = 1;
+            stack.push((start, 0));
+            while let Some((current, next)) = stack.last().copied() {
+                let dependencies = &self.descriptors[current].dependencies;
+                if next == dependencies.len() {
+                    state[current] = 2;
+                    install_order.push(self.descriptors[current].id.clone());
+                    stack.pop();
+                    continue;
+                }
+                stack.last_mut().expect("stack is non-empty").1 += 1;
+                let dependency = &dependencies[next];
+                if !removal.contains(dependency) {
+                    continue;
+                }
+                let dependency_index = indices[dependency];
+                match state[dependency_index] {
+                    0 => {
+                        state[dependency_index] = 1;
+                        stack.push((dependency_index, 0));
+                    }
+                    1 => {
+                        return Err(PlanError::InvalidCatalog(CatalogError::DependencyCycle(
+                            dependency.clone(),
+                        )));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        install_order.reverse();
+        Ok(ModuleRemovalPlan {
+            removal_order: install_order,
+        })
+    }
     fn descriptor(&self, id: &ModuleId) -> Option<&ModuleDescriptor> {
         self.descriptors.iter().find(|item| &item.id == id)
     }
