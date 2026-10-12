@@ -327,12 +327,7 @@ mod tests {
     #[test]
     fn video_frame_rejects_dimensions_whose_byte_size_overflows() {
         assert_eq!(
-            VideoFrame::new(
-                u32::MAX,
-                u32::MAX,
-                PixelFormat::Rgba8888,
-                Vec::new(),
-            ),
+            VideoFrame::new(u32::MAX, u32::MAX, PixelFormat::Rgba8888, Vec::new(),),
             Err(MediaDataError::FrameSizeOverflow)
         );
     }
