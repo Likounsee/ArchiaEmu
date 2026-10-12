@@ -977,9 +977,7 @@ mod tests {
         ));
         assert!(matches!(
             truncated_reader,
-            Err(LaunchError::Registry(
-                RegistryError::IncompleteDetection(1)
-            ))
+            Err(LaunchError::Registry(RegistryError::IncompleteDetection(1)))
         ));
 
         std::fs::write(&path, b"").unwrap();
