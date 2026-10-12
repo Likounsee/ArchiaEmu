@@ -199,7 +199,7 @@ mod tests {
                     return Ok(count);
                 }
                 Err(std::io::Error::new(
-                    std::io::ErrorKind::Interrupted,
+                    std::io::ErrorKind::Other,
                     "injected stream failure",
                 ))
             }
@@ -208,7 +208,7 @@ mod tests {
         let reader = FailsAfterPrefix { remaining: b"partial" };
         assert_eq!(
             ContentImage::read_from(reader, ContentLimits::new(32)),
-            Err(ContentError::ReadFailed(std::io::ErrorKind::Interrupted))
+            Err(ContentError::ReadFailed(std::io::ErrorKind::Other))
         );
     }
 
