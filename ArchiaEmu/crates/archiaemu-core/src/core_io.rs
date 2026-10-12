@@ -103,16 +103,33 @@ impl std::error::Error for MediaDataError {}
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VideoFrame {
     /// Frame width in pixels.
-    pub width: u32,
-    /// Frame height in pixels.
-    pub height: u32,
-    /// Pixel format of the byte buffer.
-    pub format: PixelFormat,
-    /// Row-major pixel bytes, with no implicit padding between rows.
-    pub pixels: Vec<u8>,
+    width: u32,
+    height: u32,
+    format: PixelFormat,
+    pixels: Vec<u8>,
 }
 
 impl VideoFrame {
+    /// Returns the frame width in pixels.
+    pub const fn width(&self) -> u32 {
+        self.width
+    }
+
+    /// Returns the frame height in pixels.
+    pub const fn height(&self) -> u32 {
+        self.height
+    }
+
+    /// Returns the pixel format of this frame.
+    pub const fn format(&self) -> PixelFormat {
+        self.format
+    }
+
+    /// Returns the row-major pixel bytes, with no implicit row padding.
+    pub fn pixels(&self) -> &[u8] {
+        &self.pixels
+    }
+
     /// Creates a frame after validating dimensions and exact payload length.
     pub fn new(
         width: u32,
@@ -149,14 +166,27 @@ impl VideoFrame {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AudioBuffer {
     /// Number of samples per second per channel.
-    pub sample_rate: u32,
-    /// Number of interleaved channels.
-    pub channels: u8,
-    /// Interleaved PCM samples; one sample per channel for each sample frame.
-    pub samples: Vec<i16>,
+    sample_rate: u32,
+    channels: u8,
+    samples: Vec<i16>,
 }
 
 impl AudioBuffer {
+    /// Returns the number of samples per second per channel.
+    pub const fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    /// Returns the number of interleaved channels.
+    pub const fn channels(&self) -> u8 {
+        self.channels
+    }
+
+    /// Returns the interleaved signed 16-bit PCM samples.
+    pub fn samples(&self) -> &[i16] {
+        &self.samples
+    }
+
     /// Creates an audio buffer with a valid format and complete sample frames.
     pub fn new(
         sample_rate: u32,
@@ -203,9 +233,9 @@ mod tests {
             })
         );
         let frame = VideoFrame::new(2, 1, PixelFormat::Rgba8888, vec![0; 8]).unwrap();
-        assert_eq!(frame.width, 2);
-        assert_eq!(frame.height, 1);
-        assert_eq!(frame.pixels.len(), 8);
+        assert_eq!(frame.width(), 2);
+        assert_eq!(frame.height(), 1);
+        assert_eq!(frame.pixels().len(), 8);
     }
 
     #[test]
