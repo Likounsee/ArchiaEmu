@@ -2560,10 +2560,7 @@ mod shared_input_runtime_tests {
         assert_eq!(session.state(), state_before_clear);
         assert!(session.is_input_pressed(InputControl::Action2));
         assert!(!session.is_input_pressed(InputControl::Action1));
-        assert_eq!(
-            session.run_until_event(),
-            Ok(CoreEvent::Yielded)
-        );
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
     }
 
     #[test]
