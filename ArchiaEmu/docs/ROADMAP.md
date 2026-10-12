@@ -139,6 +139,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [ ] Vérifier la signature et la provenance avant de faire confiance au contenu d'un catalogue ou d'un paquet.
 - [ ] Rendre les mises à jour de catalogue résistantes au retour vers une ancienne révision, avec persistance durable.
 - [x] Ajouter le staging borné des artefacts : copie en flux avec taille exacte, fichier temporaire exclusif, synchronisation disque, vérification SHA-256 fournie par l'hôte et renommage seulement après validation. Le téléchargement réseau, le vérificateur cryptographique concret, l'extraction et l'activation/rollback restent à intégrer.
+- [x] Ajouter une validation portable des chemins d'entrées d'archives avant extraction : rejet des chemins absolus, traversées `.`/`..`, séparateurs ambigus, caractères de contrôle, flux NTFS et noms réservés Windows. L'extracteur doit encore gérer les liens symboliques et garantir la résolution sous une racine de confiance.
 - [ ] Définir les permissions, les chemins autorisés et la politique de liens symboliques.
 - [ ] Produire des diagnostics structurés avec contexte et causes, sans exposer les données sensibles.
 - [ ] Ajouter tests de fuzzing ciblés pour les parseurs et formats exposés à des fichiers non fiables.
