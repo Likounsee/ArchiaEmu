@@ -1321,8 +1321,16 @@ mod tests {
 
         assert!(paused.load_content(&[]).is_err());
         assert_eq!(paused.state(), SessionState::Paused);
+        assert_eq!(
+            paused.last_core_error(),
+            Some(CoreError::InvalidContent("empty test content"))
+        );
         paused.resume().unwrap();
         assert_eq!(paused.run_until_event(), Ok(CoreEvent::Yielded));
+        assert_eq!(
+            paused.last_core_error(),
+            Some(CoreError::InvalidContent("empty test content"))
+        );
 
         let core = TestCore {
             loaded: false,
@@ -1336,8 +1344,16 @@ mod tests {
 
         assert!(halted.load_content(&[]).is_err());
         assert_eq!(halted.state(), SessionState::Halted);
+        assert_eq!(
+            halted.last_core_error(),
+            Some(CoreError::InvalidContent("empty test content"))
+        );
         halted.reset().unwrap();
         assert_eq!(halted.state(), SessionState::Running);
+        assert_eq!(
+            halted.last_core_error(),
+            Some(CoreError::InvalidContent("empty test content"))
+        );
     }
 
     #[test]
