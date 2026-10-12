@@ -9,7 +9,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 89 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 78 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Chargement et validation du contenu | 79 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 86 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -35,6 +35,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 ### P0.3 — Chargement et validation du contenu
 - [x] Le détecteur de formats normalise les réponses `NeedMoreData` incohérentes des probes : une probe ne peut plus demander « plus de données » tout en indiquant une longueur déjà couverte par le préfixe. Un test vérifie les longueurs nulles, trop courtes et égales au préfixe.
 - [x] La lecture depuis un chemin vérifie d'abord la taille annoncée par les métadonnées pour rejeter rapidement les fichiers manifestement trop volumineux; la lecture en flux reste bornée à la limite + 1 octet afin de couvrir les métadonnées obsolètes et les fichiers qui grandissent pendant la lecture.
+- [x] Exposer le pipeline de lancement borné pour les entrées réelles : `launch_content_path` lit un fichier sous limite, `launch_content_reader` lit un flux sous limite, puis les deux réutilisent la même détection et la même validation par le cœur que `launch_content`.
+- [ ] Ajouter et exécuter les tests d'intégration du lancement depuis chemin et flux : contenu reconnu, format inconnu/ambigu, dépassement de limite et rejet par le cœur; ne pas considérer le nouveau point d'entrée comme validé avant ces tests.
 
 
 ### P0.1 — Cycle de vie de session
