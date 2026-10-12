@@ -2472,6 +2472,45 @@ mod shared_input_runtime_tests {
     }
 
     #[test]
+    fn failed_stop_reconciles_released_inputs_without_stopping_session() {
+        let rejected_release = InputEvent {
+            control: InputControl::Action2,
+            pressed: false,
+        };
+        let core = RejectSpecificInputCore {
+            rejected_event: rejected_release,
+            reset_fails: false,
+        };
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        let first_press = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
+        let second_press = InputEvent {
+            control: InputControl::Action2,
+            pressed: true,
+        };
+        session.send_input(first_press).unwrap();
+        session.send_input(second_press).unwrap();
+
+        assert_eq!(
+            session.stop(),
+            Err(SessionError::Core(CoreError::Execution(
+                "input rejected for test"
+            )))
+        );
+        assert_eq!(session.state(), SessionState::Running);
+        assert!(!session.is_input_pressed(InputControl::Action1));
+        assert!(session.is_input_pressed(InputControl::Action2));
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("input rejected for test"))
+        );
+    }
+
+    #[test]
     fn failed_input_press_does_not_mark_control_as_held() {
         let press = InputEvent {
             control: InputControl::Action1,
