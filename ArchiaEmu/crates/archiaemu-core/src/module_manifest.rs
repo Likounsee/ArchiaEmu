@@ -775,9 +775,7 @@ mod tests {
             .map(|index| module(&format!("node-{index}"), &[]))
             .collect::<Vec<_>>();
         for (index, module) in modules.iter_mut().enumerate().take(MODULE_COUNT - 1) {
-            module
-                .dependencies
-                .push(id(&format!("node-{}", index + 1)));
+            module.dependencies.push(id(&format!("node-{}", index + 1)));
         }
 
         assert!(manifest(modules).validate().is_ok());
@@ -790,9 +788,7 @@ mod tests {
             .map(|index| module(&format!("node-{index}"), &[]))
             .collect::<Vec<_>>();
         for (index, module) in modules.iter_mut().enumerate().take(MODULE_COUNT - 1) {
-            module
-                .dependencies
-                .push(id(&format!("node-{}", index + 1)));
+            module.dependencies.push(id(&format!("node-{}", index + 1)));
         }
         modules[MODULE_COUNT - 1].dependencies.push(id("node-0"));
 
