@@ -482,11 +482,13 @@ mod tests {
         for url in ["https://", "https:///file.tar", "https://?download=1", "https://:443/file"] {
             let mut entry = module("game-boy", &[]);
             entry.artifact.as_mut().unwrap().url = url.into();
-            assert!(matches!(
-                manifest(vec![entry]).validate(),
-                Err(ManifestError::InvalidArtifact(_)),
+            assert!(
+                matches!(
+                    manifest(vec![entry]).validate(),
+                    Err(ManifestError::InvalidArtifact(_))
+                ),
                 "accepted invalid HTTPS authority: {url}"
-            ));
+            );
         }
         let mut entry = module("game-boy", &[]);
         entry.artifact.as_mut().unwrap().sha256 = "not-a-hash".into();
