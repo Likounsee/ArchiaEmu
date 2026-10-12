@@ -63,6 +63,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Planifier la désinstallation en dépendances inverses, en refusant de retirer un module encore requis par un module installé et en exigeant que chaque module demandé soit réellement installé.
 - [x] Mettre à jour l'état des modules par lots après activation/désinstallation : validation complète avant mutation, refus des ID dupliqués et suppression groupée des enregistrements pour éviter un état mémoire partiellement mis à jour.
 - [x] Pré-vérifier le budget de téléchargement d'une installation complète : additionner les tailles déclarées de chaque paquet et de ses dépendances une seule fois, détecter les dépassements arithmétiques et refuser les plans dépassant la limite configurée avant tout téléchargement.
+- [x] Ajouter un journal d'installation versionné et borné, avec transitions de phases contrôlées, sauvegarde atomique par fichier temporaire et action de récupération calculée à partir du dernier jalon durable.
 - [ ] Définir les métadonnées minimales du module : ID, version, version de contrat, capacités, provenance et exigences.
 - [ ] Tester deux modules factices dans le même processus et vérifier l'absence de partage involontaire d'état.
 - [ ] Définir les limites de confiance : un module tiers n'est pas sûr simplement parce que son manifeste est valide.
