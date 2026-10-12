@@ -417,27 +417,42 @@ mod tests {
 
         assert!(matches!(
             session.pause(),
-            Err(SessionError::InvalidTransition {\n                operation: "pause",\n                state: SessionState::Empty,\n            })
+            Err(SessionError::InvalidTransition {
+                operation: "pause",
+                state: SessionState::Empty
+            })
         ));
         assert!(matches!(
             session.resume(),
-            Err(SessionError::InvalidTransition {\n                operation: "resume",\n                state: SessionState::Empty,\n            })
+            Err(SessionError::InvalidTransition {
+                operation: "resume",
+                state: SessionState::Empty
+            })
         ));
         assert!(matches!(
             session.reset(),
-            Err(SessionError::InvalidTransition {\n                operation: "reset",\n                state: SessionState::Empty,\n            })
+            Err(SessionError::InvalidTransition {
+                operation: "reset",
+                state: SessionState::Empty
+            })
         ));
         assert_eq!(session.state(), SessionState::Empty);
 
         session.load_content(&[1]).unwrap();
         assert!(matches!(
             session.resume(),
-            Err(SessionError::InvalidTransition {\n                operation: "resume",\n                state: SessionState::Running,\n            })
+            Err(SessionError::InvalidTransition {
+                operation: "resume",
+                state: SessionState::Running
+            })
         ));
         session.pause().unwrap();
         assert!(matches!(
             session.pause(),
-            Err(SessionError::InvalidTransition {\n                operation: "pause",\n                state: SessionState::Paused,\n            })
+            Err(SessionError::InvalidTransition {
+                operation: "pause",
+                state: SessionState::Paused
+            })
         ));
         assert_eq!(session.state(), SessionState::Paused);
     }
