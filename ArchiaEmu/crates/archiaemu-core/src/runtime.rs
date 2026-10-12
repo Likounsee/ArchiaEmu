@@ -175,6 +175,32 @@ impl EmulationSession {
         Ok(report)
     }
 
+    /// Serializes the current machine state when the core advertises save-state support.
+    ///
+    /// The session must have loaded content. The returned bytes are owned by the
+    /// caller and can be persisted or transferred without borrowing the core.
+    pub fn save_state(&self) -> Result<Vec<u8>, SessionError> {
+        self.require_loaded("save state")?;
+        if !self.core.descriptor().capabilities.save_states {
+            return Err(SessionError::Core(CoreError::Unsupported("save states")));
+        }
+        Ok(self.core.save_state()?)
+    }
+
+    /// Restores a machine state when the core advertises save-state support.
+    ///
+    /// Content must already be loaded. The core must validate the complete state
+    /// before mutating itself; a rejected state must leave the active machine
+    /// unchanged. Session lifecycle state is preserved on success and failure.
+    pub fn load_state(&mut self, state: &[u8]) -> Result<(), SessionError> {
+        self.require_loaded("load state")?;
+        if !self.core.descriptor().capabilities.save_states {
+            return Err(SessionError::Core(CoreError::Unsupported("save states")));
+        }
+        self.core.load_state(state)?;
+        Ok(())
+    }
+
     /// Sends a semantic input transition while a loaded machine is active.
     ///
     /// Input is allowed while paused so a host can reconcile held controls
@@ -560,6 +586,22 @@ mod tests {
         );
         assert_eq!(session.state(), SessionState::Paused);
         assert!(session.run_until_event().is_err());
+    }
+
+    #[test]
+    fn save_states_require_a_loaded_session_and_advertised_capability() {
+        let mut session = session();
+        assert!(session.save_state().is_err());
+        assert!(session.load_state(&[1]).is_err());
+        session.load_content(&[1]).unwrap();
+        assert_eq!(
+            session.save_state(),
+            Err(SessionError::Core(CoreError::Unsupported("save states")))
+        );
+        assert_eq!(
+            session.load_state(&[1]),
+            Err(SessionError::Core(CoreError::Unsupported("save states")))
+        );
     }
 
     #[test]
