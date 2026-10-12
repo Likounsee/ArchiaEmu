@@ -2553,14 +2553,24 @@ mod shared_input_runtime_tests {
             session.last_core_error(),
             Some(CoreError::Execution("input rejected for test"))
         );
+        session.pause().unwrap();
         let state_before_clear = session.state();
 
         session.clear_last_core_error();
 
         assert_eq!(session.last_core_error(), None);
+        assert_eq!(state_before_clear, SessionState::Paused);
         assert_eq!(session.state(), state_before_clear);
         assert!(session.is_input_pressed(InputControl::Action2));
         assert!(!session.is_input_pressed(InputControl::Action1));
+        assert_eq!(
+            session.run_until_event(),
+            Err(SessionError::InvalidTransition {
+                operation: "run",
+                state: SessionState::Paused,
+            })
+        );
+        session.resume().unwrap();
         assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
     }
 
