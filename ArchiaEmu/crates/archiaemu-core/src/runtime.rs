@@ -154,7 +154,7 @@ impl EmulationSession {
         let mut report = SessionRunReport {
             events_processed: 0,
             last_event: None,
-            budget_exhausted: max_events == 0,
+            budget_exhausted: true,
         };
 
         while report.events_processed < max_events {
