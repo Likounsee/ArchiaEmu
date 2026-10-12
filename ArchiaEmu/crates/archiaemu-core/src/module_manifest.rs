@@ -264,6 +264,15 @@ pub enum ManifestError {
     ModuleNotInstallable(ModuleId),
     /// Application version is outside the module compatibility range.
     IncompatibleApplicationVersion(ModuleId),
+    /// Summing package sizes exceeded the integer range.
+    ArtifactSizeOverflow,
+    /// The selected installation exceeds the caller's download budget.
+    DownloadLimitExceeded {
+        /// Total bytes required by the dependency-complete plan.
+        required_bytes: u64,
+        /// Maximum bytes permitted by the caller.
+        maximum_bytes: u64,
+    },
 }
 
 impl fmt::Display for ManifestError {
@@ -304,10 +313,24 @@ impl fmt::Display for ManifestError {
                 f,
                 "module '{id}' is incompatible with this ArchiaEmu version"
             ),
+            Self::ArtifactSizeOverflow => f.write_str("total module download size exceeds the supported range"),
+            Self::DownloadLimitExceeded { required_bytes, maximum_bytes } => write!(
+                f,
+                "installation requires {required_bytes} bytes, exceeding the {maximum_bytes}-byte download limit"
+            ),
         }
     }
 }
 impl std::error::Error for ManifestError {}
+
+/// A dependency-complete installation plan with its exact declared download size.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InstallationPreflight<'a> {
+    /// Modules in dependency-first installation order.
+    pub modules: Vec<&'a ManifestModule>,
+    /// Sum of the declared artifact sizes, counting each module once.
+    pub total_download_bytes: u64,
+}
 
 impl ModuleManifest {
     /// Validates schema, IDs, dependency references, version ranges and artifact metadata.
@@ -497,6 +520,39 @@ impl ModuleManifest {
         Ok(plan)
     }
 
+    /// Resolves an installation and checks its declared download size against a budget.
+    ///
+    /// The total includes each transitive dependency exactly once and uses checked arithmetic.
+    /// This is a metadata preflight only: it does not download, verify, extract, or install files.
+    pub fn preflight_installation_for_target(
+        &self,
+        selected: &[ModuleId],
+        app_version: ReleaseVersion,
+        target: ModuleTarget,
+        maximum_download_bytes: u64,
+    ) -> Result<InstallationPreflight<'_>, ManifestError> {
+        let modules = self.plan_installation_for_target(selected, app_version, target)?;
+        let total_download_bytes = modules.iter().try_fold(0_u64, |total, module| {
+            let artifact = module
+                .artifact
+                .as_ref()
+                .expect("installation planning rejects modules without artifacts");
+            total
+                .checked_add(artifact.size_bytes)
+                .ok_or(ManifestError::ArtifactSizeOverflow)
+        })?;
+        if total_download_bytes > maximum_download_bytes {
+            return Err(ManifestError::DownloadLimitExceeded {
+                required_bytes: total_download_bytes,
+                maximum_bytes: maximum_download_bytes,
+            });
+        }
+        Ok(InstallationPreflight {
+            modules,
+            total_download_bytes,
+        })
+    }
+
     /// Lists modules that are individually installable by this application on a host target.
     ///
     /// This is intended for catalogue/setup UIs: unavailable entries are omitted rather than
@@ -518,7 +574,7 @@ impl ModuleManifest {
                     && app_version >= module.min_app_version
                     && module
                         .max_app_version_exclusive
-                        .is_none_or(|max| app_version < max)
+                        .map_or(true, |max| app_version < max)
             })
             .collect())
     }
