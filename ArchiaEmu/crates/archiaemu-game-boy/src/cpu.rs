@@ -276,6 +276,45 @@ impl Cpu {
 
         let machine_cycles = match opcode {
             0x00 => 1, // NOP
+            // LD rr,d16.
+            0x01 | 0x11 | 0x21 | 0x31 => {
+                let low = self.fetch8(bus);
+                let high = self.fetch8(bus);
+                let value = u16::from_le_bytes([low, high]);
+                match opcode {
+                    0x01 => self.registers.set_pair(RegisterPair::Bc, value),
+                    0x11 => self.registers.set_pair(RegisterPair::De, value),
+                    0x21 => self.registers.set_pair(RegisterPair::Hl, value),
+                    _ => self.registers.sp = value,
+                }
+                3
+            }
+            // INC rr / DEC rr (flags are not affected).
+            0x03 | 0x13 | 0x23 | 0x33 => {
+                self.adjust_pair(opcode >> 4, true);
+                2
+            }
+            0x0B | 0x1B | 0x2B | 0x3B => {
+                self.adjust_pair(opcode >> 4, false);
+                2
+            }
+            // Indirect A transfers through BC and DE.
+            0x02 => {
+                bus.write8(self.registers.pair(RegisterPair::Bc), self.registers.a);
+                2
+            }
+            0x12 => {
+                bus.write8(self.registers.pair(RegisterPair::De), self.registers.a);
+                2
+            }
+            0x0A => {
+                self.registers.a = bus.read8(self.registers.pair(RegisterPair::Bc));
+                2
+            }
+            0x1A => {
+                self.registers.a = bus.read8(self.registers.pair(RegisterPair::De));
+                2
+            }
             0xAF => {
                 self.registers.a = 0;
                 self.registers.set_f(flags::ZERO);
@@ -345,6 +384,26 @@ impl Cpu {
             opcode,
             machine_cycles,
         })
+    }
+
+    fn adjust_pair(&mut self, pair: u8, increment: bool) {
+        let value = match pair {
+            0 => self.registers.pair(RegisterPair::Bc),
+            1 => self.registers.pair(RegisterPair::De),
+            2 => self.registers.pair(RegisterPair::Hl),
+            _ => self.registers.sp,
+        };
+        let adjusted = if increment {
+            value.wrapping_add(1)
+        } else {
+            value.wrapping_sub(1)
+        };
+        match pair {
+            0 => self.registers.set_pair(RegisterPair::Bc, adjusted),
+            1 => self.registers.set_pair(RegisterPair::De, adjusted),
+            2 => self.registers.set_pair(RegisterPair::Hl, adjusted),
+            _ => self.registers.sp = adjusted,
+        }
     }
 
     fn read_register<B: CpuBus>(&self, bus: &mut B, register: u8) -> u8 {
@@ -475,6 +534,31 @@ mod execution_tests {
         cpu.wake();
         assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x00);
         assert!(!cpu.is_halted());
+    }
+
+    #[test]
+    fn sixteen_bit_load_and_pair_adjustment_execute() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[
+            0x01, 0xFF, 0x12, // LD BC,0x12FF
+            0x03,             // INC BC
+            0x11, 0x34, 0x12, // LD DE,0x1234
+            0x12,             // LD (DE),A
+            0x0A,             // LD A,(BC)
+        ]);
+        cpu.registers.a = 0x5A;
+
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(cpu.registers.pair(RegisterPair::Bc), 0x12FF);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.pair(RegisterPair::Bc), 0x1300);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(cpu.registers.pair(RegisterPair::De), 0x1234);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(bus.0[0x1234], 0x5A);
+        bus.0[0x1300] = 0xC7;
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.a, 0xC7);
     }
 
     #[test]
