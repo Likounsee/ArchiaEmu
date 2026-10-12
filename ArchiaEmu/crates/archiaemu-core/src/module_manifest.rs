@@ -495,6 +495,31 @@ impl ModuleManifest {
         Ok(plan)
     }
 
+    /// Lists modules that are individually installable by this application on a host target.
+    ///
+    /// This is intended for catalogue/setup UIs: unavailable entries are omitted rather than
+    /// causing the whole list to fail. The manifest itself must still be structurally valid;
+    /// dependency availability is resolved later by `plan_installation_for_target`.
+    pub fn compatible_modules_for_target(
+        &self,
+        app_version: ReleaseVersion,
+        target: ModuleTarget,
+    ) -> Result<Vec<&ManifestModule>, ManifestError> {
+        self.validate()?;
+        Ok(self
+            .modules
+            .iter()
+            .filter(|module| {
+                module.readiness != ModuleReadiness::InDevelopment
+                    && module.artifact.is_some()
+                    && module.targets.contains(&target)
+                    && app_version >= module.min_app_version
+                    && module
+                        .max_app_version_exclusive
+                        .is_none_or(|max| app_version < max)
+            })
+            .collect())
+    }
     /// Validates the manifest and filters entries for an explicit host and application version.
     /// In-development entries are omitted. A compatibility error is returned rather than silently
     /// presenting an incompatible package as available.
