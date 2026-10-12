@@ -282,6 +282,8 @@ pub type CoreFactory = fn() -> Box<dyn EmulationCore>;
 pub enum RegistryError {
     /// Format detection found no matching candidate.
     NoDetectedFormat,
+    /// At least one probe needs more bytes, so the candidate set is incomplete.
+    IncompleteDetection(usize),
     /// A detected format ID is not a valid canonical system identifier.
     InvalidDetectedFormat {
         /// ID returned by the format probe.
@@ -308,6 +310,10 @@ impl fmt::Display for RegistryError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NoDetectedFormat => formatter.write_str("content format was not detected"),
+            Self::IncompleteDetection(count) => write!(
+                formatter,
+                "content format detection is incomplete: {count} probes need more data"
+            ),
             Self::InvalidDetectedFormat { format_id, reason } => {
                 write!(formatter, "detected format ID '{format_id}' is invalid: {reason}")
             }
@@ -384,6 +390,11 @@ impl CoreRegistry {
         &self,
         detection: &content::ContentDetection,
     ) -> Result<Box<dyn EmulationCore>, RegistryError> {
+        if !detection.needs_more_data.is_empty() {
+            return Err(RegistryError::IncompleteDetection(
+                detection.needs_more_data.len(),
+            ));
+        }
         let id = match detection.matches.as_slice() {
             [] => return Err(RegistryError::NoDetectedFormat),
             [format_id] => SystemId::new(format_id).map_err(|reason| {
@@ -568,6 +579,22 @@ mod tests {
     }
 
     #[test]
+    fn registry_rejects_incomplete_detection_even_when_one_candidate_matches() {
+        let id = SystemId::new("example").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_example_core).unwrap();
+        let detection = content::ContentDetection {
+            matches: vec!["example"],
+            needs_more_data: vec![("possible-other-format", 16)],
+        };
+
+        assert!(matches!(
+            registry.create_from_detection(&detection),
+            Err(RegistryError::IncompleteDetection(1))
+        ));
+    }
+
+    #[test]
     fn registry_rejects_missing_or_ambiguous_detection_without_guessing() {
         let id = SystemId::new("example").unwrap();
         let mut registry = CoreRegistry::new();
@@ -723,6 +750,10 @@ mod tests {
         assert_eq!(
             RegistryError::NoDetectedFormat.to_string(),
             "content format was not detected"
+        );
+        assert_eq!(
+            RegistryError::IncompleteDetection(1).to_string(),
+            "content format detection is incomplete: 1 probes need more data"
         );
         assert_eq!(
             RegistryError::InvalidDetectedFormat {
