@@ -150,6 +150,64 @@ impl CpuRegisters {
         self.set_flag(flags::CARRY, borrow);
         result
     }
+
+    /// ANDs an 8-bit value with A and updates Z/N/H/C.
+    pub fn and_a(&mut self, value: u8) -> u8 {
+        self.a &= value;
+        self.set_f(if self.a == 0 { flags::ZERO | flags::HALF_CARRY } else { flags::HALF_CARRY });
+        self.a
+    }
+
+    /// ORs an 8-bit value with A and updates flags.
+    pub fn or_a(&mut self, value: u8) -> u8 {
+        self.a |= value;
+        self.set_f(if self.a == 0 { flags::ZERO } else { 0 });
+        self.a
+    }
+
+    /// Compares a value with A without changing A.
+    pub fn compare_a(&mut self, value: u8) {
+        let a = self.a;
+        let (result, borrow) = a.overflowing_sub(value);
+        self.set_flag(flags::ZERO, result == 0);
+        self.set_flag(flags::SUBTRACT, true);
+        self.set_flag(flags::HALF_CARRY, (a & 0x0F) < (value & 0x0F));
+        self.set_flag(flags::CARRY, borrow);
+    }
+
+    /// Adds an 8-bit value and the carry flag to A.
+    pub fn add_a_with_carry(&mut self, value: u8) -> u8 {
+        let carry = u8::from(self.flag(flags::CARRY));
+        let a = self.a;
+        let (partial, carry_one) = a.overflowing_add(value);
+        let (result, carry_two) = partial.overflowing_add(carry);
+        self.a = result;
+        self.set_flag(flags::ZERO, result == 0);
+        self.set_flag(flags::SUBTRACT, false);
+        self.set_flag(
+            flags::HALF_CARRY,
+            (a & 0x0F) + (value & 0x0F) + carry > 0x0F,
+        );
+        self.set_flag(flags::CARRY, carry_one || carry_two);
+        result
+    }
+
+    /// Subtracts an 8-bit value and the carry flag from A.
+    pub fn subtract_a_with_carry(&mut self, value: u8) -> u8 {
+        let carry = u8::from(self.flag(flags::CARRY));
+        let a = self.a;
+        let (partial, borrow_one) = a.overflowing_sub(value);
+        let (result, borrow_two) = partial.overflowing_sub(carry);
+        self.a = result;
+        self.set_flag(flags::ZERO, result == 0);
+        self.set_flag(flags::SUBTRACT, true);
+        self.set_flag(
+            flags::HALF_CARRY,
+            (a & 0x0F) < (value & 0x0F) + carry,
+        );
+        self.set_flag(flags::CARRY, borrow_one || borrow_two);
+        result
+    }
 }
 
 /// Register pair selector used by 16-bit register accessors.
@@ -297,6 +355,24 @@ impl Cpu {
             0xC1 | 0xD1 | 0xE1 | 0xF1 => {
                 self.pop_pair(bus, (opcode >> 4) & 0x03);
                 3
+            }
+            // Immediate ALU operations.
+            0xC6 | 0xCE | 0xD6 | 0xDE | 0xE6 | 0xEE | 0xF6 | 0xFE => {
+                let value = self.fetch8(bus);
+                match opcode {
+                    0xC6 => { self.registers.add_a(value); }
+                    0xCE => { self.registers.add_a_with_carry(value); }
+                    0xD6 => { self.registers.subtract_a(value); }
+                    0xDE => { self.registers.subtract_a_with_carry(value); }
+                    0xE6 => { self.registers.and_a(value); }
+                    0xEE => {
+                        self.registers.a ^= value;
+                        self.registers.set_f(if self.registers.a == 0 { flags::ZERO } else { 0 });
+                    }
+                    0xF6 => { self.registers.or_a(value); }
+                    _ => self.registers.compare_a(value),
+                }
+                2
             }
             // CALL a16 / RET.
             0xCD => {
@@ -446,6 +522,11 @@ impl Cpu {
                     1
                 }
             }
+            0xA0..=0xA7 => {
+                let value = self.read_register(bus, opcode & 0x07);
+                self.registers.and_a(value);
+                if opcode & 0x07 == 6 { 2 } else { 1 }
+            }
             0xA8..=0xAF => {
                 let value = self.read_register(bus, opcode & 0x07);
                 self.registers.a ^= value;
@@ -454,11 +535,17 @@ impl Cpu {
                 } else {
                     0
                 });
-                if opcode & 0x07 == 6 {
-                    2
-                } else {
-                    1
-                }
+                if opcode & 0x07 == 6 { 2 } else { 1 }
+            }
+            0xB0..=0xB7 => {
+                let value = self.read_register(bus, opcode & 0x07);
+                self.registers.or_a(value);
+                if opcode & 0x07 == 6 { 2 } else { 1 }
+            }
+            0xB8..=0xBF => {
+                let value = self.read_register(bus, opcode & 0x07);
+                self.registers.compare_a(value);
+                if opcode & 0x07 == 6 { 2 } else { 1 }
             }
             // INC r / DEC r.
             0x04 | 0x0C | 0x14 | 0x1C | 0x24 | 0x2C | 0x34 | 0x3C => {
