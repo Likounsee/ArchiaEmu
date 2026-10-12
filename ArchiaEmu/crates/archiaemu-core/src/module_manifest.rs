@@ -313,8 +313,13 @@ impl fmt::Display for ManifestError {
                 f,
                 "module '{id}' is incompatible with this ArchiaEmu version"
             ),
-            Self::ArtifactSizeOverflow => f.write_str("total module download size exceeds the supported range"),
-            Self::DownloadLimitExceeded { required_bytes, maximum_bytes } => write!(
+            Self::ArtifactSizeOverflow => {
+                f.write_str("total module download size exceeds the supported range")
+            }
+            Self::DownloadLimitExceeded {
+                required_bytes,
+                maximum_bytes,
+            } => write!(
                 f,
                 "installation requires {required_bytes} bytes, exceeding the {maximum_bytes}-byte download limit"
             ),
