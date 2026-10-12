@@ -9,7 +9,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 65 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 20 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Chargement et validation du contenu | 30 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 65 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -53,7 +53,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 ### P0.3 — Chargement et validation du contenu
 - [x] Introduire un premier modèle générique de contenu possédé, avec limite de taille explicite et erreurs communes (les empreintes et la détection de format restent à faire).
 - [x] Rejeter les contenus vides et ceux dépassant la limite explicitement fournie, avant appel au cœur.
-- [ ] Limiter les allocations lors de la lecture depuis un chemin/fichier; traiter les entrées tronquées et malformées.
+- [x] Lire un flux avec une limite stricte (au plus limite + 1 octet pour détecter le dépassement), sans exposer un contenu partiellement lu en cas d’erreur.
+- [ ] Ajouter un helper dédié aux chemins/fichiers et traiter les formats tronqués ou malformés.
 - [ ] Séparer détection du format, validation structurelle et acceptation par un module.
 - [ ] Transmettre le contenu au cœur uniquement après validation des limites communes.
 - [ ] Éviter de supposer qu'une extension de fichier garantit son format.

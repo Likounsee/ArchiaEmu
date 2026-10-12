@@ -19,7 +19,10 @@ Factories should be cheap to call and must not load user content or perform irre
 ## Generic content envelope
 
 `content::ContentImage` owns a non-empty payload that has passed an explicit
-caller-provided maximum-size check. Hosts should construct this envelope before
+caller-provided maximum-size check. Hosts can use `ContentImage::read_from` to
+read from a stream while consuming at most the configured limit plus one byte;
+the extra byte detects oversize input without buffering the whole source. A read
+failure discards the partial payload. Hosts should construct this envelope before
 calling `EmulationSession::load_validated_content`. The limit must be selected
 by policy rather than guessed globally, since legitimate content sizes vary by
 system. This common check does not detect file formats, validate firmware,
