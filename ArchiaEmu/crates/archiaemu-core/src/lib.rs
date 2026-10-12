@@ -280,6 +280,10 @@ pub type CoreFactory = fn() -> Box<dyn EmulationCore>;
 /// Error returned by the core registry.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RegistryError {
+    /// Format detection found no matching candidate.
+    NoDetectedFormat,
+    /// Format detection found multiple candidates, so automatic selection is unsafe.
+    AmbiguousDetectedFormats(usize),
     /// A core with this identifier is already registered.
     DuplicateSystem(SystemId),
     /// A factory returned a core whose descriptor does not match its registration.
@@ -296,6 +300,11 @@ pub enum RegistryError {
 impl fmt::Display for RegistryError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::NoDetectedFormat => formatter.write_str("content format was not detected"),
+            Self::AmbiguousDetectedFormats(count) => write!(
+                formatter,
+                "content format detection returned {count} candidates; explicit selection is required"
+            ),
             Self::DuplicateSystem(id) => {
                 write!(formatter, "system '{}' is already registered", id.as_str())
             }
@@ -353,6 +362,27 @@ impl CoreRegistry {
     /// Returns registered system identifiers in registration order.
     pub fn system_ids(&self) -> impl Iterator<Item = SystemId> + '_ {
         self.registrations.iter().map(|entry| entry.id)
+    }
+
+    /// Constructs a core from one unambiguous format-detection result.
+    ///
+    /// The detector's format ID must use the same stable identifier as the
+    /// corresponding registered system. This only selects and constructs the
+    /// core: callers must still load the content and handle format-specific
+    /// validation errors before treating a session as launched.
+    pub fn create_from_detection(
+        &self,
+        detection: &content::ContentDetection,
+    ) -> Result<Box<dyn EmulationCore>, RegistryError> {
+        let id = match detection.matches.as_slice() {
+            [] => return Err(RegistryError::NoDetectedFormat),
+            [format_id] => SystemId::new(format_id)
+                .expect("format probe IDs must use canonical system identifiers"),
+            candidates => {
+                return Err(RegistryError::AmbiguousDetectedFormats(candidates.len()));
+            }
+        };
+        self.create(id)
     }
 
     /// Constructs a fresh core and verifies its descriptor matches its key.
@@ -488,6 +518,42 @@ mod tests {
     }
 
     #[test]
+    fn registry_creates_core_from_single_detected_candidate() {
+        let id = SystemId::new("example").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_example_core).unwrap();
+        let detection = content::ContentDetection {
+            matches: vec!["example"],
+            needs_more_data: vec![],
+        };
+
+        assert_eq!(
+            registry.create_from_detection(&detection).unwrap().descriptor().system_id,
+            id
+        );
+    }
+
+    #[test]
+    fn registry_rejects_missing_or_ambiguous_detection_without_guessing() {
+        let id = SystemId::new("example").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_example_core).unwrap();
+
+        assert_eq!(
+            registry.create_from_detection(&content::ContentDetection::default()).unwrap_err(),
+            RegistryError::NoDetectedFormat
+        );
+        let ambiguous = content::ContentDetection {
+            matches: vec!["example", "other"],
+            needs_more_data: vec![],
+        };
+        assert_eq!(
+            registry.create_from_detection(&ambiguous).unwrap_err(),
+            RegistryError::AmbiguousDetectedFormats(2)
+        );
+    }
+
+    #[test]
     fn registry_creates_cores_by_stable_id() {
         let id = SystemId::new("example").unwrap();
         let mut registry = CoreRegistry::new();
@@ -620,6 +686,14 @@ mod tests {
 
         let gb = SystemId::new("gb").unwrap();
         let other = SystemId::new("other").unwrap();
+        assert_eq!(
+            RegistryError::NoDetectedFormat.to_string(),
+            "content format was not detected"
+        );
+        assert_eq!(
+            RegistryError::AmbiguousDetectedFormats(2).to_string(),
+            "content format detection returned 2 candidates; explicit selection is required"
+        );
         assert_eq!(
             RegistryError::DuplicateSystem(gb).to_string(),
             "system 'gb' is already registered"
