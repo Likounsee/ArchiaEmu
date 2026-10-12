@@ -464,12 +464,8 @@ mod tests {
 
         let id = archiaemu_core::SystemId::new(SYSTEM_ID).unwrap();
         assert!(registry.contains(id));
-        assert!(!registry.contains(
-            archiaemu_core::SystemId::new("game-boy-dmg").unwrap()
-        ));
-        assert!(!registry.contains(
-            archiaemu_core::SystemId::new("game-boy-color").unwrap()
-        ));
+        assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-dmg").unwrap()));
+        assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-color").unwrap()));
         let core = registry.create(id).unwrap();
         assert_eq!(core.descriptor().display_name, "Game Boy / Game Boy Color");
         assert_eq!(
