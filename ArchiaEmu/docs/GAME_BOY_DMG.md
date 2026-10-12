@@ -1,13 +1,13 @@
-# First target: original Nintendo Game Boy (DMG)
+# First target: one Game Boy / Game Boy Color emulator
 
 ## Decision
 
-The first planned platform is the original monochrome Game Boy (DMG), identified as `game-boy-dmg`. This is a scope decision, not a support claim. The system has a comparatively bounded 8-bit CPU and memory map, published technical references, and established public test ROM projects. Only test content whose license and redistribution terms are checked may be committed; external ROMs are not bundled.
+The first planned platform is one unified Game Boy emulator, identified as `game-boy` and displayed to users as **Game Boy / Game Boy Color**. It will use cartridge metadata to choose original monochrome Game Boy (DMG) or Game Boy Color (CGB) hardware behavior internally. These are modes of one emulator, not separate modules or application entries. This is a scope decision, not a support claim. Only test content whose license and redistribution terms are checked may be committed; external ROMs are not bundled.
 
 ## Implementation sequence
 
 1. **Cartridge boundary (current):** safely parse header length, ROM-size code, and header checksum; preserve raw metadata without implying mapper support.
-2. **Cartridge model:** validate image length against ROM-size code and define explicit mapper capability.
+2. **Cartridge model:** validate image length against ROM-size code, classify DMG/CGB compatibility flags, and define explicit mapper capability for both hardware modes.
 3. **Memory bus:** address decoding and tests for ROM-only cartridges, VRAM/WRAM, echo RAM, OAM, unusable region, and I/O boundaries.
 4. **CPU:** implement LR35902 registers, flags, instruction decode/execute, cycle accounting, interrupts, HALT/STOP behavior and exhaustive opcode tests.
 5. **Timers and interrupts:** deterministic clock-driven timer, divider and interrupt controller.
@@ -19,6 +19,6 @@ The first planned platform is the original monochrome Game Boy (DMG), identified
 
 - Header parsing is not emulation, and a passing parser test is not a compatibility result.
 - Never panic on malformed cartridge bytes or allocate from untrusted size fields without bounds.
-- Implement the DMG behavior separately from Color/Game Boy Advance behavior; do not claim those systems.
+- Implement DMG and CGB hardware behavior as modes inside the same Game Boy core. Game Boy Advance is a different system and is out of scope.
 - Keep each hardware unit independently testable and deterministic.
 - Use external test ROMs only under their respective licenses; document how to obtain them rather than bundling them by default.
