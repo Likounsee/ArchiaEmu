@@ -82,3 +82,8 @@ The policy reserves at most 75% of reported available memory and honors a lower 
 
 
 This API is an initial internal contract and may evolve before the first core is selected. It is not a stable plugin ABI. A native C ABI will only be designed if a real native core is chosen.
+
+
+## Compatibilité de l'API hôte/cœur
+
+La compatibilité hôte/cœur est versionnée séparément de `core_version` via `CoreApiVersion`. La règle actuelle exige une version majeure identique et une version mineure requise inférieure ou égale à celle de l'hôte (`CURRENT_CORE_API_VERSION`). `EmulationRuntime::create_session` refuse un cœur incompatible avant de créer sa session.

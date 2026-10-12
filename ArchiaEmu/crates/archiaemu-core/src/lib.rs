@@ -124,9 +124,33 @@ pub struct CoreCapabilities {
     pub input: bool,
 }
 
+/// Version of the host/core contract, independent of the core implementation version.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CoreApiVersion {
+    /// Breaking-contract generation. Must match the host's major version.
+    pub major: u16,
+    /// Backward-compatible additions within a major generation.
+    pub minor: u16,
+}
+
+impl CoreApiVersion {
+    /// Returns whether this core's contract requirements are supported by the host.
+    ///
+    /// A matching major version is required; a core cannot require a newer minor
+    /// version than the host provides.
+    pub const fn is_compatible_with(self, host: Self) -> bool {
+        self.major == host.major && self.minor <= host.minor
+    }
+}
+
+/// Contract version implemented by this source tree.
+pub const CURRENT_CORE_API_VERSION: CoreApiVersion = CoreApiVersion { major: 1, minor: 0 };
+
 /// Human- and machine-readable metadata for one concrete core.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CoreDescriptor {
+    /// Host/core contract version implemented by this core.
+    pub api_version: CoreApiVersion,
     /// Stable identifier used in configuration and diagnostics.
     pub system_id: SystemId,
     /// Display name shown to users.
@@ -404,6 +428,7 @@ mod tests {
     impl EmulationCore for RegistryTestCore {
         fn descriptor(&self) -> CoreDescriptor {
             CoreDescriptor {
+                api_version: CURRENT_CORE_API_VERSION,
                 system_id: self.id,
                 display_name: "Registry test core",
                 core_version: "0.0.0-test",
@@ -616,6 +641,7 @@ mod tests {
         impl EmulationCore for MetadataOnlyCore {
             fn descriptor(&self) -> CoreDescriptor {
                 CoreDescriptor {
+                    api_version: CURRENT_CORE_API_VERSION,
                     system_id: SystemId::new("example").unwrap(),
                     display_name: "Example (contract test only)",
                     core_version: "0.0.0-test",

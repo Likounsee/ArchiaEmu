@@ -8,9 +8,9 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
-| **P0** | Fiabilité du runtime commun | 65 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
+| **P0** | Fiabilité du runtime commun | 70 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 35 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
-| **P0** | Contrats de modules et capacités | 65 % | Modules isolés, capacités explicites, découverte et création prévisibles |
+| **P0** | Contrats de modules et capacités | 70 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
@@ -42,7 +42,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Identifiants système stables, registre et vérifications de cohérence des descripteurs.
 - [x] Déclarations de capacités par module.
 - [x] Planification de dépendances et détection des dépendances manquantes/cycles.
-- [ ] Définir la version du contrat API et une règle de compatibilité entre hôte et module.
+- [x] Définir la version du contrat API et une règle de compatibilité : même version majeure et version mineure requise inférieure ou égale à celle de l'hôte. Le runtime refuse la création de session pour un cœur incompatible.
 - [ ] Définir les métadonnées minimales du module : ID, version, version de contrat, capacités, provenance et exigences.
 - [ ] Tester deux modules factices dans le même processus et vérifier l'absence de partage involontaire d'état.
 - [ ] Définir les limites de confiance : un module tiers n'est pas sûr simplement parce que son manifeste est valide.

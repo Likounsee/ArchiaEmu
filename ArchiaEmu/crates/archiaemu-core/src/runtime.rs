@@ -320,6 +320,7 @@ mod tests {
     impl EmulationCore for TestCore {
         fn descriptor(&self) -> CoreDescriptor {
             CoreDescriptor {
+                api_version: crate::CURRENT_CORE_API_VERSION,
                 system_id: SystemId::new("runtime-test").unwrap(),
                 display_name: "Runtime test core",
                 core_version: "0.0.0-test",
@@ -360,6 +361,7 @@ mod tests {
     impl EmulationCore for ErrorOnceCore {
         fn descriptor(&self) -> CoreDescriptor {
             CoreDescriptor {
+                api_version: crate::CURRENT_CORE_API_VERSION,
                 system_id: SystemId::new("error-once-test").unwrap(),
                 display_name: "Error-once test core",
                 core_version: "0.0.0-test",
@@ -616,6 +618,7 @@ mod tests {
     impl EmulationCore for ResetFailureCore {
         fn descriptor(&self) -> CoreDescriptor {
             CoreDescriptor {
+                api_version: crate::CURRENT_CORE_API_VERSION,
                 system_id: SystemId::new("reset-failure-test").unwrap(),
                 display_name: "Reset failure test core",
                 core_version: "0.0.0-test",
@@ -663,6 +666,7 @@ mod tests {
         impl EmulationCore for StatefulCore {
             fn descriptor(&self) -> CoreDescriptor {
                 CoreDescriptor {
+                    api_version: crate::CURRENT_CORE_API_VERSION,
                     system_id: SystemId::new("stateful-test").unwrap(),
                     display_name: "Stateful test core",
                     core_version: "0.0.0-test",
@@ -748,6 +752,7 @@ mod tests {
         impl EmulationCore for UnderreportedCore {
             fn descriptor(&self) -> CoreDescriptor {
                 CoreDescriptor {
+                    api_version: crate::CURRENT_CORE_API_VERSION,
                     system_id: SystemId::new("underreported-test").unwrap(),
                     display_name: "Underreported test core",
                     core_version: "0.0.0-test",
@@ -822,12 +827,24 @@ mod tests {
 pub enum RuntimeError {
     /// The requested core could not be found or constructed correctly.
     Registry(crate::RegistryError),
+    /// The core requires a contract API version this host does not support.
+    IncompatibleApiVersion {
+        /// Contract version required by the core.
+        required: crate::CoreApiVersion,
+        /// Contract version implemented by this host.
+        supported: crate::CoreApiVersion,
+    },
 }
 
 impl fmt::Display for RuntimeError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Registry(error) => fmt::Display::fmt(error, formatter),
+            Self::IncompatibleApiVersion { required, supported } => write!(
+                formatter,
+                "core contract API {}.{} is incompatible with host API {}.{}",
+                required.major, required.minor, supported.major, supported.minor
+            ),
         }
     }
 }
@@ -874,7 +891,15 @@ impl EmulationRuntime {
 
     /// Creates a fresh, initially empty session for a registered system.
     pub fn create_session(&self, id: crate::SystemId) -> Result<EmulationSession, RuntimeError> {
-        Ok(EmulationSession::new(self.registry.create(id)?))
+        let core = self.registry.create(id)?;
+        let required = core.descriptor().api_version;
+        if !required.is_compatible_with(crate::CURRENT_CORE_API_VERSION) {
+            return Err(RuntimeError::IncompatibleApiVersion {
+                required,
+                supported: crate::CURRENT_CORE_API_VERSION,
+            });
+        }
+        Ok(EmulationSession::new(core))
     }
 }
 
@@ -883,11 +908,14 @@ mod runtime_manager_tests {
     use super::*;
     use crate::{CoreCapabilities, CoreDescriptor, CoreError, CoreEvent, EmulationCore, SystemId};
 
-    struct ManagerTestCore;
+    struct ManagerTestCore {
+        api_version: crate::CoreApiVersion,
+    }
 
     impl EmulationCore for ManagerTestCore {
         fn descriptor(&self) -> CoreDescriptor {
             CoreDescriptor {
+                api_version: self.api_version,
                 system_id: SystemId::new("manager-test").unwrap(),
                 display_name: "Manager test core",
                 core_version: "0.0.0-test",
@@ -909,7 +937,9 @@ mod runtime_manager_tests {
     }
 
     fn manager_test_factory() -> Box<dyn EmulationCore> {
-        Box::new(ManagerTestCore)
+        Box::new(ManagerTestCore {
+            api_version: crate::CURRENT_CORE_API_VERSION,
+        })
     }
 
     #[test]
@@ -926,6 +956,29 @@ mod runtime_manager_tests {
         assert_eq!(second.state(), SessionState::Empty);
         assert_eq!(first.descriptor().system_id, id);
         assert_eq!(second.descriptor().system_id, id);
+    }
+
+    fn incompatible_manager_test_factory() -> Box<dyn EmulationCore> {
+        Box::new(ManagerTestCore {
+            api_version: crate::CoreApiVersion { major: 2, minor: 0 },
+        })
+    }
+
+    #[test]
+    fn runtime_rejects_incompatible_core_contract_versions() {
+        let id = SystemId::new("manager-test").unwrap();
+        let mut runtime = EmulationRuntime::new();
+        runtime
+            .register_core(id, incompatible_manager_test_factory)
+            .unwrap();
+
+        assert_eq!(
+            runtime.create_session(id).err(),
+            Some(RuntimeError::IncompatibleApiVersion {
+                required: crate::CoreApiVersion { major: 2, minor: 0 },
+                supported: crate::CURRENT_CORE_API_VERSION,
+            })
+        );
     }
 
     #[test]
@@ -952,6 +1005,7 @@ mod shared_input_runtime_tests {
     impl EmulationCore for InputRecordingCore {
         fn descriptor(&self) -> CoreDescriptor {
             CoreDescriptor {
+                api_version: crate::CURRENT_CORE_API_VERSION,
                 system_id: SystemId::new("input-recording").unwrap(),
                 display_name: "Input recording test core",
                 core_version: "0.0.0-test",
@@ -1061,6 +1115,7 @@ mod shared_input_runtime_tests {
     impl EmulationCore for RejectSpecificInputCore {
         fn descriptor(&self) -> CoreDescriptor {
             CoreDescriptor {
+                api_version: crate::CURRENT_CORE_API_VERSION,
                 system_id: SystemId::new("reject-input-test").unwrap(),
                 display_name: "Reject input test core",
                 core_version: "0.0.0-test",

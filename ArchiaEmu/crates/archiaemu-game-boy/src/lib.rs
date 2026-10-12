@@ -237,6 +237,7 @@ impl Default for GameBoyCore {
 impl archiaemu_core::EmulationCore for GameBoyCore {
     fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
         archiaemu_core::CoreDescriptor {
+            api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
             system_id: archiaemu_core::SystemId::new(SYSTEM_ID)
                 .expect("the built-in Game Boy system ID is valid"),
             display_name: "Game Boy / Game Boy Color",
