@@ -165,7 +165,9 @@ impl EmulationSession {
     /// are required to validate content before mutating machine state.
     pub fn load_content(&mut self, content: &[u8]) -> Result<(), SessionError> {
         if !self.core.descriptor().capabilities.content_loading {
-            return Err(SessionError::Core(CoreError::Unsupported("content loading")));
+            return Err(SessionError::Core(CoreError::Unsupported(
+                "content loading",
+            )));
         }
         self.core.load_content(content)?;
         self.input_state = InputState::new();
@@ -1311,12 +1313,16 @@ mod tests {
         let mut session = EmulationSession::new(Box::new(NoContentLoadingCore));
         assert_eq!(
             session.load_content(&[1]),
-            Err(SessionError::Core(CoreError::Unsupported("content loading")))
+            Err(SessionError::Core(CoreError::Unsupported(
+                "content loading"
+            )))
         );
         assert_eq!(session.state(), SessionState::Empty);
         assert_eq!(
             session.load_content_bounded(&[1], ContentLimits::new(1)),
-            Err(SessionError::Core(CoreError::Unsupported("content loading")))
+            Err(SessionError::Core(CoreError::Unsupported(
+                "content loading"
+            )))
         );
         assert_eq!(session.state(), SessionState::Empty);
     }
@@ -1333,9 +1339,9 @@ mod tests {
                     display_name: "Underreported test core",
                     core_version: "0.0.0-test",
                     capabilities: CoreCapabilities {
-                    content_loading: true,
-                    ..CoreCapabilities::default()
-                },
+                        content_loading: true,
+                        ..CoreCapabilities::default()
+                    },
                 }
             }
 
