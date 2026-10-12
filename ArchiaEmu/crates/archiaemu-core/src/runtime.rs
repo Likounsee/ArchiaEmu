@@ -1549,7 +1549,9 @@ mod tests {
                 Ok(())
             }
 
-            fn reset(&mut self) -> Result<(), CoreError> { Ok(()) }
+            fn reset(&mut self) -> Result<(), CoreError> {
+                Ok(())
+            }
 
             fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
                 Ok(CoreEvent::Yielded)
@@ -1562,8 +1564,16 @@ mod tests {
 
         let mut session = EmulationSession::new(Box::new(FailingSaveCore));
         session.load_content(&[1]).unwrap();
-        assert_eq!(session.save_state(), Err(SessionError::Core(CoreError::Execution("save serialization failed"))));
-        assert_eq!(session.last_core_error(), Some(CoreError::Execution("save serialization failed")));
+        assert_eq!(
+            session.save_state(),
+            Err(SessionError::Core(CoreError::Execution(
+                "save serialization failed"
+            )))
+        );
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Execution("save serialization failed"))
+        );
         assert_eq!(session.state(), SessionState::Running);
         session.clear_last_core_error();
         assert_eq!(session.last_core_error(), None);
