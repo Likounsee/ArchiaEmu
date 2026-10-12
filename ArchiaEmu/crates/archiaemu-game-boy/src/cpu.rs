@@ -165,7 +165,6 @@ pub enum RegisterPair {
     Hl,
 }
 
-
 /// Minimal memory interface used by the instruction engine.
 ///
 /// Implementations are responsible for Game Boy address decoding, cartridge
@@ -277,18 +276,46 @@ impl Cpu {
 
         let machine_cycles = match opcode {
             0x00 => 1, // NOP
-            0x06 => { let value = self.fetch8(bus); self.registers.b = value; 2 }
-            0x0E => { let value = self.fetch8(bus); self.registers.c = value; 2 }
-            0x16 => { let value = self.fetch8(bus); self.registers.d = value; 2 }
-            0x1E => { let value = self.fetch8(bus); self.registers.e = value; 2 }
-            0x26 => { let value = self.fetch8(bus); self.registers.h = value; 2 }
-            0x2E => { let value = self.fetch8(bus); self.registers.l = value; 2 }
+            0x06 => {
+                let value = self.fetch8(bus);
+                self.registers.b = value;
+                2
+            }
+            0x0E => {
+                let value = self.fetch8(bus);
+                self.registers.c = value;
+                2
+            }
+            0x16 => {
+                let value = self.fetch8(bus);
+                self.registers.d = value;
+                2
+            }
+            0x1E => {
+                let value = self.fetch8(bus);
+                self.registers.e = value;
+                2
+            }
+            0x26 => {
+                let value = self.fetch8(bus);
+                self.registers.h = value;
+                2
+            }
+            0x2E => {
+                let value = self.fetch8(bus);
+                self.registers.l = value;
+                2
+            }
             0x36 => {
                 let value = self.fetch8(bus);
                 bus.write8(self.registers.pair(RegisterPair::Hl), value);
                 3
             }
-            0x3E => { let value = self.fetch8(bus); self.registers.a = value; 2 }
+            0x3E => {
+                let value = self.fetch8(bus);
+                self.registers.a = value;
+                2
+            }
             0xAF => {
                 self.registers.a = 0;
                 self.registers.set_f(flags::ZERO);
