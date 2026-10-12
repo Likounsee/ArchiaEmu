@@ -368,11 +368,21 @@ impl Cpu {
             0xC6 | 0xCE | 0xD6 | 0xDE | 0xE6 | 0xEE | 0xF6 | 0xFE => {
                 let value = self.fetch8(bus);
                 match opcode {
-                    0xC6 => { self.registers.add_a(value); }
-                    0xCE => { self.registers.add_a_with_carry(value); }
-                    0xD6 => { self.registers.subtract_a(value); }
-                    0xDE => { self.registers.subtract_a_with_carry(value); }
-                    0xE6 => { self.registers.and_a(value); }
+                    0xC6 => {
+                        self.registers.add_a(value);
+                    }
+                    0xCE => {
+                        self.registers.add_a_with_carry(value);
+                    }
+                    0xD6 => {
+                        self.registers.subtract_a(value);
+                    }
+                    0xDE => {
+                        self.registers.subtract_a_with_carry(value);
+                    }
+                    0xE6 => {
+                        self.registers.and_a(value);
+                    }
                     0xEE => {
                         self.registers.a ^= value;
                         self.registers.set_f(if self.registers.a == 0 {
@@ -381,7 +391,9 @@ impl Cpu {
                             0
                         });
                     }
-                    0xF6 => { self.registers.or_a(value); }
+                    0xF6 => {
+                        self.registers.or_a(value);
+                    }
                     _ => self.registers.compare_a(value),
                 }
                 2
@@ -588,17 +600,29 @@ impl Cpu {
                 } else {
                     0
                 });
-                if opcode & 0x07 == 6 { 2 } else { 1 }
+                if opcode & 0x07 == 6 {
+                    2
+                } else {
+                    1
+                }
             }
             0xB0..=0xB7 => {
                 let value = self.read_register(bus, opcode & 0x07);
                 self.registers.or_a(value);
-                if opcode & 0x07 == 6 { 2 } else { 1 }
+                if opcode & 0x07 == 6 {
+                    2
+                } else {
+                    1
+                }
             }
             0xB8..=0xBF => {
                 let value = self.read_register(bus, opcode & 0x07);
                 self.registers.compare_a(value);
-                if opcode & 0x07 == 6 { 2 } else { 1 }
+                if opcode & 0x07 == 6 {
+                    2
+                } else {
+                    1
+                }
             }
             // INC r / DEC r.
             0x04 | 0x0C | 0x14 | 0x1C | 0x24 | 0x2C | 0x34 | 0x3C => {
@@ -861,8 +885,8 @@ mod execution_tests {
         cpu.registers.set_pair(RegisterPair::Hl, 0xC100);
         cpu.registers.a = 0x42;
         let mut bus = TestBus::with_program(&[
-            0x22,             // LD (HL+),A
-            0x3A,             // LD A,(HL-)
+            0x22, // LD (HL+),A
+            0x3A, // LD A,(HL-)
             0xEA, 0x01, 0xC1, // LD (0xC101),A
             0xFA, 0x01, 0xC1, // LD A,(0xC101)
         ]);
