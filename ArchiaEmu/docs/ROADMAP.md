@@ -8,7 +8,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
-| **P0** | Fiabilité du runtime commun | 86 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
+| **P0** | Fiabilité du runtime commun | 87 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 78 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 86 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
@@ -45,7 +45,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] API générique de sauvegarde/restauration d'état avec vérification de capacité.
 - [x] Formaliser les transitions autorisées dans une table de référence dans `docs/SESSION_LIFECYCLE.md`; les tests vérifient les transitions invalides principales, pause/reprise, réinitialisation, budget nul et arrêt sur `Halted`. La couverture exhaustive de chaque combinaison reste à compléter dans les tâches ci-dessous.
 - [ ] Garantir un comportement documenté après chaque erreur du cœur : état de session, entrées maintenues, événements et possibilité de reprise. Les gardes d'entrée sont aussi testées avant chargement et après Halted pour la pression et la libération globale. Le runner borné a aussi un test de reprise après erreur transitoire du cœur. Les tests couvrent le refus d'une pression, d'un relâchement individuel, d'une libération globale partielle (les commandes déjà libérées restent libérées), d'une réinitialisation et d'un rechargement invalide depuis les états en pause, arrêté et maintenant Halted; ils ne couvrent pas encore toutes les catégories d'erreur. Un test supplémentaire vérifie désormais qu'un échec de réinitialisation conserve exactement l'état Running, Paused ou Halted.
-- [ ] Ajouter des tests de séquences longues : charger, démarrer, mettre en pause, reprendre, réinitialiser, arrêter et recharger. Un premier test couvre maintenant charger, pause/reprise répétées, exécution bornée, réinitialisation depuis l'état en pause et rechargement; la sémantique d'arrêt reste à définir.
+- [x] Ajouter un test de séquence longue : charger, pause/reprise répétées, exécution bornée, réinitialisation, arrêt explicite puis rechargement et reprise. Un test séparé couvre l'échec de `stop` pendant la libération des entrées et vérifie l'état conservé ainsi que les contrôles encore maintenus.
 - [x] Clarifier la sémantique d'arrêt et de réinitialisation pour chaque état : `stop` arrête l'exécution hôte sans décharger le contenu, libère les entrées maintenues et ajoute l'état `Stopped`; `reset` ou le rechargement reprend la session.
 
 **Critère de sortie :** chaque opération publique possède des préconditions, des effets et une politique d'erreur testés; aucune erreur ne laisse la session dans un état non documenté.
