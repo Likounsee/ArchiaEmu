@@ -1,11 +1,11 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-//! LR35902 CPU register state and flag-accurate arithmetic primitives.
+//! LR35902 register state, arithmetic primitives, and an initial instruction engine.
 //!
-//! Instruction fetching, bus access, interrupt dispatch, and cycle scheduling
-//! are intentionally not implemented here yet. These primitives are kept pure
-//! so they can be exhaustively tested before being wired into execution.
+//! The CPU executes a deliberately small documented opcode subset through a
+//! host-provided bus. Full instruction coverage, Game Boy memory mapping,
+//! interrupt dispatch, and peripheral cycle synchronization remain incomplete.
 
 /// LR35902 condition-flag bit masks in the upper nibble of register F.
 pub mod flags {
