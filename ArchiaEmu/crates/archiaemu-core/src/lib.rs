@@ -146,6 +146,22 @@ impl CoreApiVersion {
 /// Contract version implemented by this source tree.
 pub const CURRENT_CORE_API_VERSION: CoreApiVersion = CoreApiVersion { major: 1, minor: 0 };
 
+#[cfg(test)]
+mod api_version_tests {
+    use super::CoreApiVersion;
+
+    #[test]
+    fn compatibility_requires_same_major_and_no_newer_minor_requirement() {
+        let host = CoreApiVersion { major: 1, minor: 4 };
+
+        assert!(CoreApiVersion { major: 1, minor: 0 }.is_compatible_with(host));
+        assert!(CoreApiVersion { major: 1, minor: 4 }.is_compatible_with(host));
+        assert!(!CoreApiVersion { major: 1, minor: 5 }.is_compatible_with(host));
+        assert!(!CoreApiVersion { major: 2, minor: 0 }.is_compatible_with(host));
+        assert!(!CoreApiVersion { major: 0, minor: 4 }.is_compatible_with(host));
+    }
+}
+
 /// Human- and machine-readable metadata for one concrete core.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CoreDescriptor {
