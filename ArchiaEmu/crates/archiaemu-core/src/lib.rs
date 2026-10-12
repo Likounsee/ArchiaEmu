@@ -302,6 +302,13 @@ pub enum RegistryError {
         /// Identifier declared by the constructed core.
         actual: SystemId,
     },
+    /// A core requires an incompatible host/core contract API version.
+    IncompatibleApiVersion {
+        /// Contract version required by the core.
+        required: CoreApiVersion,
+        /// Contract version supported by this host.
+        supported: CoreApiVersion,
+    },
     /// No core is registered for the requested identifier.
     UnknownSystem(SystemId),
 }
@@ -329,6 +336,14 @@ impl fmt::Display for RegistryError {
                 "registered system '{}' produced core '{}'",
                 registered.as_str(),
                 actual.as_str()
+            ),
+            Self::IncompatibleApiVersion {
+                required,
+                supported,
+            } => write!(
+                formatter,
+                "core contract API {}.{} is incompatible with host API {}.{}",
+                required.major, required.minor, supported.major, supported.minor
             ),
             Self::UnknownSystem(id) => {
                 write!(formatter, "no core is registered for '{}'", id.as_str())
@@ -414,11 +429,18 @@ impl CoreRegistry {
             .find(|entry| entry.id == id)
             .ok_or(RegistryError::UnknownSystem(id))?;
         let core = (registration.factory)();
-        let actual = core.descriptor().system_id;
-        if actual != registration.id {
+        let descriptor = core.descriptor();
+        if descriptor.system_id != registration.id {
             return Err(RegistryError::DescriptorMismatch {
                 registered: registration.id,
-                actual,
+                actual: descriptor.system_id,
+            });
+        }
+        let supported = CURRENT_CORE_API_VERSION;
+        if !descriptor.api_version.is_compatible_with(supported) {
+            return Err(RegistryError::IncompatibleApiVersion {
+                required: descriptor.api_version,
+                supported,
             });
         }
         Ok(core)
@@ -523,6 +545,33 @@ mod tests {
         Box::new(RegistryTestCore {
             id: SystemId::new("other").unwrap(),
         })
+    }
+
+    struct IncompatibleRegistryTestCore;
+
+    impl EmulationCore for IncompatibleRegistryTestCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                api_version: CoreApiVersion { major: 2, minor: 0 },
+                system_id: SystemId::new("incompatible").unwrap(),
+                display_name: "Incompatible registry test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities::default(),
+            }
+        }
+        fn load_content(&mut self, _: &[u8]) -> Result<(), CoreError> {
+            Err(CoreError::Unsupported("test core"))
+        }
+        fn reset(&mut self) -> Result<(), CoreError> {
+            Err(CoreError::NotInitialized)
+        }
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            Err(CoreError::NotInitialized)
+        }
+    }
+
+    fn make_incompatible_core() -> Box<dyn EmulationCore> {
+        Box::new(IncompatibleRegistryTestCore)
     }
 
     #[test]
@@ -682,6 +731,26 @@ mod tests {
         assert_eq!(first.descriptor().system_id, id);
         assert_eq!(second.descriptor().system_id, id);
         assert_eq!(after - before, 2);
+    }
+
+    #[test]
+    fn registry_rejects_incompatible_api_versions_for_every_creation_path() {
+        let id = SystemId::new("incompatible").unwrap();
+        let mut registry = CoreRegistry::new();
+        registry.register(id, make_incompatible_core).unwrap();
+
+        let expected = RegistryError::IncompatibleApiVersion {
+            required: CoreApiVersion { major: 2, minor: 0 },
+            supported: CURRENT_CORE_API_VERSION,
+        };
+        assert_eq!(registry.create(id).unwrap_err(), expected);
+        assert_eq!(
+            registry.create_from_detection(&content::ContentDetection {
+                matches: vec!["incompatible"],
+                needs_more_data: vec![],
+            }).unwrap_err(),
+            expected
+        );
     }
 
     #[test]

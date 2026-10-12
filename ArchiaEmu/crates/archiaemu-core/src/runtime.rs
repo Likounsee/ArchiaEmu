@@ -1490,14 +1490,12 @@ impl EmulationRuntime {
 
     /// Creates a fresh, initially empty session for a registered system.
     pub fn create_session(&self, id: crate::SystemId) -> Result<EmulationSession, RuntimeError> {
-        let core = self.registry.create(id)?;
-        let required = core.descriptor().api_version;
-        if !required.is_compatible_with(crate::CURRENT_CORE_API_VERSION) {
-            return Err(RuntimeError::IncompatibleApiVersion {
-                required,
-                supported: crate::CURRENT_CORE_API_VERSION,
-            });
-        }
+        let core = self.registry.create(id).map_err(|error| match error {
+            crate::RegistryError::IncompatibleApiVersion { required, supported } => {
+                RuntimeError::IncompatibleApiVersion { required, supported }
+            }
+            other => RuntimeError::Registry(other),
+        })?;
         Ok(EmulationSession::new(core))
     }
 }
