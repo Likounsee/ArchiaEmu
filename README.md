@@ -40,15 +40,17 @@ GitHub Actions runs formatting, locked tests and warning-free API documentation 
 
 ## Roadmap
 
-- **P0 — Foundations:** workspace, shared contracts, registry, CI, tests, documentation and licensing review.
-- **P1 — First console: one unified Game Boy emulator:** expose one user-facing entry named **Game Boy / Game Boy Color** and one stable system ID (`game-boy`). Detect cartridge compatibility from the ROM header and select DMG or CGB hardware behavior internally; do not ship separate DMG and CGB emulators. Validate both modes against documented behavior and lawful test ROMs before claiming compatibility.
-- **P2 — Runtime I/O:** integrate the common input state with a real host loop, then implement video presentation, audio playback and deterministic timing/synchronization.
-- **Presentation/UI:** host-side interface recreation and optional visual enhancements, implemented per system only after a real core and renderer exist.
-- **P3 — Library and saves:** content management, persistent data and validated save states.
-- **P4 — Performance:** reproducible baselines, profiling and measured optimizations.
-- **P5–P7 — Expansion and release:** second platform, more complex systems, security/legal review and reproducible packaging.
+Development priority is the **global emulator framework**, not expanding one console core. Current priorities are:
 
-Progress is measured against checked-in implementation and verified acceptance tests, not planned features or directory names.
+1. **P0 — Reliable shared runtime:** lifecycle and error semantics, module contracts and capability enforcement, generic content validation, and regression tests.
+2. **P1 — Complete launch path:** multi-session orchestration, common input/video/audio contracts, host timing, and validated persistent saves/save states.
+3. **P1 — Minimal host application:** select content and module, launch/pause/stop sessions, and surface diagnostics.
+4. **P2 — Security and diagnostics:** trusted module/catalogue handling, safe installation and recovery, structured errors, fuzzing, and dependency/package checks.
+5. **P3 — Measured quality:** conformance tests, long-run stability, reproducible benchmarks, and profiling-led optimization.
+6. **P4 — Expand systems:** add independently tested cores only after shared interfaces are stable. Game Boy remains a validation target, not the focus of the global roadmap.
+7. **P5 — UI and release:** content library, optional presentation enhancements, legal review, and reproducible packages.
+
+See [the detailed roadmap](ArchiaEmu/docs/ROADMAP.md) for current estimates, acceptance criteria and remaining work. Progress is measured against checked-in implementation and verified tests—not planned features or directory names.
 
 ## Development and legal policy
 
