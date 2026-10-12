@@ -54,6 +54,20 @@ impl From<CoreError> for SessionError {
     }
 }
 
+/// Summary of a bounded run request.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SessionRunReport {
+    /// Number of core execution calls completed by this request.
+    pub events_processed: usize,
+    /// Most recent event, if at least one execution call completed.
+    pub last_event: Option<crate::CoreEvent>,
+    /// Whether the request stopped because its execution-call budget was reached.
+    ///
+    /// This is also true for a zero budget. It does not imply that the core
+    /// reached a particular amount of emulated time.
+    pub budget_exhausted: bool,
+}
+
 /// Owns one core and enforces consistent host-facing lifecycle transitions.
 ///
 /// This type deliberately does not schedule wall-clock time, create threads,
@@ -125,6 +139,39 @@ impl EmulationSession {
             self.state = SessionState::Halted;
         }
         Ok(event)
+    }
+
+    /// Runs a bounded number of core event steps.
+    ///
+    /// The budget counts calls to `run_until_event`, not cycles or wall-clock
+    /// time. The method returns early on any event other than `Yielded`, since
+    /// such an event may require host work (media retrieval, debugging, or
+    /// stopping). A zero budget performs no core execution. As with the single
+    /// step method, the core is responsible for making each individual call
+    /// return at an observable boundary.
+    pub fn run_for_events(
+        &mut self,
+        max_events: usize,
+    ) -> Result<SessionRunReport, SessionError> {
+        self.require_state("run", SessionState::Running)?;
+        let mut report = SessionRunReport {
+            events_processed: 0,
+            last_event: None,
+            budget_exhausted: max_events == 0,
+        };
+
+        while report.events_processed < max_events {
+            let event = self.run_until_event()?;
+            report.events_processed += 1;
+            report.last_event = Some(event);
+
+            if event != CoreEvent::Yielded {
+                report.budget_exhausted = false;
+                break;
+            }
+        }
+
+        Ok(report)
     }
 
     /// Sends a semantic input transition while a loaded machine is active.
@@ -284,6 +331,65 @@ mod tests {
             .is_err());
         session.reset().unwrap();
         assert_eq!(session.state(), SessionState::Running);
+    }
+
+
+    #[test]
+    fn bounded_runner_stops_at_budget_or_host_visible_event() {
+        let mut session = session();
+        session.load_content(&[1]).unwrap();
+
+        let zero = session.run_for_events(0).unwrap();
+        assert_eq!(
+            zero,
+            SessionRunReport {
+                events_processed: 0,
+                last_event: None,
+                budget_exhausted: true,
+            }
+        );
+
+        let yielded = session.run_for_events(3).unwrap();
+        assert_eq!(yielded.events_processed, 3);
+        assert_eq!(yielded.last_event, Some(CoreEvent::Yielded));
+        assert!(yielded.budget_exhausted);
+
+        session.pause().unwrap();
+        assert!(session.run_for_events(1).is_err());
+    }
+
+    #[test]
+    fn bounded_runner_stops_on_frame_and_halt_events() {
+        let mut core = TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::FrameReady,
+        };
+        core.load_content(&[1]).unwrap();
+        let mut session = EmulationSession::new(Box::new(core));
+        session.load_content(&[1]).unwrap();
+
+        let report = session.run_for_events(100).unwrap();
+        assert_eq!(report.events_processed, 1);
+        assert_eq!(report.last_event, Some(CoreEvent::FrameReady));
+        assert!(!report.budget_exhausted);
+
+        session.reset().unwrap();
+        // This test core emits FrameReady until reset; a separate halted core
+        // verifies that a halt remains terminal even inside the bounded runner.
+        let mut halted = TestCore {
+            loaded: false,
+            calls: 0,
+            next_event: CoreEvent::Halted,
+        };
+        halted.load_content(&[1]).unwrap();
+        let mut halted_session = EmulationSession::new(Box::new(halted));
+        halted_session.load_content(&[1]).unwrap();
+        let report = halted_session.run_for_events(100).unwrap();
+        assert_eq!(report.events_processed, 1);
+        assert_eq!(report.last_event, Some(CoreEvent::Halted));
+        assert_eq!(halted_session.state(), SessionState::Halted);
+        assert!(!report.budget_exhausted);
     }
 
     #[test]
