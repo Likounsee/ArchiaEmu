@@ -397,12 +397,8 @@ impl CoreRegistry {
         }
         let id = match detection.matches.as_slice() {
             [] => return Err(RegistryError::NoDetectedFormat),
-            [format_id] => SystemId::new(format_id).map_err(|reason| {
-                RegistryError::InvalidDetectedFormat {
-                    format_id,
-                    reason,
-                }
-            })?,
+            [format_id] => SystemId::new(format_id)
+                .map_err(|reason| RegistryError::InvalidDetectedFormat { format_id, reason })?,
             candidates => {
                 return Err(RegistryError::AmbiguousDetectedFormats(candidates.len()));
             }
