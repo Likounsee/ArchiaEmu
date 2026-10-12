@@ -356,10 +356,13 @@ mod tests {
 
     #[test]
     fn rejects_a_file_that_exceeds_the_limit_by_one_byte() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-content-oversized-{}-{}.bin",
-            std::process::id(),
-            std::thread::current().name().unwrap_or("test")
+            "archiaemu-content-oversized-{}-{unique}.bin",
+            std::process::id()
         ));
         std::fs::write(&path, b"abcd").unwrap();
         let result = ContentImage::read_path(&path, ContentLimits::new(3));
