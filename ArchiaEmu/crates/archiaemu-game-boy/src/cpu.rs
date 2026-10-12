@@ -322,8 +322,8 @@ impl Cpu {
                     _ => self.registers.flag(flags::CARRY),
                 };
                 if condition {
-                    self.registers.pc = (i32::from(self.registers.pc)
-                        + i32::from(displacement)) as u16;
+                    self.registers.pc =
+                        (i32::from(self.registers.pc) + i32::from(displacement)) as u16;
                     3
                 } else {
                     2
@@ -650,12 +650,12 @@ mod execution_tests {
         cpu.registers.sp = 0xC100;
         cpu.registers.set_pair(RegisterPair::Bc, 0xBEEF);
         let mut bus = TestBus::with_program(&[
-            0xC5,             // PUSH BC
+            0xC5, // PUSH BC
             0x01, 0x00, 0x00, // LD BC,0
-            0xC1,             // POP BC
+            0xC1, // POP BC
             0xCD, 0x09, 0x00, // CALL 0x0009
-            0x00,             // return address 0x0009, then NOP
-            0xC9,             // RET
+            0x00, // return address 0x0008, then NOP
+            0xC9, // RET
         ]);
 
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
@@ -675,8 +675,7 @@ mod execution_tests {
         let mut cpu = Cpu::new();
         let mut bus = TestBus::with_program(&[
             0x18, 0x02, // JR +2: skip the next two bytes
-            0x06, 0x11,
-            0x20, 0xFC, // JR NZ,-4 (not taken because Z is set below)
+            0x06, 0x11, 0x20, 0xFC, // JR NZ,-4 (not taken because Z is set below)
         ]);
 
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
