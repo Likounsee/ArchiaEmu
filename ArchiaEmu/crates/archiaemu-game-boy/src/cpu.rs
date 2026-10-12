@@ -165,11 +165,7 @@ impl CpuRegisters {
     /// ORs an 8-bit value with A and updates flags.
     pub fn or_a(&mut self, value: u8) -> u8 {
         self.a |= value;
-        self.set_f(if self.a == 0 {
-            flags::ZERO
-        } else {
-            0
-        });
+        self.set_f(if self.a == 0 { flags::ZERO } else { 0 });
         self.a
     }
 
@@ -209,10 +205,7 @@ impl CpuRegisters {
         self.a = result;
         self.set_flag(flags::ZERO, result == 0);
         self.set_flag(flags::SUBTRACT, true);
-        self.set_flag(
-            flags::HALF_CARRY,
-            (a & 0x0F) < (value & 0x0F) + carry,
-        );
+        self.set_flag(flags::HALF_CARRY, (a & 0x0F) < (value & 0x0F) + carry);
         self.set_flag(flags::CARRY, borrow_one || borrow_two);
         result
     }
@@ -869,8 +862,7 @@ mod execution_tests {
         let mut bus = TestBus::with_program(&[
             0xC2, 0x08, 0x00, // JP NZ,0x0008 (not taken)
             0xCA, 0x08, 0x00, // JP Z,0x0008 (taken)
-            0x00, 0x00,
-            0x00,
+            0x00, 0x00, 0x00,
         ]);
 
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
