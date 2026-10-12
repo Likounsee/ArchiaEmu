@@ -36,7 +36,9 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Le détecteur de formats normalise les réponses `NeedMoreData` incohérentes des probes : une probe ne peut plus demander « plus de données » tout en indiquant une longueur déjà couverte par le préfixe. Un test vérifie les longueurs nulles, trop courtes et égales au préfixe.
 - [x] La lecture depuis un chemin vérifie d'abord la taille annoncée par les métadonnées pour rejeter rapidement les fichiers manifestement trop volumineux; la lecture en flux reste bornée à la limite + 1 octet afin de couvrir les métadonnées obsolètes et les fichiers qui grandissent pendant la lecture.
 - [x] Exposer le pipeline de lancement borné pour les entrées réelles : `launch_content_path` lit un fichier sous limite, `launch_content_reader` lit un flux sous limite, puis les deux réutilisent la même détection et la même validation par le cœur que `launch_content`.
-- [x] Ajouter les tests d'intégration du lancement depuis chemin et flux pour la détection réussie et le dépassement de limite; les tests sont écrits mais restent à exécuter via les outils de validation du dépôt. [ ] Étendre l'intégration aux formats inconnus/ambigus et au rejet par le cœur via les nouvelles entrées, puis exécuter la suite avant de considérer ce pipeline validé.
+- [x] Couvrir le lancement borné depuis chemin et flux : détection réussie, dépassement de limite, détection ambiguë, rejet par le cœur, signature tronquée et contenu vide. Les tests vérifient que les erreurs sont propagées au lieu de sélectionner arbitrairement un format ou de démarrer une session invalide.
+- [x] Vérifier la propagation des erreurs de lecture des sources : chemin absent (NotFound) et flux en échec (PermissionDenied), sans exposer de contenu partiellement lu.
+- [ ] Exécuter et valider cette couverture sur toutes les plateformes CI prises en charge avant de clôturer P0.3.
 
 
 ### P0.1 — Cycle de vie de session
