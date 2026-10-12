@@ -275,8 +275,9 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
                 "execution currently supports ROM-only cartridges (mapper 0)",
             ));
         }
-        let required_size = expected_rom_size(header.rom_size_code)
-            .ok_or(archiaemu_core::CoreError::InvalidContent("invalid ROM size code"))?;
+        let required_size = expected_rom_size(header.rom_size_code).ok_or(
+            archiaemu_core::CoreError::InvalidContent("invalid ROM size code"),
+        )?;
         if self.image.as_ref().map_or(0, Vec::len) < required_size {
             return Err(archiaemu_core::CoreError::InvalidContent(
                 "ROM image is shorter than its declared size",
