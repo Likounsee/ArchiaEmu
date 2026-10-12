@@ -45,12 +45,15 @@ pub struct ModuleManagerState {
 pub enum ModuleStateError {
     /// An installed package must have a non-empty version string.
     EmptyVersion,
+    /// A batch contains the same module more than once.
+    DuplicateModuleInBatch(ModuleId),
 }
 
 impl fmt::Display for ModuleStateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyVersion => f.write_str("installed module version cannot be empty"),
+            Self::DuplicateModuleInBatch(id) => write!(f, "module '{id}' occurs more than once in the state update"),
         }
     }
 }
@@ -144,6 +147,56 @@ impl ModuleManagerState {
             self.installed_modules.push(InstalledModule { id, version });
         }
         Ok(())
+    }
+
+    /// Records several verified and activated package versions as one in-memory operation.
+    ///
+    /// All input is validated before the state changes: an empty version or duplicate
+    /// module ID leaves the complete installed-module list untouched. Existing records
+    /// retain their position; new records are appended in input order. The caller must
+    /// activate every package on disk before invoking this method.
+    pub fn record_installed_batch(
+        &mut self,
+        packages: impl IntoIterator<Item = (ModuleId, String)>,
+    ) -> Result<(), ModuleStateError> {
+        let packages: Vec<(ModuleId, String)> = packages.into_iter().collect();
+        let mut seen = std::collections::HashSet::with_capacity(packages.len());
+        for (id, version) in &packages {
+            if version.trim().is_empty() {
+                return Err(ModuleStateError::EmptyVersion);
+            }
+            if !seen.insert(id.clone()) {
+                return Err(ModuleStateError::DuplicateModuleInBatch(id.clone()));
+            }
+        }
+
+        for (id, version) in packages {
+            if let Some(existing) = self
+                .installed_modules
+                .iter_mut()
+                .find(|module| module.id == id)
+            {
+                existing.version = version;
+            } else {
+                self.installed_modules.push(InstalledModule { id, version });
+            }
+        }
+        Ok(())
+    }
+
+    /// Removes multiple installed-package records after all corresponding files were removed.
+    ///
+    /// IDs absent from the installed list are ignored. The caller is responsible for
+    /// validating dependency safety and completing filesystem removal before this call.
+    /// The returned count is the number of records removed.
+    pub fn record_uninstalled_batch(
+        &mut self,
+        ids: impl IntoIterator<Item = ModuleId>,
+    ) -> usize {
+        let ids: std::collections::HashSet<ModuleId> = ids.into_iter().collect();
+        let before = self.installed_modules.len();
+        self.installed_modules.retain(|module| !ids.contains(&module.id));
+        before - self.installed_modules.len()
     }
 
     /// Removes an installed-package record after successful on-disk removal.
