@@ -479,7 +479,7 @@ mod tests {
     }
 
     #[test]
-    fn module_validates_rom_but_does_not_claim_execution_support() {
+    fn module_validates_rom_and_executes_the_first_instruction() {
         let mut core = GameBoyCore::new();
         assert_eq!(
             archiaemu_core::EmulationCore::run_until_event(&mut core),
@@ -492,10 +492,25 @@ mod tests {
             core.cartridge_header().unwrap().cartridge_type,
             image[0x147]
         );
+        archiaemu_core::EmulationCore::reset(&mut core).unwrap();
         assert_eq!(
             archiaemu_core::EmulationCore::run_until_event(&mut core),
+            Ok(archiaemu_core::CoreEvent::Yielded)
+        );
+        assert_eq!(core.cpu.registers.pc, 0x0101);
+    }
+
+    #[test]
+    fn execution_rejects_unimplemented_cartridge_mappers() {
+        let mut core = GameBoyCore::new();
+        let mut image = valid_image();
+        image[0x147] = 0x01;
+        image[0x14D] = header_checksum(&image);
+        archiaemu_core::EmulationCore::load_content(&mut core, &image).unwrap();
+        assert_eq!(
+            archiaemu_core::EmulationCore::reset(&mut core),
             Err(archiaemu_core::CoreError::Unsupported(
-                "Game Boy CPU execution is not implemented yet"
+                "execution currently supports ROM-only cartridges (mapper 0)"
             ))
         );
     }
