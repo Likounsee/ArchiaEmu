@@ -117,6 +117,104 @@ const fn is_valid_rom_size_code(code: u8) -> bool {
     matches!(code, 0x00..=0x08 | 0x52..=0x54)
 }
 
+
+/// Stable identifier for the original monochrome Game Boy (DMG) module.
+pub const SYSTEM_ID: &str = "game-boy-dmg";
+
+/// A module adapter that exposes Game Boy cartridge inspection through the
+/// shared ArchiaEmu core contract.
+///
+/// This is intentionally not advertised as a functioning emulator yet:
+/// CPU execution, memory mapping, video, audio, interrupts, and input remain
+/// unimplemented. The adapter accepts and validates a ROM for inspection, but
+/// execution methods return an explicit unsupported error.
+pub struct GameBoyDmgCore {
+    image: Option<Vec<u8>>,
+    header: Option<CartridgeHeader>,
+}
+
+impl GameBoyDmgCore {
+    /// Creates an uninitialized Game Boy DMG module instance.
+    pub const fn new() -> Self {
+        Self {
+            image: None,
+            header: None,
+        }
+    }
+
+    /// Returns validated cartridge metadata after content has been loaded.
+    pub const fn cartridge_header(&self) -> Option<&CartridgeHeader> {
+        self.header.as_ref()
+    }
+}
+
+impl Default for GameBoyDmgCore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl archiaemu_core::EmulationCore for GameBoyDmgCore {
+    fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
+        archiaemu_core::CoreDescriptor {
+            system_id: archiaemu_core::SystemId::new(SYSTEM_ID)
+                .expect("the built-in Game Boy system ID is valid"),
+            display_name: "Nintendo Game Boy (DMG)",
+            core_version: env!("CARGO_PKG_VERSION"),
+            // Do not advertise execution capabilities before they exist.
+            capabilities: archiaemu_core::CoreCapabilities::default(),
+        }
+    }
+
+    fn load_content(&mut self, content: &[u8]) -> Result<(), archiaemu_core::CoreError> {
+        let header = CartridgeHeader::parse(content).map_err(|_| {
+            archiaemu_core::CoreError::InvalidContent("invalid Game Boy cartridge header")
+        })?;
+        // Commit state only after validation succeeds, preserving any previously
+        // loaded image if the caller supplies malformed replacement content.
+        self.image = Some(content.to_vec());
+        self.header = Some(header);
+        Ok(())
+    }
+
+    fn reset(&mut self) -> Result<(), archiaemu_core::CoreError> {
+        if self.image.is_none() {
+            return Err(archiaemu_core::CoreError::NotInitialized);
+        }
+        Err(archiaemu_core::CoreError::Unsupported(
+            "Game Boy CPU execution is not implemented yet",
+        ))
+    }
+
+    fn run_until_event(&mut self) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
+        if self.image.is_none() {
+            return Err(archiaemu_core::CoreError::NotInitialized);
+        }
+        Err(archiaemu_core::CoreError::Unsupported(
+            "Game Boy CPU execution is not implemented yet",
+        ))
+    }
+}
+
+/// Registers the Game Boy DMG module with the shared core registry.
+///
+/// Registration makes the module discoverable, but does not imply that game
+/// execution is implemented. The descriptor deliberately reports no execution
+/// capabilities until the corresponding hardware components are complete.
+pub fn register_game_boy(
+    registry: &mut archiaemu_core::CoreRegistry,
+) -> Result<(), archiaemu_core::RegistryError> {
+    registry.register(
+        archiaemu_core::SystemId::new(SYSTEM_ID)
+            .expect("the built-in Game Boy system ID is valid"),
+        create_game_boy_core,
+    )
+}
+
+fn create_game_boy_core() -> Box<dyn archiaemu_core::EmulationCore> {
+    Box::new(GameBoyDmgCore::new())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
