@@ -7,8 +7,8 @@
 //! callers must provide a reviewed Ed25519 (or stronger approved) implementation.
 //! The test verifier below is not cryptographic and must never be used in production.
 
-use core::fmt;
 use crate::module_manifest::{ManifestError, ModuleManifest};
+use core::fmt;
 
 /// Signed bytes and detached signature received from a catalogue publisher.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -27,8 +27,12 @@ pub trait ManifestSignatureVerifier {
     ///
     /// Implementations must use a reviewed cryptographic library, reject malformed
     /// keys/signatures, and return success only for a valid signature.
-    fn verify(&self, public_key: &[u8], payload: &[u8], signature: &[u8])
-        -> Result<(), SignatureVerificationError>;
+    fn verify(
+        &self,
+        public_key: &[u8],
+        payload: &[u8],
+        signature: &[u8],
+    ) -> Result<(), SignatureVerificationError>;
 }
 
 /// Signature provider rejected the key or signature.
@@ -71,17 +75,28 @@ pub enum ManifestTrustError {
     /// Parsed manifest failed structural validation.
     InvalidManifest(ManifestError),
     /// Manifest revision is not newer than the previously accepted revision.
-    RevisionRollback { received: u64, highest_accepted: u64 },
+    RevisionRollback {
+        received: u64,
+        highest_accepted: u64,
+    },
 }
 impl fmt::Display for ManifestTrustError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UntrustedKey(id) => write!(f, "manifest signing key '{id}' is not trusted"),
-            Self::InvalidTrustConfiguration => f.write_str("trusted manifest keys contain an empty or duplicate key ID"),
+            Self::InvalidTrustConfiguration => {
+                f.write_str("trusted manifest keys contain an empty or duplicate key ID")
+            },
             Self::InvalidSignature => f.write_str("manifest signature is invalid"),
             Self::InvalidPayload => f.write_str("signed manifest payload could not be parsed"),
             Self::InvalidManifest(error) => write!(f, "signed manifest is structurally invalid: {error}"),
-            Self::RevisionRollback { received, highest_accepted } => write!(f, "manifest revision {received} is not newer than accepted revision {highest_accepted}"),
+            Self::RevisionRollback {
+                received,
+                highest_accepted,
+            } => write!(
+                f,
+                "manifest revision {received} is not newer than accepted revision {highest_accepted}"
+            ),
         }
     }
 }
@@ -89,8 +104,10 @@ impl std::error::Error for ManifestTrustError {}
 
 impl ManifestTrustPolicy {
     /// Creates a trust policy from application-pinned keys and a persisted revision floor.
-    pub fn new(trusted_keys: Vec<TrustedManifestKey>, highest_accepted_revision: u64)
-        -> Result<Self, ManifestTrustError>
+    pub fn new(
+        trusted_keys: Vec<TrustedManifestKey>,
+        highest_accepted_revision: u64,
+    ) -> Result<Self, ManifestTrustError>
     {
         for (index, key) in trusted_keys.iter().enumerate() {
             if key.key_id.trim().is_empty()
@@ -100,7 +117,10 @@ impl ManifestTrustPolicy {
                 return Err(ManifestTrustError::InvalidTrustConfiguration);
             }
         }
-        Ok(Self { trusted_keys, highest_accepted_revision })
+        Ok(Self {
+            trusted_keys,
+            highest_accepted_revision,
+        })
     }
 
     /// Returns the highest manifest revision previously accepted by this policy.
@@ -123,15 +143,18 @@ impl ManifestTrustPolicy {
         V: ManifestSignatureVerifier,
         F: FnOnce(&[u8]) -> Result<ModuleManifest, ()>,
     {
-        let key = self.trusted_keys.iter()
+        let key = self
+            .trusted_keys
+            .iter()
             .find(|key| key.key_id == envelope.key_id)
             .ok_or_else(|| ManifestTrustError::UntrustedKey(envelope.key_id.clone()))?;
 
-        verifier.verify(&key.public_key, &envelope.payload, &envelope.signature)
+        verifier
+            .verify(&key.public_key, &envelope.payload, &envelope.signature)
             .map_err(|_| ManifestTrustError::InvalidSignature)?;
 
-        let manifest = parse_verified_payload(&envelope.payload)
-            .map_err(|_| ManifestTrustError::InvalidPayload)?;
+        let manifest =
+            parse_verified_payload(&envelope.payload).map_err(|_| ManifestTrustError::InvalidPayload)?;
         manifest.validate().map_err(ManifestTrustError::InvalidManifest)?;
 
         if manifest.revision <= self.highest_accepted_revision {
@@ -148,13 +171,20 @@ impl ManifestTrustPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::module_manifest::{ManifestModule, ModuleManifest, ReleaseVersion, TargetArch, TargetOs, ModuleTarget, PackageArtifact};
+    use crate::module_manifest::{
+        ManifestModule, ModuleManifest, ModuleTarget, PackageArtifact, ReleaseVersion, TargetArch,
+        TargetOs,
+};
     use crate::module_management::{ModuleId, ModuleReadiness};
 
     struct TestVerifier;
     impl ManifestSignatureVerifier for TestVerifier {
-        fn verify(&self, public_key: &[u8], payload: &[u8], signature: &[u8])
-            -> Result<(), SignatureVerificationError>
+        fn verify(
+            &self,
+            public_key: &[u8],
+            payload: &[u8],
+            signature: &[u8],
+        ) -> Result<(), SignatureVerificationError>
         {
             // Test-only deterministic sentinel. This is NOT a cryptographic signature.
             if public_key == b"test-public-key" && signature == payload {
@@ -188,20 +218,31 @@ mod tests {
     }
 
     fn policy(revision: u64) -> ManifestTrustPolicy {
-        ManifestTrustPolicy::new(vec![TrustedManifestKey {
-            key_id: "release".into(), public_key: b"test-public-key".to_vec()
-        }], revision).unwrap()
+        ManifestTrustPolicy::new(
+            vec![TrustedManifestKey {
+                key_id: "release".into(),
+                public_key: b"test-public-key".to_vec(),
+            }],
+            revision,
+        )
+        .unwrap()
     }
 
     fn envelope(revision: u64) -> SignedManifestEnvelope {
         let payload = revision.to_string().into_bytes();
-        SignedManifestEnvelope { key_id: "release".into(), signature: payload.clone(), payload }
+        SignedManifestEnvelope {
+            key_id: "release".into(),
+            signature: payload.clone(),
+            payload,
+        }
     }
 
     #[test]
     fn verifies_before_parsing_and_advances_revision_floor() {
         let mut trust = policy(0);
-        let parsed = trust.verify_and_parse(&envelope(1), &TestVerifier, |_| Ok(manifest(1))).unwrap();
+        let parsed = trust
+            .verify_and_parse(&envelope(1), &TestVerifier, |_| Ok(manifest(1)))
+            .unwrap();
         assert_eq!(parsed.revision, 1);
         assert_eq!(trust.highest_accepted_revision(), 1);
     }
@@ -211,24 +252,42 @@ mod tests {
         let mut trust = policy(0);
         let mut unknown = envelope(1);
         unknown.key_id = "untrusted".into();
-        assert!(matches!(trust.verify_and_parse(&unknown, &TestVerifier, |_| panic!("must not parse")), Err(ManifestTrustError::UntrustedKey(_))));
+        assert!(matches!(
+            trust.verify_and_parse(&unknown, &TestVerifier, |_| panic!("must not parse")),
+            Err(ManifestTrustError::UntrustedKey(_))
+        ));
 
         let mut invalid = envelope(1);
         invalid.signature = b"tampered".to_vec();
-        assert!(matches!(trust.verify_and_parse(&invalid, &TestVerifier, |_| panic!("must not parse")), Err(ManifestTrustError::InvalidSignature)));
+        assert!(matches!(
+            trust.verify_and_parse(&invalid, &TestVerifier, |_| panic!("must not parse")),
+            Err(ManifestTrustError::InvalidSignature)
+        ));
     }
 
     #[test]
     fn rejects_rollback_and_invalid_parsed_manifest() {
         let mut trust = policy(4);
-        assert!(matches!(trust.verify_and_parse(&envelope(4), &TestVerifier, |_| Ok(manifest(4))), Err(ManifestTrustError::RevisionRollback { .. })));
-        assert!(matches!(trust.verify_and_parse(&envelope(5), &TestVerifier, |_| Ok(manifest(0))), Err(ManifestTrustError::InvalidManifest(_))));
+        assert!(matches!(
+            trust.verify_and_parse(&envelope(4), &TestVerifier, |_| Ok(manifest(4))),
+            Err(ManifestTrustError::RevisionRollback { .. })
+        ));
+        assert!(matches!(
+            trust.verify_and_parse(&envelope(5), &TestVerifier, |_| Ok(manifest(0))),
+            Err(ManifestTrustError::InvalidManifest(_))
+        ));
         assert_eq!(trust.highest_accepted_revision(), 4);
     }
 
     #[test]
     fn rejects_duplicate_trusted_key_ids() {
-        let key = TrustedManifestKey { key_id: "release".into(), public_key: vec![1] };
-        assert!(matches!(ManifestTrustPolicy::new(vec![key.clone(), key], 0), Err(ManifestTrustError::InvalidTrustConfiguration)));
+        let key = TrustedManifestKey {
+            key_id: "release".into(),
+            public_key: vec![1],
+        };
+        assert!(matches!(
+            ManifestTrustPolicy::new(vec![key.clone(), key], 0),
+            Err(ManifestTrustError::InvalidTrustConfiguration)
+        ));
     }
 }
