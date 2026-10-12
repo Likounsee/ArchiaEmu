@@ -8,7 +8,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
-| **P0** | Fiabilité du runtime commun | 82 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
+| **P0** | Fiabilité du runtime commun | 83 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 77 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 85 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
@@ -27,6 +27,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 - [x] Supprimer les fichiers temporaires lorsqu'une suppression de sauvegarde ou un renommage primaire-vers-backup échoue; un test de régression force l'échec de suppression de la sauvegarde et vérifie la préservation du primaire ainsi que l'absence de fichier temporaire orphelin.
 - [x] Tester la récupération depuis une sauvegarde valide lorsque le fichier primaire dépasse la limite de 4 Mio; le test vérifie que l'état de secours est retourné et que le fichier primaire rejeté n'est pas supprimé silencieusement.
+- [x] Le décodeur d'état indexe les identifiants sélectionnés et installés avec des ensembles de hachage pour détecter les doublons sans rescanner les enregistrements déjà lus, tout en conservant l'ordre d'encodage et les erreurs de format dédiées.
 - [ ] Tester les autres pannes d'E/S du remplacement (échec du renommage temporaire, restauration de secours et synchronisation du répertoire) sur les plateformes CI prises en charge; ne pas considérer les échecs de synchronisation comme validés tant qu'ils ne sont pas observables et testés.
 
 ## P0 — rendre le runtime commun fiable
