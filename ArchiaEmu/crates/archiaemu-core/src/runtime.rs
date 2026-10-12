@@ -5,7 +5,7 @@
 
 use core::fmt;
 
-use crate::core_io::{AudioBuffer, InputEvent, VideoFrame};
+use crate::core_io::{AudioBuffer, InputControl, InputEvent, InputState, VideoFrame};
 use crate::{CoreDescriptor, CoreError, CoreEvent, EmulationCore};
 
 /// Observable lifecycle state of an emulation session.
@@ -76,6 +76,7 @@ pub struct SessionRunReport {
 pub struct EmulationSession {
     core: Box<dyn EmulationCore>,
     state: SessionState,
+    input_state: InputState,
 }
 
 impl EmulationSession {
@@ -84,6 +85,7 @@ impl EmulationSession {
         Self {
             core,
             state: SessionState::Empty,
+            input_state: InputState::new(),
         }
     }
 
@@ -103,6 +105,7 @@ impl EmulationSession {
     /// are required to validate content before mutating machine state.
     pub fn load_content(&mut self, content: &[u8]) -> Result<(), SessionError> {
         self.core.load_content(content)?;
+        self.input_state = InputState::new();
         self.state = SessionState::Running;
         Ok(())
     }
@@ -127,6 +130,7 @@ impl EmulationSession {
             return Err(self.invalid_transition("reset"));
         }
         self.core.reset()?;
+        self.input_state = InputState::new();
         self.state = SessionState::Running;
         Ok(())
     }
@@ -179,8 +183,41 @@ impl EmulationSession {
         if !matches!(self.state, SessionState::Running | SessionState::Paused) {
             return Err(self.invalid_transition("send input"));
         }
+        if self.input_state.is_pressed(event.control) == event.pressed {
+            return Ok(());
+        }
         self.core.send_input(event)?;
+        self.input_state.apply(event);
         Ok(())
+    }
+
+    /// Releases every held control in a deterministic order.
+    ///
+    /// Hosts should call this when application focus is lost or a controller
+    /// disconnects. Successfully released controls are removed from the local
+    /// state immediately; if a core rejects a release, that control remains
+    /// marked as held so the host can retry.
+    pub fn release_all_inputs(&mut self) -> Result<(), SessionError> {
+        if !matches!(self.state, SessionState::Running | SessionState::Paused) {
+            return Err(self.invalid_transition("release inputs"));
+        }
+
+        for control in InputControl::ALL {
+            if self.input_state.is_pressed(control) {
+                let event = InputEvent {
+                    control,
+                    pressed: false,
+                };
+                self.core.send_input(event)?;
+                self.input_state.apply(event);
+            }
+        }
+        Ok(())
+    }
+
+    /// Returns whether a semantic control is currently held by this session.
+    pub const fn is_input_pressed(&self, control: InputControl) -> bool {
+        self.input_state.is_pressed(control)
     }
 
     /// Retrieves the next video frame from a loaded session, if one is waiting.
