@@ -253,6 +253,37 @@ mod tests {
         let _ = fs::remove_file(&path);
         let _ = fs::remove_file(backup_path(&path));
     }
+    
+    #[test]
+    fn load_recovers_after_interruption_between_backup_and_primary_install() {
+        let path = temp_path();
+        let store = SaveStateStore::new(&path);
+        let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
+        let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![4, 5, 6]).unwrap();
+
+        store.save(&original).unwrap();
+
+        // Model a process interruption after the old primary was moved to the
+        // backup but before the synced replacement temporary file was installed.
+        let backup = backup_path(&path);
+        fs::rename(&path, &backup).unwrap();
+        let interrupted_temp = path.with_extension(format!(
+            "tmp-{}-interrupted",
+            std::process::id()
+        ));
+        fs::write(&interrupted_temp, replacement.encode()).unwrap();
+
+        assert_eq!(store.load().unwrap(), original);
+        assert_eq!(
+            fs::read(&interrupted_temp).unwrap(),
+            replacement.encode(),
+            "recovery must not promote an uncommitted temporary file"
+        );
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(&backup);
+        let _ = fs::remove_file(&interrupted_temp);
+    }
 
     #[test]
     fn load_recovers_from_backup_when_primary_is_oversized() {
