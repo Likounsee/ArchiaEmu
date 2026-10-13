@@ -12,7 +12,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Chargement et validation du contenu | 100 % | Pipeline commun borné, validation de tous les formats actuellement enregistrés et contrat d'intégration hôte |
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 35 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
-| **P1** | Entrées, sorties et horloge hôte | 30 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
+| **P1** | Entrées, sorties et horloge hôte | 40 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
 | **P1** | Frontend minimal du framework | 0 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
@@ -115,14 +115,14 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtime.rs`; l'identité de contenu persistante et le catalogue hôte restent à intégrer.
 
-### P1.2 — Entrées, vidéo, audio et cadence
-- [ ] Stabiliser des contrats d'entrée génériques, y compris la perte de focus et la libération de toutes les commandes.
-- [x] Définir les trames vidéo avec dimensions, stride explicite, format de pixel et propriété/durée de vie du tampon explicites; les trames RGBA acceptent les lignes rembourrées avec validation de taille.
-- [ ] Définir des blocs audio avec fréquence, canaux, format d'échantillon et règles de propriété explicites.
-- [ ] Séparer horloge/cadence d'émulation et horloge de présentation hôte.
-- [ ] Gérer pause, reprise, arrêt, retard de l'hôte et files pleines sans blocage indéfini.
-- [ ] Tester tailles invalides, buffers vides, cadence irrégulière et back-pressure. Les tests couvrent maintenant le dépassement de taille vidéo en arithmétique et le tampon audio vide à zéro frame.
-- [ ] Conserver les interfaces sans dépendance obligatoire à une bibliothèque graphique ou audio unique.
+### P1.2 — Entrées, vidéo, audio et cadence — 40 %
+- [x] Contrats d'entrée génériques avec transitions dédupliquées et libération de toutes les commandes à la perte de focus/déconnexion.
+- [x] Trames vidéo avec dimensions, stride explicite, format de pixel et propriété du tampon; lignes rembourrées et tailles incohérentes testées.
+- [x] Blocs audio PCM signés 16 bits entrelacés avec fréquence, canaux et nombre de frames validés.
+- [x] Accumulateur de cadence à fréquence fixe indépendant de l'acquisition de l'horloge hôte; temps fractionnaire conservé et rattrapage borné après retard.
+- [ ] Relier la cadence au cycle de vie des sessions (pause/reprise/arrêt) et définir la politique de back-pressure des files audio/vidéo.
+- [x] Tests des tailles invalides, du débordement de taille vidéo, du tampon audio incomplet/vide et des retards de cadence.
+- [x] Interfaces indépendantes d'une bibliothèque graphique ou audio particulière.
 
 ### P1.3 — Sauvegardes et restauration
 - [ ] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur.
