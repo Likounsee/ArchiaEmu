@@ -772,10 +772,8 @@ mod tests {
     }
     #[test]
     fn library_entry_selection_is_one_based_and_out_of_range_is_rejected() {
-        let directory = std::env::temp_dir().join(format!(
-            "archiaemu-app-library-{}",
-            std::process::id()
-        ));
+        let directory =
+            std::env::temp_dir().join(format!("archiaemu-app-library-{}", std::process::id()));
         std::fs::create_dir(&directory).unwrap();
         let first = directory.join("first.gb");
         let second = directory.join("second.gb");
