@@ -274,7 +274,11 @@ impl eframe::App for DesktopApp {
                     ui.label("Your library, sessions and emulator tools in one place.");
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.label(if self.dark_mode { "◐ Dark" } else { "☼ Light" });
+                    ui.label(if self.dark_mode {
+                        "◐ Dark"
+                    } else {
+                        "☼ Light"
+                    });
                     ui.label(format!(
                         "{} session(s)",
                         self.controller.host().session_count()
@@ -315,9 +319,21 @@ impl DesktopApp {
 
         ui.columns(3, |columns| {
             let cards = [
-                ("LIBRARY", self.controller.library().len().to_string(), "Imported items"),
-                ("SESSIONS", self.controller.host().session_count().to_string(), "Open sessions"),
-                ("SYSTEMS", self.registry.system_ids().count().to_string(), "Registered cores"),
+                (
+                    "LIBRARY",
+                    self.controller.library().len().to_string(),
+                    "Imported items",
+                ),
+                (
+                    "SESSIONS",
+                    self.controller.host().session_count().to_string(),
+                    "Open sessions",
+                ),
+                (
+                    "SYSTEMS",
+                    self.registry.system_ids().count().to_string(),
+                    "Registered cores",
+                ),
             ];
             for (column, (title, value, detail)) in columns.iter_mut().zip(cards) {
                 egui::Frame::group(column.style()).show(column, |ui| {
@@ -360,33 +376,47 @@ impl DesktopApp {
                 }
             });
         });
-        let entries: Vec<_> = self.controller.library().entries().map(|entry| {
-            (entry.title().to_owned(), entry.path().to_path_buf(), entry.size_bytes())
-        }).collect();
+        let entries: Vec<_> = self
+            .controller
+            .library()
+            .entries()
+            .map(|entry| {
+                (
+                    entry.title().to_owned(),
+                    entry.path().to_path_buf(),
+                    entry.size_bytes(),
+                )
+            })
+            .collect();
         if entries.is_empty() {
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.label("Your library is empty.");
                 ui.label("Use Browse or paste a ROM path above to get started.");
             });
         } else {
-            egui::ScrollArea::vertical().max_height(210.0).show(ui, |ui| {
-                for (title, path, size) in entries.iter().take(5) {
-                    ui.horizontal(|ui| {
-                        ui.label("▣");
-                        ui.vertical(|ui| {
-                            ui.label(title);
-                            ui.small(format!("{} · {} bytes", path.display(), size));
+            egui::ScrollArea::vertical()
+                .max_height(210.0)
+                .show(ui, |ui| {
+                    for (title, path, size) in entries.iter().take(5) {
+                        ui.horizontal(|ui| {
+                            ui.label("▣");
+                            ui.vertical(|ui| {
+                                ui.label(title);
+                                ui.small(format!("{} · {} bytes", path.display(), size));
+                            });
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.button("Launch").clicked() {
+                                        self.content_path = path.display().to_string();
+                                        self.launch_content();
+                                    }
+                                },
+                            );
                         });
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.button("Launch").clicked() {
-                                self.content_path = path.display().to_string();
-                                self.launch_content();
-                            }
-                        });
-                    });
-                    ui.separator();
-                }
-            });
+                        ui.separator();
+                    }
+                });
         }
 
         ui.add_space(12.0);
@@ -407,7 +437,10 @@ impl DesktopApp {
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.heading("Your games");
-                ui.label(format!("{} item(s) in your library", self.controller.library().len()));
+                ui.label(format!(
+                    "{} item(s) in your library",
+                    self.controller.library().len()
+                ));
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("＋ Add content").clicked() {
@@ -428,15 +461,30 @@ impl DesktopApp {
         });
         ui.add_space(8.0);
         let query = self.library_filter.trim().to_lowercase();
-        let entries: Vec<_> = self.controller.library().entries().map(|entry| {
-            (entry.title().to_owned(), entry.path().to_path_buf(), entry.size_bytes())
-        }).filter(|(title, path, _)| {
-            query.is_empty() || title.to_lowercase().contains(&query)
-                || path.display().to_string().to_lowercase().contains(&query)
-        }).collect();
+        let entries: Vec<_> = self
+            .controller
+            .library()
+            .entries()
+            .map(|entry| {
+                (
+                    entry.title().to_owned(),
+                    entry.path().to_path_buf(),
+                    entry.size_bytes(),
+                )
+            })
+            .filter(|(title, path, _)| {
+                query.is_empty()
+                    || title.to_lowercase().contains(&query)
+                    || path.display().to_string().to_lowercase().contains(&query)
+            })
+            .collect();
         if entries.is_empty() {
             egui::Frame::group(ui.style()).show(ui, |ui| {
-                ui.heading(if query.is_empty() { "Nothing here yet" } else { "No matching games" });
+                ui.heading(if query.is_empty() {
+                    "Nothing here yet"
+                } else {
+                    "No matching games"
+                });
                 ui.label(if query.is_empty() {
                     "Import a ROM file to start building your collection."
                 } else {
@@ -457,24 +505,31 @@ impl DesktopApp {
                                 ui.label(format!("{} bytes", size));
                                 ui.small(path.display().to_string());
                             });
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if ui.button("Forget").clicked() {
-                                    match self.controller.forget_content(&path) {
-                                        Ok(_) => {
-                                            self.message = format!("Removed {} from library.", title);
-                                            self.save_preferences();
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.button("Forget").clicked() {
+                                        match self.controller.forget_content(&path) {
+                                            Ok(_) => {
+                                                self.message =
+                                                    format!("Removed {} from library.", title);
+                                                self.save_preferences();
+                                            }
+                                            Err(error) => {
+                                                self.message =
+                                                    format!("Could not forget content: {error}")
+                                            }
                                         }
-                                        Err(error) => self.message = format!("Could not forget content: {error}"),
                                     }
-                                }
-                                if ui.button("Launch").clicked() {
-                                    self.content_path = path.display().to_string();
-                                    self.launch_content();
-                                }
-                                if ui.button("Use path").clicked() {
-                                    self.content_path = path.display().to_string();
-                                }
-                            });
+                                    if ui.button("Launch").clicked() {
+                                        self.content_path = path.display().to_string();
+                                        self.launch_content();
+                                    }
+                                    if ui.button("Use path").clicked() {
+                                        self.content_path = path.display().to_string();
+                                    }
+                                },
+                            );
                         });
                     });
                 }
@@ -521,7 +576,10 @@ impl DesktopApp {
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal(|ui| {
                     let selected = self.controller.active_session() == Some(id);
-                    if ui.selectable_label(selected, format!("Session {}", id.get())).clicked() {
+                    if ui
+                        .selectable_label(selected, format!("Session {}", id.get()))
+                        .clicked()
+                    {
                         if let Err(error) = self.controller.select_session(id) {
                             self.message = error.to_string();
                         }
@@ -553,7 +611,10 @@ impl DesktopApp {
                     }
                 });
                 if let Some(error) = active_error {
-                    ui.colored_label(egui::Color32::LIGHT_RED, format!("Last core error: {error}"));
+                    ui.colored_label(
+                        egui::Color32::LIGHT_RED,
+                        format!("Last core error: {error}"),
+                    );
                 }
             });
         }
@@ -571,12 +632,27 @@ impl DesktopApp {
                     ui.small(id.as_str());
                     ui.separator();
                     ui.columns(3, |columns| {
-                        columns[0].label(format!("Content loading: {}", capability_label(caps.content_loading)));
+                        columns[0].label(format!(
+                            "Content loading: {}",
+                            capability_label(caps.content_loading)
+                        ));
                         columns[0].label(format!("Input: {}", capability_label(caps.input)));
-                        columns[1].label(format!("Video output: {}", capability_label(caps.video_output)));
-                        columns[1].label(format!("Audio output: {}", capability_label(caps.audio_output)));
-                        columns[2].label(format!("Save states: {}", capability_label(caps.save_states)));
-                        columns[2].label(format!("Persistent saves: {}", capability_label(caps.persistent_saves)));
+                        columns[1].label(format!(
+                            "Video output: {}",
+                            capability_label(caps.video_output)
+                        ));
+                        columns[1].label(format!(
+                            "Audio output: {}",
+                            capability_label(caps.audio_output)
+                        ));
+                        columns[2].label(format!(
+                            "Save states: {}",
+                            capability_label(caps.save_states)
+                        ));
+                        columns[2].label(format!(
+                            "Persistent saves: {}",
+                            capability_label(caps.persistent_saves)
+                        ));
                     });
                 });
             }
@@ -585,7 +661,9 @@ impl DesktopApp {
 
     fn show_settings(&mut self, ui: &mut egui::Ui) {
         ui.heading("Appearance");
-        ui.label("These options change the host interface only; they never change emulated hardware.");
+        ui.label(
+            "These options change the host interface only; they never change emulated hardware.",
+        );
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.checkbox(&mut self.dark_mode, "Use dark theme");
             ui.add(
@@ -609,7 +687,11 @@ impl DesktopApp {
 }
 
 fn capability_label(enabled: bool) -> &'static str {
-    if enabled { "Available" } else { "Not implemented" }
+    if enabled {
+        "Available"
+    } else {
+        "Not implemented"
+    }
 }
 
 struct SavedPreferences {
