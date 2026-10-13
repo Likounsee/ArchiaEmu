@@ -384,6 +384,9 @@ impl eframe::App for DesktopApp {
                         .selectable_label(selected, format!("{glyph}   {label}"))
                         .clicked()
                     {
+                        if self.active_page == DesktopPage::Game && page != DesktopPage::Game {
+                            self.release_game_inputs();
+                        }
                         self.active_page = page;
                     }
                 }
@@ -1138,8 +1141,18 @@ impl DesktopApp {
                         .selectable_label(selected, format!("Session {}", id.get()))
                         .clicked()
                     {
-                        if let Err(error) = self.controller.select_session(id) {
-                            self.message = error.to_string();
+                        if self.controller.active_session() != Some(id) {
+                            self.release_game_inputs();
+                            match self.controller.select_session(id) {
+                                Ok(()) => {
+                                    self.frame_cadence.reset();
+                                    self.frame_texture = None;
+                                    self.video_size = None;
+                                    self.last_tick = Instant::now();
+                                    self.active_page = DesktopPage::Game;
+                                }
+                                Err(error) => self.message = error.to_string(),
+                            }
                         }
                     }
                     ui.label(system_name);
@@ -1496,7 +1509,7 @@ mod preference_tests {
     #[test]
     fn video_conversion_rejects_frames_over_upload_limit_before_copying() {
         let width = 4096u32;
-        let height = 4096u32;
+        let height = 4097u32;
         let frame = VideoFrame::new(
             width,
             height,
