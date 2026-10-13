@@ -488,6 +488,25 @@ mod tests {
     }
 
     #[test]
+    fn media_inspection_reports_unsupported_outputs_without_polling_the_core() {
+        let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
+        let id = host
+            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .unwrap();
+
+        assert_eq!(
+            inspect_media(&mut host, Some(id)).unwrap(),
+            "video: unsupported; audio: unsupported"
+        );
+    }
+
+    #[test]
+    fn media_inspection_requires_an_active_session() {
+        let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
+        assert_eq!(inspect_media(&mut host, None).unwrap_err(), "no active session");
+    }
+
+    #[test]
     fn save_state_commands_report_unsupported_capability_before_file_access() {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
         let id = host
