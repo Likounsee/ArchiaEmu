@@ -1107,6 +1107,11 @@ impl DesktopApp {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("Close all").clicked() {
                     let count = self.controller.close_all_sessions();
+                    self.frame_cadence.reset();
+                    self.frame_texture = None;
+                    self.video_size = None;
+                    self.last_tick = Instant::now();
+                    self.media_status = "No active session.".to_owned();
                     self.message = format!("Closed {count} session(s).");
                 }
             });
@@ -1158,8 +1163,18 @@ impl DesktopApp {
                     ui.label(system_name);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("Close").clicked() {
+                            let was_active = self.controller.active_session() == Some(id);
                             match self.controller.close_session(id) {
-                                Ok(()) => self.message = format!("Closed session {}.", id.get()),
+                                Ok(()) => {
+                                    self.message = format!("Closed session {}.", id.get());
+                                    if was_active {
+                                        self.frame_cadence.reset();
+                                        self.frame_texture = None;
+                                        self.video_size = None;
+                                        self.last_tick = Instant::now();
+                                        self.media_status = "Active session closed.".to_owned();
+                                    }
+                                }
                                 Err(error) => self.message = error.to_string(),
                             }
                         }
