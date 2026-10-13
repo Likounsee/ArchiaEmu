@@ -9,13 +9,13 @@ use std::path::PathBuf;
 
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::core_io::{InputControl, InputEvent};
+use archiaemu_app::controller::ApplicationController;
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::save_state_store::SaveStateStore;
 use archiaemu_core::CoreRegistry;
 use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
 
-mod library;
-use library::{ContentLibrary, ContentLibraryError};
+use archiaemu_app::library::ContentLibraryError;
 
 const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
@@ -46,21 +46,21 @@ fn main() -> Result<(), Box<dyn Error>> {
             .map_err(|message| io::Error::new(io::ErrorKind::InvalidInput, message))?;
     }
     let probes: [&dyn ContentFormatProbe; 1] = [&probe];
-    let mut host = HostRuntime::new(HostRuntimeConfig {
+    let host = HostRuntime::new(HostRuntimeConfig {
         max_sessions: options.max_sessions,
     })?;
-    let session_id = host.launch_content_path(
+    let mut controller = ApplicationController::new(host);
+    let session_id = controller.launch_content_path(
         &options.path,
         ContentLimits::new(MAX_CONTENT_BYTES),
         &probes,
         &registry,
     )?;
     println!("Content loaded into host session {}.", session_id.get());
-    println!("Host session limit: {}.", host.max_sessions());
+    println!("Host session limit: {}.", controller.host().max_sessions());
     println!("This core is an early implementation, not yet a playable emulator.");
     println!("Commands: status, sessions, switch <id>, open <path>, import <path>, library, forget <path>, close [id|all], input <control> <press|release>, release-inputs, inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
-    let mut library = ContentLibrary::new();
-    match library.import(&options.path, MAX_CONTENT_BYTES as u64) {
+    match controller.import_content(&options.path, MAX_CONTENT_BYTES as u64) {
         Ok(entry) => println!(
             "Library: imported '{}' ({} bytes).",
             entry.title(),
@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ),
         Err(error) => eprintln!("Could not register launched content in library: {error}"),
     }
-    command_loop(&mut host, session_id, &probe, &registry, &mut library)
+    command_loop(&mut controller, &probe, &registry)
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -161,15 +161,14 @@ fn list_systems(registry: &CoreRegistry) {
 }
 
 fn command_loop(
-    host: &mut HostRuntime,
-    initial_id: SessionId,
+    controller: &mut ApplicationController,
     probe: &dyn ContentFormatProbe,
     registry: &CoreRegistry,
-    library: &mut ContentLibrary,
 ) -> Result<(), Box<dyn Error>> {
+    let (host, library, active_state) = controller.parts_mut();
+    let mut active = *active_state;
     let stdin = io::stdin();
     let mut lines = stdin.lock().lines();
-    let mut active = Some(initial_id);
     loop {
         print!("archiaemu> ");
         io::stdout().flush()?;
@@ -225,26 +224,19 @@ fn command_loop(
                     continue;
                 }
             };
-            let Some(path) = library_entry_path(library, index) else {
-                eprintln!("No library entry at index {index}.");
-                continue;
-            };
-            match host.launch_content_path(
-                &path,
+            match controller.launch_library_entry(
+                index,
                 ContentLimits::new(MAX_CONTENT_BYTES),
                 &[probe],
                 registry,
             ) {
                 Ok(id) => {
                     active = Some(id);
-                    println!(
-                        "Opened library entry {} ('{}') in session {}.",
-                        index,
-                        path.file_stem()
-                            .unwrap_or_else(|| path.as_os_str())
-                            .to_string_lossy(),
-                        id.get()
-                    );
+                    let title = controller
+                        .library_entry_path(index)
+                        .and_then(|path| path.file_stem().map(|name| name.to_string_lossy().into_owned()))
+                        .unwrap_or_else(|| format!("entry {index}"));
+                    println!("Opened library entry {index} ('{title}') in session {}.", id.get());
                 }
                 Err(error) => eprintln!("Could not launch library entry {index}: {error}"),
             }
@@ -408,17 +400,8 @@ fn command_loop(
             ),
         }
     }
+    *active_state = active;
     Ok(())
-}
-
-fn library_entry_path(library: &ContentLibrary, index: usize) -> Option<PathBuf> {
-    if index == 0 {
-        return None;
-    }
-    library
-        .entries()
-        .nth(index - 1)
-        .map(|entry| entry.path().to_path_buf())
 }
 
 fn close_all_sessions(host: &mut HostRuntime, active: &mut Option<SessionId>) -> usize {
