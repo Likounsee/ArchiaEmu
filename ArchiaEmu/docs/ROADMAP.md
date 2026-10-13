@@ -135,11 +135,11 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Écrire de façon atomique via fichier temporaire synchronisé et conserver une sauvegarde de récupération; au chargement, le store peut reprendre depuis le backup si le fichier principal est absent ou invalide.
 - [x] Documenter que chaque cœur reste responsable de la validation de son état interne avant mutation dans `docs/CORE_INTERFACE.md`.
 - [x] Tester corruption, version inconnue, payload vide/trop grand, incompatibilité de système/cœur, troncature et données excédentaires.
-- [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup lorsque le fichier principal est corrompu ou absent.
+- [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup lorsque le fichier principal est corrompu, absent ou dépasse la limite; vérifier que le primaire rejeté n'est pas réécrit silencieusement.
 - [x] Injecter les échecs de renommage et vérifier la restauration du primaire, le backup récupérable et le nettoyage du temporaire sur les plateformes CI prises en charge.
 - [ ] Simuler une interruption brutale du processus ou une coupure d'alimentation à chaque jalon durable; la CI ne simule pas une perte d'alimentation réelle.
 
-### P1.4 — Première application hôte minimale — 57 %
+### P1.4 — Première application hôte minimale — 59 %
 
 Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, `--system` sélectionne explicitement le module, et le REPL permet `open <chemin>`, `sessions`, `switch <id>` et `close [id]` pour gérer plusieurs sessions. `save-state <path>` et `load-state <path>` réutilisent l'enveloppe versionnée et le stockage persistant commun, en refusant les cœurs qui n'annoncent pas cette capacité. Les erreurs de chargement et de commandes sont affichées sans fermer immédiatement l'interface. Les commandes `input <control> <press|release>` et `release-inputs` transmettent les transitions sémantiques au cœur actif et récupèrent les erreurs de capacité sans quitter le REPL. La commande `media` interroge au plus une trame vidéo et un tampon audio disponibles, puis affiche leurs métadonnées; elle ne fait pas encore de rendu graphique ni de lecture audio. Le cœur Game Boy ne déclare pas ces capacités.
 - [x] Ajouter une interface terminale pour sélectionner un module, ouvrir plusieurs contenus, basculer entre sessions, fermer une session et lancer/mettre en pause/arrêter.
