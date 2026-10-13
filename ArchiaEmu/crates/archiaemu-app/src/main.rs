@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     println!("Content loaded into host session {}.", session_id.get());
     println!("This core is an early implementation, not yet a playable emulator.");
-    println!("Commands: status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
+    println!("Commands: status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, media, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
     command_loop(&mut host, session_id, &probe, &registry)
 }
 
@@ -167,6 +167,13 @@ fn command_loop(
             match release_session_inputs(host, active) {
                 Ok(()) => println!("All held inputs released."),
                 Err(error) => eprintln!("Could not release inputs: {error}"),
+            }
+            continue;
+        }
+        if command == "media" {
+            match inspect_media(host, active) {
+                Ok(report) => println!("{report}"),
+                Err(error) => eprintln!("Media retrieval failed: {error}"),
             }
             continue;
         }
@@ -297,6 +304,39 @@ fn release_session_inputs(
         .map_err(|error| error.to_string())
 }
 
+fn inspect_media(host: &mut HostRuntime, active: Option<SessionId>) -> Result<String, String> {
+    let id = active.ok_or_else(|| "no active session".to_owned())?;
+    let session = host.session_mut(id).map_err(|error| error.to_string())?;
+    let capabilities = session.descriptor().capabilities;
+    let mut report = Vec::with_capacity(2);
+
+    if capabilities.video_output {
+        match session.take_video_frame().map_err(|error| error.to_string())? {
+            Some(frame) => report.push(format!(
+                "video: {}x{} {:?}, stride={} bytes, payload={} bytes",
+                frame.width(), frame.height(), frame.format(), frame.row_stride_bytes(), frame.pixels().len()
+            )),
+            None => report.push("video: no frame ready".to_owned()),
+        }
+    } else {
+        report.push("video: unsupported".to_owned());
+    }
+
+    if capabilities.audio_output {
+        match session.take_audio_buffer().map_err(|error| error.to_string())? {
+            Some(buffer) => report.push(format!(
+                "audio: {} Hz, {} channel(s), {} sample frame(s)",
+                buffer.sample_rate(), buffer.channels(), buffer.frame_count()
+            )),
+            None => report.push("audio: no buffer ready".to_owned()),
+        }
+    } else {
+        report.push("audio: unsupported".to_owned());
+    }
+
+    Ok(report.join("; "))
+}
+
 fn save_state_to_path(
     host: &mut HostRuntime,
     active: Option<SessionId>,
@@ -376,6 +416,7 @@ fn print_usage() {
     println!("  archiaemu --help");
     println!("Interactive input: input <up|down|left|right|action1|action2|action3|action4|start|select> <press|release>");
     println!("                  release-inputs releases all held controls.");
+    println!("                  media polls one video frame/audio buffer and reports metadata.");
 }
 
 fn validate_system_selection(
