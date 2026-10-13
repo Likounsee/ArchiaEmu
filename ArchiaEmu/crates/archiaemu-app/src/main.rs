@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     println!("Content loaded into host session {}.", session_id.get());
     println!("This core is an early implementation, not yet a playable emulator.");
-    println!("Commands: status, pause, resume, reset, stop, step, quit");
+    println!("Commands: status, sessions, switch <id>, open <path>, close [id], save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
     command_loop(&mut host, session_id, &probe, &registry)
 }
 
@@ -235,7 +235,6 @@ fn command_loop(
     Ok(())
 }
 
-
 fn save_state_to_path(
     host: &mut HostRuntime,
     active: Option<SessionId>,
@@ -260,14 +259,15 @@ fn load_state_from_path(
     path: &str,
 ) -> Result<(), String> {
     let id = active.ok_or_else(|| "no active session".to_owned())?;
-    let envelope = SaveStateStore::new(path)
-        .load()
-        .map_err(|error| error.to_string())?;
-    let session = host.session_mut(id).map_err(|error| error.to_string())?;
+    let session = host.session(id).map_err(|error| error.to_string())?;
     if !session.descriptor().capabilities.save_states {
         return Err("active core does not support emulator save states".to_owned());
     }
-    session
+    let envelope = SaveStateStore::new(path)
+        .load()
+        .map_err(|error| error.to_string())?;
+    host.session_mut(id)
+        .map_err(|error| error.to_string())?
         .load_state_envelope(&envelope)
         .map_err(|error| error.to_string())
 }
