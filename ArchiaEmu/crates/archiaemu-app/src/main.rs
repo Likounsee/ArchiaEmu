@@ -243,8 +243,14 @@ fn command_loop(
                 Ok(id) => {
                     active = Some(id);
                     match library.import(path.trim(), MAX_CONTENT_BYTES as u64) {
-                        Ok(entry) => println!("Opened session {} and imported '{}'.", id.get(), entry.title()),
-                        Err(ContentLibraryError::AlreadyImported(_)) => println!("Opened session {}.", id.get()),
+                        Ok(entry) => println!(
+                            "Opened session {} and imported '{}'.",
+                            id.get(),
+                            entry.title()
+                        ),
+                        Err(ContentLibraryError::AlreadyImported(_)) => {
+                            println!("Opened session {}.", id.get())
+                        }
                         Err(error) => {
                             println!("Opened session {}.", id.get());
                             eprintln!("Could not register content in library: {error}");
