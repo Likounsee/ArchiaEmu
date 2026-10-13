@@ -159,10 +159,7 @@ impl ApplicationController {
     }
 
     /// Closes a session and selects the oldest remaining session when necessary.
-    pub fn close_session(
-        &mut self,
-        id: SessionId,
-    ) -> Result<(), HostRuntimeError> {
+    pub fn close_session(&mut self, id: SessionId) -> Result<(), HostRuntimeError> {
         self.host.close_session(id)?;
         if self.active_session == Some(id) {
             self.active_session = self.host.session_ids().into_iter().next();
@@ -255,12 +252,7 @@ mod tests {
     fn library_index_errors_are_explicit_and_do_not_create_sessions() {
         let mut app = controller();
         let error = app
-            .launch_library_entry(
-                1,
-                ContentLimits::new(1024),
-                &[],
-                &CoreRegistry::new(),
-            )
+            .launch_library_entry(1, ContentLimits::new(1024), &[], &CoreRegistry::new())
             .unwrap_err();
 
         assert!(matches!(error, ApplicationError::UnknownLibraryEntry(1)));
