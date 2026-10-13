@@ -45,8 +45,11 @@ pub enum ContentLibraryError {
     Empty(PathBuf),
     /// The file exceeds the host's configured content-size limit.
     TooLarge {
+        /// Canonical path to the oversized content.
         path: PathBuf,
+        /// Maximum number of bytes allowed by the caller.
         max_bytes: u64,
+        /// Actual size reported by filesystem metadata.
         actual_bytes: u64,
     },
     /// The canonical path is already present in the library.
