@@ -231,7 +231,6 @@ fn command_loop(
         }
         if command == "quit" || command == "exit" {
             host.close_all_sessions();
-            active = None;
             break;
         }
         let Some(id) = active else {
