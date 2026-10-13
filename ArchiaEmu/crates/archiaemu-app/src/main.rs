@@ -9,6 +9,7 @@ use std::path::PathBuf;
 
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
+use archiaemu_core::save_state_store::SaveStateStore;
 use archiaemu_core::CoreRegistry;
 use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
 
@@ -160,6 +161,20 @@ fn command_loop(
             }
             continue;
         }
+        if let Some(path) = command.strip_prefix("save-state ") {
+            match save_state_to_path(host, active, path.trim()) {
+                Ok(()) => println!("Save state written."),
+                Err(error) => eprintln!("Could not save state: {error}"),
+            }
+            continue;
+        }
+        if let Some(path) = command.strip_prefix("load-state ") {
+            match load_state_from_path(host, active, path.trim()) {
+                Ok(()) => println!("Save state restored."),
+                Err(error) => eprintln!("Could not load state: {error}"),
+            }
+            continue;
+        }
         if command == "close" || command.starts_with("close ") {
             let target = if let Some(raw) = command.strip_prefix("close ") {
                 raw.trim()
@@ -218,6 +233,43 @@ fn command_loop(
         }
     }
     Ok(())
+}
+
+
+fn save_state_to_path(
+    host: &mut HostRuntime,
+    active: Option<SessionId>,
+    path: &str,
+) -> Result<(), String> {
+    let id = active.ok_or_else(|| "no active session".to_owned())?;
+    let session = host.session_mut(id).map_err(|error| error.to_string())?;
+    if !session.descriptor().capabilities.save_states {
+        return Err("active core does not support emulator save states".to_owned());
+    }
+    let envelope = session
+        .save_state_envelope()
+        .map_err(|error| error.to_string())?;
+    SaveStateStore::new(path)
+        .save(&envelope)
+        .map_err(|error| error.to_string())
+}
+
+fn load_state_from_path(
+    host: &mut HostRuntime,
+    active: Option<SessionId>,
+    path: &str,
+) -> Result<(), String> {
+    let id = active.ok_or_else(|| "no active session".to_owned())?;
+    let envelope = SaveStateStore::new(path)
+        .load()
+        .map_err(|error| error.to_string())?;
+    let session = host.session_mut(id).map_err(|error| error.to_string())?;
+    if !session.descriptor().capabilities.save_states {
+        return Err("active core does not support emulator save states".to_owned());
+    }
+    session
+        .load_state_envelope(&envelope)
+        .map_err(|error| error.to_string())
 }
 
 fn apply_session_command(
