@@ -335,6 +335,10 @@ impl Cpu {
 
         let machine_cycles = match opcode {
             0x00 => 1, // NOP
+            0xCB => {
+                let extended_opcode = self.fetch8(bus);
+                self.execute_cb(bus, extended_opcode)
+            }
             // LD rr,d16.
             0x01 | 0x11 | 0x21 | 0x31 => {
                 let low = self.fetch8(bus);
@@ -682,25 +686,6 @@ impl Cpu {
                     1
                 }
             }
-            // XOR A,r.
-            0x80..=0x87 => {
-                let value = self.read_register(bus, opcode & 0x07);
-                self.registers.add_a(value);
-                if opcode & 0x07 == 6 {
-                    2
-                } else {
-                    1
-                }
-            }
-            0x90..=0x97 => {
-                let value = self.read_register(bus, opcode & 0x07);
-                self.registers.subtract_a(value);
-                if opcode & 0x07 == 6 {
-                    2
-                } else {
-                    1
-                }
-            }
             0xA0..=0xA7 => {
                 let value = self.read_register(bus, opcode & 0x07);
                 self.registers.and_a(value);
@@ -829,6 +814,48 @@ impl Cpu {
             opcode,
             machine_cycles,
         })
+    }
+
+    fn execute_cb<B: CpuBus>(&mut self, bus: &mut B, opcode: u8) -> u8 {
+        let register = opcode & 0x07;
+        let group = opcode >> 6;
+        let operation = (opcode >> 3) & 0x07;
+        let value = self.read_register(bus, register);
+
+        match group {
+            0 => {
+                let old_carry = u8::from(self.registers.flag(flags::CARRY));
+                let (result, carry) = match operation {
+                    0 => (value.rotate_left(1), value & 0x80 != 0),
+                    1 => (value.rotate_right(1), value & 0x01 != 0),
+                    2 => ((value << 1) | old_carry, value & 0x80 != 0),
+                    3 => ((value >> 1) | (old_carry << 7), value & 0x01 != 0),
+                    4 => (value << 1, value & 0x80 != 0),
+                    5 => ((value >> 1) | (value & 0x80), value & 0x01 != 0),
+                    6 => (value.rotate_left(4), false),
+                    _ => (value >> 1, value & 0x01 != 0),
+                };
+                self.write_register(bus, register, result);
+                self.registers.set_f(
+                    (if result == 0 { flags::ZERO } else { 0 })
+                        | (if carry { flags::CARRY } else { 0 }),
+                );
+            }
+            1 => {
+                let mask = 1u8 << operation;
+                self.registers.set_flag(flags::ZERO, value & mask == 0);
+                self.registers.set_flag(flags::SUBTRACT, false);
+                self.registers.set_flag(flags::HALF_CARRY, true);
+            }
+            2 => self.write_register(bus, register, value & !(1u8 << operation)),
+            _ => self.write_register(bus, register, value | (1u8 << operation)),
+        }
+
+        if register == 6 {
+            if group == 1 { 3 } else { 4 }
+        } else {
+            2
+        }
     }
 
     fn add_hl(&mut self, value: u16) {
@@ -962,6 +989,43 @@ mod execution_tests {
         fn write8(&mut self, address: u16, value: u8) {
             self.0[usize::from(address)] = value;
         }
+    }
+
+    #[test]
+    fn cb_prefixed_rotate_bit_reset_and_set_instructions_work() {
+        let mut cpu = Cpu::new();
+        cpu.registers.b = 0x81;
+        cpu.registers.c = 0x00;
+        let mut bus = TestBus::with_program(&[
+            0xCB, 0x00, // RLC B
+            0xCB, 0x41, // BIT 0,C
+            0xCB, 0xC1, // SET 0,C
+            0xCB, 0x81, // RES 0,C
+            0xCB, 0x46, // BIT 0,(HL)
+        ]);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.b, 0x03);
+        assert_eq!(cpu.registers.f(), flags::CARRY);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.f(), flags::ZERO | flags::HALF_CARRY | flags::CARRY);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.c, 0x01);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.c, 0x00);
+        cpu.registers.set_pair(RegisterPair::Hl, 0xC000);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(cpu.registers.f(), flags::ZERO | flags::HALF_CARRY);
+    }
+
+    #[test]
+    fn cb_memory_modification_uses_four_machine_cycles() {
+        let mut cpu = Cpu::new();
+        cpu.registers.set_pair(RegisterPair::Hl, 0xC000);
+        let mut bus = TestBus::with_program(&[0xCB, 0x06]);
+        bus.0[0xC000] = 0x80;
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(bus.0[0xC000], 0x01);
+        assert_eq!(cpu.registers.f(), flags::CARRY);
     }
 
     #[test]
