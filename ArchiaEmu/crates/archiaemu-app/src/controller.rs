@@ -179,7 +179,11 @@ impl ApplicationController {
     /// hatch exists for commands that need direct access to capability-specific APIs.
     pub fn parts_mut(
         &mut self,
-    ) -> (&mut HostRuntime, &mut ContentLibrary, &mut Option<SessionId>) {
+    ) -> (
+        &mut HostRuntime,
+        &mut ContentLibrary,
+        &mut Option<SessionId>,
+    ) {
         (&mut self.host, &mut self.library, &mut self.active_session)
     }
 }
