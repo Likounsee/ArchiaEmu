@@ -19,7 +19,9 @@ pub struct SessionId(u64);
 
 impl SessionId {
     /// Returns the numeric identifier assigned by the host.
-    pub const fn get(self) -> u64 { self.0 }
+    pub const fn get(self) -> u64 {
+        self.0
+    }
 }
 
 /// Limits for a host runtime.
@@ -30,7 +32,9 @@ pub struct HostRuntimeConfig {
 }
 
 impl Default for HostRuntimeConfig {
-    fn default() -> Self { Self { max_sessions: 4 } }
+    fn default() -> Self {
+        Self { max_sessions: 4 }
+    }
 }
 
 /// Errors returned by the host session manager.
@@ -39,7 +43,10 @@ pub enum HostRuntimeError {
     /// A zero-session configuration is invalid.
     InvalidConfiguration,
     /// The configured number of active sessions has been reached.
-    SessionLimitReached { limit: usize },
+    SessionLimitReached {
+        /// Maximum number of active sessions.
+        limit: usize,
+    },
     /// The monotonic session identifier space has been exhausted.
     SessionIdExhausted,
     /// The requested session does not exist.
@@ -51,9 +58,15 @@ pub enum HostRuntimeError {
 impl fmt::Display for HostRuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidConfiguration => f.write_str("max_sessions must be greater than zero"),
-            Self::SessionLimitReached { limit } => write!(f, "host session limit reached ({limit})"),
-            Self::SessionIdExhausted => f.write_str("host session identifier space exhausted"),
+            Self::InvalidConfiguration => {
+                f.write_str("max_sessions must be greater than zero")
+            }
+            Self::SessionLimitReached { limit } => {
+                write!(f, "host session limit reached ({limit})")
+            }
+            Self::SessionIdExhausted => {
+                f.write_str("host session identifier space exhausted")
+            }
             Self::UnknownSession(id) => write!(f, "unknown host session {}", id.get()),
             Self::Launch(error) => fmt::Display::fmt(error, f),
         }
@@ -61,8 +74,11 @@ impl fmt::Display for HostRuntimeError {
 }
 
 impl std::error::Error for HostRuntimeError {}
+
 impl From<LaunchError> for HostRuntimeError {
-    fn from(error: LaunchError) -> Self { Self::Launch(error) }
+    fn from(error: LaunchError) -> Self {
+        Self::Launch(error)
+    }
 }
 
 /// Owns multiple independent sessions and applies a strict resource policy.
@@ -80,27 +96,45 @@ pub struct HostRuntime {
 impl HostRuntime {
     /// Creates an empty host runtime with validated resource limits.
     pub fn new(config: HostRuntimeConfig) -> Result<Self, HostRuntimeError> {
-        if config.max_sessions == 0 { return Err(HostRuntimeError::InvalidConfiguration); }
-        Ok(Self { config, next_id: 1, sessions: BTreeMap::new() })
+        if config.max_sessions == 0 {
+            return Err(HostRuntimeError::InvalidConfiguration);
+        }
+        Ok(Self {
+            config,
+            next_id: 1,
+            sessions: BTreeMap::new(),
+        })
     }
 
     /// Returns the configured maximum number of simultaneous sessions.
-    pub const fn max_sessions(&self) -> usize { self.config.max_sessions }
+    pub const fn max_sessions(&self) -> usize {
+        self.config.max_sessions
+    }
 
     /// Returns the number of currently open sessions.
-    pub fn session_count(&self) -> usize { self.sessions.len() }
+    pub fn session_count(&self) -> usize {
+        self.sessions.len()
+    }
 
     /// Returns true when no sessions are currently open.
-    pub fn is_empty(&self) -> bool { self.sessions.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.sessions.is_empty()
+    }
 
     /// Returns the IDs of open sessions in stable ascending order.
-    pub fn session_ids(&self) -> Vec<SessionId> { self.sessions.keys().copied().collect() }
+    pub fn session_ids(&self) -> Vec<SessionId> {
+        self.sessions.keys().copied().collect()
+    }
 
     fn preflight_slot(&self) -> Result<(), HostRuntimeError> {
         if self.sessions.len() >= self.config.max_sessions {
-            return Err(HostRuntimeError::SessionLimitReached { limit: self.config.max_sessions });
+            return Err(HostRuntimeError::SessionLimitReached {
+                limit: self.config.max_sessions,
+            });
         }
-        if self.next_id == 0 { return Err(HostRuntimeError::SessionIdExhausted); }
+        if self.next_id == 0 {
+            return Err(HostRuntimeError::SessionIdExhausted);
+        }
         Ok(())
     }
 
@@ -116,7 +150,10 @@ impl HostRuntime {
     ///
     /// Useful when the host manages core selection itself. Prefer
     /// `launch_content` when using the common content-detection pipeline.
-    pub fn create_session(&mut self, core: Box<dyn EmulationCore>) -> Result<SessionId, HostRuntimeError> {
+    pub fn create_session(
+        &mut self,
+        core: Box<dyn EmulationCore>,
+    ) -> Result<SessionId, HostRuntimeError> {
         self.preflight_slot()?;
         self.insert(EmulationSession::new(core))
     }
@@ -139,19 +176,31 @@ impl HostRuntime {
 
     /// Borrows a session by its host-assigned ID.
     pub fn session(&self, id: SessionId) -> Result<&EmulationSession, HostRuntimeError> {
-        self.sessions.get(&id).ok_or(HostRuntimeError::UnknownSession(id))
+        self.sessions
+            .get(&id)
+            .ok_or(HostRuntimeError::UnknownSession(id))
     }
 
     /// Mutably borrows a session by its host-assigned ID.
-    pub fn session_mut(&mut self, id: SessionId) -> Result<&mut EmulationSession, HostRuntimeError> {
-        self.sessions.get_mut(&id).ok_or(HostRuntimeError::UnknownSession(id))
+    pub fn session_mut(
+        &mut self,
+        id: SessionId,
+    ) -> Result<&mut EmulationSession, HostRuntimeError> {
+        self.sessions
+            .get_mut(&id)
+            .ok_or(HostRuntimeError::UnknownSession(id))
     }
 
     /// Closes a session and releases the host's ownership of its core.
     ///
     /// Closing does not reuse its ID. Returns an error when the ID is unknown.
-    pub fn close_session(&mut self, id: SessionId) -> Result<EmulationSession, HostRuntimeError> {
-        self.sessions.remove(&id).ok_or(HostRuntimeError::UnknownSession(id))
+    pub fn close_session(
+        &mut self,
+        id: SessionId,
+    ) -> Result<EmulationSession, HostRuntimeError> {
+        self.sessions
+            .remove(&id)
+            .ok_or(HostRuntimeError::UnknownSession(id))
     }
 }
 
@@ -161,6 +210,7 @@ mod tests {
     use crate::{CoreApiVersion, CoreCapabilities, CoreDescriptor, CoreError, CoreEvent, SystemId};
 
     struct MockCore;
+
     impl EmulationCore for MockCore {
         fn descriptor(&self) -> CoreDescriptor {
             CoreDescriptor {
@@ -168,12 +218,24 @@ mod tests {
                 system_id: SystemId::new("test-system").unwrap(),
                 display_name: "Test system",
                 core_version: "0.1.0",
-                capabilities: CoreCapabilities { content_loading: true, ..CoreCapabilities::default() },
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    ..CoreCapabilities::default()
+                },
             }
         }
-        fn load_content(&mut self, _: &[u8]) -> Result<(), CoreError> { Ok(()) }
-        fn reset(&mut self) -> Result<(), CoreError> { Ok(()) }
-        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> { Ok(CoreEvent::Yielded) }
+
+        fn load_content(&mut self, _: &[u8]) -> Result<(), CoreError> {
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            Ok(CoreEvent::Yielded)
+        }
     }
 
     #[test]
@@ -183,7 +245,10 @@ mod tests {
         let second = host.create_session(Box::new(MockCore)).unwrap();
         assert_ne!(first, second);
         assert_eq!(host.session_count(), 2);
-        assert!(matches!(host.create_session(Box::new(MockCore)), Err(HostRuntimeError::SessionLimitReached { limit: 2 })));
+        assert!(matches!(
+            host.create_session(Box::new(MockCore)),
+            Err(HostRuntimeError::SessionLimitReached { limit: 2 })
+        ));
         host.close_session(first).unwrap();
         let third = host.create_session(Box::new(MockCore)).unwrap();
         assert!(third.get() > second.get());
@@ -195,15 +260,30 @@ mod tests {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
         let first = host.create_session(Box::new(MockCore)).unwrap();
         let second = host.create_session(Box::new(MockCore)).unwrap();
-        host.session_mut(first).unwrap().load_content(b"first").unwrap();
-        assert_eq!(host.session(first).unwrap().state(), crate::runtime::SessionState::Running);
-        assert_eq!(host.session(second).unwrap().state(), crate::runtime::SessionState::Empty);
+        host.session_mut(first)
+            .unwrap()
+            .load_content(b"first")
+            .unwrap();
+        assert_eq!(
+            host.session(first).unwrap().state(),
+            crate::runtime::SessionState::Running
+        );
+        assert_eq!(
+            host.session(second).unwrap().state(),
+            crate::runtime::SessionState::Empty
+        );
     }
 
     #[test]
     fn rejects_zero_capacity_and_unknown_ids() {
-        assert!(matches!(HostRuntime::new(HostRuntimeConfig { max_sessions: 0 }), Err(HostRuntimeError::InvalidConfiguration)));
+        assert!(matches!(
+            HostRuntime::new(HostRuntimeConfig { max_sessions: 0 }),
+            Err(HostRuntimeError::InvalidConfiguration)
+        ));
         let host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
-        assert!(matches!(host.session(SessionId(42)), Err(HostRuntimeError::UnknownSession(SessionId(42)))));
+        assert!(matches!(
+            host.session(SessionId(42)),
+            Err(HostRuntimeError::UnknownSession(SessionId(42)))
+        ));
     }
 }
