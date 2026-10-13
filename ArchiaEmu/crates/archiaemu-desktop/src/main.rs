@@ -195,20 +195,37 @@ impl eframe::App for DesktopApp {
             });
             egui::ScrollArea::vertical().max_height(150.0).show(ui, |ui| {
                 let query = self.library_filter.trim().to_lowercase();
-                let entries: Vec<_> = self.controller.library().entries().map(|entry| {
-                    (entry.title().to_owned(), entry.path().to_path_buf(), entry.size_bytes())
-                }).filter(|(title, path, _)| {
-                    query.is_empty()
-                        || title.to_lowercase().contains(&query)
-                        || path.display().to_string().to_lowercase().contains(&query)
-                }).collect();
+                let entries: Vec<_> = self
+                    .controller
+                    .library()
+                    .entries()
+                    .map(|entry| {
+                        (
+                            entry.title().to_owned(),
+                            entry.path().to_path_buf(),
+                            entry.size_bytes(),
+                        )
+                    })
+                    .filter(|(title, path, _)| {
+                        query.is_empty()
+                            || title.to_lowercase().contains(&query)
+                            || path.display().to_string().to_lowercase().contains(&query)
+                    })
+                    .collect();
                 let total = self.controller.library().len();
                 if total == 0 {
                     ui.label("No content imported yet.");
                 } else if entries.is_empty() {
-                    ui.label(format!("No library entries match ‘{}’.", self.library_filter.trim()));
+                    ui.label(format!(
+                        "No library entries match ‘{}’.",
+                        self.library_filter.trim()
+                    ));
                 } else {
-                    ui.label(format!("Showing {} of {} item(s).", entries.len(), total));
+                    ui.label(format!(
+                        "Showing {} of {} item(s).",
+                        entries.len(),
+                        total
+                    ));
                 }
                 for (title, path, size) in entries {
                     ui.horizontal(|ui| {
