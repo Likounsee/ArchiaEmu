@@ -676,7 +676,11 @@ impl Cpu {
                 } else {
                     self.registers.subtract_a(value);
                 }
-                if opcode & 0x07 == 6 { 2 } else { 1 }
+                if opcode & 0x07 == 6 {
+                    2
+                } else {
+                    1
+                }
             }
             // XOR A,r.
             0x80..=0x87 => {
