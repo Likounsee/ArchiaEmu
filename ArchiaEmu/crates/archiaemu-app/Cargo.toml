@@ -1,0 +1,16 @@
+[package]
+name = "archiaemu-app"
+version = "0.1.0"
+description = "Minimal terminal host application for ArchiaEmu"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "archiaemu"
+path = "src/main.rs"
+
+[dependencies]
+archiaemu-core = { version = "0.1.0", path = "../archiaemu-core" }
+archiaemu-game-boy = { version = "0.1.0", path = "../archiaemu-game-boy" }

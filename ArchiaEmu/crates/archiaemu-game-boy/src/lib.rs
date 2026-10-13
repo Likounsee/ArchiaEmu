@@ -31,7 +31,7 @@ pub struct GameBoyCartridgeProbe;
 
 impl archiaemu_core::content::ContentFormatProbe for GameBoyCartridgeProbe {
     fn format_id(&self) -> &'static str {
-        "game-boy-cartridge"
+        "game-boy"
     }
 
     fn probe(&self, prefix: &[u8]) -> archiaemu_core::content::FormatProbeResult {
@@ -500,6 +500,16 @@ fn create_game_boy_core() -> Box<dyn archiaemu_core::EmulationCore> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn cartridge_probe_id_matches_registered_core_system_id() {
+        use archiaemu_core::content::ContentFormatProbe;
+
+        let mut registry = archiaemu_core::CoreRegistry::new();
+        super::register_game_boy(&mut registry).unwrap();
+        let system_id = registry.system_ids().next().unwrap();
+        assert_eq!(super::GameBoyCartridgeProbe.format_id(), system_id.as_str());
+    }
+
     #[test]
     fn cartridge_probe_requires_the_logo_and_complete_header() {
         use archiaemu_core::content::{ContentFormatProbe, FormatProbeResult};

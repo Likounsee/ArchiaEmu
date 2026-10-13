@@ -3,6 +3,14 @@
 version = 4
 
 [[package]]
+name = "archiaemu-app"
+version = "0.1.0"
+dependencies = [
+ "archiaemu-core",
+ "archiaemu-game-boy",
+]
+
+[[package]]
 name = "archiaemu-core"
 version = "0.1.0"
 dependencies = [

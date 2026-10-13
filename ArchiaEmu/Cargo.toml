@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/archiaemu-core",
+    "crates/archiaemu-app",
     "crates/archiaemu-game-boy",
     "crates/archiaemu-windows-durability",
 ]
