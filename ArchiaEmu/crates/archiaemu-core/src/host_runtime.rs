@@ -275,6 +275,27 @@ mod tests {
     }
 
     #[test]
+    fn failed_content_launch_does_not_register_a_partial_session() {
+        let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
+        let registry = CoreRegistry::new();
+        let result = host.launch_content(
+            &[],
+            ContentLimits::new(1024),
+            &[],
+            &registry,
+        );
+
+        assert!(matches!(
+            result,
+            Err(HostRuntimeError::Launch(LaunchError::Content(
+                crate::content::ContentError::Empty
+            )))
+        ));
+        assert!(host.is_empty());
+        assert_eq!(host.session_count(), 0);
+    }
+
+    #[test]
     fn rejects_zero_capacity_and_unknown_ids() {
         assert!(matches!(
             HostRuntime::new(HostRuntimeConfig { max_sessions: 0 }),
