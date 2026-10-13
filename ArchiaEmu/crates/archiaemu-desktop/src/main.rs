@@ -435,7 +435,6 @@ impl eframe::App for DesktopApp {
 }
 
 impl DesktopApp {
-
     fn advance_emulation(&mut self, context: &egui::Context) {
         let now = Instant::now();
         let elapsed = now.saturating_duration_since(self.last_tick);
@@ -445,7 +444,12 @@ impl DesktopApp {
             let events = context.input(|input| input.events.clone());
             for event in events {
                 match event {
-                    egui::Event::Key { key, pressed, repeat, .. } => {
+                    egui::Event::Key {
+                        key,
+                        pressed,
+                        repeat,
+                        ..
+                    } => {
                         if repeat && pressed {
                             continue;
                         }
@@ -537,7 +541,8 @@ impl DesktopApp {
         } else if audio_available {
             "Video pipeline connected. Audio is advertised by the core but host playback is not integrated yet.".to_owned()
         } else {
-            "Video pipeline connected. This core does not currently advertise audio output.".to_owned()
+            "Video pipeline connected. This core does not currently advertise audio output."
+                .to_owned()
         };
     }
 
@@ -545,9 +550,16 @@ impl DesktopApp {
         let Some(id) = self.controller.active_session() else {
             return;
         };
-        let result = self.controller.host_mut().session_mut(id)
+        let result = self
+            .controller
+            .host_mut()
+            .session_mut(id)
             .map_err(|error| error.to_string())
-            .and_then(|session| session.send_input(InputEvent { control, pressed }).map_err(|error| error.to_string()));
+            .and_then(|session| {
+                session
+                    .send_input(InputEvent { control, pressed })
+                    .map_err(|error| error.to_string())
+            });
         if let Err(error) = result {
             if !error.contains("unsupported") && !error.contains("input") {
                 self.message = format!("Input error: {error}");
@@ -559,11 +571,19 @@ impl DesktopApp {
         let Some(id) = self.controller.active_session() else {
             return;
         };
-        let result = self.controller.host_mut().session_mut(id)
+        let result = self
+            .controller
+            .host_mut()
+            .session_mut(id)
             .map_err(|error| error.to_string())
             .and_then(|session| {
-                if matches!(session.state(), SessionState::Running | SessionState::Paused) {
-                    session.release_all_inputs().map_err(|error| error.to_string())
+                if matches!(
+                    session.state(),
+                    SessionState::Running | SessionState::Paused
+                ) {
+                    session
+                        .release_all_inputs()
+                        .map_err(|error| error.to_string())
                 } else {
                     Ok(())
                 }
@@ -593,8 +613,12 @@ impl DesktopApp {
         let active = self.controller.active_session();
         let session_summary = active.and_then(|id| {
             self.controller.host().session(id).ok().map(|session| {
-                (id, session.state(), session.descriptor().display_name.to_owned(),
-                 session.descriptor().capabilities)
+                (
+                    id,
+                    session.state(),
+                    session.descriptor().display_name.to_owned(),
+                    session.descriptor().capabilities,
+                )
             })
         });
         if let Some((id, state, system, capabilities)) = session_summary {
@@ -626,9 +650,17 @@ impl DesktopApp {
                 });
                 ui.separator();
                 ui.horizontal(|ui| {
-                    ui.label(if capabilities.video_output { "Video: available" } else { "Video: not implemented by this core" });
+                    ui.label(if capabilities.video_output {
+                        "Video: available"
+                    } else {
+                        "Video: not implemented by this core"
+                    });
                     ui.separator();
-                    ui.label(if capabilities.audio_output { "Audio: core capability declared" } else { "Audio: unavailable" });
+                    ui.label(if capabilities.audio_output {
+                        "Audio: core capability declared"
+                    } else {
+                        "Audio: unavailable"
+                    });
                     ui.separator();
                     ui.label("Input: keyboard mapping enabled when supported");
                 });
@@ -1181,7 +1213,6 @@ impl DesktopApp {
     }
 }
 
-
 fn map_key_to_control(key: egui::Key) -> Option<InputControl> {
     match key {
         egui::Key::ArrowUp => Some(InputControl::Up),
@@ -1205,7 +1236,9 @@ fn video_frame_to_image(frame: &VideoFrame) -> Result<egui::ColorImage, String> 
     let width = usize::try_from(frame.width()).map_err(|_| "Video width is too large.")?;
     let height = usize::try_from(frame.height()).map_err(|_| "Video height is too large.")?;
     let packed_row = width.checked_mul(4).ok_or("Video row size overflow.")?;
-    let expected = packed_row.checked_mul(height).ok_or("Video frame size overflow.")?;
+    let expected = packed_row
+        .checked_mul(height)
+        .ok_or("Video frame size overflow.")?;
     if expected > 64 * 1024 * 1024 {
         return Err("Video frame exceeds the 64 MiB desktop upload limit.".to_owned());
     }
@@ -1219,7 +1252,10 @@ fn video_frame_to_image(frame: &VideoFrame) -> Result<egui::ColorImage, String> 
     if packed.len() != expected {
         return Err("Video frame row count does not match its dimensions.".to_owned());
     }
-    Ok(egui::ColorImage::from_rgba_unmultiplied([width, height], &packed))
+    Ok(egui::ColorImage::from_rgba_unmultiplied(
+        [width, height],
+        &packed,
+    ))
 }
 
 fn format_size(bytes: u64) -> String {
@@ -1388,10 +1424,22 @@ mod preference_tests {
 
     #[test]
     fn keyboard_mapping_covers_directions_actions_and_menu_controls() {
-        assert_eq!(map_key_to_control(egui::Key::ArrowUp), Some(InputControl::Up));
-        assert_eq!(map_key_to_control(egui::Key::Z), Some(InputControl::Action1));
-        assert_eq!(map_key_to_control(egui::Key::Enter), Some(InputControl::Start));
-        assert_eq!(map_key_to_control(egui::Key::Backspace), Some(InputControl::Select));
+        assert_eq!(
+            map_key_to_control(egui::Key::ArrowUp),
+            Some(InputControl::Up)
+        );
+        assert_eq!(
+            map_key_to_control(egui::Key::Z),
+            Some(InputControl::Action1)
+        );
+        assert_eq!(
+            map_key_to_control(egui::Key::Enter),
+            Some(InputControl::Start)
+        );
+        assert_eq!(
+            map_key_to_control(egui::Key::Backspace),
+            Some(InputControl::Select)
+        );
         assert_eq!(map_key_to_control(egui::Key::Escape), None);
     }
 
