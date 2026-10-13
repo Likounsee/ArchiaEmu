@@ -460,11 +460,36 @@ fn write_preferences(
         contents.push('\n');
     }
     let temporary = path.with_extension("conf.tmp");
+    let backup = path.with_extension("conf.bak");
     fs::write(&temporary, contents)?;
-    if path.exists() {
-        fs::remove_file(path)?;
+
+    // Windows cannot rename over an existing destination. Move the current file
+    // aside first, but restore it if promoting the new file fails.
+    let had_previous = path.exists();
+    if had_previous {
+        if backup.exists() {
+            fs::remove_file(&backup)?;
+        }
+        if let Err(error) = fs::rename(path, &backup) {
+            let _ = fs::remove_file(&temporary);
+            return Err(error);
+        }
     }
-    fs::rename(temporary, path)
+
+    if let Err(error) = fs::rename(&temporary, path) {
+        if had_previous {
+            let _ = fs::rename(&backup, path);
+        }
+        let _ = fs::remove_file(&temporary);
+        return Err(error);
+    }
+
+    if had_previous {
+        // The new config is already in place; stale-backup cleanup must not
+        // turn a successful save into a reported failure.
+        let _ = fs::remove_file(backup);
+    }
+    Ok(())
 }
 
 fn escape_config_value(value: &str) -> String {
@@ -526,6 +551,41 @@ mod preference_tests {
         assert!(!loaded.dark_mode);
         assert_eq!(loaded.ui_scale, 1.4);
         assert_eq!(loaded.paths, vec![PathBuf::from("sample.gb")]);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn replacing_preferences_keeps_only_the_new_complete_config() {
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-prefs-replace-{}",
+            std::process::id()
+        ));
+        let file = root.join("desktop.conf");
+        write_preferences(&file, true, 1.0, &[PathBuf::from("old.gb")]).unwrap();
+        write_preferences(&file, false, 1.2, &[PathBuf::from("new.gb")]).unwrap();
+
+        let loaded = load_preferences(&file).unwrap().unwrap();
+        assert!(!loaded.dark_mode);
+        assert_eq!(loaded.ui_scale, 1.2);
+        assert_eq!(loaded.paths, vec![PathBuf::from("new.gb")]);
+        assert!(!file.with_extension("conf.tmp").exists());
+        assert!(!file.with_extension("conf.bak").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn invalid_scale_lines_do_not_override_a_valid_scale() {
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-prefs-invalid-scale-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let file = root.join("desktop.conf");
+        fs::write(&file, "version=1\\ndark=false\\nscale=NaN\\nscale=oops\\n").unwrap();
+
+        let loaded = load_preferences(&file).unwrap().unwrap();
+        assert!(!loaded.dark_mode);
+        assert_eq!(loaded.ui_scale, 1.0);
         fs::remove_dir_all(root).unwrap();
     }
 }
