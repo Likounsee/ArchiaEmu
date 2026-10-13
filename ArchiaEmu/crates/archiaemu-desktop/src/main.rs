@@ -32,6 +32,8 @@ struct DesktopApp {
     probe: GameBoyCartridgeProbe,
     content_path: String,
     message: String,
+    dark_mode: bool,
+    ui_scale: f32,
 }
 
 impl DesktopApp {
@@ -45,6 +47,8 @@ impl DesktopApp {
             probe: GameBoyCartridgeProbe,
             content_path: String::new(),
             message: String::from("Ready. Select a content path to import or launch."),
+            dark_mode: true,
+            ui_scale: 1.0,
         })
     }
 
@@ -141,6 +145,13 @@ impl SessionAction {
 
 impl eframe::App for DesktopApp {
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+        context.set_visuals(if self.dark_mode {
+            egui::Visuals::dark()
+        } else {
+            egui::Visuals::light()
+        });
+        context.set_zoom_factor(self.ui_scale);
+
         egui::TopBottomPanel::top("top").show(context, |ui| {
             ui.heading("ArchiaEmu");
             ui.label(
@@ -150,6 +161,15 @@ impl eframe::App for DesktopApp {
 
         egui::CentralPanel::default().show(context, |ui| {
             ui.heading("Content library");
+            ui.collapsing("Presentation settings", |ui| {
+                ui.checkbox(&mut self.dark_mode, "Dark theme");
+                ui.add(
+                    egui::Slider::new(&mut self.ui_scale, 0.8..=1.4)
+                        .text("Interface scale")
+                        .suffix("×"),
+                );
+                ui.label("These settings affect only the host interface, not emulated hardware.");
+            });
             ui.horizontal(|ui| {
                 ui.label("Path");
                 ui.text_edit_singleline(&mut self.content_path);
