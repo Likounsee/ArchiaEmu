@@ -313,12 +313,17 @@ pub enum RegistryError {
     AmbiguousDetectedFormats(usize),
     /// A core with this identifier is already registered.
     DuplicateSystem(SystemId),
-    /// A factory returned a core whose descriptor does not match its registration.
+    /// A factory returned a core whose identifier does not match its registration.
     DescriptorMismatch {
         /// Identifier used to select the factory.
         registered: SystemId,
         /// Identifier declared by the constructed core.
         actual: SystemId,
+    },
+    /// A factory returned metadata different from the descriptor registered by the host.
+    DescriptorMetadataMismatch {
+        /// Identifier whose registered descriptor was violated.
+        registered: SystemId,
     },
     /// A core requires an incompatible host/core contract API version.
     IncompatibleApiVersion {
@@ -355,6 +360,11 @@ impl fmt::Display for RegistryError {
                 registered.as_str(),
                 actual.as_str()
             ),
+            Self::DescriptorMetadataMismatch { registered } => write!(
+                formatter,
+                "registered system '{}' produced a core that differs from its registered descriptor",
+                registered.as_str()
+            ),
             Self::IncompatibleApiVersion {
                 required,
                 supported,
@@ -375,6 +385,7 @@ impl std::error::Error for RegistryError {}
 struct CoreRegistration {
     id: SystemId,
     factory: CoreFactory,
+    descriptor: Option<CoreDescriptor>,
 }
 
 /// Small deterministic registry mapping stable system IDs to core factories.
@@ -399,8 +410,52 @@ impl CoreRegistry {
         if self.registrations.iter().any(|entry| entry.id == id) {
             return Err(RegistryError::DuplicateSystem(id));
         }
-        self.registrations.push(CoreRegistration { id, factory });
+        self.registrations.push(CoreRegistration {
+            id,
+            factory,
+            descriptor: None,
+        });
         Ok(())
+    }
+
+    /// Registers a factory with host-visible metadata, validating compatibility before construction.
+    ///
+    /// This is the preferred entry point when the host needs to enumerate and
+    /// verify capabilities without invoking the factory. The created instance
+    /// is checked against the registered descriptor again when requested.
+    pub fn register_with_descriptor(
+        &mut self,
+        descriptor: CoreDescriptor,
+        factory: CoreFactory,
+    ) -> Result<(), RegistryError> {
+        let id = descriptor.system_id;
+        if self.registrations.iter().any(|entry| entry.id == id) {
+            return Err(RegistryError::DuplicateSystem(id));
+        }
+        let supported = CURRENT_CORE_API_VERSION;
+        if !descriptor.api_version.is_compatible_with(supported) {
+            return Err(RegistryError::IncompatibleApiVersion {
+                required: descriptor.api_version,
+                supported,
+            });
+        }
+        self.registrations.push(CoreRegistration {
+            id,
+            factory,
+            descriptor: Some(descriptor),
+        });
+        Ok(())
+    }
+
+    /// Returns a pre-registered descriptor without constructing a core.
+    ///
+    /// Returns None for unknown IDs and for legacy registrations made with
+    /// register(), which do not provide metadata for preflight verification.
+    pub fn registered_descriptor(&self, id: SystemId) -> Option<CoreDescriptor> {
+        self.registrations
+            .iter()
+            .find(|entry| entry.id == id)
+            .and_then(|entry| entry.descriptor)
     }
 
     /// Returns whether the registry contains the given system identifier.
@@ -452,6 +507,14 @@ impl CoreRegistry {
             return Err(RegistryError::DescriptorMismatch {
                 registered: registration.id,
                 actual: descriptor.system_id,
+            });
+        }
+        if registration
+            .descriptor
+            .is_some_and(|registered| registered != descriptor)
+        {
+            return Err(RegistryError::DescriptorMetadataMismatch {
+                registered: registration.id,
             });
         }
         let supported = CURRENT_CORE_API_VERSION;
@@ -785,6 +848,66 @@ mod tests {
             Err(RegistryError::DescriptorMismatch { registered: found_registered, actual: found_actual })
                 if found_registered == registered && found_actual == actual
         ));
+    }
+
+    #[test]
+    fn registered_descriptor_is_available_without_invoking_factory() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        static FACTORY_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+        fn counted_factory() -> Box<dyn EmulationCore> {
+            FACTORY_CALLS.fetch_add(1, Ordering::SeqCst);
+            make_example_core()
+        }
+
+        let id = SystemId::new("example").unwrap();
+        let descriptor = RegistryTestCore { id }.descriptor();
+        let mut registry = CoreRegistry::new();
+        let before = FACTORY_CALLS.load(Ordering::SeqCst);
+
+        registry
+            .register_with_descriptor(descriptor, counted_factory)
+            .unwrap();
+
+        assert_eq!(registry.registered_descriptor(id), Some(descriptor));
+        assert_eq!(FACTORY_CALLS.load(Ordering::SeqCst), before);
+        assert_eq!(registry.system_ids().collect::<Vec<_>>(), vec![id]);
+    }
+
+    #[test]
+    fn registry_rejects_incompatible_registered_descriptor_before_instantiation() {
+        let descriptor = IncompatibleRegistryTestCore.descriptor();
+        let id = descriptor.system_id;
+        let mut registry = CoreRegistry::new();
+
+        assert_eq!(
+            registry
+                .register_with_descriptor(descriptor, make_incompatible_core)
+                .unwrap_err(),
+            RegistryError::IncompatibleApiVersion {
+                required: CoreApiVersion { major: 2, minor: 0 },
+                supported: CURRENT_CORE_API_VERSION,
+            }
+        );
+        assert!(!registry.contains(id));
+        assert_eq!(registry.registered_descriptor(id), None);
+    }
+
+    #[test]
+    fn registry_rejects_factory_metadata_that_differs_from_preflight_descriptor() {
+        let id = SystemId::new("example").unwrap();
+        let mut descriptor = RegistryTestCore { id }.descriptor();
+        descriptor.display_name = "Different declared name";
+        let mut registry = CoreRegistry::new();
+        registry
+            .register_with_descriptor(descriptor, make_example_core)
+            .unwrap();
+
+        assert_eq!(
+            registry.create(id).err().unwrap(),
+            RegistryError::DescriptorMetadataMismatch { registered: id }
+        );
     }
 
     #[test]
