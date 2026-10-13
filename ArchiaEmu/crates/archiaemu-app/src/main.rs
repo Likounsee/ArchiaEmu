@@ -118,7 +118,9 @@ fn command_loop(
         print!("archiaemu> ");
         io::stdout().flush()?;
         let Some(line) = lines.next() else {
-            if let Some(id) = active { let _ = host.close_session(id); }
+            if let Some(id) = active {
+                let _ = host.close_session(id);
+            }
             break;
         };
         let line = line?;
@@ -151,7 +153,9 @@ fn command_loop(
             match target {
                 Some(id) => {
                     host.close_session(id)?;
-                    if active == Some(id) { active = host.session_ids().into_iter().next(); }
+                    if active == Some(id) {
+                        active = host.session_ids().into_iter().next();
+                    }
                     println!("Closed session {}.", id.get());
                 }
                 None => eprintln!("No matching session to close."),
