@@ -180,13 +180,14 @@ fn command_loop(
         let line = line?;
         let command = line.trim();
         if command == "library" {
-            println!("Content library: {} item(s).", library.len());
+            println!("Content library: {} item(s). Use play <index> to launch one.", library.len());
             if library.is_empty() {
                 println!("Content library is empty.");
             } else {
-                for entry in library.entries() {
+                for (index, entry) in library.entries().enumerate() {
                     println!(
-                        "{} ({} bytes) — {}",
+                        "{}. {} ({} bytes) — {}",
+                        index + 1,
                         entry.title(),
                         entry.size_bytes(),
                         entry.path().display()
@@ -210,6 +211,39 @@ fn command_loop(
             match library.remove(path.trim()) {
                 Ok(entry) => println!("Removed '{}' from the library.", entry.title()),
                 Err(error) => eprintln!("Could not remove library entry: {error}"),
+            }
+            continue;
+        }
+        if let Some(raw) = command.strip_prefix("play ") {
+            let index = match raw.trim().parse::<usize>() {
+                Ok(index) if index > 0 => index,
+                _ => {
+                    eprintln!("Expected play <library-index>, starting at 1.");
+                    continue;
+                }
+            };
+            let Some(path) = library_entry_path(library, index) else {
+                eprintln!("No library entry at index {index}.");
+                continue;
+            };
+            match host.launch_content_path(
+                &path,
+                ContentLimits::new(MAX_CONTENT_BYTES),
+                &[probe],
+                registry,
+            ) {
+                Ok(id) => {
+                    active = Some(id);
+                    println!(
+                        "Opened library entry {} ('{}') in session {}.",
+                        index,
+                        path.file_stem()
+                            .unwrap_or_else(|| path.as_os_str())
+                            .to_string_lossy(),
+                        id.get()
+                    );
+                }
+                Err(error) => eprintln!("Could not launch library entry {index}: {error}"),
             }
             continue;
         }
@@ -367,11 +401,21 @@ fn command_loop(
             }
             "" => {}
             other => eprintln!(
-                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id|all], input <control> <press|release>, release-inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, or quit."
+                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, import <path>, library, play <index>, forget <path>, close [id|all], input <control> <press|release>, release-inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, or quit."
             ),
         }
     }
     Ok(())
+}
+
+fn library_entry_path(library: &ContentLibrary, index: usize) -> Option<PathBuf> {
+    if index == 0 {
+        return None;
+    }
+    library
+        .entries()
+        .nth(index - 1)
+        .map(|entry| entry.path().to_path_buf())
 }
 
 fn close_all_sessions(host: &mut HostRuntime, active: &mut Option<SessionId>) -> usize {
@@ -614,7 +658,7 @@ fn print_usage() {
     println!("  archiaemu --system <system-id> <content-path>");
     println!("  archiaemu [--system <system-id>] [--max-sessions <count>] <content-path>");
     println!("  archiaemu --help");
-    println!("REPL library: import <path>, library, forget <path>. Importing adds metadata; launch still performs format validation.");
+    println!("REPL library: import <path>, library, play <index>, forget <path>. Importing adds metadata; launch still performs format validation.");
     println!("Interactive input: input <up|down|left|right|action1|action2|action3|action4|start|select> <press|release>");
     println!("                  release-inputs releases all held controls.");
     println!("                  media polls one video frame/audio buffer and reports metadata.");
@@ -723,6 +767,22 @@ mod tests {
         assert!(host.session_ids().is_empty());
         assert_eq!(close_all_sessions(&mut host, &mut active), 0);
     }
+    #[test]
+    fn library_entry_selection_is_one_based_and_out_of_range_is_rejected() {
+        let first = library::tests::TempFile::new("first.gb", b"first");
+        let second = library::tests::TempFile::new("second.gb", b"second");
+        let mut library = ContentLibrary::new();
+        library.import(&second.0, 64).unwrap();
+        library.import(&first.0, 64).unwrap();
+
+        let first_path = library_entry_path(&library, 1).unwrap();
+        let second_path = library_entry_path(&library, 2).unwrap();
+        assert_eq!(first_path.file_name().unwrap(), "first.gb");
+        assert_eq!(second_path.file_name().unwrap(), "second.gb");
+        assert!(library_entry_path(&library, 0).is_none());
+        assert!(library_entry_path(&library, 3).is_none());
+    }
+
     #[test]
     fn explicit_system_selection_accepts_a_registered_matching_probe() {
         let registry = registry();
