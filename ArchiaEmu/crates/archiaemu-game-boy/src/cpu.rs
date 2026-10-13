@@ -700,7 +700,7 @@ impl Cpu {
                 }
             }
             // ADD A,r and ADC A,r.
-            0x80..=0x87 | 0x88..=0x8F => {
+            0x80..=0x8F => {
                 let value = self.read_register(bus, opcode & 0x07);
                 if opcode & 0xF8 == 0x88 {
                     self.registers.add_a_with_carry(value);
@@ -714,7 +714,7 @@ impl Cpu {
                 }
             }
             // SUB r and SBC A,r.
-            0x90..=0x97 | 0x98..=0x9F => {
+            0x90..=0x9F => {
                 let value = self.read_register(bus, opcode & 0x07);
                 if opcode & 0xF8 == 0x98 {
                     self.registers.subtract_a_with_carry(value);
