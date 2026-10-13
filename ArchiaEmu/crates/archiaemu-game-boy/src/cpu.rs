@@ -429,7 +429,11 @@ impl Cpu {
                 1
             }
             0x1F => {
-                let old_carry = if self.registers.flag(flags::CARRY) { 0x80 } else { 0 };
+                let old_carry = if self.registers.flag(flags::CARRY) {
+                    0x80
+                } else {
+                    0
+                };
                 let carry = self.registers.a & 0x01 != 0;
                 self.registers.a = (self.registers.a >> 1) | old_carry;
                 self.registers.set_f(if carry { flags::CARRY } else { 0 });
@@ -658,7 +662,11 @@ impl Cpu {
                 } else {
                     self.registers.add_a(value);
                 }
-                if opcode & 0x07 == 6 { 2 } else { 1 }
+                if opcode & 0x07 == 6 {
+                    2
+                } else {
+                    1
+                }
             }
             // SUB r and SBC A,r.
             0x90..=0x97 | 0x98..=0x9F => {
@@ -741,7 +749,10 @@ impl Cpu {
                 3
             }
             0xE2 => {
-                bus.write8(0xFF00u16.wrapping_add(u16::from(self.registers.c)), self.registers.a);
+                bus.write8(
+                    0xFF00u16.wrapping_add(u16::from(self.registers.c)),
+                    self.registers.a,
+                );
                 2
             }
             0xF2 => {
