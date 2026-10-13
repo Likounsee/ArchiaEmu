@@ -758,10 +758,8 @@ impl Cpu {
                     flags::HALF_CARRY,
                     (sp & 0x000F) + u16::from(immediate & 0x0F) > 0x000F,
                 );
-                self.registers.set_flag(
-                    flags::CARRY,
-                    (sp & 0x00FF) + u16::from(immediate) > 0x00FF,
-                );
+                self.registers
+                    .set_flag(flags::CARRY, (sp & 0x00FF) + u16::from(immediate) > 0x00FF);
                 if opcode == 0xE8 {
                     self.registers.sp = result;
                     4
@@ -822,11 +820,10 @@ impl Cpu {
         let hl = self.registers.pair(RegisterPair::Hl);
         let result = hl.wrapping_add(value);
         self.registers.set_flag(flags::SUBTRACT, false);
-        self.registers.set_flag(
-            flags::HALF_CARRY,
-            (hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF,
-        );
-        self.registers.set_flag(flags::CARRY, u32::from(hl) + u32::from(value) > 0xFFFF);
+        self.registers
+            .set_flag(flags::HALF_CARRY, (hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF);
+        self.registers
+            .set_flag(flags::CARRY, u32::from(hl) + u32::from(value) > 0xFFFF);
         self.registers.set_pair(RegisterPair::Hl, result);
     }
 
@@ -962,7 +959,10 @@ mod execution_tests {
         assert_eq!(cpu.registers.f(), flags::ZERO | flags::CARRY);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
         assert_eq!(cpu.registers.a, 0xFF);
-        assert_eq!(cpu.registers.f(), flags::ZERO | flags::SUBTRACT | flags::HALF_CARRY | flags::CARRY);
+        assert_eq!(
+            cpu.registers.f(),
+            flags::ZERO | flags::SUBTRACT | flags::HALF_CARRY | flags::CARRY
+        );
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
         assert_eq!(cpu.registers.f(), flags::ZERO | flags::CARRY);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
@@ -995,9 +995,8 @@ mod execution_tests {
         cpu.registers.a = 0x5A;
         cpu.registers.sp = 0x00FF;
         cpu.registers.c = 0x80;
-        let mut bus = TestBus::with_program(&[
-            0xE0, 0x42, 0xF0, 0x42, 0xE2, 0xF2, 0xF8, 0x01, 0xE8, 0xFE,
-        ]);
+        let mut bus =
+            TestBus::with_program(&[0xE0, 0x42, 0xF0, 0x42, 0xE2, 0xF2, 0xF8, 0x01, 0xE8, 0xFE]);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
         assert_eq!(bus.0[0xFF42], 0x5A);
         cpu.registers.a = 0;
