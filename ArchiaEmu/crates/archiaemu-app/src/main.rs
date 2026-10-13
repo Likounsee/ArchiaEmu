@@ -39,8 +39,35 @@ fn main() -> Result<(), Box<dyn Error>> {
         std::process::exit(2);
     }
 
-    let path = PathBuf::from(first);
+    let (path, selected_system) = if first == "--system" {
+        let selected = args
+            .next()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "missing system ID"))?;
+        let content = args
+            .next()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "missing content path"))?;
+        if args.next().is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "expected --system <system-id> <content-path>",
+            )
+            .into());
+        }
+        (PathBuf::from(content), Some(selected.to_string_lossy().into_owned()))
+    } else {
+        if args.next().is_some() {
+            eprintln!("error: expected one content path");
+            print_usage();
+            std::process::exit(2);
+        }
+        (PathBuf::from(first), None)
+    };
+
     let probe = GameBoyCartridgeProbe;
+    if let Some(selected) = selected_system.as_deref() {
+        validate_system_selection(&registry, selected, probe.format_id())
+            .map_err(|message| io::Error::new(io::ErrorKind::InvalidInput, message))?;
+    }
     let probes: [&dyn ContentFormatProbe; 1] = [&probe];
     let mut host = HostRuntime::new(HostRuntimeConfig::default())?;
     let session_id = host.launch_content_path(
@@ -140,5 +167,46 @@ fn print_usage() {
     println!("Usage:");
     println!("  archiaemu --list-systems");
     println!("  archiaemu <content-path>");
+    println!("  archiaemu --system <system-id> <content-path>");
     println!("  archiaemu --help");
+}
+
+fn validate_system_selection(
+    registry: &CoreRegistry,
+    selected: &str,
+    probe_format: &str,
+) -> Result<(), String> {
+    if !registry.system_ids().any(|id| id.as_str() == selected) {
+        return Err(format!("unknown system ID: {selected}"));
+    }
+    if selected != probe_format {
+        return Err(format!(
+            "system {selected} has no content probe registered by this frontend"
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn registry() -> CoreRegistry {
+        let mut registry = CoreRegistry::new();
+        register_game_boy(&mut registry).unwrap();
+        registry
+    }
+
+    #[test]
+    fn explicit_system_selection_accepts_a_registered_matching_probe() {
+        let registry = registry();
+        assert!(validate_system_selection(&registry, "game-boy", "game-boy").is_ok());
+    }
+
+    #[test]
+    fn explicit_system_selection_rejects_unknown_systems_and_probe_mismatches() {
+        let registry = registry();
+        assert!(validate_system_selection(&registry, "unknown-system", "unknown-system").is_err());
+        assert!(validate_system_selection(&registry, "game-boy", "another-format").is_err());
+    }
 }
