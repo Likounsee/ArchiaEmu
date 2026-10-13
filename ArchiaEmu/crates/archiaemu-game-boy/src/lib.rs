@@ -580,7 +580,7 @@ mod tests {
         assert_eq!(
             detect_content_formats(&image, &probes),
             ContentDetection {
-                matches: vec!["game-boy-cartridge"],
+                matches: vec!["game-boy"],
                 needs_more_data: vec![],
             }
         );
