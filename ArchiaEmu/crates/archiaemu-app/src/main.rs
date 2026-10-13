@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::save_state_store::SaveStateStore;
+use archiaemu_core::core_io::{InputControl, InputEvent};
 use archiaemu_core::CoreRegistry;
 use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
 
@@ -75,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     println!("Content loaded into host session {}.", session_id.get());
     println!("This core is an early implementation, not yet a playable emulator.");
-    println!("Commands: status, sessions, switch <id>, open <path>, close [id], save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
+    println!("Commands: status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
     command_loop(&mut host, session_id, &probe, &registry)
 }
 
@@ -155,6 +156,20 @@ fn command_loop(
             }
             continue;
         }
+        if let Some(raw) = command.strip_prefix("input ") {
+            match apply_input_command(host, active, raw) {
+                Ok(message) => println!("{message}"),
+                Err(error) => eprintln!("Input failed: {error}"),
+            }
+            continue;
+        }
+        if command == "release-inputs" {
+            match release_session_inputs(host, active) {
+                Ok(()) => println!("All held inputs released."),
+                Err(error) => eprintln!("Could not release inputs: {error}"),
+            }
+            continue;
+        }
         if let Some(path) = command.strip_prefix("save-state ") {
             match save_state_to_path(host, active, path.trim()) {
                 Ok(()) => println!("Save state written."),
@@ -222,11 +237,64 @@ fn command_loop(
             }
             "" => {}
             other => eprintln!(
-                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], pause, resume, reset, stop, step, or quit."
+                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, pause, resume, reset, stop, step, or quit."
             ),
         }
     }
     Ok(())
+}
+
+fn parse_input_control(raw: &str) -> Option<InputControl> {
+    match raw {
+        "up" => Some(InputControl::Up),
+        "down" => Some(InputControl::Down),
+        "left" => Some(InputControl::Left),
+        "right" => Some(InputControl::Right),
+        "action1" => Some(InputControl::Action1),
+        "action2" => Some(InputControl::Action2),
+        "action3" => Some(InputControl::Action3),
+        "action4" => Some(InputControl::Action4),
+        "start" => Some(InputControl::Start),
+        "select" => Some(InputControl::Select),
+        _ => None,
+    }
+}
+
+fn apply_input_command(
+    host: &mut HostRuntime,
+    active: Option<SessionId>,
+    raw: &str,
+) -> Result<String, String> {
+    let mut parts = raw.split_whitespace();
+    let control_name = parts.next().ok_or_else(|| "expected input <control> <press|release>".to_owned())?;
+    let action = parts.next().ok_or_else(|| "expected input <control> <press|release>".to_owned())?;
+    if parts.next().is_some() {
+        return Err("expected exactly two arguments: <control> <press|release>".to_owned());
+    }
+    let control = parse_input_control(control_name)
+        .ok_or_else(|| format!("unknown control '{control_name}'"))?;
+    let pressed = match action {
+        "press" => true,
+        "release" => false,
+        _ => return Err(format!("unknown input action '{action}'; use press or release")),
+    };
+    let id = active.ok_or_else(|| "no active session".to_owned())?;
+    host.session_mut(id)
+        .map_err(|error| error.to_string())?
+        .send_input(InputEvent { control, pressed })
+        .map_err(|error| error.to_string())?;
+    Ok(format!("{} {}.", control_name, action))
+}
+
+fn release_session_inputs(
+    host: &mut HostRuntime,
+    active: Option<SessionId>,
+) -> Result<(), String> {
+    let id = active.ok_or_else(|| "no active session".to_owned())?;
+    host.session_mut(id)
+        .map_err(|error| error.to_string())?
+        .release_all_inputs()
+        .map_err(|error| error.to_string())
 }
 
 fn save_state_to_path(
@@ -306,6 +374,8 @@ fn print_usage() {
     println!("  archiaemu <content-path>");
     println!("  archiaemu --system <system-id> <content-path>");
     println!("  archiaemu --help");
+    println!("Interactive input: input <up|down|left|right|action1|action2|action3|action4|start|select> <press|release>");
+    println!("                  release-inputs releases all held controls.");
 }
 
 fn validate_system_selection(
@@ -345,6 +415,26 @@ mod tests {
         let registry = registry();
         assert!(validate_system_selection(&registry, "unknown-system", "unknown-system").is_err());
         assert!(validate_system_selection(&registry, "game-boy", "another-format").is_err());
+    }
+
+    #[test]
+    fn input_control_parser_accepts_every_semantic_control_and_rejects_unknown_names() {
+        let controls = [
+            ("up", InputControl::Up),
+            ("down", InputControl::Down),
+            ("left", InputControl::Left),
+            ("right", InputControl::Right),
+            ("action1", InputControl::Action1),
+            ("action2", InputControl::Action2),
+            ("action3", InputControl::Action3),
+            ("action4", InputControl::Action4),
+            ("start", InputControl::Start),
+            ("select", InputControl::Select),
+        ];
+        for (name, expected) in controls {
+            assert_eq!(parse_input_control(name), Some(expected));
+        }
+        assert_eq!(parse_input_control("spacebar"), None);
     }
 
     #[test]
