@@ -798,6 +798,25 @@ mod tests {
     }
 
     #[test]
+    fn paused_session_accepts_input_and_ignores_duplicate_releases() {
+        let (mut session, delivered) = input_session(false);
+        session.load_content(&[1]).unwrap();
+        session.pause().unwrap();
+
+        let release = InputEvent { control: InputControl::Select, pressed: false };
+        session.send_input(release).unwrap();
+        let press = InputEvent { control: InputControl::Select, pressed: true };
+        session.send_input(press).unwrap();
+        session.send_input(press).unwrap();
+        session.send_input(release).unwrap();
+        session.send_input(release).unwrap();
+
+        assert!(session.pressed_inputs().is_empty());
+        assert_eq!(delivered.lock().unwrap().as_slice(), &[press, release]);
+        assert_eq!(session.state(), SessionState::Paused);
+    }
+
+    #[test]
     fn failed_input_release_preserves_held_state_for_retry() {
         let (mut session, delivered) = input_session(true);
         session.load_content(&[1]).unwrap();
