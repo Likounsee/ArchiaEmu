@@ -620,6 +620,70 @@ mod tests {
         }
     }
 
+    struct InputTestCore {
+        loaded: bool,
+        delivered: std::sync::Arc<std::sync::Mutex<Vec<InputEvent>>>,
+        fail_release: bool,
+    }
+
+    impl EmulationCore for InputTestCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                api_version: crate::CURRENT_CORE_API_VERSION,
+                system_id: SystemId::new("input-test").unwrap(),
+                display_name: "Input test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    input: true,
+                    ..CoreCapabilities::default()
+                },
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+            if content.is_empty() {
+                return Err(CoreError::InvalidContent("empty test content"));
+            }
+            self.loaded = true;
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            if !self.loaded {
+                return Err(CoreError::NotInitialized);
+            }
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            if !self.loaded {
+                return Err(CoreError::NotInitialized);
+            }
+            Ok(CoreEvent::Yielded)
+        }
+
+        fn send_input(&mut self, event: InputEvent) -> Result<(), CoreError> {
+            if self.fail_release && !event.pressed {
+                return Err(CoreError::Execution("input release failed"));
+            }
+            self.delivered.lock().unwrap().push(event);
+            Ok(())
+        }
+    }
+
+    fn input_session(
+        fail_release: bool,
+    ) -> (EmulationSession, std::sync::Arc<std::sync::Mutex<Vec<InputEvent>>>) {
+        let delivered = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let core = InputTestCore {
+            loaded: false,
+            delivered: delivered.clone(),
+            fail_release,
+        };
+        (EmulationSession::new(Box::new(core)), delivered)
+    }
+
     struct ErrorOnceCore {
         fail_next_run: bool,
     }
@@ -705,6 +769,47 @@ mod tests {
         assert!(session.pressed_inputs().is_empty());
         session.load_content(&[1]).unwrap();
         assert!(session.pressed_inputs().is_empty());
+    }
+
+    #[test]
+    fn input_transitions_are_deduplicated_and_released_in_canonical_order() {
+        let (mut session, delivered) = input_session(false);
+        session.load_content(&[1]).unwrap();
+
+        let up = InputEvent { control: InputControl::Up, pressed: true };
+        let action = InputEvent { control: InputControl::Action1, pressed: true };
+        session.send_input(up).unwrap();
+        session.send_input(up).unwrap();
+        session.send_input(action).unwrap();
+        assert_eq!(session.pressed_inputs(), vec![InputControl::Up, InputControl::Action1]);
+        assert_eq!(delivered.lock().unwrap().as_slice(), &[up, action]);
+
+        session.release_all_inputs().unwrap();
+        assert!(session.pressed_inputs().is_empty());
+        assert_eq!(
+            delivered.lock().unwrap().as_slice(),
+            &[
+                up,
+                action,
+                InputEvent { control: InputControl::Up, pressed: false },
+                InputEvent { control: InputControl::Action1, pressed: false },
+            ]
+        );
+    }
+
+    #[test]
+    fn failed_input_release_preserves_held_state_for_retry() {
+        let (mut session, delivered) = input_session(true);
+        session.load_content(&[1]).unwrap();
+        let up = InputEvent { control: InputControl::Up, pressed: true };
+        session.send_input(up).unwrap();
+
+        assert!(matches!(
+            session.release_all_inputs(),
+            Err(SessionError::Core(CoreError::Execution("input release failed")))
+        ));
+        assert!(session.is_input_pressed(InputControl::Up));
+        assert_eq!(delivered.lock().unwrap().as_slice(), &[up]);
     }
 
     #[test]
