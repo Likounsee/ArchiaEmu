@@ -5,9 +5,11 @@
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use archiaemu_app::controller::ApplicationController;
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
+use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent, PixelFormat, VideoFrame};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::runtime::SessionState;
 use archiaemu_core::CoreRegistry;
@@ -46,6 +48,11 @@ struct DesktopApp {
     ui_scale: f32,
     config_path: Option<PathBuf>,
     active_page: DesktopPage,
+    last_tick: Instant,
+    frame_cadence: FrameCadence,
+    frame_texture: Option<egui::TextureHandle>,
+    video_size: Option<[u32; 2]>,
+    media_status: String,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -99,6 +106,7 @@ enum DesktopPage {
     Home,
     Library,
     Sessions,
+    Game,
     Systems,
     Settings,
 }
@@ -109,6 +117,7 @@ impl DesktopPage {
             Self::Home => "Overview",
             Self::Library => "Game library",
             Self::Sessions => "Sessions",
+            Self::Game => "Game",
             Self::Systems => "Systems",
             Self::Settings => "Settings",
         }
@@ -161,6 +170,11 @@ impl DesktopApp {
             ui_scale,
             config_path,
             active_page: DesktopPage::Home,
+            last_tick: Instant::now(),
+            frame_cadence: FrameCadence::new(60, 3)?,
+            frame_texture: None,
+            video_size: None,
+            media_status: "No active session.".to_owned(),
         })
     }
 
@@ -252,7 +266,11 @@ impl DesktopApp {
         ) {
             Ok(id) => {
                 self.message = format!("Launched session {}.", id.get());
-                self.active_page = DesktopPage::Sessions;
+                self.frame_cadence.reset();
+                self.frame_texture = None;
+                self.video_size = None;
+                self.last_tick = Instant::now();
+                self.active_page = DesktopPage::Game;
             }
             Err(error) => self.message = format!("Launch failed: {error}"),
         }
@@ -316,6 +334,7 @@ impl SessionAction {
 
 impl eframe::App for DesktopApp {
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+        self.advance_emulation(context);
         let previous_dark_mode = self.dark_mode;
         let previous_ui_scale = self.ui_scale;
         context.set_visuals(if self.dark_mode {
@@ -356,6 +375,7 @@ impl eframe::App for DesktopApp {
                     (DesktopPage::Home, "⌂", "Overview"),
                     (DesktopPage::Library, "▤", "Game library"),
                     (DesktopPage::Sessions, "▣", "Sessions"),
+                    (DesktopPage::Game, "▶", "Game"),
                     (DesktopPage::Systems, "◉", "Systems"),
                     (DesktopPage::Settings, "⚙", "Settings"),
                 ] {
@@ -400,6 +420,7 @@ impl eframe::App for DesktopApp {
                 DesktopPage::Home => self.show_home(ui),
                 DesktopPage::Library => self.show_library(ui),
                 DesktopPage::Sessions => self.show_sessions(ui),
+                DesktopPage::Game => self.show_game(ui),
                 DesktopPage::Systems => self.show_systems(ui),
                 DesktopPage::Settings => self.show_settings(ui),
             }
@@ -465,6 +486,9 @@ impl DesktopApp {
 
         let Some(id) = self.controller.active_session() else {
             self.frame_cadence.reset();
+            self.frame_texture = None;
+            self.video_size = None;
+            self.media_status = "No active session. Launch a ROM to receive core-provided frames.".to_owned();
             return;
         };
 
@@ -544,6 +568,9 @@ impl DesktopApp {
             "Video pipeline connected. This core does not currently advertise audio output."
                 .to_owned()
         };
+        if state == SessionState::Running {
+            context.request_repaint_after(Duration::from_millis(16));
+        }
     }
 
     fn send_game_input(&mut self, control: InputControl, pressed: bool) {
@@ -640,10 +667,14 @@ impl DesktopApp {
                             self.release_game_inputs();
                             self.session_action(id, SessionAction::Stop);
                             self.frame_cadence.reset();
+                            self.frame_texture = None;
+                            self.video_size = None;
                         }
                         if state != SessionState::Empty && ui.button("Reset").clicked() {
                             self.session_action(id, SessionAction::Reset);
                             self.frame_cadence.reset();
+                            self.frame_texture = None;
+                            self.video_size = None;
                             self.last_tick = Instant::now();
                         }
                     });
@@ -1230,6 +1261,9 @@ fn map_key_to_control(key: egui::Key) -> Option<InputControl> {
 }
 
 fn video_frame_to_image(frame: &VideoFrame) -> Result<egui::ColorImage, String> {
+    if frame.width() == 0 || frame.height() == 0 {
+        return Err("Video frame dimensions must be non-zero.".to_owned());
+    }
     if frame.format() != PixelFormat::Rgba8888 {
         return Err("Unsupported video pixel format.".to_owned());
     }
@@ -1441,6 +1475,35 @@ mod preference_tests {
             Some(InputControl::Select)
         );
         assert_eq!(map_key_to_control(egui::Key::Escape), None);
+    }
+
+    #[test]
+    fn video_conversion_removes_stride_padding_without_blurring_rgba_pixels() {
+        let frame = VideoFrame::with_stride(
+            1,
+            2,
+            PixelFormat::Rgba8888,
+            8,
+            vec![255, 0, 0, 255, 99, 99, 99, 99, 0, 255, 0, 255, 88, 88, 88, 88],
+        ).unwrap();
+        let image = video_frame_to_image(&frame).unwrap();
+        assert_eq!(image.size, [1, 2]);
+        assert_eq!(image.pixels.len(), 2);
+        assert_eq!(image.pixels[0], egui::Color32::from_rgba_unmultiplied(255, 0, 0, 255));
+        assert_eq!(image.pixels[1], egui::Color32::from_rgba_unmultiplied(0, 255, 0, 255));
+    }
+
+    #[test]
+    fn video_conversion_rejects_frames_over_upload_limit_before_copying() {
+        let width = 4096u32;
+        let height = 4096u32;
+        let frame = VideoFrame::new(
+            width,
+            height,
+            PixelFormat::Rgba8888,
+            vec![0; (width as usize) * (height as usize) * 4],
+        ).unwrap();
+        assert!(video_frame_to_image(&frame).unwrap_err().contains("64 MiB"));
     }
 
     #[test]
