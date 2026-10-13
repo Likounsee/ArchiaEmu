@@ -15,6 +15,9 @@ pub mod core_io;
 /// Host capability facts and console-independent performance planning.
 pub mod host_profile;
 
+/// Bounded host-side orchestration and independent session ownership.
+pub mod host_runtime;
+
 /// Console-independent lifecycle controller for an active emulation session.
 pub mod runtime;
 
