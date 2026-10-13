@@ -3449,6 +3449,16 @@ mod save_state_session_tests {
     }
 
     #[test]
+    fn successful_restore_preserves_paused_lifecycle() {
+        let mut session = EmulationSession::new(Box::new(StateCore { state: Vec::new() }));
+        session.load_content(&[1, 2]).unwrap();
+        session.pause().unwrap();
+        session.load_state(&[3, 4, 5]).unwrap();
+        assert_eq!(session.save_state().unwrap(), &[3, 4, 5]);
+        assert_eq!(session.state(), SessionState::Paused);
+    }
+
+    #[test]
     fn rejected_state_preserves_machine_and_running_lifecycle() {
         let mut session = EmulationSession::new(Box::new(StateCore { state: Vec::new() }));
         session.load_content(&[7, 8]).unwrap();
