@@ -12,7 +12,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Chargement et validation du contenu | 100 % | Pipeline commun borné, validation de tous les formats actuellement enregistrés et contrat d'intégration hôte |
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 70 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
-| **P1** | Entrées, sorties et horloge hôte | 64 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
+| **P1** | Entrées, sorties et horloge hôte | 63 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 55 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
 | **P1** | Frontend minimal du framework | 59 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
@@ -116,7 +116,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtime.rs`; l'identité de contenu persistante et le catalogue hôte restent à intégrer.
 
-### P1.2 — Entrées, vidéo, audio et cadence — 62 %
+### P1.2 — Entrées, vidéo, audio et cadence — 63 %
 - [x] Contrats d'entrée génériques avec transitions dédupliquées et libération de toutes les commandes à la perte de focus/déconnexion.
 - [x] Trames vidéo avec dimensions, stride explicite, format de pixel et propriété du tampon; lignes rembourrées et tailles incohérentes testées.
 - [x] Blocs audio PCM signés 16 bits entrelacés avec fréquence, canaux et nombre de frames validés.
@@ -125,6 +125,7 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Définir des files média bornées : la vidéo peut évincer la plus ancienne trame pour limiter la latence; l'audio refuse le nouvel élément quand la file est pleine afin que l'hôte traite explicitement la back-pressure. Tests de capacité, d'ordre et de conservation des données.
 - [x] Tests des tailles invalides, du débordement de taille vidéo, du tampon audio incomplet/vide et des retards de cadence.
 - [x] Interfaces indépendantes d'une bibliothèque graphique ou audio particulière.
+- [x] Tester le transfert des trames vidéo et blocs audio via une session : payload remis une seule fois, lecture avant chargement refusée et capacités média non déclarées signalées explicitement.
 
 ### P1.3 — Sauvegardes et restauration — 55 %
 - [x] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur dans `docs/SAVE_STATE_POLICY.md`; le frontend propose `save-state <path>` et `load-state <path>` et respecte la capacité déclarée par le cœur.
