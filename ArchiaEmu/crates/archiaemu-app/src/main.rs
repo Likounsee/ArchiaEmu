@@ -180,6 +180,7 @@ fn command_loop(
         let line = line?;
         let command = line.trim();
         if command == "library" {
+            println!("Content library: {} item(s).", library.len());
             if library.is_empty() {
                 println!("Content library is empty.");
             } else {
