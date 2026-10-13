@@ -435,6 +435,248 @@ impl eframe::App for DesktopApp {
 }
 
 impl DesktopApp {
+
+    fn advance_emulation(&mut self, context: &egui::Context) {
+        let now = Instant::now();
+        let elapsed = now.saturating_duration_since(self.last_tick);
+        self.last_tick = now;
+
+        if self.active_page == DesktopPage::Game {
+            let events = context.input(|input| input.events.clone());
+            for event in events {
+                match event {
+                    egui::Event::Key { key, pressed, repeat, .. } => {
+                        if repeat && pressed {
+                            continue;
+                        }
+                        if let Some(control) = map_key_to_control(key) {
+                            self.send_game_input(control, pressed);
+                        }
+                    }
+                    egui::Event::WindowFocused(false) => self.release_game_inputs(),
+                    _ => {}
+                }
+            }
+        }
+
+        let Some(id) = self.controller.active_session() else {
+            self.frame_cadence.reset();
+            return;
+        };
+
+        let mut newest_frame: Option<VideoFrame> = None;
+        let mut error = None;
+        let mut video_available = false;
+        let mut audio_available = false;
+        let mut state = SessionState::Empty;
+        {
+            let session_result = self.controller.host_mut().session_mut(id);
+            let Ok(session) = session_result else {
+                self.media_status = "The selected session no longer exists.".to_owned();
+                self.frame_texture = None;
+                self.video_size = None;
+                return;
+            };
+            state = session.state();
+            let capabilities = session.descriptor().capabilities;
+            video_available = capabilities.video_output;
+            audio_available = capabilities.audio_output;
+            let due = session.advance_frame_cadence(&mut self.frame_cadence, elapsed);
+            if state == SessionState::Running {
+                for _ in 0..due.due_frames {
+                    if let Err(run_error) = session.run_for_events(4096) {
+                        error = Some(format!("Execution error: {run_error}"));
+                        break;
+                    }
+                    if session.state() != SessionState::Running {
+                        break;
+                    }
+                }
+            }
+            if video_available && state != SessionState::Empty {
+                for _ in 0..4 {
+                    match session.take_video_frame() {
+                        Ok(Some(frame)) => newest_frame = Some(frame),
+                        Ok(None) => break,
+                        Err(frame_error) => {
+                            error = Some(format!("Video output error: {frame_error}"));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Some(frame) = newest_frame {
+            match video_frame_to_image(&frame) {
+                Ok(image) => {
+                    let [width, height] = image.size;
+                    self.video_size = Some([width as u32, height as u32]);
+                    if let Some(texture) = self.frame_texture.as_mut() {
+                        texture.set(image, egui::TextureOptions::NEAREST);
+                    } else {
+                        self.frame_texture = Some(context.load_texture(
+                            "archiaemu-game-frame",
+                            image,
+                            egui::TextureOptions::NEAREST,
+                        ));
+                    }
+                }
+                Err(frame_error) => error = Some(frame_error),
+            }
+        }
+
+        self.media_status = if let Some(error) = error {
+            error
+        } else if state == SessionState::Paused {
+            "Paused — video output is frozen until you resume.".to_owned()
+        } else if state != SessionState::Running {
+            format!("Session state: {state:?}.")
+        } else if !video_available {
+            "This core does not currently advertise video output; the display area is a placeholder.".to_owned()
+        } else if audio_available {
+            "Video pipeline connected. Audio is advertised by the core but host playback is not integrated yet.".to_owned()
+        } else {
+            "Video pipeline connected. This core does not currently advertise audio output.".to_owned()
+        };
+    }
+
+    fn send_game_input(&mut self, control: InputControl, pressed: bool) {
+        let Some(id) = self.controller.active_session() else {
+            return;
+        };
+        let result = self.controller.host_mut().session_mut(id)
+            .map_err(|error| error.to_string())
+            .and_then(|session| session.send_input(InputEvent { control, pressed }).map_err(|error| error.to_string()));
+        if let Err(error) = result {
+            if !error.contains("unsupported") && !error.contains("input") {
+                self.message = format!("Input error: {error}");
+            }
+        }
+    }
+
+    fn release_game_inputs(&mut self) {
+        let Some(id) = self.controller.active_session() else {
+            return;
+        };
+        let result = self.controller.host_mut().session_mut(id)
+            .map_err(|error| error.to_string())
+            .and_then(|session| {
+                if matches!(session.state(), SessionState::Running | SessionState::Paused) {
+                    session.release_all_inputs().map_err(|error| error.to_string())
+                } else {
+                    Ok(())
+                }
+            });
+        if let Err(error) = result {
+            self.message = format!("Could not release held inputs: {error}");
+        }
+    }
+
+    fn show_game(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.heading("Game view");
+                ui.label("The host runs the selected session and displays its latest video frame.");
+            });
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Manage sessions").clicked() {
+                    self.active_page = DesktopPage::Sessions;
+                }
+                if ui.button("Open library").clicked() {
+                    self.active_page = DesktopPage::Library;
+                }
+            });
+        });
+        ui.add_space(8.0);
+
+        let active = self.controller.active_session();
+        let session_summary = active.and_then(|id| {
+            self.controller.host().session(id).ok().map(|session| {
+                (id, session.state(), session.descriptor().display_name.to_owned(),
+                 session.descriptor().capabilities)
+            })
+        });
+        if let Some((id, state, system, capabilities)) = session_summary {
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        ui.heading(format!("{system} · Session {}", id.get()));
+                        ui.label(format!("State: {state:?}"));
+                    });
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if state == SessionState::Running && ui.button("Pause").clicked() {
+                            self.session_action(id, SessionAction::Pause);
+                            self.frame_cadence.reset();
+                        } else if state == SessionState::Paused && ui.button("Resume").clicked() {
+                            self.session_action(id, SessionAction::Resume);
+                            self.last_tick = Instant::now();
+                        }
+                        if state != SessionState::Empty && ui.button("Stop").clicked() {
+                            self.release_game_inputs();
+                            self.session_action(id, SessionAction::Stop);
+                            self.frame_cadence.reset();
+                        }
+                        if state != SessionState::Empty && ui.button("Reset").clicked() {
+                            self.session_action(id, SessionAction::Reset);
+                            self.frame_cadence.reset();
+                            self.last_tick = Instant::now();
+                        }
+                    });
+                });
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.label(if capabilities.video_output { "Video: available" } else { "Video: not implemented by this core" });
+                    ui.separator();
+                    ui.label(if capabilities.audio_output { "Audio: core capability declared" } else { "Audio: unavailable" });
+                    ui.separator();
+                    ui.label("Input: keyboard mapping enabled when supported");
+                });
+            });
+        } else {
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                ui.heading("No active game session");
+                ui.label("Import a ROM in the library and launch it to create a session.");
+                if ui.button("Browse library").clicked() {
+                    self.active_page = DesktopPage::Library;
+                }
+            });
+        }
+
+        ui.add_space(8.0);
+        let available = ui.available_size();
+        let display_height = (available.y - 100.0).max(180.0);
+        egui::Frame::group(ui.style()).show(ui, |ui| {
+            ui.set_min_height(display_height);
+            ui.set_min_width(ui.available_width());
+            ui.vertical_centered(|ui| {
+                if let (Some(texture), Some([width, height])) = (&self.frame_texture, self.video_size) {
+                    let available = ui.available_size();
+                    let max_width = available.x.max(1.0);
+                    let max_height = available.y.max(1.0);
+                    let scale = (max_width / width as f32).min(max_height / height as f32);
+                    let size = egui::vec2(width as f32 * scale, height as f32 * scale);
+                    ui.image((texture.id(), size));
+                    ui.small(format!("{width} × {height} · nearest-neighbour scaling"));
+                } else {
+                    ui.add_space(24.0);
+                    ui.heading("Video output");
+                    ui.label("The display surface is ready for core-provided RGBA frames.");
+                    ui.label("If the selected core has no video implementation, this area remains a truthful placeholder.");
+                    ui.add_space(12.0);
+                    ui.label("↑ ↓ ← →  Move    Z / X  Action    Enter  Start    Backspace  Select");
+                    ui.add_space(24.0);
+                }
+            });
+        });
+        ui.add_space(6.0);
+        ui.horizontal_wrapped(|ui| {
+            ui.label("Media status:");
+            ui.label(&self.media_status);
+        });
+        ui.small("Keyboard controls are forwarded as semantic input transitions only when the core declares input support. Audio playback is not implemented in this lot.");
+    }
+
     fn show_home(&mut self, ui: &mut egui::Ui) {
         ui.heading("Welcome back");
         ui.label("Pick up where you left off or add a game to your library.");
@@ -939,6 +1181,47 @@ impl DesktopApp {
     }
 }
 
+
+fn map_key_to_control(key: egui::Key) -> Option<InputControl> {
+    match key {
+        egui::Key::ArrowUp => Some(InputControl::Up),
+        egui::Key::ArrowDown => Some(InputControl::Down),
+        egui::Key::ArrowLeft => Some(InputControl::Left),
+        egui::Key::ArrowRight => Some(InputControl::Right),
+        egui::Key::Z => Some(InputControl::Action1),
+        egui::Key::X => Some(InputControl::Action2),
+        egui::Key::A => Some(InputControl::Action3),
+        egui::Key::S => Some(InputControl::Action4),
+        egui::Key::Enter => Some(InputControl::Start),
+        egui::Key::Backspace => Some(InputControl::Select),
+        _ => None,
+    }
+}
+
+fn video_frame_to_image(frame: &VideoFrame) -> Result<egui::ColorImage, String> {
+    if frame.format() != PixelFormat::Rgba8888 {
+        return Err("Unsupported video pixel format.".to_owned());
+    }
+    let width = usize::try_from(frame.width()).map_err(|_| "Video width is too large.")?;
+    let height = usize::try_from(frame.height()).map_err(|_| "Video height is too large.")?;
+    let packed_row = width.checked_mul(4).ok_or("Video row size overflow.")?;
+    let expected = packed_row.checked_mul(height).ok_or("Video frame size overflow.")?;
+    if expected > 64 * 1024 * 1024 {
+        return Err("Video frame exceeds the 64 MiB desktop upload limit.".to_owned());
+    }
+    let mut packed = Vec::with_capacity(expected);
+    for row in frame.pixels().chunks(frame.row_stride_bytes()).take(height) {
+        if row.len() < packed_row {
+            return Err("Video frame contains a truncated row.".to_owned());
+        }
+        packed.extend_from_slice(&row[..packed_row]);
+    }
+    if packed.len() != expected {
+        return Err("Video frame row count does not match its dimensions.".to_owned());
+    }
+    Ok(egui::ColorImage::from_rgba_unmultiplied([width, height], &packed))
+}
+
 fn format_size(bytes: u64) -> String {
     const KIB: u64 = 1024;
     const MIB: u64 = KIB * 1024;
@@ -1102,6 +1385,15 @@ fn unescape_config_value(value: &str) -> Option<String> {
 #[cfg(test)]
 mod preference_tests {
     use super::*;
+
+    #[test]
+    fn keyboard_mapping_covers_directions_actions_and_menu_controls() {
+        assert_eq!(map_key_to_control(egui::Key::ArrowUp), Some(InputControl::Up));
+        assert_eq!(map_key_to_control(egui::Key::Z), Some(InputControl::Action1));
+        assert_eq!(map_key_to_control(egui::Key::Enter), Some(InputControl::Start));
+        assert_eq!(map_key_to_control(egui::Key::Backspace), Some(InputControl::Select));
+        assert_eq!(map_key_to_control(egui::Key::Escape), None);
+    }
 
     #[test]
     fn library_format_filter_is_case_insensitive() {

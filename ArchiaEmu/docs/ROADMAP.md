@@ -168,7 +168,7 @@ La bibliothèque terminale affiche maintenant un index stable et un nombre d'ent
 - [ ] **Cœur réel de bout en bout :** tests CPU/bus/périphériques du système choisi, entrée utilisateur réelle, sorties vidéo/audio réelles quand le matériel le permet, sauvegarde/restauration et comportement vérifié sur des programmes de test. Un cœur factice valide les contrats du framework, pas la compatibilité console.
 - [ ] **Compatibilité honnête :** documenter précisément ce qui fonctionne et ce qui manque; ne pas qualifier un système de jouable tant qu'un programme représentatif n'a pas été exécuté avec un résultat vérifiable.
 
-### P1.5 — Application desktop générique — 18 %
+### P1.5 — Application desktop générique — 24 %
 
 Construire l'application utilisateur au-dessus du runtime et des contrats communs, sans intégrer de logique matérielle propre à une console dans le frontend. Garder le terminal comme outil de diagnostic.
 
@@ -183,16 +183,21 @@ Construire l'application utilisateur au-dessus du runtime et des contrats commun
 - [x] Compléter la bibliothèque desktop : import multiple par sélecteur natif, résumé des imports rejetés, recherche titre/chemin, filtres .gb/.gbc, tri par titre/taille/chemin, sélection de contenu, tailles lisibles, lancement depuis la bibliothèque et suppression avec désélection cohérente.
 - [x] Ajouter des tests unitaires au frontend pour les filtres d'extension et le formatage des tailles de fichiers.
 - [ ] Tester systématiquement les états vides, les contenus invalides, les erreurs de lancement, les changements de session et la fermeture globale avec des tests frontend dédiés; la CI compile désormais le frontend natif sur Linux, Windows et macOS.
+- [x] Ajouter une vue de jeu dédiée qui avance la session avec une cadence hôte bornée, récupère les dernières trames RGBA annoncées par le cœur et les affiche dans une texture egui avec mise à l'échelle nearest-neighbour.
+- [x] Relier le clavier aux transitions sémantiques partagées (flèches, Z/X/A/S, Entrée, Retour arrière) et libérer les contrôles maintenus lors de la perte de focus de la fenêtre.
+- [ ] Ajouter un backend audio hôte et tester la lecture des blocs PCM; la vue indique explicitement que la lecture audio n'est pas encore intégrée.
 
 **Sortie attendue :** une application desktop réellement utilisable pour parcourir et lancer les contenus pris en charge; une interface qui n'affiche pas une capacité non implémentée.
 
-### P1.6 — Présentation vidéo/audio et cadence réelle — 0 %
+### P1.6 — Présentation vidéo/audio et cadence réelle — 15 %
 
 Les contrats et files média existent, mais l'application n'effectue pas encore de rendu vidéo ni de lecture audio et le cœur Game Boy ne fournit pas ces sorties.
 
-- [ ] Ajouter des adaptateurs hôte de rendu vidéo et de lecture audio derrière des interfaces testables et indépendantes du cœur.
+- [x] Ajouter l'adaptateur desktop de rendu vidéo RGBA via texture egui, en respectant le stride et en bornant les allocations de conversion.
+- [ ] Ajouter des adaptateurs hôte de lecture audio derrière des interfaces testables et indépendantes du cœur.
 - [ ] Acheminer les trames et blocs audio des sessions vers ces adaptateurs avec gestion explicite des files pleines, des buffers invalides et de la back-pressure.
-- [ ] Exécuter les cœurs selon une cadence temps réel, avec pause/reprise, arrêt, rattrapage borné et absence de progression pendant la pause.
+- [x] Ajouter une cadence hôte à 60 Hz avec accumulation du temps fractionnaire et rattrapage borné; le budget d'événements par tick est borné. Cela ne constitue pas encore une précision de timing matériel ni une mesure de cycles.
+- [ ] Vérifier pause/reprise, arrêt et absence de progression pendant la pause avec un cœur de test qui avance un compteur observable.
 - [ ] Mapper clavier/manette vers les contrôles sémantiques du cœur; relâcher tous les contrôles lors de la perte de focus ou de la déconnexion.
 - [ ] Vérifier le pipeline avec un cœur de test qui produit une mire vidéo et un signal audio déterministes, puis avec le premier cœur réel qui annonce ces capacités.
 - [ ] Documenter les formats de pixels, fréquence audio, synchronisation et limites de latence prises en charge.
