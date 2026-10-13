@@ -11,10 +11,10 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Fiabilité du runtime commun | 100 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 100 % | Pipeline commun borné, validation de tous les formats actuellement enregistrés et contrat d'intégration hôte |
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
-| **P1** | Orchestration multi-sessions | 35 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
-| **P1** | Entrées, sorties et horloge hôte | 40 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
-| **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
-| **P1** | Frontend minimal du framework | 0 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
+| **P1** | Orchestration multi-sessions | 60 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
+| **P1** | Entrées, sorties et horloge hôte | 55 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
+| **P1** | Sauvegardes et restauration | 40 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
+| **P1** | Frontend minimal du framework | 20 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
 | **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
 | **P3** | Performance et stabilité | 10 % | Benchmarks reproductibles et optimisation guidée par les mesures |
@@ -106,12 +106,13 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 ## P1 — construire le chemin complet de lancement
 
-### P1.1 — Orchestrateur et multi-sessions — 55 %
+### P1.1 — Orchestrateur et multi-sessions — 60 %
 - [x] Ajouter un gestionnaire hôte reliant le registre, le pipeline de chargement et les sessions.
 - [x] Distinguer l'identifiant hôte de session de l'identifiant de système; les IDs sont monotones et jamais réutilisés.
 - [x] Permettre la création, l'accès et la fermeture de plusieurs sessions indépendantes.
 - [x] Définir une limite de sessions configurable et imposer la sérialisation des mutations via l'accès exclusif `&mut`; aucun parallélisme implicite.
 - [x] Tester le lancement réussi via détection/registre, l'échec sans session fantôme, la fermeture répétée et l'épuisement des IDs sans bouclage.
+- [x] Ajouter un lancement direct depuis un chemin, avec contrôle anticipé de capacité et lecture bornée; tester le chargement depuis disque.
 
 L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtime.rs`; l'identité de contenu persistante et le catalogue hôte restent à intégrer.
 
@@ -136,6 +137,8 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [ ] Injecter les échecs de renommage et vérifier la reprise après crash sur chaque plateforme.
 
 ### P1.4 — Première application hôte minimale
+
+Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, et `archiaemu <chemin>` charge un contenu sous limite puis propose `status`, `pause`, `resume`, `reset`, `stop`, `step` et `quit`. La sélection explicite du module, les entrées interactives et les sorties audio/vidéo restent à intégrer.
 - [ ] Ajouter une interface simple pour sélectionner un contenu et un module, puis lancer/mettre en pause/arrêter.
 - [ ] Afficher les erreurs, capacités indisponibles et informations de diagnostic sans planter.
 - [ ] Ne pas créer de menus ou d'améliorations propres à une console avant que le chemin de lancement générique fonctionne.

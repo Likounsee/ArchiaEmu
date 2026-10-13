@@ -7,7 +7,9 @@ use core::fmt;
 use std::collections::BTreeMap;
 
 use crate::content::{ContentFormatProbe, ContentLimits};
-use crate::runtime::{launch_content, launch_content_path as launch_path, EmulationSession, LaunchError};
+use crate::runtime::{
+    launch_content, launch_content_path as launch_path, EmulationSession, LaunchError,
+};
 use crate::{CoreRegistry, EmulationCore};
 
 /// Stable host-assigned identity for one session.

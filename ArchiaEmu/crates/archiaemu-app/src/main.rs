@@ -125,7 +125,10 @@ fn command_loop(host: &mut HostRuntime, id: SessionId) -> Result<(), Box<dyn Err
             "" => {}
             command => eprintln!("Unknown command: {command}. Type status, pause, resume, reset, stop, step, or quit."),
         }
-        if host.session(id).is_ok_and(|session| session.state() == SessionState::Halted) {
+        if host
+            .session(id)
+            .is_ok_and(|session| session.state() == SessionState::Halted)
+        {
             println!("The core reported a halted machine.");
         }
     }
