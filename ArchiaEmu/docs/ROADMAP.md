@@ -184,6 +184,7 @@ Construire l'application utilisateur au-dessus du runtime et des contrats commun
 - [x] Ajouter des tests unitaires au frontend pour les filtres d'extension et le formatage des tailles de fichiers.
 - [ ] Tester systématiquement les états vides, les contenus invalides, les erreurs de lancement, les changements de session et la fermeture globale avec des tests frontend dédiés; la CI compile désormais le frontend natif sur Linux, Windows et macOS.
 - [x] Ajouter une vue de jeu dédiée qui avance la session avec une cadence hôte bornée, récupère les dernières trames RGBA annoncées par le cœur et les affiche dans une texture egui avec mise à l'échelle nearest-neighbour.
+- [ ] Valider par CI la connexion de la vue Game au cycle `eframe`, les transitions pause/reprise/arrêt/réinitialisation, le nettoyage des textures lors des changements de session, et les tests de conversion RGBA avec stride et limite d'upload. Le code et les tests sont présents; ne pas cocher avant succès des contrôles Linux, Windows et macOS.
 - [x] Relier le clavier aux transitions sémantiques partagées (flèches, Z/X/A/S, Entrée, Retour arrière) et libérer les contrôles maintenus lors de la perte de focus de la fenêtre.
 - [ ] Ajouter un backend audio hôte et tester la lecture des blocs PCM; la vue indique explicitement que la lecture audio n'est pas encore intégrée.
 
@@ -194,6 +195,7 @@ Construire l'application utilisateur au-dessus du runtime et des contrats commun
 Les contrats et files média existent, mais l'application n'effectue pas encore de rendu vidéo ni de lecture audio et le cœur Game Boy ne fournit pas ces sorties.
 
 - [x] Ajouter l'adaptateur desktop de rendu vidéo RGBA via texture egui, en respectant le stride et en bornant les allocations de conversion.
+- [ ] Confirmer que les nouveaux tests desktop de stride et de limite mémoire passent sur la CI multiplateforme; la présence des tests ne remplace pas leur exécution réussie.
 - [ ] Ajouter des adaptateurs hôte de lecture audio derrière des interfaces testables et indépendantes du cœur.
 - [ ] Acheminer les trames et blocs audio des sessions vers ces adaptateurs avec gestion explicite des files pleines, des buffers invalides et de la back-pressure.
 - [x] Ajouter une cadence hôte à 60 Hz avec accumulation du temps fractionnaire et rattrapage borné; le budget d'événements par tick est borné. Cela ne constitue pas encore une précision de timing matériel ni une mesure de cycles.
