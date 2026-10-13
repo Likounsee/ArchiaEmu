@@ -769,11 +769,19 @@ mod tests {
     }
     #[test]
     fn library_entry_selection_is_one_based_and_out_of_range_is_rejected() {
-        let first = library::tests::TempFile::new("first.gb", b"first");
-        let second = library::tests::TempFile::new("second.gb", b"second");
+        let directory = std::env::temp_dir().join(format!(
+            "archiaemu-app-library-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let first = directory.join("first.gb");
+        let second = directory.join("second.gb");
+        std::fs::write(&first, b"first").unwrap();
+        std::fs::write(&second, b"second").unwrap();
+
         let mut library = ContentLibrary::new();
-        library.import(&second.0, 64).unwrap();
-        library.import(&first.0, 64).unwrap();
+        library.import(&second, 64).unwrap();
+        library.import(&first, 64).unwrap();
 
         let first_path = library_entry_path(&library, 1).unwrap();
         let second_path = library_entry_path(&library, 2).unwrap();
@@ -781,6 +789,7 @@ mod tests {
         assert_eq!(second_path.file_name().unwrap(), "second.gb");
         assert!(library_entry_path(&library, 0).is_none());
         assert!(library_entry_path(&library, 3).is_none());
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]
