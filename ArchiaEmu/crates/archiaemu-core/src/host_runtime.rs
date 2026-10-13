@@ -472,6 +472,9 @@ mod tests {
             if !content.starts_with(b"TEST") {
                 return Err(CoreError::InvalidContent("invalid P1 flow test image"));
             }
+            if content == b"TEST-REJECT" {
+                return Err(CoreError::InvalidContent("deliberately rejected P1 test image"));
+            }
             self.ticks = 7;
             Ok(())
         }
@@ -526,6 +529,30 @@ mod tests {
 
     fn make_p1_flow_core() -> Box<dyn EmulationCore> {
         Box::new(P1FlowCore { ticks: 0 })
+    }
+
+    #[test]
+    fn rejected_core_content_never_leaves_a_registered_session() {
+        let mut registry = CoreRegistry::new();
+        registry
+            .register(SystemId::new("test-system").unwrap(), make_p1_flow_core)
+            .unwrap();
+        let probe = MatchProbe;
+        let mut host = HostRuntime::new(HostRuntimeConfig { max_sessions: 2 }).unwrap();
+
+        let result = host.launch_content(
+            b"TEST-REJECT",
+            ContentLimits::new(1024),
+            &[&probe],
+            &registry,
+        );
+
+        assert!(matches!(
+            result,
+            Err(HostRuntimeError::Launch(LaunchError::Session(_)))
+        ));
+        assert!(host.is_empty());
+        assert_eq!(host.session_count(), 0);
     }
 
     #[test]
