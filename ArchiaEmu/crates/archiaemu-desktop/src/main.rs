@@ -556,10 +556,8 @@ mod preference_tests {
 
     #[test]
     fn replacing_preferences_keeps_only_the_new_complete_config() {
-        let root = std::env::temp_dir().join(format!(
-            "archiaemu-prefs-replace-{}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("archiaemu-prefs-replace-{}", std::process::id()));
         let file = root.join("desktop.conf");
         write_preferences(&file, true, 1.0, &[PathBuf::from("old.gb")]).unwrap();
         write_preferences(&file, false, 1.2, &[PathBuf::from("new.gb")]).unwrap();
