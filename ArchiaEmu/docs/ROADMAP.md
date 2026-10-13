@@ -12,9 +12,9 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Chargement et validation du contenu | 100 % | Pipeline commun borné, validation de tous les formats actuellement enregistrés et contrat d'intégration hôte |
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 70 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
-| **P1** | Entrées, sorties et horloge hôte | 62 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
+| **P1** | Entrées, sorties et horloge hôte | 64 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 55 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
-| **P1** | Frontend minimal du framework | 57 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
+| **P1** | Frontend minimal du framework | 59 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
 | **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
 | **P3** | Performance et stabilité | 10 % | Benchmarks reproductibles et optimisation guidée par les mesures |
