@@ -9,8 +9,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 100 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 90 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
-| **P0** | Contrats de modules et capacités | 87 % | Modules isolés, capacités explicites, découverte et création prévisibles |
+| **P0** | Chargement et validation du contenu | 100 % | Pipeline commun borné, validation de tous les formats actuellement enregistrés et contrat d'intégration hôte |
+| **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
@@ -22,6 +22,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P5** | Préparation de versions | 10 % | Paquets reproductibles, politique de support et critères de publication |
 
 > **Point de départ réel :** le workspace Rust, le contrat de cœur, le registre, une partie du cycle de vie de session, les capacités, l'état d'entrée partagé, les fonctions de sauvegarde/restauration déléguées au cœur, la gestion de modules et le CI existent déjà. Il n'existe pas encore d'application complète permettant de charger un jeu et de l'émuler avec audio et vidéo de bout en bout. La réussite du CI vérifie les contrôles configurés, pas la compatibilité d'une console.
+
+> **P0 clôturé pour le périmètre actuel :** les critères de sortie du runtime, du registre de modules et du pipeline de contenu sont couverts par des tests et les quality gates Linux/Windows/macOS. Cela ne revendique ni le sandboxing de code natif ni la prise en charge de formats absents du registre; tout nouveau format doit fournir ses propres validateurs.
 
 ## Vérification transversale P0 — persistance du state store
 
@@ -38,7 +40,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Exposer le pipeline de lancement borné pour les entrées réelles : `launch_content_path` lit un fichier sous limite, `launch_content_reader` lit un flux sous limite, puis les deux réutilisent la même détection et la même validation par le cœur que `launch_content`.
 - [x] Couvrir le lancement borné depuis chemin et flux : détection réussie, dépassement de limite, détection ambiguë, rejet par le cœur, signature tronquée et contenu vide. Les tests vérifient que les erreurs sont propagées au lieu de sélectionner arbitrairement un format ou de démarrer une session invalide.
 - [x] Vérifier la propagation des erreurs de lecture des sources : chemin absent (NotFound) et flux en échec (PermissionDenied), sans exposer de contenu partiellement lu.
-- [x] Exécuter et valider la couverture courante sur Linux, Windows et macOS : les quality gates Rust ont réussi sur le commit `3205b22546943d959389e47c45a2f45d5e20b48d`. Le Game Boy est le seul format enregistré aujourd'hui; tout nouveau format doit apporter ses propres validateurs et tests de troncature avant d'être considéré comme pris en charge.
+- [x] Exécuter et valider la couverture courante sur Linux, Windows et macOS : les quality gates Rust ont réussi pour le commit `dc7d04c908a34164e672097b01dedf14e81c2ee5`. Le Game Boy est le seul format enregistré aujourd'hui; tout nouveau format doit apporter ses propres validateurs et tests de troncature avant d'être considéré comme pris en charge.
 
 
 ### P0.1 — Cycle de vie de session
@@ -63,6 +65,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Le manifeste résout une sélection utilisateur en plan d'installation dépendances-d'abord, avec fermeture transitive, déduplication des dépendances partagées et refus explicite des sélections inconnues, non installables, incompatibles ou non prises en charge par la cible.
 - [x] Renforcer la validation structurelle des URL d'artefacts HTTPS : autorités et hôtes vides/malformés, identifiants utilisateur, antislashs, labels invalides ou trop longs, longueur maximale du nom d'hôte, adresses IPv4 numériques malformées, ports non numériques/hors plage et IPv6 entre crochets; des tests couvrent aussi les hôtes/ports valides. Ce contrôle dédié ne remplace pas un parseur d'URL complet.
 - [x] Définir la version du contrat API et une règle de compatibilité : même version majeure et version mineure requise inférieure ou égale à celle de l'hôte. Le runtime refuse la création de session pour un cœur incompatible. Une matrice de tests couvre aussi la règle de compatibilité majeur/mineur. Le registre applique maintenant aussi cette vérification à toutes les voies de création, y compris le pipeline de lancement par détection; tests sur création directe et création depuis une détection.
+- [x] Pré-enregistrer les descripteurs de cœur sans instancier leur factory : register_with_descriptor refuse une version d'API incompatible avant création, registered_descriptor expose les capacités au host et create vérifie que l'instance correspond exactement aux métadonnées annoncées. Des tests couvrent l'absence d'appel de factory lors de la consultation, le refus précoce d'une API incompatible et les métadonnées divergentes; le cœur Game Boy utilise maintenant ce chemin.
 - [x] Fournir aux interfaces la liste des modules compatibles avec la version de l'application et la cible hôte; les modules non installables sont filtrés sans masquer les erreurs de structure du manifeste.
 - [x] Planifier la désinstallation en dépendances inverses, en refusant de retirer un module encore requis par un module installé et en exigeant que chaque module demandé soit réellement installé.
 - [x] Mettre à jour l'état des modules par lots après activation/désinstallation : validation complète avant mutation, refus des ID dupliqués et suppression groupée des enregistrements pour éviter un état mémoire partiellement mis à jour.

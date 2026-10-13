@@ -4,7 +4,7 @@ Ce document définit le contrat d'intégration entre une future application hôt
 
 ## Flux recommandé
 
-1. **Construire le registre** à partir des modules réellement installés et compatibles avec la version d'API et la cible de l'hôte. Un descripteur déclaratif ne suffit pas à prouver qu'un cœur sait exécuter un système.
+1. **Construire le registre** à partir des modules réellement installés et compatibles avec la version d'API et la cible de l'hôte. Préférer register_with_descriptor pour publier des métadonnées pré-vérifiables : registered_descriptor expose le descripteur sans construire le cœur, et une version d'API incompatible est rejetée avant l'appel de la factory. L'API register historique reste disponible mais ne fournit pas de descripteur de pré-vérification. Un descripteur déclaratif ne suffit pas à prouver qu'un cœur sait exécuter un système.
 2. **Fournir des sondes explicites** (ContentFormatProbe) pour les formats que l'hôte souhaite détecter. Une sonde examine uniquement les octets reçus; elle ne doit pas inférer le format à partir du nom de fichier, de l'extension ou du chemin.
 3. **Choisir une limite de taille** adaptée à la politique de l'hôte via ContentLimits. La taille indiquée par les métadonnées du fichier ne remplace pas la limite appliquée à la lecture effective.
 4. **Appeler le point d'entrée adapté à la source** :
