@@ -234,6 +234,10 @@ impl eframe::App for DesktopApp {
                         if ui.button("Use path").clicked() {
                             self.content_path = path.display().to_string();
                         }
+                        if ui.button("Launch").clicked() {
+                            self.content_path = path.display().to_string();
+                            self.launch_content();
+                        }
                         if ui.button("Forget").clicked() {
                             match self.controller.forget_content(&path) {
                                 Ok(_) => self.message = format!("Forgot {}", path.display()),
