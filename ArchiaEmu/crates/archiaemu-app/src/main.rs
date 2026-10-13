@@ -694,6 +694,7 @@ fn validate_system_selection(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use archiaemu_app::library::ContentLibrary;
 
     fn registry() -> CoreRegistry {
         let mut registry = CoreRegistry::new();
