@@ -2,7 +2,7 @@
 
 Cette feuille de route priorise le **socle commun de l'émulateur**, pas le développement d'une console en particulier. Les cœurs de console servent à vérifier que les contrats communs sont réellement utilisables, mais ne doivent pas dicter l'architecture ni monopoliser les prochaines étapes.
 
-Les pourcentages sont des estimations de jalons fonctionnels, pas des mesures de temps passé ni des promesses de compatibilité. Ils doivent être mis à jour uniquement lorsqu'un critère d'acceptation observable est terminé; un test sur cœur factice ne compte pas comme une fonctionnalité réellement disponible sur une console. Les cases cochées attestent uniquement le périmètre explicitement décrit. Une phase n'est terminée que lorsque tous ses critères de sortie sont démontrés par des tests reproductibles et, pour l'émulation réelle, par des tests sur le cœur concerné.
+Les pourcentages de chaque jalon sont des estimations fonctionnelles, pas des mesures de temps passé ni des promesses de compatibilité. Ils ne doivent pas être moyennés mécaniquement pour annoncer un pourcentage global P1 : les jalons se recouvrent et ont des poids différents. Ils doivent être mis à jour uniquement lorsqu'un critère d'acceptation observable est terminé; un test sur cœur factice ne compte pas comme une fonctionnalité réellement disponible sur une console. Les cases cochées attestent uniquement le périmètre explicitement décrit. Une phase n'est terminée que lorsque tous ses critères de sortie sont démontrés par des tests reproductibles et, pour l'émulation réelle, par des tests sur le cœur concerné.
 
 ## Priorités et état actuel
 
@@ -14,7 +14,10 @@ Les pourcentages sont des estimations de jalons fonctionnels, pas des mesures de
 | **P1** | Orchestration multi-sessions | 73 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 65 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 58 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
-| **P1** | Frontend terminal minimal | 61 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs dans le REPL |\n| **P1** | Application desktop générique | 0 % | Interface native utilisable pour bibliothèque, lancement, sessions, commandes et diagnostics |\n| **P1** | Présentation média réelle | 0 % | Vidéo rendue et audio joué en temps réel, avec cadence et gestion de focus |\n| **P1** | Premier système réellement jouable | 5 % | Un cœur de console complet de bout en bout, avec contrôles et tests de compatibilité documentés |
+| **P1** | Hôte terminal de diagnostic | 61 % | Sélectionner un module, gérer les sessions et diagnostiquer les capacités depuis le REPL |
+| **P1** | Application desktop générique | 0 % | Interface native utilisable pour bibliothèque, lancement, sessions, commandes et diagnostics |
+| **P1** | Présentation média réelle | 0 % | Vidéo rendue et audio joué en temps réel, avec cadence et gestion de focus |
+| **P1** | Premier système réellement jouable | 5 % | Un cœur de console complet de bout en bout, avec contrôles et tests de compatibilité documentés |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
 | **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
 | **P3** | Performance et stabilité | 10 % | Benchmarks reproductibles et optimisation guidée par les mesures |
@@ -137,8 +140,9 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Tester corruption, version inconnue, payload vide/trop grand, incompatibilité de système/cœur, troncature et données excédentaires.
 - [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup lorsque le fichier principal est corrompu, absent ou dépasse la limite; vérifier que le primaire rejeté n'est pas réécrit silencieusement.
 - [x] Injecter les échecs de renommage et vérifier la restauration du primaire, le backup récupérable et le nettoyage du temporaire sur les plateformes CI prises en charge.
-- [x] Modéliser la récupération aux checkpoints de sauvegarde : temporaire créé, écriture partielle, temporaire complet/synchronisé, backup retiré, ancien primaire déplacé vers le backup, nouveau primaire installé et répertoire synchronisé. Les tests vérifient que seul le primaire installé est considéré comme validé et qu'un temporaire orphelin n'est jamais promu. Ces tests modélisent les dispositions de fichiers après interruption; ils ne tuent pas réellement le processus à chaque instruction et ne simulent pas une coupure d'alimentation physique.
-- [ ] Ajouter des tests d'arrêt forcé du processus et exécuter cette matrice sur toutes les plateformes CI prises en charge.
+- [x] Modéliser la récupération aux checkpoints de sauvegarde : temporaire créé, écriture partielle, temporaire complet/synchronisé, backup retiré, ancien primaire déplacé vers le backup, nouveau primaire installé et répertoire synchronisé. Les tests de modélisation vérifient que seul le primaire installé est considéré comme validé et qu'un temporaire orphelin n'est jamais promu. Un test séparé termine réellement un processus enfant à trois checkpoints (temporaire synchronisé, ancien primaire déplacé vers le backup, nouveau primaire installé) et vérifie l'état récupéré. Cette matrice ne simule pas une coupure d'alimentation physique; la validation sur toutes les plateformes reste à confirmer par la CI.
+- [x] Ajouter un test d'arrêt forcé du processus enfant aux checkpoints `temp-synced`, `primary-backed-up` et `primary-installed`; le test vérifie quel état doit être récupéré après la terminaison du processus.
+- [ ] Confirmer l'exécution réussie de cette matrice sur toutes les plateformes CI prises en charge. Tant que la CI du commit courant n'a pas terminé, ne pas considérer la validation multiplateforme comme acquise.
 
 ### P1.4 — Hôte terminal de diagnostic — 61 %
 
@@ -154,9 +158,54 @@ La commande `close all` ferme désormais toutes les sessions et désactive la se
 - [ ] Ne pas créer de menus ou d'améliorations propres à une console avant que le chemin de lancement générique fonctionne.
 - [ ] Séparer les réglages d'interface des réglages de matériel émulé.
 
-**Critère de sortie du socle P1 :** le test d'intégration générique ci-dessus reste obligatoire, mais il ne suffit pas à déclarer P1 terminé. P1 ne sera terminé qu'après validation de tous les jalons suivants :\n\n- [ ] **Parcours hôte complet :** sélectionner un cœur, importer/valider un contenu, créer une session, exécuter, mettre en pause/reprendre, fermer, et afficher les erreurs sans session fantôme.\n- [ ] **Application desktop :** bibliothèque de contenus, sélection du système, lancement/arrêt, gestion des sessions, paramètres hôte et diagnostics. Le REPL reste disponible pour le diagnostic mais ne constitue pas à lui seul l'application finale.\n- [ ] **Média en temps réel :** présenter réellement les trames vidéo et jouer les blocs audio, synchroniser l'exécution sur une horloge hôte, traiter la perte de focus et relâcher les entrées. Les métadonnées imprimées par `media` ne satisfont pas ce critère.\n- [ ] **Cœur réel de bout en bout :** tests CPU/bus/périphériques du système choisi, entrée utilisateur réelle, sorties vidéo/audio réelles quand le matériel le permet, sauvegarde/restauration et comportement vérifié sur des programmes de test. Un cœur factice valide les contrats du framework, pas la compatibilité console.\n- [ ] **Compatibilité honnête :** documenter précisément ce qui fonctionne et ce qui manque; ne pas qualifier un système de jouable tant qu'un programme représentatif n'a pas été exécuté avec un résultat vérifiable.
+**Critère de sortie du socle P1 :** le test d'intégration générique ci-dessus reste obligatoire, mais il ne suffit pas à déclarer P1 terminé. P1 ne sera terminé qu'après validation de tous les jalons suivants :
 
-### P1.5 — Application desktop générique — 0 %\n\nConstruire l'application utilisateur au-dessus du runtime et des contrats communs, sans intégrer de logique matérielle propre à une console dans le frontend. Garder le terminal comme outil de diagnostic.\n\n- [ ] Choisir et documenter une pile desktop adaptée au workspace Rust après revue des dépendances, licences, maintenance et contraintes multiplateformes.\n- [ ] Afficher la bibliothèque de contenus importés, les systèmes enregistrés et les capacités réellement déclarées.\n- [ ] Permettre de sélectionner un contenu et un système, lancer/arrêter une session et afficher les erreurs de validation/lancement.\n- [ ] Gérer plusieurs sessions, la session active, pause/reprise et fermeture propre depuis l'interface.\n- [ ] Séparer paramètres de présentation (taille, ratio, thème, périphériques hôte) et paramètres matériels émulés.\n- [ ] Tester les états vides, les contenus invalides, les erreurs de lancement, les changements de session et la fermeture globale.\n\n**Sortie attendue :** une application desktop réellement utilisable pour parcourir et lancer les contenus pris en charge; une interface qui n'affiche pas une capacité non implémentée.\n\n### P1.6 — Présentation vidéo/audio et cadence réelle — 0 %\n\nLes contrats et files média existent, mais l'application n'effectue pas encore de rendu vidéo ni de lecture audio et le cœur Game Boy ne fournit pas ces sorties.\n\n- [ ] Ajouter des adaptateurs hôte de rendu vidéo et de lecture audio derrière des interfaces testables et indépendantes du cœur.\n- [ ] Acheminer les trames et blocs audio des sessions vers ces adaptateurs avec gestion explicite des files pleines, des buffers invalides et de la back-pressure.\n- [ ] Exécuter les cœurs selon une cadence temps réel, avec pause/reprise, arrêt, rattrapage borné et absence de progression pendant la pause.\n- [ ] Mapper clavier/manette vers les contrôles sémantiques du cœur; relâcher tous les contrôles lors de la perte de focus ou de la déconnexion.\n- [ ] Vérifier le pipeline avec un cœur de test qui produit une mire vidéo et un signal audio déterministes, puis avec le premier cœur réel qui annonce ces capacités.\n- [ ] Documenter les formats de pixels, fréquence audio, synchronisation et limites de latence prises en charge.\n\n**Sortie attendue :** un chemin observable et testable entre les sorties du cœur et l'écran/les haut-parleurs; la seule inspection de métadonnées ne suffit pas.\n\n### P1.7 — Premier cœur de console réellement utilisable — 5 %\n\nGame Boy reste la cible candidate car le crate existe déjà, mais le choix final doit suivre l'évaluation de la portée, des spécifications disponibles et des programmes de test légaux. Le sous-ensemble CPU/bus actuel est un point de départ, pas une promesse de compatibilité.\n\n- [ ] Définir une matrice de couverture matérielle et des programmes de test reproductibles avant d'étendre massivement le cœur.\n- [ ] Compléter les instructions CPU, flags, interruptions, timers et le bus nécessaires au périmètre visé; ajouter des tests de comportement ciblés.\n- [ ] Implémenter les périphériques, banques mémoire/cartouches et contrôles nécessaires au périmètre de compatibilité annoncé.\n- [ ] Implémenter la vidéo et l'audio de la machine et les relier au pipeline P1.6.\n- [ ] Tester le reset, l'exécution, les entrées, la sauvegarde/restauration et les erreurs de cartouche sur des programmes de test vérifiés.\n- [ ] Exécuter au moins un programme représentatif de bout en bout et publier les limites connues avant de revendiquer une compatibilité jouable.\n\n**Sortie attendue :** un système clairement borné et réellement exécutable, pas seulement un crate compilable ou des tests avec un cœur factice.\n\n## P2 — sécurité, confiance et diagnostic
+- [ ] **Parcours hôte complet :** sélectionner un cœur, importer/valider un contenu, créer une session, exécuter, mettre en pause/reprendre, fermer, et afficher les erreurs sans session fantôme.
+- [ ] **Application desktop :** bibliothèque de contenus, sélection du système, lancement/arrêt, gestion des sessions, paramètres hôte et diagnostics. Le REPL reste disponible pour le diagnostic mais ne constitue pas à lui seul l'application finale.
+- [ ] **Média en temps réel :** présenter réellement les trames vidéo et jouer les blocs audio, synchroniser l'exécution sur une horloge hôte, traiter la perte de focus et relâcher les entrées. Les métadonnées imprimées par `media` ne satisfont pas ce critère.
+- [ ] **Cœur réel de bout en bout :** tests CPU/bus/périphériques du système choisi, entrée utilisateur réelle, sorties vidéo/audio réelles quand le matériel le permet, sauvegarde/restauration et comportement vérifié sur des programmes de test. Un cœur factice valide les contrats du framework, pas la compatibilité console.
+- [ ] **Compatibilité honnête :** documenter précisément ce qui fonctionne et ce qui manque; ne pas qualifier un système de jouable tant qu'un programme représentatif n'a pas été exécuté avec un résultat vérifiable.
+
+### P1.5 — Application desktop générique — 0 %
+
+Construire l'application utilisateur au-dessus du runtime et des contrats communs, sans intégrer de logique matérielle propre à une console dans le frontend. Garder le terminal comme outil de diagnostic.
+
+- [ ] Choisir et documenter une pile desktop adaptée au workspace Rust après revue des dépendances, licences, maintenance et contraintes multiplateformes.
+- [ ] Afficher la bibliothèque de contenus importés, les systèmes enregistrés et les capacités réellement déclarées.
+- [ ] Permettre de sélectionner un contenu et un système, lancer/arrêter une session et afficher les erreurs de validation/lancement.
+- [ ] Gérer plusieurs sessions, la session active, pause/reprise et fermeture propre depuis l'interface.
+- [ ] Séparer paramètres de présentation (taille, ratio, thème, périphériques hôte) et paramètres matériels émulés.
+- [ ] Tester les états vides, les contenus invalides, les erreurs de lancement, les changements de session et la fermeture globale.
+
+**Sortie attendue :** une application desktop réellement utilisable pour parcourir et lancer les contenus pris en charge; une interface qui n'affiche pas une capacité non implémentée.
+
+### P1.6 — Présentation vidéo/audio et cadence réelle — 0 %
+
+Les contrats et files média existent, mais l'application n'effectue pas encore de rendu vidéo ni de lecture audio et le cœur Game Boy ne fournit pas ces sorties.
+
+- [ ] Ajouter des adaptateurs hôte de rendu vidéo et de lecture audio derrière des interfaces testables et indépendantes du cœur.
+- [ ] Acheminer les trames et blocs audio des sessions vers ces adaptateurs avec gestion explicite des files pleines, des buffers invalides et de la back-pressure.
+- [ ] Exécuter les cœurs selon une cadence temps réel, avec pause/reprise, arrêt, rattrapage borné et absence de progression pendant la pause.
+- [ ] Mapper clavier/manette vers les contrôles sémantiques du cœur; relâcher tous les contrôles lors de la perte de focus ou de la déconnexion.
+- [ ] Vérifier le pipeline avec un cœur de test qui produit une mire vidéo et un signal audio déterministes, puis avec le premier cœur réel qui annonce ces capacités.
+- [ ] Documenter les formats de pixels, fréquence audio, synchronisation et limites de latence prises en charge.
+
+**Sortie attendue :** un chemin observable et testable entre les sorties du cœur et l'écran/les haut-parleurs; la seule inspection de métadonnées ne suffit pas.
+
+### P1.7 — Premier cœur de console réellement utilisable — 5 %
+
+Game Boy reste la cible candidate car le crate existe déjà, mais le choix final doit suivre l'évaluation de la portée, des spécifications disponibles et des programmes de test légaux. Le sous-ensemble CPU/bus actuel est un point de départ, pas une promesse de compatibilité.
+
+- [ ] Définir une matrice de couverture matérielle et des programmes de test reproductibles avant d'étendre massivement le cœur.
+- [ ] Compléter les instructions CPU, flags, interruptions, timers et le bus nécessaires au périmètre visé; ajouter des tests de comportement ciblés.
+- [ ] Implémenter les périphériques, banques mémoire/cartouches et contrôles nécessaires au périmètre de compatibilité annoncé.
+- [ ] Implémenter la vidéo et l'audio de la machine et les relier au pipeline P1.6.
+- [ ] Tester le reset, l'exécution, les entrées, la sauvegarde/restauration et les erreurs de cartouche sur des programmes de test vérifiés.
+- [ ] Exécuter au moins un programme représentatif de bout en bout et publier les limites connues avant de revendiquer une compatibilité jouable.
+
+**Sortie attendue :** un système clairement borné et réellement exécutable, pas seulement un crate compilable ou des tests avec un cœur factice.
+
+## P2 — sécurité, confiance et diagnostic
 
 - [x] Appliquer aussi à l'écriture la limite de 4 Mio du stockage d'état; tests de rejet avant écriture et de fichier persistant trop volumineux.
 - [x] Préserver la sauvegarde valide lorsqu'il ne reste plus de fichier primaire, jusqu'à la création réussie du nouveau fichier; test de régression.
@@ -189,7 +238,9 @@ La commande `close all` ferme désormais toutes les sessions et désactive la se
 - [ ] Utiliser un cœur factice de test pour valider le framework sans dépendre d'une console réelle.
 - [ ] Garder Game Boy comme cible de validation, pas comme centre de la roadmap actuelle.
 - [ ] Ne déclarer aucun système pris en charge sur la seule base de la compilation : exiger des tests de comportement et des preuves reproductibles.
-- [ ] Ajouter d'autres systèmes lorsque les interfaces, l'I/O et le pipeline de lancement sont assez stables. Chaque ajout doit avoir une matrice de compatibilité, des programmes de test légaux et des critères de support explicites.\n- [ ] Pour les consoles dotées d'un firmware ou d'un menu système, définir par système si le démarrage dépend de fichiers fournis légalement par l'utilisateur, d'une réimplémentation indépendante ou d'une combinaison documentée.\n- [ ] Ne jamais présenter une interface recréée comme le firmware original et ne pas distribuer de firmware, d'assets propriétaires ou de jeux sans autorisation.
+- [ ] Ajouter d'autres systèmes lorsque les interfaces, l'I/O et le pipeline de lancement sont assez stables. Chaque ajout doit avoir une matrice de compatibilité, des programmes de test légaux et des critères de support explicites.
+- [ ] Pour les consoles dotées d'un firmware ou d'un menu système, définir par système si le démarrage dépend de fichiers fournis légalement par l'utilisateur, d'une réimplémentation indépendante ou d'une combinaison documentée.
+- [ ] Ne jamais présenter une interface recréée comme le firmware original et ne pas distribuer de firmware, d'assets propriétaires ou de jeux sans autorisation.
 
 ## P5 — interface utilisateur et publication
 
