@@ -7,7 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use archiaemu_app::controller::ApplicationController;
+use archiaemu_app::controller::{ApplicationController, SessionCommand};
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent, VideoFrame};
 use game_view::{map_key_to_control, video_frame_to_image};
@@ -295,20 +295,16 @@ impl DesktopApp {
     }
 
     fn session_action(&mut self, id: SessionId, action: SessionAction) {
+        let command = match action {
+            SessionAction::Pause => SessionCommand::Pause,
+            SessionAction::Resume => SessionCommand::Resume,
+            SessionAction::Stop => SessionCommand::Stop,
+            SessionAction::Reset => SessionCommand::Reset,
+        };
         let result = self
             .controller
-            .host_mut()
-            .session_mut(id)
-            .map_err(|error| error.to_string())
-            .and_then(|session| {
-                let operation = match action {
-                    SessionAction::Pause => session.pause(),
-                    SessionAction::Resume => session.resume(),
-                    SessionAction::Stop => session.stop(),
-                    SessionAction::Reset => session.reset(),
-                };
-                operation.map_err(|error| error.to_string())
-            });
+            .command_session(id, command)
+            .map_err(|error| error.to_string());
         self.message = match result {
             Ok(()) => format!("Session {}: {} succeeded.", id.get(), action.label()),
             Err(error) => format!("Session {}: {} failed: {error}", id.get(), action.label()),
@@ -587,14 +583,8 @@ impl DesktopApp {
         };
         let result = self
             .controller
-            .host_mut()
-            .session_mut(id)
-            .map_err(|error| error.to_string())
-            .and_then(|session| {
-                session
-                    .send_input(InputEvent { control, pressed })
-                    .map_err(|error| error.to_string())
-            });
+            .send_input(id, InputEvent { control, pressed })
+            .map_err(|error| error.to_string());
         if let Err(error) = result {
             if !error.contains("unsupported") && !error.contains("input") {
                 self.message = format!("Input error: {error}");
@@ -608,21 +598,8 @@ impl DesktopApp {
         };
         let result = self
             .controller
-            .host_mut()
-            .session_mut(id)
-            .map_err(|error| error.to_string())
-            .and_then(|session| {
-                if matches!(
-                    session.state(),
-                    SessionState::Running | SessionState::Paused
-                ) {
-                    session
-                        .release_all_inputs()
-                        .map_err(|error| error.to_string())
-                } else {
-                    Ok(())
-                }
-            });
+            .release_inputs(id)
+            .map_err(|error| error.to_string());
         if let Err(error) = result {
             self.message = format!("Could not release held inputs: {error}");
         }
