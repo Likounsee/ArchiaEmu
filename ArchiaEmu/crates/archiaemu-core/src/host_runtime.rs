@@ -446,6 +446,135 @@ mod tests {
         assert_eq!(host.close_all_sessions(), 0);
     }
 
+    struct P1FlowCore {
+        ticks: u8,
+    }
+
+    impl EmulationCore for P1FlowCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                api_version: crate::CURRENT_CORE_API_VERSION,
+                system_id: SystemId::new("test-system").unwrap(),
+                display_name: "P1 flow test core",
+                core_version: "1.0.0-test",
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    input: true,
+                    video_output: true,
+                    audio_output: true,
+                    save_states: true,
+                    ..CoreCapabilities::default()
+                },
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+            if !content.starts_with(b"TEST") {
+                return Err(CoreError::InvalidContent("invalid P1 flow test image"));
+            }
+            self.ticks = 7;
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            self.ticks = 0;
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            self.ticks = self.ticks.saturating_add(1);
+            Ok(CoreEvent::Yielded)
+        }
+
+        fn save_state(&self) -> Result<Vec<u8>, CoreError> {
+            Ok(vec![self.ticks])
+        }
+
+        fn load_state(&mut self, state: &[u8]) -> Result<(), CoreError> {
+            if state.len() != 1 {
+                return Err(CoreError::InvalidState("expected one-byte P1 test state"));
+            }
+            self.ticks = state[0];
+            Ok(())
+        }
+
+        fn send_input(&mut self, _: crate::core_io::InputEvent) -> Result<(), CoreError> {
+            Ok(())
+        }
+
+        fn take_video_frame(
+            &mut self,
+        ) -> Result<Option<crate::core_io::VideoFrame>, CoreError> {
+            let frame = crate::core_io::VideoFrame::new(
+                1,
+                1,
+                crate::core_io::PixelFormat::Rgba8888,
+                vec![255, 0, 0, 255],
+            )
+            .expect("test frame is valid");
+            Ok(Some(frame))
+        }
+
+        fn take_audio_buffer(
+            &mut self,
+        ) -> Result<Option<crate::core_io::AudioBuffer>, CoreError> {
+            let audio = crate::core_io::AudioBuffer::new(48_000, 2, vec![100, -100])
+                .expect("test audio is valid");
+            Ok(Some(audio))
+        }
+    }
+
+    fn make_p1_flow_core() -> Box<dyn EmulationCore> {
+        Box::new(P1FlowCore { ticks: 0 })
+    }
+
+    #[test]
+    fn p1_runtime_flow_launches_routes_io_media_saves_restores_and_closes() {
+        use crate::core_io::{InputControl, InputEvent};
+        use crate::runtime::SessionState;
+
+        let mut registry = CoreRegistry::new();
+        registry
+            .register(SystemId::new("test-system").unwrap(), make_p1_flow_core)
+            .unwrap();
+        let probe = MatchProbe;
+        let mut host = HostRuntime::new(HostRuntimeConfig { max_sessions: 2 }).unwrap();
+
+        // Detect and validate the selected test module before registering a session.
+        let id = host
+            .launch_content(b"TEST-rom-image", ContentLimits::new(1024), &[&probe], &registry)
+            .unwrap();
+        assert_eq!(host.session(id).unwrap().state(), SessionState::Running);
+        assert_eq!(
+            host.session(id).unwrap().descriptor().system_id.as_str(),
+            "test-system"
+        );
+
+        // Deliver a semantic input transition and retrieve owned media payloads.
+        host.session_mut(id)
+            .unwrap()
+            .send_input(InputEvent { control: InputControl::Action1, pressed: true })
+            .unwrap();
+        assert!(host.session(id).unwrap().is_input_pressed(InputControl::Action1));
+
+        let frame = host.session_mut(id).unwrap().take_video_frame().unwrap().unwrap();
+        assert_eq!((frame.width(), frame.height(), frame.pixels()), (1, 1, &[255, 0, 0, 255][..]));
+        let audio = host.session_mut(id).unwrap().take_audio_buffer().unwrap().unwrap();
+        assert_eq!((audio.sample_rate(), audio.channels(), audio.samples()), (48_000, 2, &[100, -100][..]));
+
+        // The versioned envelope restores the captured core state after execution advances.
+        let checkpoint = host.session_mut(id).unwrap().save_state_envelope().unwrap();
+        host.session_mut(id).unwrap().run_for_events(1).unwrap();
+        assert_eq!(host.session_mut(id).unwrap().save_state().unwrap(), vec![8]);
+        host.session_mut(id).unwrap().load_state_envelope(&checkpoint).unwrap();
+        assert_eq!(host.session_mut(id).unwrap().save_state().unwrap(), vec![7]);
+
+        let closed = host.close_session(id).unwrap();
+        assert_eq!(closed.state(), SessionState::Running);
+        assert!(host.is_empty());
+        assert!(matches!(host.session(id), Err(HostRuntimeError::UnknownSession(found)) if found == id));
+    }
+
     #[test]
     fn rejects_zero_capacity_and_unknown_ids() {
         assert!(matches!(
