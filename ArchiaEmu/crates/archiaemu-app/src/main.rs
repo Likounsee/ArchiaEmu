@@ -204,8 +204,7 @@ fn command_loop(
             continue;
         }
         if command == "close all" {
-            let closed = host.close_all_sessions();
-            active = None;
+            let closed = close_all_sessions(host, &mut active);
             println!("Closed {closed} session(s).");
             continue;
         }
@@ -268,6 +267,11 @@ fn command_loop(
     Ok(())
 }
 
+fn close_all_sessions(host: &mut HostRuntime, active: &mut Option<SessionId>) -> usize {
+    let closed = host.close_all_sessions();
+    *active = None;
+    closed
+}
 const MAX_RUN_EVENT_BUDGET: usize = 10_000;
 
 fn parse_event_budget(raw: &str) -> Result<usize, String> {
@@ -524,6 +528,21 @@ mod tests {
         registry
     }
 
+    #[test]
+    fn close_all_sessions_clears_active_selection_and_releases_every_session() {
+        let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
+        let first = host
+            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .unwrap();
+        host.create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .unwrap();
+        let mut active = Some(first);
+
+        assert_eq!(close_all_sessions(&mut host, &mut active), 2);
+        assert_eq!(active, None);
+        assert!(host.session_ids().is_empty());
+        assert_eq!(close_all_sessions(&mut host, &mut active), 0);
+    }
     #[test]
     fn explicit_system_selection_accepts_a_registered_matching_probe() {
         let registry = registry();
