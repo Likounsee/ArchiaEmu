@@ -674,7 +674,10 @@ mod tests {
 
     fn input_session(
         fail_release: bool,
-    ) -> (EmulationSession, std::sync::Arc<std::sync::Mutex<Vec<InputEvent>>>) {
+    ) -> (
+        EmulationSession,
+        std::sync::Arc<std::sync::Mutex<Vec<InputEvent>>>,
+    ) {
         let delivered = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let core = InputTestCore {
             loaded: false,
@@ -874,12 +877,21 @@ mod tests {
         let (mut session, delivered) = input_session(false);
         session.load_content(&[1]).unwrap();
 
-        let up = InputEvent { control: InputControl::Up, pressed: true };
-        let action = InputEvent { control: InputControl::Action1, pressed: true };
+        let up = InputEvent {
+            control: InputControl::Up,
+            pressed: true,
+        };
+        let action = InputEvent {
+            control: InputControl::Action1,
+            pressed: true,
+        };
         session.send_input(up).unwrap();
         session.send_input(up).unwrap();
         session.send_input(action).unwrap();
-        assert_eq!(session.pressed_inputs(), vec![InputControl::Up, InputControl::Action1]);
+        assert_eq!(
+            session.pressed_inputs(),
+            vec![InputControl::Up, InputControl::Action1]
+        );
         assert_eq!(delivered.lock().unwrap().as_slice(), &[up, action]);
 
         session.release_all_inputs().unwrap();
@@ -889,8 +901,14 @@ mod tests {
             &[
                 up,
                 action,
-                InputEvent { control: InputControl::Up, pressed: false },
-                InputEvent { control: InputControl::Action1, pressed: false },
+                InputEvent {
+                    control: InputControl::Up,
+                    pressed: false
+                },
+                InputEvent {
+                    control: InputControl::Action1,
+                    pressed: false
+                },
             ]
         );
     }
@@ -901,9 +919,15 @@ mod tests {
         session.load_content(&[1]).unwrap();
         session.pause().unwrap();
 
-        let release = InputEvent { control: InputControl::Select, pressed: false };
+        let release = InputEvent {
+            control: InputControl::Select,
+            pressed: false,
+        };
         session.send_input(release).unwrap();
-        let press = InputEvent { control: InputControl::Select, pressed: true };
+        let press = InputEvent {
+            control: InputControl::Select,
+            pressed: true,
+        };
         session.send_input(press).unwrap();
         session.send_input(press).unwrap();
         session.send_input(release).unwrap();
@@ -918,12 +942,17 @@ mod tests {
     fn failed_input_release_preserves_held_state_for_retry() {
         let (mut session, delivered) = input_session(true);
         session.load_content(&[1]).unwrap();
-        let up = InputEvent { control: InputControl::Up, pressed: true };
+        let up = InputEvent {
+            control: InputControl::Up,
+            pressed: true,
+        };
         session.send_input(up).unwrap();
 
         assert!(matches!(
             session.release_all_inputs(),
-            Err(SessionError::Core(CoreError::Execution("input release failed")))
+            Err(SessionError::Core(CoreError::Execution(
+                "input release failed"
+            )))
         ));
         assert!(session.is_input_pressed(InputControl::Up));
         assert_eq!(delivered.lock().unwrap().as_slice(), &[up]);
@@ -3465,7 +3494,9 @@ mod save_state_session_tests {
 
         assert_eq!(
             session.load_state(&[]),
-            Err(SessionError::Core(CoreError::InvalidState("empty test state")))
+            Err(SessionError::Core(CoreError::InvalidState(
+                "empty test state"
+            )))
         );
         assert_eq!(session.save_state().unwrap(), &[7, 8]);
         assert_eq!(session.state(), SessionState::Running);
@@ -3479,7 +3510,9 @@ mod save_state_session_tests {
 
         assert_eq!(
             session.load_state(&[]),
-            Err(SessionError::Core(CoreError::InvalidState("empty test state")))
+            Err(SessionError::Core(CoreError::InvalidState(
+                "empty test state"
+            )))
         );
         assert_eq!(session.save_state().unwrap(), &[7, 8]);
         assert_eq!(session.state(), SessionState::Paused);
