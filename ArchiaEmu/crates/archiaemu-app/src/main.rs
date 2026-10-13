@@ -14,6 +14,9 @@ use archiaemu_core::save_state_store::SaveStateStore;
 use archiaemu_core::CoreRegistry;
 use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
 
+mod library;
+use library::{ContentLibrary, ContentLibraryError};
+
 const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
 /// Starts the command-line host.
@@ -55,8 +58,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Content loaded into host session {}.", session_id.get());
     println!("Host session limit: {}.", host.max_sessions());
     println!("This core is an early implementation, not yet a playable emulator.");
-    println!("Commands: status, sessions, switch <id>, open <path>, close [id|all], input <control> <press|release>, release-inputs, inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
-    command_loop(&mut host, session_id, &probe, &registry)
+    println!("Commands: status, sessions, switch <id>, open <path>, import <path>, library, forget <path>, close [id|all], input <control> <press|release>, release-inputs, inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
+    let mut library = ContentLibrary::new();
+    match library.import(&options.path, MAX_CONTENT_BYTES as u64) {
+        Ok(entry) => println!("Library: imported '{}' ({} bytes).", entry.title(), entry.size_bytes()),
+        Err(error) => eprintln!("Could not register launched content in library: {error}"),
+    }
+    command_loop(&mut host, session_id, &probe, &registry, &mut library)
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -153,6 +161,7 @@ fn command_loop(
     initial_id: SessionId,
     probe: &dyn ContentFormatProbe,
     registry: &CoreRegistry,
+    library: &mut ContentLibrary,
 ) -> Result<(), Box<dyn Error>> {
     let stdin = io::stdin();
     let mut lines = stdin.lock().lines();
@@ -166,6 +175,30 @@ fn command_loop(
         };
         let line = line?;
         let command = line.trim();
+        if command == "library" {
+            if library.is_empty() {
+                println!("Content library is empty.");
+            } else {
+                for entry in library.entries() {
+                    println!("{} ({} bytes) — {}", entry.title(), entry.size_bytes(), entry.path().display());
+                }
+            }
+            continue;
+        }
+        if let Some(path) = command.strip_prefix("import ") {
+            match library.import(path.trim(), MAX_CONTENT_BYTES as u64) {
+                Ok(entry) => println!("Imported '{}' ({} bytes).", entry.title(), entry.size_bytes()),
+                Err(error) => eprintln!("Could not import content: {error}"),
+            }
+            continue;
+        }
+        if let Some(path) = command.strip_prefix("forget ") {
+            match library.remove(path.trim()) {
+                Ok(entry) => println!("Removed '{}' from the library.", entry.title()),
+                Err(error) => eprintln!("Could not remove library entry: {error}"),
+            }
+            continue;
+        }
         if command == "sessions" {
             for id in host.session_ids() {
                 let session = host.session(id)?;
@@ -196,7 +229,14 @@ fn command_loop(
             ) {
                 Ok(id) => {
                     active = Some(id);
-                    println!("Opened session {}.", id.get());
+                    match library.import(path.trim(), MAX_CONTENT_BYTES as u64) {
+                        Ok(entry) => println!("Opened session {} and imported '{}'.", id.get(), entry.title()),
+                        Err(ContentLibraryError::AlreadyImported(_)) => println!("Opened session {}.", id.get()),
+                        Err(error) => {
+                            println!("Opened session {}.", id.get());
+                            eprintln!("Could not register content in library: {error}");
+                        }
+                    }
                 }
                 Err(error) => eprintln!("Could not open content: {error}"),
             }
@@ -554,6 +594,7 @@ fn print_usage() {
     println!("  archiaemu --system <system-id> <content-path>");
     println!("  archiaemu [--system <system-id>] [--max-sessions <count>] <content-path>");
     println!("  archiaemu --help");
+    println!("REPL library: import <path>, library, forget <path>. Importing adds metadata; launch still performs format validation.");
     println!("Interactive input: input <up|down|left|right|action1|action2|action3|action4|start|select> <press|release>");
     println!("                  release-inputs releases all held controls.");
     println!("                  media polls one video frame/audio buffer and reports metadata.");
