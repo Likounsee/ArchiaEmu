@@ -239,10 +239,14 @@ mod tests {
             .host_mut()
             .create_session(Box::new(GameBoyCore::new()))
             .unwrap();
+        let stale = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
         app.select_session(id).unwrap();
-        let unknown = SessionId::from_test_value(id.get() + 100);
+        app.close_session(stale).unwrap();
 
-        assert!(app.select_session(unknown).is_err());
+        assert!(app.select_session(stale).is_err());
         assert_eq!(app.active_session(), Some(id));
     }
 
