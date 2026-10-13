@@ -286,6 +286,69 @@ mod tests {
     }
 
     #[test]
+    fn recovery_selects_only_committed_state_at_each_save_checkpoint() {
+        let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
+        let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![4, 5, 6]).unwrap();
+
+        // Model the on-disk layouts observable if the process stops at each
+        // durable boundary of save(): before the old primary moves, after it
+        // moves to the backup, and after the replacement is installed.
+        for checkpoint in [
+            "temp-created",
+            "temp-written",
+            "temp-synced",
+            "backup-removed",
+            "primary-backed-up",
+            "replacement-installed",
+            "directory-synced",
+        ] {
+            let path = temp_path().with_extension(format!("{checkpoint}.state"));
+            let backup = backup_path(&path);
+            let temp = path.with_extension(format!("tmp-{}-checkpoint", std::process::id()));
+
+            fs::write(&path, original.encode()).unwrap();
+            if checkpoint == "temp-created" {
+                fs::write(&temp, b"").unwrap();
+            } else if checkpoint == "temp-written" {
+                fs::write(&temp, &replacement.encode()[..8]).unwrap();
+            } else if checkpoint != "backup-removed" {
+                fs::write(&temp, replacement.encode()).unwrap();
+            }
+
+            if checkpoint == "primary-backed-up" {
+                fs::rename(&path, &backup).unwrap();
+            } else if checkpoint == "replacement-installed"
+                || checkpoint == "directory-synced"
+            {
+                fs::write(&backup, original.encode()).unwrap();
+                fs::write(&path, replacement.encode()).unwrap();
+            }
+
+            let expected = if checkpoint == "replacement-installed"
+                || checkpoint == "directory-synced"
+            {
+                &replacement
+            } else {
+                &original
+            };
+            assert_eq!(
+                SaveStateStore::new(&path).load().unwrap(),
+                *expected,
+                "unexpected recovery result at checkpoint {checkpoint}"
+            );
+
+            // A valid-looking temporary file is deliberately never promoted:
+            // installation of the primary is the commit point.
+            if checkpoint == "primary-backed-up" {
+                assert_eq!(fs::read(&temp).unwrap(), replacement.encode());
+            }
+            let _ = fs::remove_file(&path);
+            let _ = fs::remove_file(&backup);
+            let _ = fs::remove_file(&temp);
+        }
+    }
+
+    #[test]
     fn load_recovers_from_backup_when_primary_is_oversized() {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
