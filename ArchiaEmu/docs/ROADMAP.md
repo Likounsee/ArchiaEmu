@@ -168,7 +168,7 @@ La bibliothèque terminale affiche maintenant un index stable et un nombre d'ent
 - [ ] **Cœur réel de bout en bout :** tests CPU/bus/périphériques du système choisi, entrée utilisateur réelle, sorties vidéo/audio réelles quand le matériel le permet, sauvegarde/restauration et comportement vérifié sur des programmes de test. Un cœur factice valide les contrats du framework, pas la compatibilité console.
 - [ ] **Compatibilité honnête :** documenter précisément ce qui fonctionne et ce qui manque; ne pas qualifier un système de jouable tant qu'un programme représentatif n'a pas été exécuté avec un résultat vérifiable.
 
-### P1.5 — Application desktop générique — 8 %
+### P1.5 — Application desktop générique — 18 %
 
 Construire l'application utilisateur au-dessus du runtime et des contrats communs, sans intégrer de logique matérielle propre à une console dans le frontend. Garder le terminal comme outil de diagnostic.
 

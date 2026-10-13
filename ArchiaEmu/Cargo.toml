@@ -6,6 +6,7 @@ members = [
     "crates/archiaemu-game-boy",
     "crates/archiaemu-windows-durability",
 ]
+exclude = ["crates/archiaemu-desktop"]
 
 [workspace.package]
 edition = "2021"

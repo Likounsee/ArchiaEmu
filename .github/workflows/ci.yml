@@ -46,6 +46,12 @@ jobs:
         run: cargo doc --workspace --no-deps --locked
       - name: Check package contents
         run: cargo package --workspace --locked --no-verify
+      - name: Check desktop prototype formatting
+        run: cargo fmt --manifest-path crates/archiaemu-desktop/Cargo.toml -- --check
+      - name: Compile desktop prototype
+        run: cargo check --manifest-path crates/archiaemu-desktop/Cargo.toml --all-targets
+      - name: Check desktop package contents
+        run: cargo package --manifest-path crates/archiaemu-desktop/Cargo.toml --no-verify
       - name: Run Clippy (Linux)
         if: runner.os == 'Linux'
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
@@ -54,4 +60,10 @@ jobs:
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           manifest-path: ArchiaEmu/Cargo.toml
+          command: check
+      - name: Audit desktop prototype dependencies and licenses
+        if: runner.os == 'Linux'
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
           command: check
