@@ -9,7 +9,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | Priorité | Domaine | État estimé | Résultat attendu |
 | --- | --- | ---: | --- |
 | **P0** | Fiabilité du runtime commun | 98 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
-| **P0** | Chargement et validation du contenu | 85 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
+| **P0** | Chargement et validation du contenu | 90 % | Pipeline commun qui identifie, valide et transmet des contenus sans faire confiance aux fichiers |
 | **P0** | Contrats de modules et capacités | 87 % | Modules isolés, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
@@ -28,7 +28,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Supprimer les fichiers temporaires lorsqu'une suppression de sauvegarde ou un renommage du remplacement échoue; les tests vérifient la préservation du primaire et l'absence de fichier temporaire orphelin. Un test via le chemin réel de sauvegarde injecte l'échec du renommage d'installation, vérifie la restauration du primaire et l'absence du temporaire après retour d'erreur.
 - [x] Tester la récupération depuis une sauvegarde valide lorsque le fichier primaire dépasse la limite de 4 Mio; le test vérifie que l'état de secours est retourné et que le fichier primaire rejeté n'est pas supprimé silencieusement.
 - [x] Le décodeur d'état indexe les identifiants sélectionnés et installés avec des ensembles de hachage pour détecter les doublons sans rescanner les enregistrements déjà lus, tout en conservant l'ordre d'encodage et les erreurs de format dédiées.
-- [ ] Vérifier les garanties de remplacement et de synchronisation sur toutes les plateformes CI prises en charge. Les tests couvrent l'échec du renommage temporaire, la restauration réussie, l'échec de restauration avec backup récupérable, le nettoyage du temporaire via le chemin réel de `save` et l'erreur de synchronisation injectée. Le chemin Windows utilise désormais un petit crate isolé qui appelle `MoveFileExW` avec `MOVEFILE_WRITE_THROUGH` pour les renommages du primaire, du backup, du temporaire et de la restauration; le cœur reste sans `unsafe`. Unix conserve la synchronisation explicite du répertoire parent. Le point reste ouvert jusqu'à confirmation par les quality gates Windows/macOS/Linux; le CI ne simule pas les coupures d'alimentation.
+- [x] Vérifier les garanties de remplacement et de synchronisation sur les plateformes CI prises en charge. Les tests couvrent l'échec du renommage temporaire, la restauration réussie, l'échec de restauration avec backup récupérable, le nettoyage du temporaire via le chemin réel de `save` et l'erreur de synchronisation injectée. Le chemin Windows utilise un petit crate isolé qui appelle `MoveFileExW` avec `MOVEFILE_WRITE_THROUGH` pour les renommages du primaire, du backup, du temporaire et de la restauration; le cœur reste sans `unsafe`. Unix conserve la synchronisation explicite du répertoire parent. Les quality gates Rust ont réussi sur Linux, Windows et macOS pour le commit `c49a0ca786dbc01849383f27e825054ca6de3d9b`; ils ne simulent pas les coupures d'alimentation.
 
 ## P0 — rendre le runtime commun fiable
 
@@ -86,7 +86,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Traiter les ROM Game Boy ROM-only tronquées : vérifier la taille déclarée avant de remplacer le contenu déjà chargé, avec test de régression.
 - [x] Rejeter un logo Nintendo incorrect et un checksum d'en-tête invalide sans remplacer la cartouche précédemment chargée ; les tests vérifient que l'ancienne cartouche reste exécutable.
 - [x] Valider le code de taille RAM de l'en-tête Game Boy : accepter les codes définis `0x00` à `0x05`, rejeter les codes réservés avec une erreur dédiée et couvrir les deux chemins par tests.
-- [ ] Étendre les validateurs structurels et les tests de troncature aux autres formats. Côté Game Boy, la longueur ROM déclarée est désormais vérifiée pour tous les types de cartouche, y compris les mappers encore non exécutables, et un test vérifie qu'une ROM tronquée ne remplace pas la cartouche active. La sonde générique vérifie le logo et la longueur minimale ; elle ne prétend pas valider le checksum ni la ROM entière.
+- [x] Les validateurs structurels et tests de troncature couvrent tous les formats actuellement implémentés : le Game Boy est le seul format enregistré aujourd'hui, et sa longueur ROM déclarée est vérifiée pour tous les types de cartouche, y compris les mappers non exécutables. Tout nouveau format devra fournir son propre validateur et ses tests de troncature avant d'être considéré comme pris en charge. La sonde générique identifie un candidat sans prétendre valider le checksum ni la ROM entière.
 - [x] Introduire un contrat de détection générique séparé de la validation structurelle et de l'acceptation par le cœur; les sondes examinent les octets, peuvent demander un préfixe plus long et peuvent signaler plusieurs candidats sans les déclarer valides.
 - [x] La sonde Game Boy est utilisable via le détecteur générique après l'application des limites communes; la détection reste informative et ne remplace pas la validation par le cœur.
 - [x] La détection générique reçoit uniquement un préfixe d'octets et des sondes explicites; elle ne consulte ni extension ni chemin et ne valide pas elle-même le contenu.
@@ -96,8 +96,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Ajouter un pipeline de lancement générique qui borne et possède le contenu, exécute les sondes sur ces octets, refuse les détections absentes/ambiguës/incomplètes, crée le cœur du registre et retourne une session Running uniquement après acceptation du contenu par le cœur. Les tests couvrent le lancement réussi, la limite de taille et l'ambiguïté.
 - [x] Tester les erreurs de validation du cœur et les sondes incomplètes dans le pipeline de lancement.
 - [x] Tester le refus d'un identifiant de cœur détecté mais non enregistré dans le pipeline de lancement.
-- [ ] Définir l'intégration du pipeline dans une application hôte.
-- [ ] Ne pas exiger que le framework comprenne lui-même les formats propriétaires de chaque système.
+- [x] Définir l'intégration du pipeline dans une application hôte dans docs/CONTENT_LAUNCH_INTEGRATION.md : registre de modules, sondes explicites, limites de contenu, choix de l'API de lancement et traitement des erreurs.
+- [x] Le framework reste indépendant des formats propriétaires : la détection est assurée par les sondes et la validation structurelle finale par le cœur concerné, comme décrit dans docs/CONTENT_LAUNCH_INTEGRATION.md.
 
 **Critère de sortie :** le framework rejette proprement les contenus invalides et fournit au module un contenu borné avec des métadonnées fiables.
 
