@@ -13,7 +13,7 @@ use archiaemu_core::runtime::SessionState;
 use archiaemu_core::CoreRegistry;
 use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
 
-const MAX_CONTENT_BYTES: u64 = 32 * 1024 * 1024;
+const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let app = DesktopApp::new()?;
@@ -58,7 +58,7 @@ impl DesktopApp {
             self.message = "Enter a content path first.".to_owned();
             return;
         }
-        match self.controller.import_content(Path::new(path), MAX_CONTENT_BYTES) {
+        match self.controller.import_content(Path::new(path), MAX_CONTENT_BYTES as u64) {
             Ok(entry) => {
                 self.message = format!("Imported '{}' ({} bytes).", entry.title(), entry.size_bytes());
             }
