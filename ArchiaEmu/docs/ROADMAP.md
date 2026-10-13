@@ -115,12 +115,12 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtime.rs`; l'identité de contenu persistante et le catalogue hôte restent à intégrer.
 
-### P1.2 — Entrées, vidéo, audio et cadence — 45 %
+### P1.2 — Entrées, vidéo, audio et cadence — 55 %
 - [x] Contrats d'entrée génériques avec transitions dédupliquées et libération de toutes les commandes à la perte de focus/déconnexion.
 - [x] Trames vidéo avec dimensions, stride explicite, format de pixel et propriété du tampon; lignes rembourrées et tailles incohérentes testées.
 - [x] Blocs audio PCM signés 16 bits entrelacés avec fréquence, canaux et nombre de frames validés.
 - [x] Accumulateur de cadence à fréquence fixe indépendant de l'acquisition de l'horloge hôte; temps fractionnaire conservé et rattrapage borné après retard.
-- [ ] Relier la cadence au cycle de vie des sessions (pause/reprise/arrêt).
+- [x] Relier la cadence au cycle de vie des sessions : la session n'avance la cadence qu'à l'état Running et réinitialise le temps accumulé dans les états pause/stop/empty/halted, évitant un rattrapage de temps suspendu.
 - [x] Définir des files média bornées : la vidéo peut évincer la plus ancienne trame pour limiter la latence; l'audio refuse le nouvel élément quand la file est pleine afin que l'hôte traite explicitement la back-pressure. Tests de capacité, d'ordre et de conservation des données.
 - [x] Tests des tailles invalides, du débordement de taille vidéo, du tampon audio incomplet/vide et des retards de cadence.
 - [x] Interfaces indépendantes d'une bibliothèque graphique ou audio particulière.

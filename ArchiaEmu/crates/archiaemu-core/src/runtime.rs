@@ -11,7 +11,9 @@ use crate::content::{
     detect_content_formats, ContentDetection, ContentError, ContentFormatProbe, ContentImage,
     ContentLimits,
 };
-use crate::core_io::{AudioBuffer, InputControl, InputEvent, InputState, VideoFrame};
+use crate::core_io::{
+    AudioBuffer, CadenceAdvance, FrameCadence, InputControl, InputEvent, InputState, VideoFrame,
+};
 use crate::save_state::{SaveStateEnvelope, SaveStateError};
 use crate::{CoreDescriptor, CoreError, CoreEvent, CoreRegistry, EmulationCore, RegistryError};
 
@@ -335,6 +337,24 @@ impl EmulationSession {
         self.input_state = InputState::new();
         self.state = SessionState::Stopped;
         Ok(())
+    }
+
+    /// Advances host frame cadence only while this session is running.
+    ///
+    /// Call this on each host-loop tick, passing elapsed time since the prior
+    /// tick. While paused, stopped, empty or halted, elapsed time is discarded
+    /// and the accumulator is reset so resume never catches up paused time.
+    pub fn advance_frame_cadence(
+        &self,
+        cadence: &mut FrameCadence,
+        elapsed: std::time::Duration,
+    ) -> CadenceAdvance {
+        if self.state == SessionState::Running {
+            cadence.advance(elapsed)
+        } else {
+            cadence.reset();
+            CadenceAdvance::default()
+        }
     }
 
     /// Runs the core to its next observable event while the session is running.
@@ -3141,6 +3161,37 @@ mod save_state_session_tests {
             self.state = state.to_vec();
             Ok(())
         }
+    }
+
+    #[test]
+    fn frame_cadence_discards_paused_time_and_resumes_without_backlog() {
+        let mut session = EmulationSession::new(Box::new(StateCore { state: Vec::new() }));
+        let mut cadence = FrameCadence::new(60, 3).unwrap();
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.advance_frame_cadence(&mut cadence, std::time::Duration::from_millis(8)),
+            CadenceAdvance::default()
+        );
+        session.pause().unwrap();
+        assert_eq!(
+            session.advance_frame_cadence(&mut cadence, std::time::Duration::from_secs(10)),
+            CadenceAdvance::default()
+        );
+        session.resume().unwrap();
+        assert_eq!(
+            session.advance_frame_cadence(&mut cadence, std::time::Duration::from_millis(17)),
+            CadenceAdvance {
+                due_frames: 1,
+                dropped_frames: 0,
+            }
+        );
+
+        session.stop().unwrap();
+        assert_eq!(
+            session.advance_frame_cadence(&mut cadence, std::time::Duration::from_secs(2)),
+            CadenceAdvance::default()
+        );
     }
 
     #[test]
