@@ -183,7 +183,9 @@ fn command_loop(
             continue;
         }
         if command == "quit" || command == "exit" {
-            if let Some(id) = active { let _ = host.close_session(id); }
+            if let Some(id) = active {
+                let _ = host.close_session(id);
+            }
             break;
         }
         let Some(id) = active else {
@@ -195,18 +197,58 @@ fn command_loop(
                 let session = host.session(id)?;
                 let caps = session.descriptor().capabilities;
                 println!("session={} state={:?}", id.get(), session.state());
-                println!("capabilities: input={} video={} audio={} save_states={} persistent_saves={}", caps.input, caps.video_output, caps.audio_output, caps.save_states, caps.persistent_saves);
+                println!(
+                    "capabilities: input={} video={} audio={} save_states={} persistent_saves={}",
+                    caps.input,
+                    caps.video_output,
+                    caps.audio_output,
+                    caps.save_states,
+                    caps.persistent_saves
+                );
             }
-            "pause" => { host.session_mut(id)?.pause()?; println!("Paused."); }
-            "resume" => { host.session_mut(id)?.resume()?; println!("Resumed."); }
-            "reset" => { host.session_mut(id)?.reset()?; println!("Reset requested."); }
-            "stop" => { host.session_mut(id)?.stop()?; println!("Stopped."); }
-            "step" => { let event = host.session_mut(id)?.run_until_event()?; println!("Core event: {event:?}"); }
+            "pause" | "resume" | "reset" | "stop" | "step" => {
+                match apply_session_command(host, id, command) {
+                    Ok(message) => println!("{message}"),
+                    Err(error) => eprintln!("Command failed: {error}"),
+                }
+            }
             "" => {}
             other => eprintln!("Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], pause, resume, reset, stop, step, or quit."),
         }
     }
     Ok(())
+}
+
+
+fn apply_session_command(
+    host: &mut HostRuntime,
+    id: SessionId,
+    command: &str,
+) -> Result<String, String> {
+    let session = host.session_mut(id).map_err(|error| error.to_string())?;
+    match command {
+        "pause" => {
+            session.pause().map_err(|error| error.to_string())?;
+            Ok("Paused.".to_owned())
+        }
+        "resume" => {
+            session.resume().map_err(|error| error.to_string())?;
+            Ok("Resumed.".to_owned())
+        }
+        "reset" => {
+            session.reset().map_err(|error| error.to_string())?;
+            Ok("Reset requested.".to_owned())
+        }
+        "stop" => {
+            session.stop().map_err(|error| error.to_string())?;
+            Ok("Stopped.".to_owned())
+        }
+        "step" => {
+            let event = session.run_until_event().map_err(|error| error.to_string())?;
+            Ok(format!("Core event: {event:?}"))
+        }
+        _ => Err(format!("Unsupported session command: {command}")),
+    }
 }
 
 fn print_usage() {
