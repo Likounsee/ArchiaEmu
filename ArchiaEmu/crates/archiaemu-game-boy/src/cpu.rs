@@ -348,6 +348,55 @@ impl Cpu {
                 }
                 3
             }
+            // Decimal adjust after BCD addition/subtraction.
+            0x27 => {
+                let subtract = self.registers.flag(flags::SUBTRACT);
+                let half_carry = self.registers.flag(flags::HALF_CARRY);
+                let mut carry = self.registers.flag(flags::CARRY);
+                let mut adjustment = 0u8;
+                if !subtract {
+                    if carry || self.registers.a > 0x99 {
+                        adjustment |= 0x60;
+                        carry = true;
+                    }
+                    if half_carry || self.registers.a & 0x0F > 0x09 {
+                        adjustment |= 0x06;
+                    }
+                    self.registers.a = self.registers.a.wrapping_add(adjustment);
+                } else {
+                    if carry {
+                        adjustment |= 0x60;
+                    }
+                    if half_carry {
+                        adjustment |= 0x06;
+                    }
+                    self.registers.a = self.registers.a.wrapping_sub(adjustment);
+                }
+                self.registers.set_flag(flags::ZERO, self.registers.a == 0);
+                self.registers.set_flag(flags::HALF_CARRY, false);
+                self.registers.set_flag(flags::CARRY, carry);
+                1
+            }
+            // CPL, SCF and CCF preserve Z and have hardware-defined flag behavior.
+            0x2F => {
+                self.registers.a = !self.registers.a;
+                self.registers.set_flag(flags::SUBTRACT, true);
+                self.registers.set_flag(flags::HALF_CARRY, true);
+                1
+            }
+            0x37 => {
+                self.registers.set_flag(flags::SUBTRACT, false);
+                self.registers.set_flag(flags::HALF_CARRY, false);
+                self.registers.set_flag(flags::CARRY, true);
+                1
+            }
+            0x3F => {
+                let carry = !self.registers.flag(flags::CARRY);
+                self.registers.set_flag(flags::SUBTRACT, false);
+                self.registers.set_flag(flags::HALF_CARRY, false);
+                self.registers.set_flag(flags::CARRY, carry);
+                1
+            }
             // ADD HL,rr. Z is preserved; N is cleared.
             0x09 | 0x19 | 0x29 | 0x39 => {
                 let value = match (opcode >> 4) & 0x03 {
@@ -895,6 +944,23 @@ mod execution_tests {
         fn write8(&mut self, address: u16, value: u8) {
             self.0[usize::from(address)] = value;
         }
+    }
+
+    #[test]
+    fn daa_cpl_scf_and_ccf_follow_flag_rules() {
+        let mut cpu = Cpu::new();
+        cpu.registers.a = 0x9A;
+        let mut bus = TestBus::with_program(&[0x27, 0x2F, 0x37, 0x3F]);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.registers.f(), flags::ZERO | flags::CARRY);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0xFF);
+        assert_eq!(cpu.registers.f(), flags::ZERO | flags::SUBTRACT | flags::HALF_CARRY | flags::CARRY);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.f(), flags::ZERO | flags::SUBTRACT | flags::HALF_CARRY | flags::CARRY);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.f(), flags::ZERO | flags::CARRY);
     }
 
     #[test]
