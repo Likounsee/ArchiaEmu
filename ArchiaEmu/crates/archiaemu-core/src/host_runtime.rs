@@ -6,7 +6,7 @@
 use core::fmt;
 use std::collections::BTreeMap;
 
-use crate::content::{ContentFormatProbe, ContentLimits, FormatProbeResult};
+use crate::content::{ContentFormatProbe, ContentLimits};
 use crate::runtime::{launch_content, EmulationSession, LaunchError};
 use crate::{CoreRegistry, EmulationCore};
 
@@ -200,6 +200,7 @@ impl HostRuntime {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::content::FormatProbeResult;
     use crate::{CoreApiVersion, CoreCapabilities, CoreDescriptor, CoreError, CoreEvent, SystemId};
 
     struct MatchProbe;
