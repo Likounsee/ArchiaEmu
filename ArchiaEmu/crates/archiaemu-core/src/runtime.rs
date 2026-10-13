@@ -700,6 +700,14 @@ mod tests {
     }
 
     #[test]
+    fn held_input_inspection_starts_empty_and_preserves_canonical_order() {
+        let mut session = session();
+        assert!(session.pressed_inputs().is_empty());
+        session.load_content(&[1]).unwrap();
+        assert!(session.pressed_inputs().is_empty());
+    }
+
+    #[test]
     fn explicit_stop_retains_content_and_reset_resumes_execution() {
         let mut session = session();
         session.load_content(&[1]).unwrap();
