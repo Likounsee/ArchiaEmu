@@ -71,11 +71,7 @@ impl SaveStateEnvelope {
     }
 
     /// Rejects states produced by another system or core implementation version.
-    pub fn validate_for(
-        &self,
-        system_id: &str,
-        core_version: &str,
-    ) -> Result<(), SaveStateError> {
+    pub fn validate_for(&self, system_id: &str, core_version: &str) -> Result<(), SaveStateError> {
         if self.metadata.system_id != system_id {
             return Err(SaveStateError::IncompatibleSystem);
         }
@@ -118,11 +114,13 @@ impl SaveStateEnvelope {
         }
         let system_len = u16::from_le_bytes([bytes[10], bytes[11]]) as usize;
         let version_len = u16::from_le_bytes([bytes[12], bytes[13]]) as usize;
-        let payload_len = u64::from_le_bytes(bytes[14..22].try_into().expect("fixed header")) ;
+        let payload_len = u64::from_le_bytes(bytes[14..22].try_into().expect("fixed header"));
         let expected_crc = u32::from_le_bytes(bytes[22..26].try_into().expect("fixed header"));
 
-        if system_len == 0 || system_len > MAX_ID_BYTES
-            || version_len == 0 || version_len > MAX_CORE_VERSION_BYTES
+        if system_len == 0
+            || system_len > MAX_ID_BYTES
+            || version_len == 0
+            || version_len > MAX_CORE_VERSION_BYTES
         {
             return Err(SaveStateError::InvalidMetadata);
         }
@@ -157,7 +155,10 @@ impl SaveStateEnvelope {
         let core_version = core::str::from_utf8(&bytes[version_start..payload_start])
             .map_err(|_| SaveStateError::InvalidMetadata)?
             .to_owned();
-        let metadata = SaveStateMetadata { system_id, core_version };
+        let metadata = SaveStateMetadata {
+            system_id,
+            core_version,
+        };
         validate_metadata(&metadata)?;
         let payload = bytes[payload_start..].to_vec();
         if crc32(&payload) != expected_crc {
@@ -169,12 +170,12 @@ impl SaveStateEnvelope {
 
 fn validate_metadata(metadata: &SaveStateMetadata) -> Result<(), SaveStateError> {
     let id = metadata.system_id.as_bytes();
-    if id.is_empty() || id.len() > MAX_ID_BYTES
+    if id.is_empty()
+        || id.len() > MAX_ID_BYTES
         || !id.iter().enumerate().all(|(index, byte)| {
             byte.is_ascii_lowercase()
                 || byte.is_ascii_digit()
-                || (*byte == b'-' && index > 0 && index + 1 < id.len()
-                    && id[index - 1] != b'-')
+                || (*byte == b'-' && index > 0 && index + 1 < id.len() && id[index - 1] != b'-')
         })
         || id.last() == Some(&b'-')
         || metadata.system_id.contains("--")
@@ -182,7 +183,8 @@ fn validate_metadata(metadata: &SaveStateMetadata) -> Result<(), SaveStateError>
         return Err(SaveStateError::InvalidMetadata);
     }
     let version = metadata.core_version.as_bytes();
-    if version.is_empty() || version.len() > MAX_CORE_VERSION_BYTES
+    if version.is_empty()
+        || version.len() > MAX_CORE_VERSION_BYTES
         || metadata.core_version.trim().is_empty()
         || version.iter().any(|byte| *byte < 0x20 || *byte == 0x7f)
     {
@@ -232,7 +234,10 @@ impl fmt::Display for SaveStateError {
             Self::InvalidMetadata => formatter.write_str("invalid save-state metadata"),
             Self::EmptyPayload => formatter.write_str("save-state payload cannot be empty"),
             Self::PayloadTooLarge { actual, maximum } => {
-                write!(formatter, "save-state payload {actual} exceeds limit {maximum}")
+                write!(
+                    formatter,
+                    "save-state payload {actual} exceeds limit {maximum}"
+                )
             }
             Self::TrailingData => formatter.write_str("unexpected trailing save-state data"),
             Self::ChecksumMismatch => formatter.write_str("save-state checksum mismatch"),
@@ -276,8 +281,14 @@ mod tests {
     #[test]
     fn rejects_incompatible_system_and_core_versions() {
         let state = sample();
-        assert_eq!(state.validate_for("other-system", "0.1.0"), Err(SaveStateError::IncompatibleSystem));
-        assert_eq!(state.validate_for("game-boy", "0.2.0"), Err(SaveStateError::IncompatibleCoreVersion));
+        assert_eq!(
+            state.validate_for("other-system", "0.1.0"),
+            Err(SaveStateError::IncompatibleSystem)
+        );
+        assert_eq!(
+            state.validate_for("game-boy", "0.2.0"),
+            Err(SaveStateError::IncompatibleCoreVersion)
+        );
     }
 
     #[test]
@@ -285,20 +296,38 @@ mod tests {
         let encoded = sample().encode();
         let mut corrupted = encoded.clone();
         *corrupted.last_mut().unwrap() ^= 0x80;
-        assert_eq!(SaveStateEnvelope::decode(&corrupted), Err(SaveStateError::ChecksumMismatch));
-        assert_eq!(SaveStateEnvelope::decode(&encoded[..10]), Err(SaveStateError::Truncated));
+        assert_eq!(
+            SaveStateEnvelope::decode(&corrupted),
+            Err(SaveStateError::ChecksumMismatch)
+        );
+        assert_eq!(
+            SaveStateEnvelope::decode(&encoded[..10]),
+            Err(SaveStateError::Truncated)
+        );
         let mut trailing = encoded.clone();
         trailing.push(0);
-        assert_eq!(SaveStateEnvelope::decode(&trailing), Err(SaveStateError::TrailingData));
+        assert_eq!(
+            SaveStateEnvelope::decode(&trailing),
+            Err(SaveStateError::TrailingData)
+        );
         let mut unknown = encoded;
         unknown[8] = 99;
-        assert_eq!(SaveStateEnvelope::decode(&unknown), Err(SaveStateError::UnsupportedFormat(99)));
+        assert_eq!(
+            SaveStateEnvelope::decode(&unknown),
+            Err(SaveStateError::UnsupportedFormat(99))
+        );
     }
 
     #[test]
     fn rejects_invalid_metadata_and_empty_payload() {
-        assert_eq!(SaveStateEnvelope::new("Bad ID", "0.1.0", vec![1]), Err(SaveStateError::InvalidMetadata));
-        assert_eq!(SaveStateEnvelope::new("game-boy", "0.1.0", vec![]), Err(SaveStateError::EmptyPayload));
+        assert_eq!(
+            SaveStateEnvelope::new("Bad ID", "0.1.0", vec![1]),
+            Err(SaveStateError::InvalidMetadata)
+        );
+        assert_eq!(
+            SaveStateEnvelope::new("game-boy", "0.1.0", vec![]),
+            Err(SaveStateError::EmptyPayload)
+        );
     }
 
     #[test]

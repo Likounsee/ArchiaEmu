@@ -106,16 +106,16 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 ## P1 — construire le chemin complet de lancement
 
-### P1.1 — Orchestrateur et multi-sessions — 45 %
+### P1.1 — Orchestrateur et multi-sessions — 55 %
 - [x] Ajouter un gestionnaire hôte reliant le registre, le pipeline de chargement et les sessions.
 - [x] Distinguer l'identifiant hôte de session de l'identifiant de système; les IDs sont monotones et jamais réutilisés.
 - [x] Permettre la création, l'accès et la fermeture de plusieurs sessions indépendantes.
 - [x] Définir une limite de sessions configurable et imposer la sérialisation des mutations via l'accès exclusif `&mut`; aucun parallélisme implicite.
-- [x] Tester l'échec de lancement sans session fantôme, la fermeture répétée et l'épuisement des IDs sans bouclage; le lancement réussi via l'orchestrateur reste à couvrir par un test d'intégration dédié.
+- [x] Tester le lancement réussi via détection/registre, l'échec sans session fantôme, la fermeture répétée et l'épuisement des IDs sans bouclage.
 
 L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtime.rs`; l'identité de contenu persistante et le catalogue hôte restent à intégrer.
 
-### P1.2 — Entrées, vidéo, audio et cadence — 40 %
+### P1.2 — Entrées, vidéo, audio et cadence — 45 %
 - [x] Contrats d'entrée génériques avec transitions dédupliquées et libération de toutes les commandes à la perte de focus/déconnexion.
 - [x] Trames vidéo avec dimensions, stride explicite, format de pixel et propriété du tampon; lignes rembourrées et tailles incohérentes testées.
 - [x] Blocs audio PCM signés 16 bits entrelacés avec fréquence, canaux et nombre de frames validés.
@@ -125,13 +125,14 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Tests des tailles invalides, du débordement de taille vidéo, du tampon audio incomplet/vide et des retards de cadence.
 - [x] Interfaces indépendantes d'une bibliothèque graphique ou audio particulière.
 
-### P1.3 — Sauvegardes et restauration
+### P1.3 — Sauvegardes et restauration — 30 %
 - [ ] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur.
-- [ ] Définir un conteneur de save state versionné, avec ID/version du cœur, version de format, taille et intégrité.
-- [ ] Valider les métadonnées et limites avant d'appeler le cœur.
+- [x] Définir un conteneur binaire versionné avec ID/version du cœur, taille bornée, longueur exacte et contrôle CRC-32 d'intégrité (détection de corruption, pas authentification cryptographique).
+- [x] Valider les métadonnées et limites avant de fournir le payload au cœur; refuser les versions de format inconnues, systèmes/versions incompatibles, données tronquées ou excédentaires et checksums invalides.
 - [ ] Écrire de façon atomique et prévoir récupération après interruption.
 - [ ] Documenter que chaque cœur reste responsable de la validation de son état interne avant mutation.
-- [ ] Tester état corrompu, version inconnue, fichier trop grand, restauration échouée et reprise après crash.
+- [x] Tester corruption, version inconnue, payload vide/trop grand, incompatibilité de système/cœur, troncature et données excédentaires.
+- [ ] Tester les fichiers persistés trop grands, une restauration échouée et la reprise après crash.
 
 ### P1.4 — Première application hôte minimale
 - [ ] Ajouter une interface simple pour sélectionner un contenu et un module, puis lancer/mettre en pause/arrêter.
