@@ -15,7 +15,7 @@ Les pourcentages de chaque jalon sont des estimations fonctionnelles, pas des me
 | **P1** | Entrées, sorties et horloge hôte | 65 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 58 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
 | **P1** | Hôte terminal de diagnostic | 64 % | Sélectionner un module, gérer les sessions et diagnostiquer les capacités depuis le REPL |
-| **P1** | Application desktop générique | 5 % | Interface native utilisable pour bibliothèque, lancement, sessions, commandes et diagnostics |
+| **P1** | Application desktop générique | 8 % | Interface native utilisable pour bibliothèque, lancement, sessions, commandes et diagnostics |
 | **P1** | Présentation média réelle | 0 % | Vidéo rendue et audio joué en temps réel, avec cadence et gestion de focus |
 | **P1** | Premier système réellement jouable | 5 % | Un cœur de console complet de bout en bout, avec contrôles et tests de compatibilité documentés |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
@@ -168,12 +168,13 @@ La bibliothèque terminale affiche maintenant un index stable et un nombre d'ent
 - [ ] **Cœur réel de bout en bout :** tests CPU/bus/périphériques du système choisi, entrée utilisateur réelle, sorties vidéo/audio réelles quand le matériel le permet, sauvegarde/restauration et comportement vérifié sur des programmes de test. Un cœur factice valide les contrats du framework, pas la compatibilité console.
 - [ ] **Compatibilité honnête :** documenter précisément ce qui fonctionne et ce qui manque; ne pas qualifier un système de jouable tant qu'un programme représentatif n'a pas été exécuté avec un résultat vérifiable.
 
-### P1.5 — Application desktop générique — 5 %
+### P1.5 — Application desktop générique — 8 %
 
 Construire l'application utilisateur au-dessus du runtime et des contrats communs, sans intégrer de logique matérielle propre à une console dans le frontend. Garder le terminal comme outil de diagnostic.
 
 - [x] Documenter le choix initial d'eframe/egui et ses critères de validation multiplateforme dans `docs/ADR_0001_DESKTOP_UI.md`; le choix reste conditionné à un prototype minimal et à l'audit des dépendances exactes.
 - [x] Introduire un modèle de bibliothèque indépendant du frontend et des commandes terminal `import`, `library` et `forget`; l'import vérifie fichier régulier, contenu non vide, taille maximale et doublons. Le catalogue est actuellement en mémoire et n'effectue pas la validation du format, qui reste au pipeline de lancement.
+- [x] Extraire les modèles d'application dans une bibliothèque Rust réutilisable et ajouter `ApplicationController` pour partager bibliothèque, lancement via le pipeline commun, sélection de session et fermeture cohérente entre frontends; tester sélection périmée, fermeture globale et index de bibliothèque invalide.
 - [ ] Construire un prototype desktop minimal sur Linux, Windows et macOS et valider la pile réelle avant d'ajouter les dépendances UI au workspace.
 - [ ] Afficher la bibliothèque de contenus importés, les systèmes enregistrés et les capacités réellement déclarées.
 - [ ] Permettre de sélectionner un contenu et un système, lancer/arrêter une session et afficher les erreurs de validation/lancement.
