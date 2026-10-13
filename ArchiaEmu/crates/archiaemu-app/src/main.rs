@@ -33,12 +33,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         print_usage();
         return Ok(());
     }
-    if args.next().is_some() {
-        eprintln!("error: expected one content path");
-        print_usage();
-        std::process::exit(2);
-    }
-
     let (path, selected_system) = if first == "--system" {
         let selected = args
             .next()
