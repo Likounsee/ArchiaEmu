@@ -18,66 +18,114 @@ const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
 /// Starts the command-line host.
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut args = std::env::args_os().skip(1);
-    let Some(first) = args.next() else {
+    let args = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if args.is_empty() {
         print_usage();
         return Ok(());
-    };
+    }
 
     let mut registry = CoreRegistry::new();
     register_game_boy(&mut registry)?;
-    if first == "--list-systems" {
+    if args.len() == 1 && args[0] == "--list-systems" {
         list_systems(&registry);
         return Ok(());
     }
-    if first == "--help" || first == "-h" {
+    if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
         print_usage();
         return Ok(());
     }
-    let (path, selected_system) = if first == "--system" {
-        let selected = args
-            .next()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "missing system ID"))?;
-        let content = args
-            .next()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "missing content path"))?;
-        if args.next().is_some() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "expected --system <system-id> <content-path>",
-            )
-            .into());
-        }
-        (
-            PathBuf::from(content),
-            Some(selected.to_string_lossy().into_owned()),
-        )
-    } else {
-        if args.next().is_some() {
-            eprintln!("error: expected one content path");
-            print_usage();
-            std::process::exit(2);
-        }
-        (PathBuf::from(first), None)
-    };
+    let options = parse_launch_options(&args)
+        .map_err(|message| io::Error::new(io::ErrorKind::InvalidInput, message))?;
 
     let probe = GameBoyCartridgeProbe;
-    if let Some(selected) = selected_system.as_deref() {
+    if let Some(selected) = options.selected_system.as_deref() {
         validate_system_selection(&registry, selected, probe.format_id())
             .map_err(|message| io::Error::new(io::ErrorKind::InvalidInput, message))?;
     }
     let probes: [&dyn ContentFormatProbe; 1] = [&probe];
-    let mut host = HostRuntime::new(HostRuntimeConfig::default())?;
+    let mut host = HostRuntime::new(HostRuntimeConfig {
+        max_sessions: options.max_sessions,
+    })?;
     let session_id = host.launch_content_path(
-        &path,
+        &options.path,
         ContentLimits::new(MAX_CONTENT_BYTES),
         &probes,
         &registry,
     )?;
     println!("Content loaded into host session {}.", session_id.get());
+    println!("Host session limit: {}.", host.max_sessions());
     println!("This core is an early implementation, not yet a playable emulator.");
     println!("Commands: status, sessions, switch <id>, open <path>, close [id|all], input <control> <press|release>, release-inputs, inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
     command_loop(&mut host, session_id, &probe, &registry)
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct LaunchOptions {
+    path: PathBuf,
+    selected_system: Option<String>,
+    max_sessions: usize,
+}
+
+fn parse_launch_options(args: &[std::ffi::OsString]) -> Result<LaunchOptions, String> {
+    let mut path = None;
+    let mut selected_system = None;
+    let mut max_sessions = HostRuntimeConfig::default().max_sessions;
+    let mut saw_max_sessions = false;
+    let mut index = 0;
+
+    while index < args.len() {
+        match args[index].to_string_lossy().as_ref() {
+            "--system" => {
+                if selected_system.is_some() {
+                    return Err("--system may only be specified once".to_owned());
+                }
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "missing system ID after --system".to_owned())?;
+                let value = value.to_string_lossy().into_owned();
+                if value.is_empty() || value.starts_with('-') {
+                    return Err("system ID must be a non-empty value".to_owned());
+                }
+                selected_system = Some(value);
+                index += 2;
+            }
+            "--max-sessions" => {
+                if saw_max_sessions {
+                    return Err("--max-sessions may only be specified once".to_owned());
+                }
+                let raw = args
+                    .get(index + 1)
+                    .ok_or_else(|| "missing count after --max-sessions".to_owned())?;
+                let parsed = raw
+                    .to_string_lossy()
+                    .parse::<usize>()
+                    .map_err(|_| "max sessions must be a positive integer".to_owned())?;
+                if parsed == 0 {
+                    return Err("max sessions must be greater than zero".to_owned());
+                }
+                max_sessions = parsed;
+                saw_max_sessions = true;
+                index += 2;
+            }
+            value if value.starts_with('-') => {
+                return Err(format!("unknown option: {value}"));
+            }
+            _ => {
+                if path.is_some() {
+                    return Err("expected exactly one content path".to_owned());
+                }
+                path = Some(PathBuf::from(&args[index]));
+                index += 1;
+            }
+        }
+    }
+
+    let path = path.ok_or_else(|| "missing content path".to_owned())?;
+    Ok(LaunchOptions {
+        path,
+        selected_system,
+        max_sessions,
+    })
 }
 
 fn list_systems(registry: &CoreRegistry) {
@@ -537,6 +585,54 @@ mod tests {
         let mut registry = CoreRegistry::new();
         register_game_boy(&mut registry).unwrap();
         registry
+    }
+
+    fn args(values: &[&str]) -> Vec<std::ffi::OsString> {
+        values.iter().map(std::ffi::OsString::from).collect()
+    }
+
+    #[test]
+    fn launch_options_accept_session_limit_and_system_selection_in_either_order() {
+        let first = parse_launch_options(&args(&[
+            "--max-sessions", "8", "--system", "game-boy", "game.rom",
+        ]))
+        .unwrap();
+        assert_eq!(
+            first,
+            LaunchOptions {
+                path: PathBuf::from("game.rom"),
+                selected_system: Some("game-boy".to_owned()),
+                max_sessions: 8,
+            }
+        );
+
+        let second = parse_launch_options(&args(&[
+            "game.rom", "--system", "game-boy", "--max-sessions", "2",
+        ]))
+        .unwrap();
+        assert_eq!(second.max_sessions, 2);
+        assert_eq!(second.path, PathBuf::from("game.rom"));
+    }
+
+    #[test]
+    fn launch_options_reject_invalid_or_ambiguous_arguments() {
+        for values in [
+            vec!["--max-sessions", "0", "game.rom"],
+            vec!["--max-sessions", "many", "game.rom"],
+            vec!["--max-sessions"],
+            vec!["--max-sessions", "2", "--max-sessions", "3", "game.rom"],
+            vec!["--system", "game-boy", "--system", "game-boy", "game.rom"],
+            vec!["--system"],
+            vec!["--unknown", "game.rom"],
+            vec!["game-a.rom", "game-b.rom"],
+            vec![],
+        ] {
+            assert!(
+                parse_launch_options(&args(&values)).is_err(),
+                "arguments should be rejected: {:?}",
+                values
+            );
+        }
     }
 
     #[test]
