@@ -140,9 +140,9 @@ fn command_loop(
         }
         if let Some(raw) = command.strip_prefix("switch ") {
             let wanted = raw.trim().parse::<u64>().ok();
-            active = wanted.and_then(|n| host.session_ids().into_iter().find(|id| id.get() == n));
-            if active.is_none() {
-                eprintln!("Unknown or invalid session ID: {}", raw.trim());
+            match wanted.and_then(|n| host.session_ids().into_iter().find(|id| id.get() == n)) {
+                Some(id) => active = Some(id),
+                None => eprintln!("Unknown or invalid session ID: {}", raw.trim()),
             }
             continue;
         }
