@@ -6,6 +6,7 @@ use std::error::Error;
 use std::path::Path;
 
 use archiaemu_app::controller::ApplicationController;
+use eframe::egui;
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::runtime::SessionState;
@@ -84,20 +85,20 @@ impl DesktopApp {
     }
 
     fn session_action(&mut self, id: SessionId, action: SessionAction) {
-        let result = match action {
-            SessionAction::Pause => self.controller.host_mut().session_mut(id).and_then(|s| s.pause().map_err(|_| {
-                archiaemu_core::host_runtime::HostRuntimeError::UnknownSession(id)
-            })),
-            SessionAction::Resume => self.controller.host_mut().session_mut(id).and_then(|s| s.resume().map_err(|_| {
-                archiaemu_core::host_runtime::HostRuntimeError::UnknownSession(id)
-            })),
-            SessionAction::Stop => self.controller.host_mut().session_mut(id).and_then(|s| s.stop().map_err(|_| {
-                archiaemu_core::host_runtime::HostRuntimeError::UnknownSession(id)
-            })),
-            SessionAction::Reset => self.controller.host_mut().session_mut(id).and_then(|s| s.reset().map_err(|_| {
-                archiaemu_core::host_runtime::HostRuntimeError::UnknownSession(id)
-            })),
-        };
+        let result = self
+            .controller
+            .host_mut()
+            .session_mut(id)
+            .map_err(|error| error.to_string())
+            .and_then(|session| {
+                let operation = match action {
+                    SessionAction::Pause => session.pause(),
+                    SessionAction::Resume => session.resume(),
+                    SessionAction::Stop => session.stop(),
+                    SessionAction::Reset => session.reset(),
+                };
+                operation.map_err(|error| error.to_string())
+            });
         self.message = match result {
             Ok(()) => format!("Session {}: {} succeeded.", id.get(), action.label()),
             Err(error) => format!("Session {}: {} failed: {error}", id.get(), action.label()),
