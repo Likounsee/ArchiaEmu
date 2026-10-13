@@ -12,7 +12,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Chargement et validation du contenu | 100 % | Pipeline commun borné, validation de tous les formats actuellement enregistrés et contrat d'intégration hôte |
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 35 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
-| **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
+| **P1** | Entrées, sorties et horloge hôte | 30 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
 | **P1** | Frontend minimal du framework | 0 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
@@ -117,7 +117,7 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 
 ### P1.2 — Entrées, vidéo, audio et cadence
 - [ ] Stabiliser des contrats d'entrée génériques, y compris la perte de focus et la libération de toutes les commandes.
-- [ ] Définir des formats de trames vidéo avec dimensions, stride, format de pixel et durée de vie du tampon explicites.
+- [x] Définir les trames vidéo avec dimensions, stride explicite, format de pixel et propriété/durée de vie du tampon explicites; les trames RGBA acceptent les lignes rembourrées avec validation de taille.
 - [ ] Définir des blocs audio avec fréquence, canaux, format d'échantillon et règles de propriété explicites.
 - [ ] Séparer horloge/cadence d'émulation et horloge de présentation hôte.
 - [ ] Gérer pause, reprise, arrêt, retard de l'hôte et files pleines sans blocage indéfini.
