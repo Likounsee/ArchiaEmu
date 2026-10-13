@@ -6,12 +6,12 @@ use std::error::Error;
 use std::path::Path;
 
 use archiaemu_app::controller::ApplicationController;
-use eframe::egui;
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::runtime::SessionState;
 use archiaemu_core::CoreRegistry;
 use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
+use eframe::egui;
 
 const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
