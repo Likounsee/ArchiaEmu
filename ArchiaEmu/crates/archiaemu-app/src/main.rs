@@ -273,7 +273,9 @@ fn apply_input_command(
     raw: &str,
 ) -> Result<String, String> {
     let mut parts = raw.split_whitespace();
-    let control_name = parts.next().ok_or_else(|| "expected input <control> <press|release>".to_owned())?;
+    let control_name = parts
+        .next()
+        .ok_or_else(|| "expected input <control> <press|release>".to_owned())?;
     let action = parts.next().ok_or_else(|| "expected input <control> <press|release>".to_owned())?;
     if parts.next().is_some() {
         return Err("expected exactly two arguments: <control> <press|release>".to_owned());
