@@ -515,6 +515,12 @@ impl Cpu {
                 self.registers.pc = self.registers.pair(RegisterPair::Hl);
                 1
             }
+            // RST vectors are one-byte calls to fixed addresses in the first 64 bytes.
+            0xC7 | 0xCF | 0xD7 | 0xDF | 0xE7 | 0xEF | 0xF7 | 0xFF => {
+                self.push16(bus, self.registers.pc);
+                self.registers.pc = u16::from(opcode & 0x38);
+                4
+            }
             // CALL a16 / RET.
             0xCD => {
                 let low = self.fetch8(bus);
@@ -1145,6 +1151,18 @@ mod execution_tests {
         cpu.registers.a = 0;
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
         assert_eq!(cpu.registers.a, 0xA5);
+    }
+
+    #[test]
+    fn restart_pushes_return_address_and_jumps_to_vector() {
+        let mut cpu = Cpu::new();
+        cpu.registers.sp = 0xC100;
+        let mut bus = TestBus::with_program(&[0xDF]);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(cpu.registers.pc, 0x0018);
+        assert_eq!(cpu.registers.sp, 0xC0FE);
+        assert_eq!(bus.0[0xC0FE], 0x01);
+        assert_eq!(bus.0[0xC0FF], 0x00);
     }
 
     #[test]
