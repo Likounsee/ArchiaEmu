@@ -51,7 +51,7 @@ jobs:
       - name: Compile desktop prototype
         run: cargo check --manifest-path crates/archiaemu-desktop/Cargo.toml --all-targets
       - name: Check desktop package contents
-        run: cargo package --manifest-path crates/archiaemu-desktop/Cargo.toml --list
+        run: cargo package --manifest-path crates/archiaemu-desktop/Cargo.toml --list --allow-dirty
       - name: Run Clippy (Linux)
         if: runner.os == 'Linux'
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
