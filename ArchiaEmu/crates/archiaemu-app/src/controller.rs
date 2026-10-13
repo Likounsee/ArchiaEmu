@@ -334,6 +334,39 @@ mod tests {
     }
 
     #[test]
+    fn typed_session_commands_report_invalid_transitions_without_panicking() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+
+        let error = app.command_session(id, SessionCommand::Pause).unwrap_err();
+        assert!(matches!(
+            error,
+            SessionCommandError::Session(SessionError::InvalidTransition {
+                operation: "pause",
+                state: SessionState::Empty,
+            })
+        ));
+
+        app.close_session(id).unwrap();
+        let error = app.command_session(id, SessionCommand::Stop).unwrap_err();
+        assert!(matches!(error, SessionCommandError::Host(_)));
+    }
+
+    #[test]
+    fn releasing_inputs_on_an_empty_session_is_safe_and_idempotent() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.release_inputs(id).unwrap();
+        app.release_inputs(id).unwrap();
+    }
+
+    #[test]
     fn library_index_errors_are_explicit_and_do_not_create_sessions() {
         let mut app = controller();
         let error = app
