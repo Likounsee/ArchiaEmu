@@ -244,7 +244,7 @@ fn command_loop(
             }
             "" => {}
             other => eprintln!(
-                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, pause, resume, reset, stop, step, or quit."
+                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, media, save-state <path>, load-state <path>, pause, resume, reset, stop, step, or quit."
             ),
         }
     }
@@ -304,7 +304,10 @@ fn release_session_inputs(
         .map_err(|error| error.to_string())
 }
 
-fn inspect_media(host: &mut HostRuntime, active: Option<SessionId>) -> Result<String, String> {
+fn inspect_media(
+    host: &mut HostRuntime,
+    active: Option<SessionId>,
+) -> Result<String, String> {
     let id = active.ok_or_else(|| "no active session".to_owned())?;
     let session = host.session_mut(id).map_err(|error| error.to_string())?;
     let capabilities = session.descriptor().capabilities;
@@ -314,7 +317,11 @@ fn inspect_media(host: &mut HostRuntime, active: Option<SessionId>) -> Result<St
         match session.take_video_frame().map_err(|error| error.to_string())? {
             Some(frame) => report.push(format!(
                 "video: {}x{} {:?}, stride={} bytes, payload={} bytes",
-                frame.width(), frame.height(), frame.format(), frame.row_stride_bytes(), frame.pixels().len()
+                frame.width(),
+                frame.height(),
+                frame.format(),
+                frame.row_stride_bytes(),
+                frame.pixels().len()
             )),
             None => report.push("video: no frame ready".to_owned()),
         }
