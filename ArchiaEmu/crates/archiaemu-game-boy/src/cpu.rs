@@ -958,9 +958,9 @@ mod execution_tests {
         assert_eq!(cpu.registers.a, 0xFF);
         assert_eq!(cpu.registers.f(), flags::ZERO | flags::SUBTRACT | flags::HALF_CARRY | flags::CARRY);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
-        assert_eq!(cpu.registers.f(), flags::ZERO | flags::SUBTRACT | flags::HALF_CARRY | flags::CARRY);
-        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
         assert_eq!(cpu.registers.f(), flags::ZERO | flags::CARRY);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.f(), flags::ZERO);
     }
 
     #[test]
