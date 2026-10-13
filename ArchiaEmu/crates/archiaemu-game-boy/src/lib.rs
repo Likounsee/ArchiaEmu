@@ -300,17 +300,21 @@ impl Default for GameBoyCore {
     }
 }
 
+fn game_boy_core_descriptor() -> archiaemu_core::CoreDescriptor {
+    archiaemu_core::CoreDescriptor {
+        api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
+        system_id: archiaemu_core::SystemId::new(SYSTEM_ID)
+            .expect("the built-in Game Boy system ID is valid"),
+        display_name: "Game Boy / Game Boy Color",
+        core_version: env!("CARGO_PKG_VERSION"),
+        // Do not advertise execution capabilities before they exist.
+        capabilities: archiaemu_core::CoreCapabilities::default(),
+    }
+}
+
 impl archiaemu_core::EmulationCore for GameBoyCore {
     fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
-        archiaemu_core::CoreDescriptor {
-            api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
-            system_id: archiaemu_core::SystemId::new(SYSTEM_ID)
-                .expect("the built-in Game Boy system ID is valid"),
-            display_name: "Game Boy / Game Boy Color",
-            core_version: env!("CARGO_PKG_VERSION"),
-            // Do not advertise execution capabilities before they exist.
-            capabilities: archiaemu_core::CoreCapabilities::default(),
-        }
+        game_boy_core_descriptor()
     }
 
     fn load_content(&mut self, content: &[u8]) -> Result<(), archiaemu_core::CoreError> {
@@ -487,10 +491,7 @@ impl CpuBus for GameBoyBus<'_> {
 pub fn register_game_boy(
     registry: &mut archiaemu_core::CoreRegistry,
 ) -> Result<(), archiaemu_core::RegistryError> {
-    registry.register(
-        archiaemu_core::SystemId::new(SYSTEM_ID).expect("the built-in Game Boy system ID is valid"),
-        create_game_boy_core,
-    )
+    registry.register_with_descriptor(game_boy_core_descriptor(), create_game_boy_core)
 }
 
 fn create_game_boy_core() -> Box<dyn archiaemu_core::EmulationCore> {
@@ -770,6 +771,7 @@ mod tests {
 
         let id = archiaemu_core::SystemId::new(SYSTEM_ID).unwrap();
         assert!(registry.contains(id));
+        assert_eq!(registry.registered_descriptor(id), Some(game_boy_core_descriptor()));
         assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-dmg").unwrap()));
         assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-color").unwrap()));
         let core = registry.create(id).unwrap();
