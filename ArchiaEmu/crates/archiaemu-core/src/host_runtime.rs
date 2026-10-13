@@ -7,7 +7,7 @@ use core::fmt;
 use std::collections::BTreeMap;
 
 use crate::content::{ContentFormatProbe, ContentLimits};
-use crate::runtime::{launch_content, EmulationSession, LaunchError};
+use crate::runtime::{launch_content, launch_content_path as launch_path, EmulationSession, LaunchError};
 use crate::{CoreRegistry, EmulationCore};
 
 /// Stable host-assigned identity for one session.
@@ -170,6 +170,23 @@ impl HostRuntime {
         self.insert(session)
     }
 
+    /// Reads, detects, validates, and launches content from a path under the common size limit.
+    ///
+    /// The session capacity is checked before touching the filesystem. The shared
+    /// path loader performs an early metadata check and a bounded read, then uses
+    /// the same format detection and core validation as byte-based launches.
+    pub fn launch_content_path(
+        &mut self,
+        path: impl AsRef<std::path::Path>,
+        limits: ContentLimits,
+        probes: &[&dyn ContentFormatProbe],
+        registry: &CoreRegistry,
+    ) -> Result<SessionId, HostRuntimeError> {
+        self.preflight_slot()?;
+        let session = launch_path(path, limits, probes, registry)?;
+        self.insert(session)
+    }
+
     /// Borrows a session by its host-assigned ID.
     pub fn session(&self, id: SessionId) -> Result<&EmulationSession, HostRuntimeError> {
         self.sessions
@@ -312,6 +329,37 @@ mod tests {
             host.session(id).unwrap().descriptor().system_id.as_str(),
             "test-system"
         );
+    }
+
+    #[test]
+    fn path_launch_uses_the_bounded_content_pipeline() {
+        use std::fs;
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        static NEXT_PATH: AtomicU64 = AtomicU64::new(0);
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-host-launch-{}-{}.rom",
+            std::process::id(),
+            NEXT_PATH.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::write(&path, b"TEST-rom").unwrap();
+
+        let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
+        let mut registry = CoreRegistry::new();
+        registry
+            .register(SystemId::new("test-system").unwrap(), make_mock_core)
+            .unwrap();
+        let probe = MatchProbe;
+        let id = host
+            .launch_content_path(&path, ContentLimits::new(1024), &[&probe], &registry)
+            .unwrap();
+
+        assert_eq!(host.session_count(), 1);
+        assert_eq!(
+            host.session(id).unwrap().state(),
+            crate::runtime::SessionState::Running
+        );
+        fs::remove_file(path).unwrap();
     }
 
     #[test]
