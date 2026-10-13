@@ -1014,7 +1014,7 @@ mod execution_tests {
         assert_eq!(cpu.registers.c, 0x00);
         cpu.registers.set_pair(RegisterPair::Hl, 0xC000);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
-        assert_eq!(cpu.registers.f(), flags::ZERO | flags::HALF_CARRY);
+        assert_eq!(cpu.registers.f(), flags::ZERO | flags::HALF_CARRY | flags::CARRY);
     }
 
     #[test]
