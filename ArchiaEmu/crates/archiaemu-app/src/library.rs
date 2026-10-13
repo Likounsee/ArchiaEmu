@@ -186,10 +186,12 @@ mod tests {
     impl TempFile {
         fn new(name: &str, bytes: &[u8]) -> Self {
             let id = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
-            let path = std::env::temp_dir().join(format!(
-                "archiaemu-library-{}-{id}-{name}",
+            let directory = std::env::temp_dir().join(format!(
+                "archiaemu-library-{}-{id}",
                 std::process::id()
             ));
+            fs::create_dir(&directory).unwrap();
+            let path = directory.join(name);
             fs::write(&path, bytes).unwrap();
             Self(path)
         }
@@ -198,6 +200,9 @@ mod tests {
     impl Drop for TempFile {
         fn drop(&mut self) {
             let _ = fs::remove_file(&self.0);
+            if let Some(parent) = self.0.parent() {
+                let _ = fs::remove_dir(parent);
+            }
         }
     }
 
