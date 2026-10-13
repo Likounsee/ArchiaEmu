@@ -31,6 +31,7 @@ struct DesktopApp {
     registry: CoreRegistry,
     probe: GameBoyCartridgeProbe,
     content_path: String,
+    library_filter: String,
     message: String,
     dark_mode: bool,
     ui_scale: f32,
@@ -46,6 +47,7 @@ impl DesktopApp {
             registry,
             probe: GameBoyCartridgeProbe,
             content_path: String::new(),
+            library_filter: String::new(),
             message: String::from("Ready. Select a content path to import or launch."),
             dark_mode: true,
             ui_scale: 1.0,
@@ -184,12 +186,29 @@ impl eframe::App for DesktopApp {
                 }
             });
 
+            ui.horizontal(|ui| {
+                ui.label("Filter");
+                ui.text_edit_singleline(&mut self.library_filter);
+                if ui.button("Clear").clicked() {
+                    self.library_filter.clear();
+                }
+            });
             egui::ScrollArea::vertical().max_height(150.0).show(ui, |ui| {
+                let query = self.library_filter.trim().to_lowercase();
                 let entries: Vec<_> = self.controller.library().entries().map(|entry| {
                     (entry.title().to_owned(), entry.path().to_path_buf(), entry.size_bytes())
+                }).filter(|(title, path, _)| {
+                    query.is_empty()
+                        || title.to_lowercase().contains(&query)
+                        || path.display().to_string().to_lowercase().contains(&query)
                 }).collect();
-                if entries.is_empty() {
+                let total = self.controller.library().len();
+                if total == 0 {
                     ui.label("No content imported yet.");
+                } else if entries.is_empty() {
+                    ui.label(format!("No library entries match ‘{}’.", self.library_filter.trim()));
+                } else {
+                    ui.label(format!("Showing {} of {} item(s).", entries.len(), total));
                 }
                 for (title, path, size) in entries {
                     ui.horizontal(|ui| {

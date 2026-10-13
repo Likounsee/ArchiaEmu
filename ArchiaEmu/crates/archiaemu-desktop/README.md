@@ -15,7 +15,7 @@ The first build resolves the standalone prototype's dependency graph and creates
 ## Prototype scope
 
 - Browse for Game Boy ROM files with the native file picker, or enter a path manually.
-- Import and forget content paths in the shared in-memory library.
+- Import and forget content paths in the shared in-memory library, with case-insensitive title/path filtering.
 - Launch content through the shared bounded validation pipeline.
 - Adjust host-only presentation settings (light/dark theme and interface scale).
 - Show registered systems and their declared capabilities.
