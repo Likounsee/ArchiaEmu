@@ -343,7 +343,10 @@ impl Cpu {
             self.ime_enable_delay = 0;
             self.push16(bus, self.registers.pc);
             self.registers.pc = 0x0040 + u16::from(interrupt) * 8;
-            return Ok(StepResult { opcode: 0xFF, machine_cycles: 5 });
+            return Ok(StepResult {
+                opcode: 0xFF,
+                machine_cycles: 5,
+            });
         }
         if self.halted {
             return Ok(StepResult {
