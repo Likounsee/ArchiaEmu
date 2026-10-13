@@ -13,7 +13,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 73 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 65 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
-| **P1** | Sauvegardes et restauration | 55 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
+| **P1** | Sauvegardes et restauration | 56 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
 | **P1** | Frontend minimal du framework | 61 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
 | **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
@@ -128,7 +128,7 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Interfaces indépendantes d'une bibliothèque graphique ou audio particulière.
 - [x] Tester le transfert des trames vidéo et blocs audio via une session : payload remis une seule fois, lecture avant chargement refusée et capacités média non déclarées signalées explicitement.
 
-### P1.3 — Sauvegardes et restauration — 55 %
+### P1.3 — Sauvegardes et restauration — 56 %
 - [x] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur dans `docs/SAVE_STATE_POLICY.md`; le frontend propose `save-state <path>` et `load-state <path>` et respecte la capacité déclarée par le cœur.
 - [x] Définir un conteneur binaire versionné avec ID/version du cœur, taille bornée, longueur exacte et contrôle CRC-32 d'intégrité (détection de corruption, pas authentification cryptographique).
 - [x] Valider les métadonnées et limites avant de fournir le payload au cœur; refuser les versions de format inconnues, systèmes/versions incompatibles, données tronquées ou excédentaires et checksums invalides.
@@ -137,7 +137,7 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Tester corruption, version inconnue, payload vide/trop grand, incompatibilité de système/cœur, troncature et données excédentaires.
 - [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup lorsque le fichier principal est corrompu, absent ou dépasse la limite; vérifier que le primaire rejeté n'est pas réécrit silencieusement.
 - [x] Injecter les échecs de renommage et vérifier la restauration du primaire, le backup récupérable et le nettoyage du temporaire sur les plateformes CI prises en charge.
-- [ ] Simuler une interruption brutale du processus ou une coupure d'alimentation à chaque jalon durable; la CI ne simule pas une perte d'alimentation réelle.
+- [ ] Étendre la simulation d'interruption à chaque jalon durable et aux plateformes CI. Un test modélise déjà l'arrêt après le déplacement de l'ancien primaire vers le backup, avant l'installation du temporaire : la reprise choisit le backup valide et ne promeut pas le temporaire non validé. Cela ne simule pas une véritable coupure d'alimentation.
 
 ### P1.4 — Première application hôte minimale — 61 %
 
