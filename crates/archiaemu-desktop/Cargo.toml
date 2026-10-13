@@ -1,0 +1,15 @@
+[package]
+name = "archiaemu-desktop"
+version = "0.1.0"
+description = "Experimental native desktop frontend for ArchiaEmu"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+rust-version = "1.78"
+repository = "https://github.com/Likounsee/ArchiaEmu"
+
+[dependencies]
+archiaemu-app = { version = "0.1.0", path = "../archiaemu-app" }
+archiaemu-core = { version = "0.1.0", path = "../archiaemu-core" }
+archiaemu-game-boy = { version = "0.1.0", path = "../archiaemu-game-boy" }
+eframe = { version = "=0.27.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+rfd = "=0.14.1"
