@@ -44,7 +44,11 @@ pub enum ContentLibraryError {
     /// The file is empty and cannot be launched as content.
     Empty(PathBuf),
     /// The file exceeds the host's configured content-size limit.
-    TooLarge { path: PathBuf, max_bytes: u64, actual_bytes: u64 },
+    TooLarge {
+        path: PathBuf,
+        max_bytes: u64,
+        actual_bytes: u64,
+    },
     /// The canonical path is already present in the library.
     AlreadyImported(PathBuf),
     /// No matching entry exists in the library.
@@ -55,15 +59,25 @@ impl fmt::Display for ContentLibraryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(error) => write!(f, "content library filesystem error: {error}"),
-            Self::NotAFile(path) => write!(f, "content path is not a regular file: {}", path.display()),
+            Self::NotAFile(path) => {
+                write!(f, "content path is not a regular file: {}", path.display())
+            }
             Self::Empty(path) => write!(f, "content file is empty: {}", path.display()),
-            Self::TooLarge { path, max_bytes, actual_bytes } => write!(
+            Self::TooLarge {
+                path,
+                max_bytes,
+                actual_bytes,
+            } => write!(
                 f,
                 "content file is too large: {} (maximum {max_bytes} bytes, got {actual_bytes})",
                 path.display()
             ),
-            Self::AlreadyImported(path) => write!(f, "content is already imported: {}", path.display()),
-            Self::NotImported(path) => write!(f, "content is not in the library: {}", path.display()),
+            Self::AlreadyImported(path) => {
+                write!(f, "content is already imported: {}", path.display())
+            }
+            Self::NotImported(path) => {
+                write!(f, "content is not in the library: {}", path.display())
+            }
         }
     }
 }
@@ -145,7 +159,10 @@ impl ContentLibrary {
             size_bytes,
         };
         self.entries.insert(canonical.clone(), entry);
-        Ok(self.entries.get(&canonical).expect("entry was just inserted"))
+        Ok(self
+            .entries
+            .get(&canonical)
+            .expect("entry was just inserted"))
     }
 
     /// Removes an imported file by path; the file must still be present.
