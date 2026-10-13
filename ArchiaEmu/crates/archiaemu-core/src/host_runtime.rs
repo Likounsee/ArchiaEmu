@@ -596,8 +596,15 @@ mod tests {
         host.session_mut(id).unwrap().load_state_envelope(&checkpoint).unwrap();
         assert_eq!(host.session_mut(id).unwrap().save_state().unwrap(), vec![7]);
 
+        // Shutdown must release held controls before the host drops the session.
+        host.session_mut(id).unwrap().release_all_inputs().unwrap();
+        assert!(!host.session(id).unwrap().is_input_pressed(InputControl::Action1));
+        host.session_mut(id).unwrap().stop().unwrap();
+        assert_eq!(host.session(id).unwrap().state(), SessionState::Halted);
+
         let closed = host.close_session(id).unwrap();
-        assert_eq!(closed.state(), SessionState::Running);
+        assert_eq!(closed.state(), SessionState::Halted);
+        assert!(!closed.is_input_pressed(InputControl::Action1));
         assert!(host.is_empty());
         assert!(matches!(host.session(id), Err(HostRuntimeError::UnknownSession(found)) if found == id));
     }
