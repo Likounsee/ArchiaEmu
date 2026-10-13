@@ -38,11 +38,57 @@ struct DesktopApp {
     probe: GameBoyCartridgeProbe,
     content_path: String,
     library_filter: String,
+    library_format: LibraryFormat,
+    library_sort: LibrarySort,
+    selected_content: Option<PathBuf>,
     message: String,
     dark_mode: bool,
     ui_scale: f32,
     config_path: Option<PathBuf>,
     active_page: DesktopPage,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LibraryFormat {
+    All,
+    GameBoy,
+    GameBoyColor,
+}
+
+impl LibraryFormat {
+    fn label(self) -> &'static str {
+        match self {
+            Self::All => "All formats",
+            Self::GameBoy => "Game Boy (.gb)",
+            Self::GameBoyColor => "Game Boy Color (.gbc)",
+        }
+    }
+
+    fn matches(self, path: &Path) -> bool {
+        let extension = path.extension().and_then(|value| value.to_str()).unwrap_or("");
+        match self {
+            Self::All => true,
+            Self::GameBoy => extension.eq_ignore_ascii_case("gb"),
+            Self::GameBoyColor => extension.eq_ignore_ascii_case("gbc"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LibrarySort {
+    Name,
+    Largest,
+    Path,
+}
+
+impl LibrarySort {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Name => "Title (A–Z)",
+            Self::Largest => "Largest first",
+            Self::Path => "File path",
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -104,6 +150,9 @@ impl DesktopApp {
             probe: GameBoyCartridgeProbe,
             content_path: String::new(),
             library_filter: String::new(),
+            library_format: LibraryFormat::All,
+            library_sort: LibrarySort::Name,
+            selected_content: None,
             message,
             dark_mode,
             ui_scale,
@@ -114,12 +163,41 @@ impl DesktopApp {
 
     fn choose_content_file(&mut self) {
         let selected = rfd::FileDialog::new()
-            .add_filter("Game Boy ROM", &["gb", "gbc"])
+            .add_filter("Game Boy ROMs", &["gb", "gbc"])
+            .add_filter("Game Boy ROM", &["gb"])
+            .add_filter("Game Boy Color ROM", &["gbc"])
             .add_filter("All files", &["*"])
-            .pick_file();
-        if let Some(path) = selected {
-            self.content_path = path.display().to_string();
-            self.message = format!("Selected {}.", path.display());
+            .pick_files();
+        if let Some(paths) = selected {
+            if paths.is_empty() {
+                return;
+            }
+            self.content_path = paths[0].display().to_string();
+            let mut imported = 0usize;
+            let mut rejected = 0usize;
+            let mut failures = Vec::new();
+            for path in paths {
+                match self.controller.import_content(&path, MAX_CONTENT_BYTES as u64) {
+                    Ok(_) => imported += 1,
+                    Err(error) => {
+                        rejected += 1;
+                        if failures.len() < 3 {
+                            failures.push(format!("{}: {error}", path.display()));
+                        }
+                    }
+                }
+            }
+            self.selected_content = Some(PathBuf::from(&self.content_path));
+            if imported > 0 {
+                self.save_preferences();
+                self.active_page = DesktopPage::Library;
+            }
+            self.message = if rejected == 0 {
+                format!("Imported {imported} ROM(s) into your library.")
+            } else {
+                let detail = if failures.is_empty() { String::new() } else { format!(" Details: {}", failures.join("; ")) };
+                format!("Imported {imported} ROM(s); {rejected} file(s) skipped or rejected.{detail}")
+            };
         }
     }
 
@@ -129,17 +207,12 @@ impl DesktopApp {
             self.message = "Enter a content path first.".to_owned();
             return;
         }
-        match self
-            .controller
-            .import_content(Path::new(path), MAX_CONTENT_BYTES as u64)
-        {
+        match self.controller.import_content(Path::new(path), MAX_CONTENT_BYTES as u64) {
             Ok(entry) => {
-                self.message = format!(
-                    "Imported '{}' ({} bytes).",
-                    entry.title(),
-                    entry.size_bytes()
-                );
+                self.selected_content = Some(entry.path().to_path_buf());
+                self.message = format!("Imported '{}' ({}).", entry.title(), format_size(entry.size_bytes()));
                 self.save_preferences();
+                self.active_page = DesktopPage::Library;
             }
             Err(error) => self.message = format!("Import failed: {error}"),
         }
@@ -158,7 +231,10 @@ impl DesktopApp {
             &probes,
             &self.registry,
         ) {
-            Ok(id) => self.message = format!("Launched session {}.", id.get()),
+            Ok(id) => {
+                self.message = format!("Launched session {}.", id.get());
+                self.active_page = DesktopPage::Sessions;
+            },
             Err(error) => self.message = format!("Launch failed: {error}"),
         }
     }
@@ -462,106 +538,161 @@ impl DesktopApp {
     }
 
     fn show_library(&mut self, ui: &mut egui::Ui) {
+        let total = self.controller.library().len();
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.heading("Your games");
-                ui.label(format!(
-                    "{} item(s) in your library",
-                    self.controller.library().len()
-                ));
+                ui.label(format!("{total} imported item(s)"));
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("＋ Add content").clicked() {
+                if ui.button("＋ Import ROMs…").clicked() {
                     self.choose_content_file();
                 }
             });
         });
-        ui.horizontal(|ui| {
-            ui.label("Search");
-            ui.add(
-                egui::TextEdit::singleline(&mut self.library_filter)
-                    .hint_text("Filter by title or path…")
-                    .desired_width(320.0),
-            );
-            if ui.button("Clear").clicked() {
-                self.library_filter.clear();
-            }
-        });
+
         ui.add_space(8.0);
+        egui::Frame::group(ui.style()).show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("⌕ Search");
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.library_filter)
+                        .hint_text("Search titles and file paths…")
+                        .desired_width(260.0),
+                );
+                egui::ComboBox::from_id_source("library_format_filter")
+                    .selected_text(self.library_format.label())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.library_format, LibraryFormat::All, "All formats");
+                        ui.selectable_value(&mut self.library_format, LibraryFormat::GameBoy, "Game Boy (.gb)");
+                        ui.selectable_value(&mut self.library_format, LibraryFormat::GameBoyColor, "Game Boy Color (.gbc)");
+                    });
+                egui::ComboBox::from_id_source("library_sort")
+                    .selected_text(self.library_sort.label())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.library_sort, LibrarySort::Name, "Title (A–Z)");
+                        ui.selectable_value(&mut self.library_sort, LibrarySort::Largest, "Largest first");
+                        ui.selectable_value(&mut self.library_sort, LibrarySort::Path, "File path");
+                    });
+                if ui.button("Clear").clicked() {
+                    self.library_filter.clear();
+                    self.library_format = LibraryFormat::All;
+                }
+            });
+        });
+
         let query = self.library_filter.trim().to_lowercase();
-        let entries: Vec<_> = self
-            .controller
-            .library()
-            .entries()
-            .map(|entry| {
-                (
-                    entry.title().to_owned(),
-                    entry.path().to_path_buf(),
-                    entry.size_bytes(),
-                )
-            })
-            .filter(|(title, path, _)| {
-                query.is_empty()
-                    || title.to_lowercase().contains(&query)
-                    || path.display().to_string().to_lowercase().contains(&query)
-            })
-            .collect();
+        let mut entries: Vec<_> = self.controller.library().entries().map(|entry| {
+            (entry.title().to_owned(), entry.path().to_path_buf(), entry.size_bytes())
+        }).filter(|(title, path, _)| {
+            (query.is_empty()
+                || title.to_lowercase().contains(&query)
+                || path.to_string_lossy().to_lowercase().contains(&query))
+                && self.library_format.matches(path)
+        }).collect();
+        match self.library_sort {
+            LibrarySort::Name => entries.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()).then_with(|| a.1.cmp(&b.1))),
+            LibrarySort::Largest => entries.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.0.to_lowercase().cmp(&b.0.to_lowercase()))),
+            LibrarySort::Path => entries.sort_by(|a, b| a.1.cmp(&b.1)),
+        }
+
+        ui.add_space(6.0);
+        ui.horizontal(|ui| {
+            ui.label(format!("Showing {} of {total}", entries.len()));
+            ui.separator();
+            let total_size: u64 = self.controller.library().entries().map(|entry| entry.size_bytes()).sum();
+            ui.label(format!("{} total size", format_size(total_size)));
+        });
+        ui.add_space(6.0);
+
         if entries.is_empty() {
             egui::Frame::group(ui.style()).show(ui, |ui| {
-                ui.heading(if query.is_empty() {
-                    "Nothing here yet"
+                ui.add_space(8.0);
+                ui.heading(if total == 0 {
+                    "Your library is empty"
+                } else if query.is_empty() && self.library_format != LibraryFormat::All {
+                    "No games in this format"
                 } else {
                     "No matching games"
                 });
-                ui.label(if query.is_empty() {
-                    "Import a ROM file to start building your collection."
+                ui.label(if total == 0 {
+                    "Import one or more .gb or .gbc files to build your collection."
                 } else {
-                    "Try a different title or path."
+                    "Try another search, change the format filter, or clear the search."
                 });
-                if query.is_empty() && ui.button("Browse for a game…").clicked() {
+                if total == 0 && ui.button("Browse for ROMs…").clicked() {
                     self.choose_content_file();
                 }
             });
         } else {
-            egui::ScrollArea::vertical().show(ui, |ui| {
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
                 for (title, path, size) in entries {
+                    let selected = self.selected_content.as_ref() == Some(&path);
                     egui::Frame::group(ui.style()).show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.heading("▣");
                             ui.vertical(|ui| {
+                                ui.label(if selected { "▶ SELECTED" } else { "GAME BOY ROM" });
                                 ui.heading(&title);
-                                ui.label(format!("{} bytes", size));
-                                ui.small(path.display().to_string());
+                                let extension = path.extension().and_then(|value| value.to_str()).unwrap_or("unknown").to_ascii_uppercase();
+                                ui.small(format!("{extension} · {} · {}", format_size(size), path.display()));
                             });
-                            ui.with_layout(
-                                egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| {
-                                    if ui.button("Forget").clicked() {
-                                        match self.controller.forget_content(&path) {
-                                            Ok(_) => {
-                                                self.message =
-                                                    format!("Removed {} from library.", title);
-                                                self.save_preferences();
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                if ui.button("Forget").clicked() {
+                                    match self.controller.forget_content(&path) {
+                                        Ok(_) => {
+                                            if self.selected_content.as_ref() == Some(&path) {
+                                                self.selected_content = None;
                                             }
-                                            Err(error) => {
-                                                self.message =
-                                                    format!("Could not forget content: {error}")
-                                            }
+                                            self.message = format!("Removed '{}' from the library.", title);
+                                            self.save_preferences();
                                         }
+                                        Err(error) => self.message = format!("Could not forget content: {error}"),
                                     }
-                                    if ui.button("Launch").clicked() {
-                                        self.content_path = path.display().to_string();
-                                        self.launch_content();
-                                    }
-                                    if ui.button("Use path").clicked() {
-                                        self.content_path = path.display().to_string();
-                                    }
-                                },
-                            );
+                                }
+                                if ui.button("▶ Launch").clicked() {
+                                    self.selected_content = Some(path.clone());
+                                    self.content_path = path.display().to_string();
+                                    self.launch_content();
+                                }
+                                if ui.button("Use path").clicked() {
+                                    self.selected_content = Some(path.clone());
+                                    self.content_path = path.display().to_string();
+                                    self.message = format!("Selected '{}' for launch.", title);
+                                }
+                                if ui.button(if selected { "Selected" } else { "Select" }).clicked() {
+                                    self.selected_content = Some(path.clone());
+                                    self.content_path = path.display().to_string();
+                                }
+                            });
                         });
                     });
                 }
             });
+        }
+
+        if let Some(path) = self.selected_content.clone() {
+            if let Some((title, size)) = self.controller.library().entries()
+                .find(|entry| entry.path() == path)
+                .map(|entry| (entry.title().to_owned(), entry.size_bytes()))
+            {
+                ui.add_space(8.0);
+                egui::Frame::group(ui.style()).show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.vertical(|ui| {
+                            ui.heading("Selected content");
+                            ui.label(&title);
+                            ui.small(path.display().to_string());
+                            ui.small(format!("{} · ready for the shared launch pipeline", format_size(size)));
+                        });
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button("Launch selected").clicked() {
+                                self.content_path = path.display().to_string();
+                                self.launch_content();
+                            }
+                        });
+                    });
+                });
+            }
         }
     }
 
@@ -711,6 +842,18 @@ impl DesktopApp {
                 self.message = "Settings saved.".to_owned();
             }
         });
+    }
+}
+
+fn format_size(bytes: u64) -> String {
+    const KIB: u64 = 1024;
+    const MIB: u64 = KIB * 1024;
+    if bytes >= MIB {
+        format!("{:.2} MiB", bytes as f64 / MIB as f64)
+    } else if bytes >= KIB {
+        format!("{:.1} KiB", bytes as f64 / KIB as f64)
+    } else {
+        format!("{bytes} B")
     }
 }
 
@@ -865,6 +1008,21 @@ fn unescape_config_value(value: &str) -> Option<String> {
 #[cfg(test)]
 mod preference_tests {
     use super::*;
+
+    #[test]
+    fn library_format_filter_is_case_insensitive() {
+        assert!(LibraryFormat::GameBoy.matches(Path::new("Pokemon.GB")));
+        assert!(LibraryFormat::GameBoyColor.matches(Path::new("Pokemon.GbC")));
+        assert!(!LibraryFormat::GameBoy.matches(Path::new("Pokemon.gbc")));
+        assert!(LibraryFormat::All.matches(Path::new("archive.zip")));
+    }
+
+    #[test]
+    fn displayed_file_sizes_use_readable_units() {
+        assert_eq!(format_size(512), "512 B");
+        assert_eq!(format_size(1536), "1.5 KiB");
+        assert_eq!(format_size(2 * 1024 * 1024), "2.00 MiB");
+    }
 
     #[test]
     fn config_path_escaping_round_trips_special_characters() {

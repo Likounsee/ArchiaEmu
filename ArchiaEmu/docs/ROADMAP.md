@@ -180,6 +180,8 @@ Construire l'application utilisateur au-dessus du runtime et des contrats commun
 - [x] Permettre de sélectionner un contenu par chemin ou sélecteur natif, lancer une session via le pipeline commun et afficher les erreurs de validation/lancement. Le sélecteur natif filtre les ROM Game Boy (`.gb`, `.gbc`) et propose aussi tous les fichiers.
 - [x] Gérer plusieurs sessions, la session active, pause/reprise, arrêt/réinitialisation et fermeture propre depuis l'interface.
 - [x] Séparer les premiers paramètres de présentation (thème et échelle UI) du matériel émulé; définir une taille de fenêtre initiale de 1280×820 et une taille minimale de 900×600. Les paramètres avancés d'affichage et les périphériques hôte restent à faire.
+- [x] Compléter la bibliothèque desktop : import multiple par sélecteur natif, résumé des imports rejetés, recherche titre/chemin, filtres .gb/.gbc, tri par titre/taille/chemin, sélection de contenu, tailles lisibles, lancement depuis la bibliothèque et suppression avec désélection cohérente.
+- [x] Ajouter des tests unitaires au frontend pour les filtres d'extension et le formatage des tailles de fichiers.
 - [ ] Tester systématiquement les états vides, les contenus invalides, les erreurs de lancement, les changements de session et la fermeture globale avec des tests frontend dédiés; la CI compile désormais le frontend natif sur Linux, Windows et macOS.
 
 **Sortie attendue :** une application desktop réellement utilisable pour parcourir et lancer les contenus pris en charge; une interface qui n'affiche pas une capacité non implémentée.

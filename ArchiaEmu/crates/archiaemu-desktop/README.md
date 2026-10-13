@@ -1,28 +1,24 @@
-# ArchiaEmu Desktop (experimental)
+# ArchiaEmu Desktop
 
-This is an isolated eframe/egui frontend prototype. It is deliberately excluded from the main Cargo workspace until the native UI dependency stack has been validated on Linux, Windows, and macOS.
+The native desktop frontend is built with eframe/egui and uses the shared application controller rather than implementing a separate content/session pipeline.
+
+## Current experience
+
+- Overview dashboard with library/session/system counts and recent content.
+- Multi-file ROM import through the native file picker, with a summary of imported and rejected files.
+- Game library search by title or path, filters for .gb and .gbc, and sorting by title, size, or path.
+- Per-game selection, readable file sizes, path details, launch, use-path, and remove-from-library actions.
+- Session management, registered-system capability reporting, and persistent appearance preferences.
+- User-facing empty states and import/launch error summaries.
+
+The library accepts files through the shared library validator (regular file, non-empty, bounded size and duplicate protection). Importing a file does **not** certify that the ROM is valid or compatible; the launch pipeline performs format probing and the emulator core remains experimental.
 
 ## Run
 
-From the repository root:
+From the ArchiaEmu/ workspace root:
 
 ```sh
-cargo run --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+cargo run -p archiaemu-desktop
 ```
 
-The first build resolves the standalone prototype's dependency graph and creates its local Cargo lockfile. The main workspace's committed `ArchiaEmu/Cargo.lock` remains untouched.
-
-## Prototype scope
-
-- Navigate dedicated Overview, Game library, Sessions, Systems and Settings screens.
-- See a dashboard with library/session/system counts, a quick-launch panel and recently imported content.
-- Browse for Game Boy and Game Boy Color ROM files with the native file picker, or enter a path manually.
-- Import and forget content paths in the shared library, with case-insensitive title/path filtering and direct launch actions per entry.
-- Persist the imported library paths, theme, and UI scale in a per-user configuration file; missing or stale paths are skipped on startup.
-- Launch content through the shared bounded validation pipeline.
-- Adjust host-only presentation settings (light/dark theme and interface scale).
-- Show registered systems and their declared capabilities.
-- Select, pause, resume, stop, reset, and close sessions.
-- Surface launch failures and retained core diagnostics.
-
-The prototype does not yet render video, play audio, or schedule real-time execution, and the current Game Boy core is not yet playable. Launching a ROM is not a claim of compatibility.
+The native picker supports Game Boy and Game Boy Color extensions (.gb, .gbc) and also offers an all-files filter. Imported paths and appearance settings are stored in the platform user configuration directory.
