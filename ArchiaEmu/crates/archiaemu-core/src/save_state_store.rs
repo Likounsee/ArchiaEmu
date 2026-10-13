@@ -334,7 +334,7 @@ mod tests {
         let _ = fs::remove_file(&path);
         let _ = fs::remove_file(backup_path(&path));
     }
-    
+
     #[test]
     fn load_recovers_after_interruption_between_backup_and_primary_install() {
         let path = temp_path();
@@ -348,10 +348,8 @@ mod tests {
         // backup but before the synced replacement temporary file was installed.
         let backup = backup_path(&path);
         fs::rename(&path, &backup).unwrap();
-        let interrupted_temp = path.with_extension(format!(
-            "tmp-{}-interrupted",
-            std::process::id()
-        ));
+        let interrupted_temp =
+            path.with_extension(format!("tmp-{}-interrupted", std::process::id()));
         fs::write(&interrupted_temp, replacement.encode()).unwrap();
 
         assert_eq!(store.load().unwrap(), original);
@@ -398,20 +396,17 @@ mod tests {
 
             if checkpoint == "primary-backed-up" {
                 fs::rename(&path, &backup).unwrap();
-            } else if checkpoint == "replacement-installed"
-                || checkpoint == "directory-synced"
-            {
+            } else if checkpoint == "replacement-installed" || checkpoint == "directory-synced" {
                 fs::write(&backup, original.encode()).unwrap();
                 fs::write(&path, replacement.encode()).unwrap();
             }
 
-            let expected = if checkpoint == "replacement-installed"
-                || checkpoint == "directory-synced"
-            {
-                &replacement
-            } else {
-                &original
-            };
+            let expected =
+                if checkpoint == "replacement-installed" || checkpoint == "directory-synced" {
+                    &replacement
+                } else {
+                    &original
+                };
             assert_eq!(
                 SaveStateStore::new(&path).load().unwrap(),
                 *expected,
