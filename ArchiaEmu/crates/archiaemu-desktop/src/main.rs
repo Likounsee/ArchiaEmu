@@ -19,9 +19,9 @@ const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 fn main() -> Result<(), Box<dyn Error>> {
     let app = DesktopApp::new()?;
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(1280.0, 820.0)),
-        min_window_size: Some(egui::vec2(900.0, 600.0)),
-        centered: true,
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([1280.0, 820.0])
+            .with_min_inner_size([900.0, 600.0]),
         ..Default::default()
     };
     eframe::run_native(
@@ -235,7 +235,7 @@ impl eframe::App for DesktopApp {
             style.spacing.window_margin = egui::Margin::same(16.0);
             style.visuals.selection.bg_fill = egui::Color32::from_rgb(75, 115, 210);
             style.visuals.selection.stroke =
-                egui::Stroke::new(1.0, egui::Color32::from_rgb(125, 160, 245));
+                egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(125, 160, 245));
             style.visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
             style.visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
             style.visuals.widgets.active.rounding = egui::Rounding::same(6.0);
