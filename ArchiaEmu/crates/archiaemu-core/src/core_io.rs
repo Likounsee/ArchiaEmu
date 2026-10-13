@@ -261,6 +261,100 @@ impl AudioBuffer {
         self.samples.len() / self.channels as usize
     }
 }
+
+/// Errors when constructing a host frame cadence.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CadenceError {
+    /// A zero target rate cannot define a frame interval.
+    ZeroFrameRate,
+    /// A zero catch-up limit would prevent all frames from being emitted.
+    ZeroCatchUpLimit,
+}
+
+impl fmt::Display for CadenceError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ZeroFrameRate => formatter.write_str("frame rate must be greater than zero"),
+            Self::ZeroCatchUpLimit => formatter.write_str("catch-up limit must be greater than zero"),
+        }
+    }
+}
+
+impl std::error::Error for CadenceError {}
+
+/// Result of advancing a deterministic host-side frame cadence.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct CadenceAdvance {
+    /// Frames ready for emulation, capped by the configured catch-up limit.
+    pub due_frames: u32,
+    /// Whole frame intervals discarded to prevent an unbounded catch-up spiral.
+    pub dropped_frames: u64,
+}
+
+/// Fixed-rate cadence accumulator independent from wall-clock acquisition.
+///
+/// The host supplies elapsed time, allowing a frontend to choose its own clock.
+/// Fractional frame time is preserved between calls. A long stall emits at most
+/// the configured catch-up bound and discards excess whole intervals, so a slow
+/// frontend cannot create an ever-growing backlog.
+#[derive(Clone, Debug)]
+pub struct FrameCadence {
+    frame_period: std::time::Duration,
+    max_catch_up_frames: u32,
+    remainder: std::time::Duration,
+}
+
+impl FrameCadence {
+    /// Creates a cadence for the requested frames per second and catch-up bound.
+    ///
+    /// Rates above one billion frames per second are rejected because their
+    /// nanosecond period would round to zero.
+    pub fn new(frames_per_second: u32, max_catch_up_frames: u32) -> Result<Self, CadenceError> {
+        if frames_per_second == 0 {
+            return Err(CadenceError::ZeroFrameRate);
+        }
+        if max_catch_up_frames == 0 {
+            return Err(CadenceError::ZeroCatchUpLimit);
+        }
+        let period_nanos = 1_000_000_000u64 / u64::from(frames_per_second);
+        if period_nanos == 0 {
+            return Err(CadenceError::ZeroFrameRate);
+        }
+        Ok(Self {
+            frame_period: std::time::Duration::from_nanos(period_nanos),
+            max_catch_up_frames,
+            remainder: std::time::Duration::ZERO,
+        })
+    }
+
+    /// Returns the target frame period used by this cadence.
+    pub const fn frame_period(&self) -> std::time::Duration {
+        self.frame_period
+    }
+
+    /// Clears accumulated fractional time, for example when pausing or switching content.
+    pub fn reset(&mut self) {
+        self.remainder = std::time::Duration::ZERO;
+    }
+
+    /// Adds elapsed host time and returns due frames plus any dropped backlog.
+    pub fn advance(&mut self, elapsed: std::time::Duration) -> CadenceAdvance {
+        let total = self.remainder.saturating_add(elapsed);
+        let period_nanos = self.frame_period.as_nanos();
+        let total_nanos = total.as_nanos();
+        let available = total_nanos / period_nanos;
+        let remainder_nanos = total_nanos % period_nanos;
+        self.remainder = std::time::Duration::from_nanos(remainder_nanos as u64);
+
+        let due_frames = available.min(u128::from(self.max_catch_up_frames)) as u32;
+        let dropped_frames = available.saturating_sub(u128::from(due_frames));
+        CadenceAdvance {
+            due_frames,
+            dropped_frames: dropped_frames.min(u128::from(u64::MAX)) as u64,
+        }
+    }
+}
+
 /// Canonical host-side input state shared by all emulation cores.
 ///
 /// It deduplicates repeated transitions and can synthesize releases when the
@@ -391,6 +485,38 @@ mod tests {
                 actual: 7,
             })
         );
+    }
+
+    #[test]
+    fn cadence_preserves_fractional_time_between_advances() {
+        let mut cadence = FrameCadence::new(60, 3).unwrap();
+        assert_eq!(
+            cadence.advance(std::time::Duration::from_millis(10)),
+            CadenceAdvance::default()
+        );
+        assert_eq!(
+            cadence.advance(std::time::Duration::from_millis(7)),
+            CadenceAdvance { due_frames: 1, dropped_frames: 0 }
+        );
+    }
+
+    #[test]
+    fn cadence_bounds_catch_up_after_a_long_host_stall() {
+        let mut cadence = FrameCadence::new(60, 2).unwrap();
+        assert_eq!(
+            cadence.advance(std::time::Duration::from_secs(1)),
+            CadenceAdvance { due_frames: 2, dropped_frames: 58 }
+        );
+        assert_eq!(
+            cadence.advance(std::time::Duration::from_millis(16)),
+            CadenceAdvance::default()
+        );
+    }
+
+    #[test]
+    fn cadence_rejects_zero_rate_and_zero_catch_up_limit() {
+        assert_eq!(FrameCadence::new(0, 1).unwrap_err(), CadenceError::ZeroFrameRate);
+        assert_eq!(FrameCadence::new(60, 0).unwrap_err(), CadenceError::ZeroCatchUpLimit);
     }
 
     #[test]
