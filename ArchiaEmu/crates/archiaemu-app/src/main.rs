@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Content loaded into host session {}.", session_id.get());
     println!("This core is an early implementation, not yet a playable emulator.");
     println!("Commands: status, pause, resume, reset, stop, step, quit");
-    command_loop(&mut host, session_id)
+    command_loop(&mut host, session_id, &probe, &registry)
 }
 
 fn list_systems(registry: &CoreRegistry) {
@@ -105,61 +105,81 @@ fn list_systems(registry: &CoreRegistry) {
     }
 }
 
-fn command_loop(host: &mut HostRuntime, id: SessionId) -> Result<(), Box<dyn Error>> {
+fn command_loop(
+    host: &mut HostRuntime,
+    initial_id: SessionId,
+    probe: &dyn ContentFormatProbe,
+    registry: &CoreRegistry,
+) -> Result<(), Box<dyn Error>> {
     let stdin = io::stdin();
     let mut lines = stdin.lock().lines();
+    let mut active = Some(initial_id);
     loop {
         print!("archiaemu> ");
         io::stdout().flush()?;
         let Some(line) = lines.next() else {
-            host.close_session(id)?;
+            if let Some(id) = active { let _ = host.close_session(id); }
             break;
         };
         let line = line?;
-        match line.trim() {
+        let command = line.trim();
+        if command == "sessions" {
+            for id in host.session_ids() {
+                let session = host.session(id)?;
+                let marker = if active == Some(id) { "*" } else { " " };
+                println!("{marker} {} system={} state={:?}", id.get(), session.descriptor().system_id.as_str(), session.state());
+            }
+            continue;
+        }
+        if let Some(raw) = command.strip_prefix("switch ") {
+            let wanted = raw.trim().parse::<u64>().ok();
+            active = wanted.and_then(|n| host.session_ids().into_iter().find(|id| id.get() == n));
+            if active.is_none() { eprintln!("Unknown or invalid session ID: {}", raw.trim()); }
+            continue;
+        }
+        if let Some(path) = command.strip_prefix("open ") {
+            match host.launch_content_path(PathBuf::from(path.trim()), ContentLimits::new(MAX_CONTENT_BYTES), &[probe], registry) {
+                Ok(id) => { active = Some(id); println!("Opened session {}.", id.get()); }
+                Err(error) => eprintln!("Could not open content: {error}"),
+            }
+            continue;
+        }
+        if command == "close" || command.starts_with("close ") {
+            let target = if let Some(raw) = command.strip_prefix("close ") {
+                raw.trim().parse::<u64>().ok().and_then(|n| host.session_ids().into_iter().find(|id| id.get() == n))
+            } else { active };
+            match target {
+                Some(id) => {
+                    host.close_session(id)?;
+                    if active == Some(id) { active = host.session_ids().into_iter().next(); }
+                    println!("Closed session {}.", id.get());
+                }
+                None => eprintln!("No matching session to close."),
+            }
+            continue;
+        }
+        if command == "quit" || command == "exit" {
+            if let Some(id) = active { let _ = host.close_session(id); }
+            break;
+        }
+        let Some(id) = active else {
+            eprintln!("No active session. Use open <content-path> first.");
+            continue;
+        };
+        match command {
             "status" => {
                 let session = host.session(id)?;
-                println!("session={} state={:?}", id.get(), session.state());
                 let caps = session.descriptor().capabilities;
-                println!(
-                    "capabilities: input={} video={} audio={} save_states={} persistent_saves={}",
-                    caps.input, caps.video_output, caps.audio_output,
-                    caps.save_states, caps.persistent_saves
-                );
+                println!("session={} state={:?}", id.get(), session.state());
+                println!("capabilities: input={} video={} audio={} save_states={} persistent_saves={}", caps.input, caps.video_output, caps.audio_output, caps.save_states, caps.persistent_saves);
             }
-            "pause" => {
-                host.session_mut(id)?.pause()?;
-                println!("Paused.");
-            }
-            "resume" => {
-                host.session_mut(id)?.resume()?;
-                println!("Resumed.");
-            }
-            "reset" => {
-                host.session_mut(id)?.reset()?;
-                println!("Reset requested.");
-            }
-            "stop" => {
-                host.session_mut(id)?.stop()?;
-                println!("Stopped.");
-            }
-            "step" => {
-                let event = host.session_mut(id)?.run_until_event()?;
-                println!("Core event: {event:?}");
-            }
-            "quit" | "exit" => {
-                host.close_session(id)?;
-                println!("Session closed.");
-                break;
-            }
+            "pause" => { host.session_mut(id)?.pause()?; println!("Paused."); }
+            "resume" => { host.session_mut(id)?.resume()?; println!("Resumed."); }
+            "reset" => { host.session_mut(id)?.reset()?; println!("Reset requested."); }
+            "stop" => { host.session_mut(id)?.stop()?; println!("Stopped."); }
+            "step" => { let event = host.session_mut(id)?.run_until_event()?; println!("Core event: {event:?}"); }
             "" => {}
-            command => eprintln!("Unknown command: {command}. Type status, pause, resume, reset, stop, step, or quit."),
-        }
-        if host
-            .session(id)
-            .is_ok_and(|session| session.state() == SessionState::Halted)
-        {
-            println!("The core reported a halted machine.");
+            other => eprintln!("Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], pause, resume, reset, stop, step, or quit."),
         }
     }
     Ok(())
