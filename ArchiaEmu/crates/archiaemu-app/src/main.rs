@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     println!("Content loaded into host session {}.", session_id.get());
     println!("This core is an early implementation, not yet a playable emulator.");
-    println!("Commands: status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
+    println!("Commands: status, sessions, switch <id>, open <path>, close [id|all], input <control> <press|release>, release-inputs, inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
     command_loop(&mut host, session_id, &probe, &registry)
 }
 
@@ -113,9 +113,7 @@ fn command_loop(
         print!("archiaemu> ");
         io::stdout().flush()?;
         let Some(line) = lines.next() else {
-            if let Some(id) = active {
-                let _ = host.close_session(id);
-            }
+            host.close_all_sessions();
             break;
         };
         let line = line?;
@@ -205,6 +203,12 @@ fn command_loop(
             }
             continue;
         }
+        if command == "close all" {
+            let closed = host.close_all_sessions();
+            active = None;
+            println!("Closed {closed} session(s).");
+            continue;
+        }
         if command == "close" || command.starts_with("close ") {
             let target = if let Some(raw) = command.strip_prefix("close ") {
                 raw.trim()
@@ -227,9 +231,8 @@ fn command_loop(
             continue;
         }
         if command == "quit" || command == "exit" {
-            if let Some(id) = active {
-                let _ = host.close_session(id);
-            }
+            host.close_all_sessions();
+            active = None;
             break;
         }
         let Some(id) = active else {
@@ -258,7 +261,7 @@ fn command_loop(
             }
             "" => {}
             other => eprintln!(
-                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, or quit."
+                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id|all], input <control> <press|release>, release-inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, or quit."
             ),
         }
     }
