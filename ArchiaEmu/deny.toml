@@ -1,13 +1,23 @@
 [advisories]
 # Treat known vulnerable dependencies and unmaintained advisories as failures.
 yanked = "deny"
-ignore = []
+# Temporary, narrowly scoped exceptions for the experimental desktop dependency graph.
+# ttf-parser is currently marked unmaintained with no safe upstream upgrade available.
+# webbrowser is pulled transitively by egui-winit; ArchiaEmu does not open external URLs.
+# Revisit both exceptions when the pinned eframe/egui stack is upgraded.
+ignore = [
+    { id = "RUSTSEC-2026-0192", reason = "Transitive epaint font parser; upstream reports no safe upgrade currently available." },
+    { id = "RUSTSEC-2026-0257", reason = "Transitive egui-winit browser helper; the desktop prototype does not invoke URL launching." },
+]
 
 [licenses]
 confidence-threshold = 0.8
 allow = [
     "Apache-2.0",
     "MIT",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
 ]
 # Do not silently accept dependencies whose license could not be identified.
 
