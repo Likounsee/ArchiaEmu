@@ -9,7 +9,10 @@ use std::time::{Duration, Instant};
 
 use archiaemu_app::controller::ApplicationController;
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
-use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent, PixelFormat, VideoFrame};
+use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent, VideoFrame};
+use game_view::{map_key_to_control, video_frame_to_image};
+
+mod game_view;
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::runtime::SessionState;
 use archiaemu_core::CoreRegistry;
@@ -1274,54 +1277,6 @@ impl DesktopApp {
     }
 }
 
-fn map_key_to_control(key: egui::Key) -> Option<InputControl> {
-    match key {
-        egui::Key::ArrowUp => Some(InputControl::Up),
-        egui::Key::ArrowDown => Some(InputControl::Down),
-        egui::Key::ArrowLeft => Some(InputControl::Left),
-        egui::Key::ArrowRight => Some(InputControl::Right),
-        egui::Key::Z => Some(InputControl::Action1),
-        egui::Key::X => Some(InputControl::Action2),
-        egui::Key::A => Some(InputControl::Action3),
-        egui::Key::S => Some(InputControl::Action4),
-        egui::Key::Enter => Some(InputControl::Start),
-        egui::Key::Backspace => Some(InputControl::Select),
-        _ => None,
-    }
-}
-
-fn video_frame_to_image(frame: &VideoFrame) -> Result<egui::ColorImage, String> {
-    if frame.width() == 0 || frame.height() == 0 {
-        return Err("Video frame dimensions must be non-zero.".to_owned());
-    }
-    if frame.format() != PixelFormat::Rgba8888 {
-        return Err("Unsupported video pixel format.".to_owned());
-    }
-    let width = usize::try_from(frame.width()).map_err(|_| "Video width is too large.")?;
-    let height = usize::try_from(frame.height()).map_err(|_| "Video height is too large.")?;
-    let packed_row = width.checked_mul(4).ok_or("Video row size overflow.")?;
-    let expected = packed_row
-        .checked_mul(height)
-        .ok_or("Video frame size overflow.")?;
-    if expected > 64 * 1024 * 1024 {
-        return Err("Video frame exceeds the 64 MiB desktop upload limit.".to_owned());
-    }
-    let mut packed = Vec::with_capacity(expected);
-    for row in frame.pixels().chunks(frame.row_stride_bytes()).take(height) {
-        if row.len() < packed_row {
-            return Err("Video frame contains a truncated row.".to_owned());
-        }
-        packed.extend_from_slice(&row[..packed_row]);
-    }
-    if packed.len() != expected {
-        return Err("Video frame row count does not match its dimensions.".to_owned());
-    }
-    Ok(egui::ColorImage::from_rgba_unmultiplied(
-        [width, height],
-        &packed,
-    ))
-}
-
 fn format_size(bytes: u64) -> String {
     const KIB: u64 = 1024;
     const MIB: u64 = KIB * 1024;
@@ -1485,56 +1440,6 @@ fn unescape_config_value(value: &str) -> Option<String> {
 #[cfg(test)]
 mod preference_tests {
     use super::*;
-
-    #[test]
-    fn keyboard_mapping_covers_directions_actions_and_menu_controls() {
-        assert_eq!(
-            map_key_to_control(egui::Key::ArrowUp),
-            Some(InputControl::Up)
-        );
-        assert_eq!(
-            map_key_to_control(egui::Key::Z),
-            Some(InputControl::Action1)
-        );
-        assert_eq!(
-            map_key_to_control(egui::Key::Enter),
-            Some(InputControl::Start)
-        );
-        assert_eq!(
-            map_key_to_control(egui::Key::Backspace),
-            Some(InputControl::Select)
-        );
-        assert_eq!(map_key_to_control(egui::Key::Escape), None);
-    }
-
-    #[test]
-    fn video_conversion_removes_stride_padding_without_blurring_rgba_pixels() {
-        let frame = VideoFrame::with_stride(
-            1,
-            2,
-            PixelFormat::Rgba8888,
-            8,
-            vec![255, 0, 0, 255, 99, 99, 99, 99, 0, 255, 0, 255, 88, 88, 88, 88],
-        ).unwrap();
-        let image = video_frame_to_image(&frame).unwrap();
-        assert_eq!(image.size, [1, 2]);
-        assert_eq!(image.pixels.len(), 2);
-        assert_eq!(image.pixels[0], egui::Color32::from_rgba_unmultiplied(255, 0, 0, 255));
-        assert_eq!(image.pixels[1], egui::Color32::from_rgba_unmultiplied(0, 255, 0, 255));
-    }
-
-    #[test]
-    fn video_conversion_rejects_frames_over_upload_limit_before_copying() {
-        let width = 4096u32;
-        let height = 4097u32;
-        let frame = VideoFrame::new(
-            width,
-            height,
-            PixelFormat::Rgba8888,
-            vec![0; (width as usize) * (height as usize) * 4],
-        ).unwrap();
-        assert!(video_frame_to_image(&frame).unwrap_err().contains("64 MiB"));
-    }
 
     #[test]
     fn library_format_filter_is_case_insensitive() {
