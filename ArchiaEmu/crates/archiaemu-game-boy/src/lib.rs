@@ -771,7 +771,10 @@ mod tests {
 
         let id = archiaemu_core::SystemId::new(SYSTEM_ID).unwrap();
         assert!(registry.contains(id));
-        assert_eq!(registry.registered_descriptor(id), Some(game_boy_core_descriptor()));
+        assert_eq!(
+            registry.registered_descriptor(id),
+            Some(game_boy_core_descriptor())
+        );
         assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-dmg").unwrap()));
         assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-color").unwrap()));
         let core = registry.create(id).unwrap();
