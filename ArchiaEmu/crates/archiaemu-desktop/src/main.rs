@@ -56,7 +56,10 @@ impl DesktopApp {
                     ui_scale = saved.ui_scale.clamp(0.8, 1.4);
                     let mut restored = 0usize;
                     for content_path in saved.paths {
-                        if controller.import_content(&content_path, MAX_CONTENT_BYTES as u64).is_ok() {
+                        if controller
+                            .import_content(&content_path, MAX_CONTENT_BYTES as u64)
+                            .is_ok()
+                        {
                             restored += 1;
                         }
                     }
@@ -136,7 +139,10 @@ impl DesktopApp {
         let Some(path) = self.config_path.as_deref() else {
             return;
         };
-        let paths: Vec<PathBuf> = self.controller.library().entries()
+        let paths: Vec<PathBuf> = self
+            .controller
+            .library()
+            .entries()
             .map(|entry| entry.path().to_path_buf())
             .collect();
         if let Err(error) = write_preferences(path, self.dark_mode, self.ui_scale, &paths) {
@@ -376,7 +382,9 @@ impl eframe::App for DesktopApp {
             ui.label(&self.message);
         });
 
-        if self.dark_mode != previous_dark_mode || (self.ui_scale - previous_ui_scale).abs() > f32::EPSILON {
+        if self.dark_mode != previous_dark_mode
+            || (self.ui_scale - previous_ui_scale).abs() > f32::EPSILON
+        {
             self.save_preferences();
         }
     }
@@ -392,7 +400,8 @@ fn config_file_path() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     let base = std::env::var_os("APPDATA").map(PathBuf::from);
     #[cfg(target_os = "macos")]
-    let base = std::env::var_os("HOME").map(|home| PathBuf::from(home).join("Library/Application Support"));
+    let base = std::env::var_os("HOME")
+        .map(|home| PathBuf::from(home).join("Library/Application Support"));
     #[cfg(all(unix, not(target_os = "macos")))]
     let base = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
@@ -424,13 +433,25 @@ fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
             }
         }
     }
-    Ok(Some(SavedPreferences { dark_mode, ui_scale, paths }))
+    Ok(Some(SavedPreferences {
+        dark_mode,
+        ui_scale,
+        paths,
+    }))
 }
 
-fn write_preferences(path: &Path, dark_mode: bool, ui_scale: f32, paths: &[PathBuf]) -> std::io::Result<()> {
-    let parent = path.parent().ok_or_else(|| std::io::Error::new(
-        std::io::ErrorKind::InvalidInput, "configuration path has no parent directory"
-    ))?;
+fn write_preferences(
+    path: &Path,
+    dark_mode: bool,
+    ui_scale: f32,
+    paths: &[PathBuf],
+) -> std::io::Result<()> {
+    let parent = path.parent().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "configuration path has no parent directory",
+        )
+    })?;
     fs::create_dir_all(parent)?;
     let mut contents = format!("version=1\ndark={dark_mode}\nscale={ui_scale:.3}\n");
     for path in paths {
@@ -484,7 +505,10 @@ mod preference_tests {
     #[test]
     fn config_path_escaping_round_trips_special_characters() {
         let value = "C:\\Games\\my\nrom\r.gb";
-        assert_eq!(unescape_config_value(&escape_config_value(value)), Some(value.to_owned()));
+        assert_eq!(
+            unescape_config_value(&escape_config_value(value)),
+            Some(value.to_owned())
+        );
     }
 
     #[test]
