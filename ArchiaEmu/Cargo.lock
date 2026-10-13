@@ -12,3 +12,7 @@ version = "0.1.0"
 dependencies = [
  "archiaemu-core",
 ]
+
+[[package]]
+name = "archiaemu-windows-durability"
+version = "0.1.0"

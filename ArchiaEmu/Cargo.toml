@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/archiaemu-core",
     "crates/archiaemu-game-boy",
+    "crates/archiaemu-windows-durability",
 ]
 
 [workspace.package]
