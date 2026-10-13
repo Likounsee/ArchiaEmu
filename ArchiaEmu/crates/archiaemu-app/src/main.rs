@@ -280,7 +280,9 @@ fn parse_event_budget(raw: &str) -> Result<usize, String> {
         .parse::<usize>()
         .map_err(|_| "expected a positive event budget (1..=10000)".to_owned())?;
     if budget == 0 || budget > MAX_RUN_EVENT_BUDGET {
-        return Err(format!("event budget must be between 1 and {MAX_RUN_EVENT_BUDGET}"));
+        return Err(format!(
+            "event budget must be between 1 and {MAX_RUN_EVENT_BUDGET}"
+        ));
     }
     Ok(budget)
 }
@@ -299,7 +301,10 @@ fn run_session_events(
         .map_err(|error| error.to_string())?;
     Ok(format!(
         "session={} processed={} last_event={:?} budget_exhausted={}",
-        id.get(), report.events_processed, report.last_event, report.budget_exhausted
+        id.get(),
+        report.events_processed,
+        report.last_event,
+        report.budget_exhausted
     ))
 }
 
@@ -328,7 +333,9 @@ fn apply_input_command(
     let control_name = parts
         .next()
         .ok_or_else(|| "expected input <control> <press|release>".to_owned())?;
-    let action = parts.next().ok_or_else(|| "expected input <control> <press|release>".to_owned())?;
+    let action = parts
+        .next()
+        .ok_or_else(|| "expected input <control> <press|release>".to_owned())?;
     if parts.next().is_some() {
         return Err("expected exactly two arguments: <control> <press|release>".to_owned());
     }
@@ -337,7 +344,11 @@ fn apply_input_command(
     let pressed = match action {
         "press" => true,
         "release" => false,
-        _ => return Err(format!("unknown input action '{action}'; use press or release")),
+        _ => {
+            return Err(format!(
+                "unknown input action '{action}'; use press or release"
+            ))
+        }
     };
     let id = active.ok_or_else(|| "no active session".to_owned())?;
     host.session_mut(id)
@@ -347,10 +358,7 @@ fn apply_input_command(
     Ok(format!("{} {}.", control_name, action))
 }
 
-fn release_session_inputs(
-    host: &mut HostRuntime,
-    active: Option<SessionId>,
-) -> Result<(), String> {
+fn release_session_inputs(host: &mut HostRuntime, active: Option<SessionId>) -> Result<(), String> {
     let id = active.ok_or_else(|| "no active session".to_owned())?;
     host.session_mut(id)
         .map_err(|error| error.to_string())?
@@ -358,10 +366,7 @@ fn release_session_inputs(
         .map_err(|error| error.to_string())
 }
 
-fn inspect_inputs(
-    host: &mut HostRuntime,
-    active: Option<SessionId>,
-) -> Result<String, String> {
+fn inspect_inputs(host: &mut HostRuntime, active: Option<SessionId>) -> Result<String, String> {
     let id = active.ok_or_else(|| "no active session".to_owned())?;
     let session = host.session(id).map_err(|error| error.to_string())?;
     if !session.descriptor().capabilities.input {
@@ -379,17 +384,17 @@ fn inspect_inputs(
     Ok(format!("held inputs: {names}"))
 }
 
-fn inspect_media(
-    host: &mut HostRuntime,
-    active: Option<SessionId>,
-) -> Result<String, String> {
+fn inspect_media(host: &mut HostRuntime, active: Option<SessionId>) -> Result<String, String> {
     let id = active.ok_or_else(|| "no active session".to_owned())?;
     let session = host.session_mut(id).map_err(|error| error.to_string())?;
     let capabilities = session.descriptor().capabilities;
     let mut report = Vec::with_capacity(2);
 
     if capabilities.video_output {
-        match session.take_video_frame().map_err(|error| error.to_string())? {
+        match session
+            .take_video_frame()
+            .map_err(|error| error.to_string())?
+        {
             Some(frame) => report.push(format!(
                 "video: {}x{} {:?}, stride={} bytes, payload={} bytes",
                 frame.width(),
@@ -405,10 +410,15 @@ fn inspect_media(
     }
 
     if capabilities.audio_output {
-        match session.take_audio_buffer().map_err(|error| error.to_string())? {
+        match session
+            .take_audio_buffer()
+            .map_err(|error| error.to_string())?
+        {
             Some(buffer) => report.push(format!(
                 "audio: {} Hz, {} channel(s), {} sample frame(s)",
-                buffer.sample_rate(), buffer.channels(), buffer.frame_count()
+                buffer.sample_rate(),
+                buffer.channels(),
+                buffer.frame_count()
             )),
             None => report.push("audio: no buffer ready".to_owned()),
         }
@@ -499,7 +509,9 @@ fn print_usage() {
     println!("Interactive input: input <up|down|left|right|action1|action2|action3|action4|start|select> <press|release>");
     println!("                  release-inputs releases all held controls.");
     println!("                  media polls one video frame/audio buffer and reports metadata.");
-    println!("                  run <events> runs a bounded number of core event calls (1..=10000).");
+    println!(
+        "                  run <events> runs a bounded number of core event calls (1..=10000)."
+    );
 }
 
 fn validate_system_selection(
@@ -579,7 +591,10 @@ mod tests {
     #[test]
     fn input_inspection_reports_unsupported_capability_and_missing_session() {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
-        assert_eq!(inspect_inputs(&mut host, None).unwrap_err(), "no active session");
+        assert_eq!(
+            inspect_inputs(&mut host, None).unwrap_err(),
+            "no active session"
+        );
 
         let id = host
             .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
@@ -615,7 +630,10 @@ mod tests {
     #[test]
     fn media_inspection_requires_an_active_session() {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
-        assert_eq!(inspect_media(&mut host, None).unwrap_err(), "no active session");
+        assert_eq!(
+            inspect_media(&mut host, None).unwrap_err(),
+            "no active session"
+        );
     }
 
     #[test]
