@@ -594,7 +594,11 @@ mod tests {
     #[test]
     fn launch_options_accept_session_limit_and_system_selection_in_either_order() {
         let first = parse_launch_options(&args(&[
-            "--max-sessions", "8", "--system", "game-boy", "game.rom",
+            "--max-sessions",
+            "8",
+            "--system",
+            "game-boy",
+            "game.rom",
         ]))
         .unwrap();
         assert_eq!(
@@ -607,7 +611,11 @@ mod tests {
         );
 
         let second = parse_launch_options(&args(&[
-            "game.rom", "--system", "game-boy", "--max-sessions", "2",
+            "game.rom",
+            "--system",
+            "game-boy",
+            "--max-sessions",
+            "2",
         ]))
         .unwrap();
         assert_eq!(second.max_sessions, 2);
