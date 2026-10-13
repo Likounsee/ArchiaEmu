@@ -924,7 +924,7 @@ mod execution_tests {
         cpu.registers.sp = 0x00FF;
         cpu.registers.c = 0x80;
         let mut bus = TestBus::with_program(&[
-            0xE0, 0x42, 0xF0, 0x42, 0xE2, 0xF2, 0xF8, 0x01,
+            0xE0, 0x42, 0xF0, 0x42, 0xE2, 0xF2, 0xF8, 0x01, 0xE8, 0xFE,
         ]);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
         assert_eq!(bus.0[0xFF42], 0x5A);
@@ -942,6 +942,10 @@ mod execution_tests {
         assert!(cpu.registers.flag(flags::CARRY));
         assert!(!cpu.registers.flag(flags::ZERO));
         assert!(!cpu.registers.flag(flags::SUBTRACT));
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(cpu.registers.sp, 0x00FD);
+        assert!(cpu.registers.flag(flags::HALF_CARRY));
+        assert!(cpu.registers.flag(flags::CARRY));
     }
 
     #[test]
@@ -958,7 +962,7 @@ mod execution_tests {
         assert_eq!(cpu.registers.f(), 0);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
         assert_eq!(cpu.registers.a, 0x01);
-        assert_eq!(cpu.registers.f(), 0);
+        assert_eq!(cpu.registers.f(), flags::CARRY);
     }
 
     #[test]
