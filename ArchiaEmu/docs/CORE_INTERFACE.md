@@ -62,6 +62,9 @@ These contracts do not implement a host input mapper, renderer, audio device bac
 - Invalid pause/resume/reset transitions return `SessionError::InvalidTransition` and do not change the lifecycle state. A core error is propagated as `SessionError::Core`; the session state is only committed after successful load/reset, and a run error leaves the session state unchanged.
 - Successful content loading enters `Running`. A failed load leaves the session state unchanged.
 - `pause` and `resume` only accept their corresponding source states.
+- `send_input` deduplicates repeated press/release transitions in the session before forwarding them to the core. The session's held-control view changes only after the core accepts a transition; a rejected transition leaves the prior host-side state intact.
+- `release_all_inputs` releases held controls in the canonical control order. If a core rejects a release, already released controls stay released and the failed control remains marked as held so the host can retry. This is intended for focus loss and controller disconnection.
+- Input transitions are accepted while `Running` or `Paused`. A pause does not implicitly release controls, allowing a frontend to reconcile input before resuming.
 - A `Halted` event moves the session to `Halted`; execution and input are then rejected until reset succeeds.
 - Reset requires loaded content and returns the session to `Running` only after the core reset succeeds.
 - Semantic input may be sent while running or paused. Media can be retrieved while loaded, including while paused or halted.
