@@ -418,8 +418,17 @@ fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
     let mut dark_mode = true;
     let mut ui_scale = 1.0f32;
     let mut paths = Vec::new();
+    let mut version_seen = false;
     for line in contents.lines() {
-        if let Some(value) = line.strip_prefix("dark=") {
+        if let Some(value) = line.strip_prefix("version=") {
+            if value != "1" {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("unsupported preferences version: {value}"),
+                ));
+            }
+            version_seen = true;
+        } else if let Some(value) = line.strip_prefix("dark=") {
             dark_mode = value == "true";
         } else if let Some(value) = line.strip_prefix("scale=") {
             if let Ok(parsed) = value.parse::<f32>() {
@@ -433,6 +442,8 @@ fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
             }
         }
     }
+    // Files created before versioning was introduced remain readable as v1.
+    let _ = version_seen;
     Ok(Some(SavedPreferences {
         dark_mode,
         ui_scale,
@@ -584,6 +595,21 @@ mod preference_tests {
         let loaded = load_preferences(&file).unwrap().unwrap();
         assert!(!loaded.dark_mode);
         assert_eq!(loaded.ui_scale, 1.0);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn unsupported_preferences_version_is_rejected() {
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-prefs-version-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let file = root.join("desktop.conf");
+        fs::write(&file, "version=99\\ndark=false\\n").unwrap();
+
+        let error = load_preferences(&file).unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
         fs::remove_dir_all(root).unwrap();
     }
 }

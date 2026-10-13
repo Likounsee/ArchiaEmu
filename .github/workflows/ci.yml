@@ -50,6 +50,8 @@ jobs:
         run: cargo fmt --manifest-path crates/archiaemu-desktop/Cargo.toml -- --check
       - name: Compile desktop prototype
         run: cargo check --manifest-path crates/archiaemu-desktop/Cargo.toml --all-targets
+      - name: Test desktop prototype
+        run: cargo test --manifest-path crates/archiaemu-desktop/Cargo.toml --all-targets
       - name: Check desktop package contents
         run: cargo package --manifest-path crates/archiaemu-desktop/Cargo.toml --list --allow-dirty
       - name: Run Clippy (Linux)
