@@ -275,7 +275,9 @@ impl fmt::Display for CadenceError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ZeroFrameRate => formatter.write_str("frame rate must be greater than zero"),
-            Self::ZeroCatchUpLimit => formatter.write_str("catch-up limit must be greater than zero"),
+            Self::ZeroCatchUpLimit => {
+                formatter.write_str("catch-up limit must be greater than zero")
+            }
         }
     }
 }
@@ -496,7 +498,10 @@ mod tests {
         );
         assert_eq!(
             cadence.advance(std::time::Duration::from_millis(7)),
-            CadenceAdvance { due_frames: 1, dropped_frames: 0 }
+            CadenceAdvance {
+                due_frames: 1,
+                dropped_frames: 0
+            }
         );
     }
 
@@ -505,7 +510,10 @@ mod tests {
         let mut cadence = FrameCadence::new(60, 2).unwrap();
         assert_eq!(
             cadence.advance(std::time::Duration::from_secs(1)),
-            CadenceAdvance { due_frames: 2, dropped_frames: 58 }
+            CadenceAdvance {
+                due_frames: 2,
+                dropped_frames: 58
+            }
         );
         assert_eq!(
             cadence.advance(std::time::Duration::from_millis(16)),
@@ -515,8 +523,14 @@ mod tests {
 
     #[test]
     fn cadence_rejects_zero_rate_and_zero_catch_up_limit() {
-        assert_eq!(FrameCadence::new(0, 1).unwrap_err(), CadenceError::ZeroFrameRate);
-        assert_eq!(FrameCadence::new(60, 0).unwrap_err(), CadenceError::ZeroCatchUpLimit);
+        assert_eq!(
+            FrameCadence::new(0, 1).unwrap_err(),
+            CadenceError::ZeroFrameRate
+        );
+        assert_eq!(
+            FrameCadence::new(60, 0).unwrap_err(),
+            CadenceError::ZeroCatchUpLimit
+        );
     }
 
     #[test]

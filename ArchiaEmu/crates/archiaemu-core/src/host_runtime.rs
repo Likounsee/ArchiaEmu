@@ -58,15 +58,11 @@ pub enum HostRuntimeError {
 impl fmt::Display for HostRuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidConfiguration => {
-                f.write_str("max_sessions must be greater than zero")
-            }
+            Self::InvalidConfiguration => f.write_str("max_sessions must be greater than zero"),
             Self::SessionLimitReached { limit } => {
                 write!(f, "host session limit reached ({limit})")
             }
-            Self::SessionIdExhausted => {
-                f.write_str("host session identifier space exhausted")
-            }
+            Self::SessionIdExhausted => f.write_str("host session identifier space exhausted"),
             Self::UnknownSession(id) => write!(f, "unknown host session {}", id.get()),
             Self::Launch(error) => fmt::Display::fmt(error, f),
         }
@@ -194,10 +190,7 @@ impl HostRuntime {
     /// Closes a session and releases the host's ownership of its core.
     ///
     /// Closing does not reuse its ID. Returns an error when the ID is unknown.
-    pub fn close_session(
-        &mut self,
-        id: SessionId,
-    ) -> Result<EmulationSession, HostRuntimeError> {
+    pub fn close_session(&mut self, id: SessionId) -> Result<EmulationSession, HostRuntimeError> {
         self.sessions
             .remove(&id)
             .ok_or(HostRuntimeError::UnknownSession(id))
@@ -278,12 +271,7 @@ mod tests {
     fn failed_content_launch_does_not_register_a_partial_session() {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
         let registry = CoreRegistry::new();
-        let result = host.launch_content(
-            &[],
-            ContentLimits::new(1024),
-            &[],
-            &registry,
-        );
+        let result = host.launch_content(&[], ContentLimits::new(1024), &[], &registry);
 
         assert!(matches!(
             result,
