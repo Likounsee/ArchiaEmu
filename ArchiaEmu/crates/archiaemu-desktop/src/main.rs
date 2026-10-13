@@ -48,6 +48,17 @@ impl DesktopApp {
         })
     }
 
+    fn choose_content_file(&mut self) {
+        let selected = rfd::FileDialog::new()
+            .add_filter("Game Boy ROM", &["gb", "gbc"])
+            .add_filter("All files", &["*"])
+            .pick_file();
+        if let Some(path) = selected {
+            self.content_path = path.display().to_string();
+            self.message = format!("Selected {}.", path.display());
+        }
+    }
+
     fn import_content(&mut self) {
         let path = self.content_path.trim();
         if path.is_empty() {
@@ -142,6 +153,9 @@ impl eframe::App for DesktopApp {
             ui.horizontal(|ui| {
                 ui.label("Path");
                 ui.text_edit_singleline(&mut self.content_path);
+                if ui.button("Browse…").clicked() {
+                    self.choose_content_file();
+                }
                 if ui.button("Import").clicked() {
                     self.import_content();
                 }

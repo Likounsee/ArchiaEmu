@@ -14,10 +14,11 @@ The first build resolves the standalone prototype's dependency graph and creates
 
 ## Prototype scope
 
+- Browse for Game Boy ROM files with the native file picker, or enter a path manually.
 - Import and forget content paths in the shared in-memory library.
 - Launch content through the shared bounded validation pipeline.
 - Show registered systems and their declared capabilities.
 - Select, pause, resume, stop, reset, and close sessions.
 - Surface launch failures and retained core diagnostics.
 
-The prototype does not yet render video, play audio, schedule real-time execution, provide a native file picker, or make the current Game Boy core playable. Launching a ROM is not a claim of compatibility.
+The prototype does not yet render video, play audio, schedule real-time execution, make the current Game Boy core playable. Launching a ROM is not a claim of compatibility.
