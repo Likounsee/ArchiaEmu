@@ -346,4 +346,24 @@ mod tests {
         assert!(validate_system_selection(&registry, "unknown-system", "unknown-system").is_err());
         assert!(validate_system_selection(&registry, "game-boy", "another-format").is_err());
     }
+
+    #[test]
+    fn save_state_commands_report_unsupported_capability_before_file_access() {
+        let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
+        let id = host
+            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .unwrap();
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-unsupported-state-{}.bin",
+            std::process::id()
+        ));
+        let path_text = path.to_string_lossy();
+
+        let save_error = save_state_to_path(&mut host, Some(id), &path_text).unwrap_err();
+        let load_error = load_state_from_path(&mut host, Some(id), &path_text).unwrap_err();
+
+        assert!(save_error.contains("does not support emulator save states"));
+        assert!(load_error.contains("does not support emulator save states"));
+        assert!(!path.exists());
+    }
 }
