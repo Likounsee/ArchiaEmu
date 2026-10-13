@@ -807,7 +807,10 @@ mod tests {
         assert_eq!(core.descriptor().display_name, "Game Boy / Game Boy Color");
         assert_eq!(
             core.descriptor().capabilities,
-            archiaemu_core::CoreCapabilities::default()
+            archiaemu_core::CoreCapabilities {
+                content_loading: true,
+                ..archiaemu_core::CoreCapabilities::default()
+            }
         );
     }
 
