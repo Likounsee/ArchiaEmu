@@ -11,7 +11,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Fiabilité du runtime commun | 100 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 100 % | Pipeline commun borné, validation de tous les formats actuellement enregistrés et contrat d'intégration hôte |
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
-| **P1** | Orchestration multi-sessions | 25 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
+| **P1** | Orchestration multi-sessions | 35 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 25 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 20 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
 | **P1** | Frontend minimal du framework | 0 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
@@ -106,12 +106,14 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 ## P1 — construire le chemin complet de lancement
 
-### P1.1 — Orchestrateur et multi-sessions
-- [ ] Créer une couche hôte qui relie catalogue, registre, chargement de contenu et sessions.
-- [ ] Distinguer identifiant de session, système sélectionné et identité du contenu.
-- [ ] Permettre la création et la fermeture de plusieurs sessions indépendantes.
-- [ ] Définir les limites de ressources et la politique de concurrence avant tout parallélisme.
-- [ ] Ajouter des tests d'isolation, d'échec de lancement et de fermeture répétée.
+### P1.1 — Orchestrateur et multi-sessions — 45 %
+- [x] Ajouter un gestionnaire hôte reliant le registre, le pipeline de chargement et les sessions.
+- [x] Distinguer l'identifiant hôte de session de l'identifiant de système; les IDs sont monotones et jamais réutilisés.
+- [x] Permettre la création, l'accès et la fermeture de plusieurs sessions indépendantes.
+- [x] Définir une limite de sessions configurable et imposer la sérialisation des mutations via l'accès exclusif `&mut`; aucun parallélisme implicite.
+- [ ] Ajouter des tests d'intégration du lancement, d'échec de lancement sans session fantôme et de fermeture répétée.
+
+L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtime.rs`; l'identité de contenu persistante et le catalogue hôte restent à intégrer.
 
 ### P1.2 — Entrées, vidéo, audio et cadence
 - [ ] Stabiliser des contrats d'entrée génériques, y compris la perte de focus et la libération de toutes les commandes.
