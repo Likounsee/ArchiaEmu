@@ -507,6 +507,17 @@ impl EmulationSession {
         self.input_state.is_pressed(control)
     }
 
+    /// Returns all currently held semantic controls in canonical control order.
+    ///
+    /// This is a host-side view of successfully delivered input transitions. It
+    /// is useful for debugging stuck controls and reconciling frontend state.
+    pub fn pressed_inputs(&self) -> Vec<InputControl> {
+        InputControl::ALL
+            .into_iter()
+            .filter(|control| self.input_state.is_pressed(*control))
+            .collect()
+    }
+
     /// Retrieves the next video frame from a loaded session, if one is waiting.
     pub fn take_video_frame(&mut self) -> Result<Option<VideoFrame>, SessionError> {
         self.require_loaded("retrieve video")?;
