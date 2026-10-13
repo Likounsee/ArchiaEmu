@@ -552,6 +552,7 @@ fn print_usage() {
     println!("  archiaemu --list-systems");
     println!("  archiaemu <content-path>");
     println!("  archiaemu --system <system-id> <content-path>");
+    println!("  archiaemu [--system <system-id>] [--max-sessions <count>] <content-path>");
     println!("  archiaemu --help");
     println!("Interactive input: input <up|down|left|right|action1|action2|action3|action4|start|select> <press|release>");
     println!("                  release-inputs releases all held controls.");
