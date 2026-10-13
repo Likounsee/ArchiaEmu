@@ -3449,6 +3449,32 @@ mod save_state_session_tests {
     }
 
     #[test]
+    fn rejected_state_preserves_machine_and_running_lifecycle() {
+        let mut session = EmulationSession::new(Box::new(StateCore { state: Vec::new() }));
+        session.load_content(&[7, 8]).unwrap();
+
+        assert_eq!(
+            session.load_state(&[]),
+            Err(SessionError::Core(CoreError::InvalidState("empty test state")))
+        );
+        assert_eq!(session.save_state().unwrap(), &[7, 8]);
+        assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
+    fn rejected_state_preserves_machine_and_paused_lifecycle() {
+        let mut session = EmulationSession::new(Box::new(StateCore { state: Vec::new() }));
+        session.load_content(&[7, 8]).unwrap();
+        session.pause().unwrap();
+
+        assert_eq!(
+            session.load_state(&[]),
+            Err(SessionError::Core(CoreError::InvalidState("empty test state")))
+        );
+        assert_eq!(session.save_state().unwrap(), &[7, 8]);
+        assert_eq!(session.state(), SessionState::Paused);
+    }
+    #[test]
     fn incompatible_envelope_is_rejected_before_core_restore() {
         let mut session = EmulationSession::new(Box::new(StateCore { state: Vec::new() }));
         session.load_content(&[7, 8]).unwrap();
