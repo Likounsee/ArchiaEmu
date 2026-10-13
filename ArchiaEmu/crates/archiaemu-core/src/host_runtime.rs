@@ -473,7 +473,9 @@ mod tests {
                 return Err(CoreError::InvalidContent("invalid P1 flow test image"));
             }
             if content == b"TEST-REJECT" {
-                return Err(CoreError::InvalidContent("deliberately rejected P1 test image"));
+                return Err(CoreError::InvalidContent(
+                    "deliberately rejected P1 test image",
+                ));
             }
             self.ticks = 7;
             Ok(())
@@ -505,9 +507,7 @@ mod tests {
             Ok(())
         }
 
-        fn take_video_frame(
-            &mut self,
-        ) -> Result<Option<crate::core_io::VideoFrame>, CoreError> {
+        fn take_video_frame(&mut self) -> Result<Option<crate::core_io::VideoFrame>, CoreError> {
             let frame = crate::core_io::VideoFrame::new(
                 1,
                 1,
@@ -518,9 +518,7 @@ mod tests {
             Ok(Some(frame))
         }
 
-        fn take_audio_buffer(
-            &mut self,
-        ) -> Result<Option<crate::core_io::AudioBuffer>, CoreError> {
+        fn take_audio_buffer(&mut self) -> Result<Option<crate::core_io::AudioBuffer>, CoreError> {
             let audio = crate::core_io::AudioBuffer::new(48_000, 2, vec![100, -100])
                 .expect("test audio is valid");
             Ok(Some(audio))
@@ -569,7 +567,12 @@ mod tests {
 
         // Detect and validate the selected test module before registering a session.
         let id = host
-            .launch_content(b"TEST-rom-image", ContentLimits::new(1024), &[&probe], &registry)
+            .launch_content(
+                b"TEST-rom-image",
+                ContentLimits::new(1024),
+                &[&probe],
+                &registry,
+            )
             .unwrap();
         assert_eq!(host.session(id).unwrap().state(), SessionState::Running);
         assert_eq!(
@@ -580,25 +583,53 @@ mod tests {
         // Deliver a semantic input transition and retrieve owned media payloads.
         host.session_mut(id)
             .unwrap()
-            .send_input(InputEvent { control: InputControl::Action1, pressed: true })
+            .send_input(InputEvent {
+                control: InputControl::Action1,
+                pressed: true,
+            })
             .unwrap();
-        assert!(host.session(id).unwrap().is_input_pressed(InputControl::Action1));
+        assert!(host
+            .session(id)
+            .unwrap()
+            .is_input_pressed(InputControl::Action1));
 
-        let frame = host.session_mut(id).unwrap().take_video_frame().unwrap().unwrap();
-        assert_eq!((frame.width(), frame.height(), frame.pixels()), (1, 1, &[255, 0, 0, 255][..]));
-        let audio = host.session_mut(id).unwrap().take_audio_buffer().unwrap().unwrap();
-        assert_eq!((audio.sample_rate(), audio.channels(), audio.samples()), (48_000, 2, &[100, -100][..]));
+        let frame = host
+            .session_mut(id)
+            .unwrap()
+            .take_video_frame()
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (frame.width(), frame.height(), frame.pixels()),
+            (1, 1, &[255, 0, 0, 255][..])
+        );
+        let audio = host
+            .session_mut(id)
+            .unwrap()
+            .take_audio_buffer()
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (audio.sample_rate(), audio.channels(), audio.samples()),
+            (48_000, 2, &[100, -100][..])
+        );
 
         // The versioned envelope restores the captured core state after execution advances.
         let checkpoint = host.session_mut(id).unwrap().save_state_envelope().unwrap();
         host.session_mut(id).unwrap().run_for_events(1).unwrap();
         assert_eq!(host.session_mut(id).unwrap().save_state().unwrap(), vec![8]);
-        host.session_mut(id).unwrap().load_state_envelope(&checkpoint).unwrap();
+        host.session_mut(id)
+            .unwrap()
+            .load_state_envelope(&checkpoint)
+            .unwrap();
         assert_eq!(host.session_mut(id).unwrap().save_state().unwrap(), vec![7]);
 
         // Shutdown must release held controls before the host drops the session.
         host.session_mut(id).unwrap().release_all_inputs().unwrap();
-        assert!(!host.session(id).unwrap().is_input_pressed(InputControl::Action1));
+        assert!(!host
+            .session(id)
+            .unwrap()
+            .is_input_pressed(InputControl::Action1));
         host.session_mut(id).unwrap().stop().unwrap();
         assert_eq!(host.session(id).unwrap().state(), SessionState::Halted);
 
@@ -606,7 +637,9 @@ mod tests {
         assert_eq!(closed.state(), SessionState::Halted);
         assert!(!closed.is_input_pressed(InputControl::Action1));
         assert!(host.is_empty());
-        assert!(matches!(host.session(id), Err(HostRuntimeError::UnknownSession(found)) if found == id));
+        assert!(
+            matches!(host.session(id), Err(HostRuntimeError::UnknownSession(found)) if found == id)
+        );
     }
 
     #[test]
@@ -619,8 +652,10 @@ mod tests {
         // A full host must report capacity exhaustion deterministically, even if
         // the supplied path does not exist. This keeps filesystem errors from
         // obscuring the actionable lifecycle error and avoids needless I/O.
-        let missing_path = std::env::temp_dir()
-            .join(format!("archiaemu-must-not-read-{}-missing.rom", std::process::id()));
+        let missing_path = std::env::temp_dir().join(format!(
+            "archiaemu-must-not-read-{}-missing.rom",
+            std::process::id()
+        ));
         let result = host.launch_content_path(
             &missing_path,
             ContentLimits::new(1024),
