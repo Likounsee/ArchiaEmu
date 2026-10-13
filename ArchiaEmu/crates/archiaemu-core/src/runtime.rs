@@ -684,6 +684,86 @@ mod tests {
         (EmulationSession::new(Box::new(core)), delivered)
     }
 
+    struct MediaTestCore {
+        loaded: bool,
+        frame: Option<VideoFrame>,
+        audio: Option<AudioBuffer>,
+    }
+
+    impl EmulationCore for MediaTestCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                api_version: crate::CURRENT_CORE_API_VERSION,
+                system_id: SystemId::new("media-test").unwrap(),
+                display_name: "Media test core",
+                core_version: "0.0.0-test",
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    video_output: true,
+                    audio_output: true,
+                    ..CoreCapabilities::default()
+                },
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+            if content.is_empty() {
+                return Err(CoreError::InvalidContent("empty test content"));
+            }
+            self.loaded = true;
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            if !self.loaded {
+                return Err(CoreError::NotInitialized);
+            }
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            if !self.loaded {
+                return Err(CoreError::NotInitialized);
+            }
+            Ok(CoreEvent::Yielded)
+        }
+
+        fn take_video_frame(&mut self) -> Result<Option<VideoFrame>, CoreError> {
+            Ok(self.frame.take())
+        }
+
+        fn take_audio_buffer(&mut self) -> Result<Option<AudioBuffer>, CoreError> {
+            Ok(self.audio.take())
+        }
+    }
+
+    #[test]
+    fn media_retrieval_transfers_owned_payload_once_and_then_returns_empty() {
+        let frame = VideoFrame::new(
+            2,
+            1,
+            crate::core_io::PixelFormat::Rgba8888,
+            vec![1, 2, 3, 4, 5, 6, 7, 8],
+        )
+        .unwrap();
+        let audio = AudioBuffer::new(48_000, 2, vec![10, -10, 20, -20]).unwrap();
+        let mut session = EmulationSession::new(Box::new(MediaTestCore {
+            loaded: false,
+            frame: Some(frame.clone()),
+            audio: Some(audio.clone()),
+        }));
+        assert!(matches!(
+            session.take_video_frame(),
+            Err(SessionError::InvalidTransition { .. })
+        ));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(session.take_video_frame().unwrap(), Some(frame));
+        assert_eq!(session.take_video_frame().unwrap(), None);
+        assert_eq!(session.take_audio_buffer().unwrap(), Some(audio));
+        assert_eq!(session.take_audio_buffer().unwrap(), None);
+    }
+
     struct ErrorOnceCore {
         fail_next_run: bool,
     }
