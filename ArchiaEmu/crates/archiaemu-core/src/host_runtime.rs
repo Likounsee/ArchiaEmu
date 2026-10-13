@@ -299,12 +299,7 @@ mod tests {
         };
         let probe = MatchProbe;
         let id = host
-            .launch_content(
-                b"TEST-rom",
-                ContentLimits::new(1024),
-                &[&probe],
-                &registry,
-            )
+            .launch_content(b"TEST-rom", ContentLimits::new(1024), &[&probe], &registry)
             .unwrap();
 
         assert_eq!(host.session_count(), 1);
@@ -312,7 +307,10 @@ mod tests {
             host.session(id).unwrap().state(),
             crate::runtime::SessionState::Running
         );
-        assert_eq!(host.session(id).unwrap().descriptor().system_id.as_str(), "test-system");
+        assert_eq!(
+            host.session(id).unwrap().descriptor().system_id.as_str(),
+            "test-system"
+        );
     }
 
     #[test]
