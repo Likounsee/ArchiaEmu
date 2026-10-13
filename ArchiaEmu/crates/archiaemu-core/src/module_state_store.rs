@@ -278,6 +278,19 @@ impl ModuleStateStore {
     where
         F: FnOnce(&Path) -> io::Result<()>,
     {
+        self.save_with_operations(state, sync_directory, fs::rename)
+    }
+
+    fn save_with_operations<F, R>(
+        &self,
+        state: &ModuleManagerState,
+        sync_directory: F,
+        mut rename: R,
+    ) -> Result<(), ModuleStateStoreError>
+    where
+        F: FnOnce(&Path) -> io::Result<()>,
+        R: FnMut(&Path, &Path) -> io::Result<()>,
+    {
         let parent = self
             .path
             .parent()
@@ -315,9 +328,13 @@ impl ModuleStateStore {
                 return Err(error.into());
             }
         }
-        if let Err(error) =
-            replace_primary_with_temp(&self.path, &temp, &backup, had_original)
-        {
+        if let Err(error) = replace_primary_with_temp_using(
+            &self.path,
+            &temp,
+            &backup,
+            had_original,
+            &mut rename,
+        ) {
             let _ = fs::remove_file(&temp);
             return Err(error.into());
         }
@@ -465,6 +482,55 @@ mod tests {
         assert!(!backup.exists());
 
         let _ = fs::remove_file(&primary);
+    }
+
+    #[test]
+    fn save_cleans_staged_file_and_restores_primary_when_install_rename_fails() {
+        let path = temp_path();
+        let store = ModuleStateStore::new(&path);
+        let mut original = ModuleManagerState::new();
+        original.mark_setup_completed();
+        store.save(&original).unwrap();
+
+        let mut replacement = ModuleManagerState::new();
+        replacement.mark_setup_skipped();
+        let mut rename_calls = 0;
+        let result = store.save_with_operations(
+            &replacement,
+            |_| Ok(()),
+            |from, to| {
+                rename_calls += 1;
+                match rename_calls {
+                    1 => fs::rename(from, to),
+                    2 => Err(io::Error::new(
+                        io::ErrorKind::PermissionDenied,
+                        "injected staged-file install failure",
+                    )),
+                    3 => fs::rename(from, to),
+                    _ => unreachable!("save should attempt at most three renames"),
+                }
+            },
+        );
+
+        assert!(matches!(result, Err(ModuleStateStoreError::Io(error))
+            if error.kind() == io::ErrorKind::PermissionDenied));
+        assert_eq!(rename_calls, 3);
+        assert_eq!(store.load().unwrap(), original);
+        let parent = path.parent().unwrap();
+        let temp_prefix = format!(
+            "{}.tmp-{}-",
+            path.file_stem().unwrap().to_string_lossy(),
+            std::process::id()
+        );
+        let leftovers = fs::read_dir(parent)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with(&temp_prefix))
+            .collect::<Vec<_>>();
+        assert!(leftovers.is_empty(), "staged state file must be removed");
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(backup_path(&path));
     }
 
     #[test]
