@@ -255,6 +255,28 @@ mod tests {
     }
 
     #[test]
+    fn load_recovers_from_backup_when_primary_is_oversized() {
+        let path = temp_path();
+        let store = SaveStateStore::new(&path);
+        let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
+        let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![4, 5, 6]).unwrap();
+
+        store.save(&original).unwrap();
+        store.save(&replacement).unwrap();
+        fs::write(&path, vec![0; MAX_SAVE_STATE_FILE_BYTES as usize + 1]).unwrap();
+
+        assert_eq!(store.load().unwrap(), original);
+        assert_eq!(
+            fs::metadata(&path).unwrap().len(),
+            MAX_SAVE_STATE_FILE_BYTES + 1,
+            "loading the backup must not silently delete or rewrite the rejected primary"
+        );
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(backup_path(&path));
+    }
+
+    #[test]
     fn store_rejects_oversized_persisted_files() {
         let path = temp_path();
         fs::write(&path, vec![0; MAX_SAVE_STATE_FILE_BYTES as usize + 1]).unwrap();
