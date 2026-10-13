@@ -58,9 +58,16 @@ impl DesktopApp {
             self.message = "Enter a content path first.".to_owned();
             return;
         }
-        match self.controller.import_content(Path::new(path), MAX_CONTENT_BYTES as u64) {
+        match self
+            .controller
+            .import_content(Path::new(path), MAX_CONTENT_BYTES as u64)
+        {
             Ok(entry) => {
-                self.message = format!("Imported '{}' ({} bytes).", entry.title(), entry.size_bytes());
+                self.message = format!(
+                    "Imported '{}' ({} bytes).",
+                    entry.title(),
+                    entry.size_bytes()
+                );
             }
             Err(error) => self.message = format!("Import failed: {error}"),
         }
@@ -129,7 +136,9 @@ impl eframe::App for DesktopApp {
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top").show(context, |ui| {
             ui.heading("ArchiaEmu");
-            ui.label("Experimental desktop host — content execution is not yet a playable emulator.");
+            ui.label(
+                "Experimental desktop host — content execution is not yet a playable emulator.",
+            );
         });
 
         egui::CentralPanel::default().show(context, |ui| {
