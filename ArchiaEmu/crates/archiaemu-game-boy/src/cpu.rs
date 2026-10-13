@@ -1231,6 +1231,7 @@ mod execution_tests {
     fn ei_enables_interrupts_after_the_following_instruction() {
         let mut cpu = Cpu::new();
         let mut bus = TestBus::with_program(&[0xFB, 0x00, 0x00]);
+        cpu.registers.sp = 0xC000;
         bus.0[0xFFFF] = 0x01;
         bus.0[0xFF0F] = 0x01;
         assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0xFB);
@@ -1239,7 +1240,7 @@ mod execution_tests {
         assert!(cpu.interrupts_enabled());
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 5);
         assert_eq!(cpu.registers.pc, 0x0040);
-        assert_eq!(cpu.registers.sp, 0xFFFC);
+        assert_eq!(cpu.registers.sp, 0xBFFE);
         assert_eq!(bus.0[0xFF0F] & 1, 0);
         assert!(!cpu.interrupts_enabled());
     }
