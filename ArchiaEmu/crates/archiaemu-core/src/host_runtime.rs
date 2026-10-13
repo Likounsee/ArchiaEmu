@@ -214,6 +214,17 @@ impl HostRuntime {
             .remove(&id)
             .ok_or(HostRuntimeError::UnknownSession(id))
     }
+
+    /// Closes every open session and releases ownership of all their cores.
+    ///
+    /// Returns the number of sessions closed. The host's ID counter is preserved,
+    /// so sessions created after shutdown receive fresh IDs rather than reusing
+    /// identities that may still be referenced by frontend state.
+    pub fn close_all_sessions(&mut self) -> usize {
+        let closed = self.sessions.len();
+        self.sessions.clear();
+        closed
+    }
 }
 
 #[cfg(test)]
@@ -408,6 +419,31 @@ mod tests {
             Err(HostRuntimeError::SessionIdExhausted)
         ));
         assert!(host.is_empty());
+    }
+
+    #[test]
+    fn close_all_sessions_releases_every_core_without_reusing_ids() {
+        let mut host = HostRuntime::new(HostRuntimeConfig { max_sessions: 3 }).unwrap();
+        let first = host.create_session(Box::new(MockCore)).unwrap();
+        let second = host.create_session(Box::new(MockCore)).unwrap();
+
+        assert_eq!(host.close_all_sessions(), 2);
+        assert!(host.is_empty());
+        assert_eq!(host.session_count(), 0);
+        assert!(matches!(
+            host.session(first),
+            Err(HostRuntimeError::UnknownSession(id)) if id == first
+        ));
+        assert!(matches!(
+            host.session(second),
+            Err(HostRuntimeError::UnknownSession(id)) if id == second
+        ));
+
+        let third = host.create_session(Box::new(MockCore)).unwrap();
+        assert!(third.get() > second.get());
+        assert_eq!(host.session_ids(), vec![third]);
+        assert_eq!(host.close_all_sessions(), 1);
+        assert_eq!(host.close_all_sessions(), 0);
     }
 
     #[test]
