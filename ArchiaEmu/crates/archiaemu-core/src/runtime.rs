@@ -2825,4 +2825,62 @@ mod shared_input_runtime_tests {
         assert!(!session.is_input_pressed(InputControl::Start));
         assert_eq!(events.lock().unwrap().len(), 1);
     }
+    #[test]
+    fn not_initialized_core_error_is_retained_and_session_recovers() {
+        struct NotInitializedOnceCore {
+            fail_next_run: bool,
+        }
+
+        impl EmulationCore for NotInitializedOnceCore {
+            fn descriptor(&self) -> CoreDescriptor {
+                CoreDescriptor {
+                    api_version: crate::CURRENT_CORE_API_VERSION,
+                    system_id: SystemId::new("not-initialized-once-test").unwrap(),
+                    display_name: "Not-initialized-once test core",
+                    core_version: "0.0.0-test",
+                    capabilities: CoreCapabilities {
+                        content_loading: true,
+                        ..CoreCapabilities::default()
+                    },
+                }
+            }
+
+            fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+                if content.is_empty() {
+                    return Err(CoreError::InvalidContent("empty test content"));
+                }
+                Ok(())
+            }
+
+            fn reset(&mut self) -> Result<(), CoreError> {
+                self.fail_next_run = false;
+                Ok(())
+            }
+
+            fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+                if self.fail_next_run {
+                    self.fail_next_run = false;
+                    return Err(CoreError::NotInitialized);
+                }
+                Ok(CoreEvent::Yielded)
+            }
+        }
+
+        let mut session = EmulationSession::new(Box::new(NotInitializedOnceCore {
+            fail_next_run: true,
+        }));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.run_until_event(),
+            Err(SessionError::Core(CoreError::NotInitialized))
+        );
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.last_core_error(), Some(CoreError::NotInitialized));
+
+        assert_eq!(session.run_until_event(), Ok(CoreEvent::Yielded));
+        assert_eq!(session.state(), SessionState::Running);
+        assert_eq!(session.last_core_error(), Some(CoreError::NotInitialized));
+    }
+
 }
