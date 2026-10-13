@@ -267,6 +267,17 @@ impl ModuleStateStore {
 
     /// Saves state using a flushed temporary file and recoverable backup.
     pub fn save(&self, state: &ModuleManagerState) -> Result<(), ModuleStateStoreError> {
+        self.save_with_directory_sync(state, sync_parent_directory)
+    }
+
+    fn save_with_directory_sync<F>(
+        &self,
+        state: &ModuleManagerState,
+        sync_directory: F,
+    ) -> Result<(), ModuleStateStoreError>
+    where
+        F: FnOnce(&Path) -> io::Result<()>,
+    {
         let parent = self
             .path
             .parent()
@@ -305,7 +316,7 @@ impl ModuleStateStore {
             }
         }
         replace_primary_with_temp(&self.path, &temp, &backup, had_original)?;
-        sync_parent_directory(parent)?;
+        sync_directory(parent)?;
         Ok(())
     }
 }
@@ -449,6 +460,32 @@ mod tests {
         assert!(!backup.exists());
 
         let _ = fs::remove_file(&primary);
+    }
+
+    #[test]
+    fn save_reports_directory_sync_failure_after_preserving_new_state_and_backup() {
+        let path = temp_path();
+        let store = ModuleStateStore::new(&path);
+        let mut previous = ModuleManagerState::new();
+        previous.mark_setup_completed();
+        store.save(&previous).unwrap();
+
+        let mut replacement = ModuleManagerState::new();
+        replacement.mark_setup_skipped();
+        let result = store.save_with_directory_sync(&replacement, |_| {
+            Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "injected directory sync failure",
+            ))
+        });
+
+        assert!(matches!(result, Err(ModuleStateStoreError::Io(error))
+            if error.kind() == io::ErrorKind::PermissionDenied));
+        assert_eq!(store.load().unwrap(), replacement);
+        assert_eq!(read_state(&backup_path(&path)).unwrap(), previous);
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(backup_path(&path));
     }
 
     #[cfg(unix)]
