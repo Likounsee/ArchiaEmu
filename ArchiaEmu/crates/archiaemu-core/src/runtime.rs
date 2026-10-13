@@ -12,6 +12,7 @@ use crate::content::{
     ContentLimits,
 };
 use crate::core_io::{AudioBuffer, InputControl, InputEvent, InputState, VideoFrame};
+use crate::save_state::{SaveStateEnvelope, SaveStateError};
 use crate::{CoreDescriptor, CoreError, CoreEvent, CoreRegistry, EmulationCore, RegistryError};
 
 /// Failure while launching a session from untrusted content.
@@ -126,6 +127,8 @@ pub enum SessionError {
     Content(ContentError),
     /// The core rejected the requested operation.
     Core(CoreError),
+    /// Save-state envelope validation or compatibility failed.
+    SaveState(SaveStateError),
 }
 
 impl fmt::Display for SessionError {
@@ -136,6 +139,7 @@ impl fmt::Display for SessionError {
             }
             Self::Content(error) => fmt::Display::fmt(error, formatter),
             Self::Core(error) => fmt::Display::fmt(error, formatter),
+            Self::SaveState(error) => fmt::Display::fmt(error, formatter),
         }
     }
 }
@@ -151,6 +155,12 @@ impl From<ContentError> for SessionError {
 impl From<CoreError> for SessionError {
     fn from(error: CoreError) -> Self {
         Self::Core(error)
+    }
+}
+
+impl From<SaveStateError> for SessionError {
+    fn from(error: SaveStateError) -> Self {
+        Self::SaveState(error)
     }
 }
 
@@ -394,6 +404,34 @@ impl EmulationSession {
         let result = self.core.load_state(state);
         self.record_core_result(result)?;
         Ok(())
+    }
+
+    /// Captures a save state wrapped with the active core's identity and version.
+    ///
+    /// The payload is opaque to the host. The envelope's size and metadata checks
+    /// happen before callers persist or transfer the returned bytes.
+    pub fn save_state_envelope(&mut self) -> Result<SaveStateEnvelope, SessionError> {
+        let descriptor = self.core.descriptor();
+        let payload = self.save_state()?;
+        SaveStateEnvelope::new(
+            descriptor.system_id.as_str(),
+            descriptor.core_version,
+            payload,
+        )
+        .map_err(SessionError::SaveState)
+    }
+
+    /// Validates a save-state envelope against the active core before restoration.
+    ///
+    /// The core still validates its internal state representation. Compatibility
+    /// failures are rejected before the core receives any payload bytes.
+    pub fn load_state_envelope(
+        &mut self,
+        envelope: &SaveStateEnvelope,
+    ) -> Result<(), SessionError> {
+        let descriptor = self.core.descriptor();
+        envelope.validate_for(descriptor.system_id.as_str(), descriptor.core_version)?;
+        self.load_state(envelope.payload())
     }
 
     /// Sends a semantic input transition while a loaded machine is active.
@@ -3048,5 +3086,86 @@ mod shared_input_runtime_tests {
             Some(CoreError::Unsupported("save states"))
         );
         assert_eq!(session.state(), SessionState::Running);
+    }
+}
+
+#[cfg(test)]
+mod save_state_session_tests {
+    use super::*;
+    use crate::{CoreCapabilities, SystemId};
+
+    struct StateCore {
+        state: Vec<u8>,
+    }
+
+    impl EmulationCore for StateCore {
+        fn descriptor(&self) -> CoreDescriptor {
+            CoreDescriptor {
+                api_version: crate::CURRENT_CORE_API_VERSION,
+                system_id: SystemId::new("state-test").unwrap(),
+                display_name: "Save state test core",
+                core_version: "2.3.4",
+                capabilities: CoreCapabilities {
+                    content_loading: true,
+                    save_states: true,
+                    ..CoreCapabilities::default()
+                },
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+            if content.is_empty() {
+                return Err(CoreError::InvalidContent("empty test content"));
+            }
+            self.state = content.to_vec();
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), CoreError> {
+            self.state.clear();
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+            Ok(CoreEvent::Yielded)
+        }
+
+        fn save_state(&self) -> Result<Vec<u8>, CoreError> {
+            Ok(self.state.clone())
+        }
+
+        fn load_state(&mut self, state: &[u8]) -> Result<(), CoreError> {
+            if state.is_empty() {
+                return Err(CoreError::InvalidState("empty test state"));
+            }
+            self.state = state.to_vec();
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn session_save_envelope_round_trips_through_core_restore() {
+        let mut session = EmulationSession::new(Box::new(StateCore { state: Vec::new() }));
+        session.load_content(&[1, 2, 3]).unwrap();
+        let envelope = session.save_state_envelope().unwrap();
+
+        session.load_content(&[9]).unwrap();
+        session.load_state_envelope(&envelope).unwrap();
+
+        assert_eq!(session.save_state().unwrap(), &[1, 2, 3]);
+        assert_eq!(session.state(), SessionState::Running);
+    }
+
+    #[test]
+    fn incompatible_envelope_is_rejected_before_core_restore() {
+        let mut session = EmulationSession::new(Box::new(StateCore { state: Vec::new() }));
+        session.load_content(&[7, 8]).unwrap();
+        let incompatible = SaveStateEnvelope::new("another-system", "2.3.4", vec![4, 5]).unwrap();
+
+        assert_eq!(
+            session.load_state_envelope(&incompatible),
+            Err(SessionError::SaveState(SaveStateError::IncompatibleSystem))
+        );
+        assert_eq!(session.save_state().unwrap(), &[7, 8]);
     }
 }
