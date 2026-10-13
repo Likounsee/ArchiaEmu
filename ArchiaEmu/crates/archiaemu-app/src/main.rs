@@ -9,7 +9,6 @@ use std::path::PathBuf;
 
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
-use archiaemu_core::runtime::SessionState;
 use archiaemu_core::CoreRegistry;
 use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
 
@@ -213,12 +212,13 @@ fn command_loop(
                 }
             }
             "" => {}
-            other => eprintln!("Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], pause, resume, reset, stop, step, or quit."),
+            other => eprintln!(
+                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], pause, resume, reset, stop, step, or quit."
+            ),
         }
     }
     Ok(())
 }
-
 
 fn apply_session_command(
     host: &mut HostRuntime,
@@ -244,7 +244,9 @@ fn apply_session_command(
             Ok("Stopped.".to_owned())
         }
         "step" => {
-            let event = session.run_until_event().map_err(|error| error.to_string())?;
+            let event = session
+                .run_until_event()
+                .map_err(|error| error.to_string())?;
             Ok(format!("Core event: {event:?}"))
         }
         _ => Err(format!("Unsupported session command: {command}")),
