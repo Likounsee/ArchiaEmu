@@ -13,8 +13,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 70 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 55 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
-| **P1** | Sauvegardes et restauration | 45 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
-| **P1** | Frontend minimal du framework | 40 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
+| **P1** | Sauvegardes et restauration | 50 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
+| **P1** | Frontend minimal du framework | 45 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
 | **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
 | **P3** | Performance et stabilité | 10 % | Benchmarks reproductibles et optimisation guidée par les mesures |
@@ -126,8 +126,8 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Tests des tailles invalides, du débordement de taille vidéo, du tampon audio incomplet/vide et des retards de cadence.
 - [x] Interfaces indépendantes d'une bibliothèque graphique ou audio particulière.
 
-### P1.3 — Sauvegardes et restauration — 45 %
-- [ ] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur.
+### P1.3 — Sauvegardes et restauration — 50 %
+- [x] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur dans `docs/SAVE_STATE_POLICY.md`; le frontend propose `save-state <path>` et `load-state <path>` et respecte la capacité déclarée par le cœur.
 - [x] Définir un conteneur binaire versionné avec ID/version du cœur, taille bornée, longueur exacte et contrôle CRC-32 d'intégrité (détection de corruption, pas authentification cryptographique).
 - [x] Valider les métadonnées et limites avant de fournir le payload au cœur; refuser les versions de format inconnues, systèmes/versions incompatibles, données tronquées ou excédentaires et checksums invalides.
 - [x] Écrire de façon atomique via fichier temporaire synchronisé et conserver une sauvegarde de récupération; au chargement, le store peut reprendre depuis le backup si le fichier principal est absent ou invalide.
@@ -136,7 +136,7 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup lorsque le fichier principal est corrompu ou absent.
 - [ ] Injecter les échecs de renommage et vérifier la reprise après crash sur chaque plateforme.
 
-### P1.4 — Première application hôte minimale — 40 %
+### P1.4 — Première application hôte minimale — 45 %
 
 Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, `--system` sélectionne explicitement le module, et le REPL permet `open <chemin>`, `sessions`, `switch <id>` et `close [id]` pour gérer plusieurs sessions. Les erreurs de chargement sont affichées sans fermer immédiatement l'interface. Les entrées interactives et les sorties audio/vidéo restent à intégrer.
 - [x] Ajouter une interface terminale pour sélectionner un module, ouvrir plusieurs contenus, basculer entre sessions, fermer une session et lancer/mettre en pause/arrêter.
