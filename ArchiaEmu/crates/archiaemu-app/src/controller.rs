@@ -176,10 +176,11 @@ impl ApplicationController {
         self.host.close_all_sessions()
     }
 
-    /// Provides disjoint mutable access for the legacy terminal command dispatcher.
+    /// Provides disjoint mutable access for a frontend command dispatcher.
     ///
-    /// This remains crate-private; new frontends should use the typed controller API.
-    pub(crate) fn parts_mut(
+    /// Prefer the typed controller methods for lifecycle operations. This escape
+    /// hatch exists for commands that need direct access to capability-specific APIs.
+    pub fn parts_mut(
         &mut self,
     ) -> (&mut HostRuntime, &mut ContentLibrary, &mut Option<SessionId>) {
         (&mut self.host, &mut self.library, &mut self.active_session)
