@@ -61,7 +61,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Commands: status, sessions, switch <id>, open <path>, import <path>, library, forget <path>, close [id|all], input <control> <press|release>, release-inputs, inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
     let mut library = ContentLibrary::new();
     match library.import(&options.path, MAX_CONTENT_BYTES as u64) {
-        Ok(entry) => println!("Library: imported '{}' ({} bytes).", entry.title(), entry.size_bytes()),
+        Ok(entry) => println!(
+            "Library: imported '{}' ({} bytes).",
+            entry.title(),
+            entry.size_bytes()
+        ),
         Err(error) => eprintln!("Could not register launched content in library: {error}"),
     }
     command_loop(&mut host, session_id, &probe, &registry, &mut library)
@@ -180,14 +184,23 @@ fn command_loop(
                 println!("Content library is empty.");
             } else {
                 for entry in library.entries() {
-                    println!("{} ({} bytes) — {}", entry.title(), entry.size_bytes(), entry.path().display());
+                    println!(
+                        "{} ({} bytes) — {}",
+                        entry.title(),
+                        entry.size_bytes(),
+                        entry.path().display()
+                    );
                 }
             }
             continue;
         }
         if let Some(path) = command.strip_prefix("import ") {
             match library.import(path.trim(), MAX_CONTENT_BYTES as u64) {
-                Ok(entry) => println!("Imported '{}' ({} bytes).", entry.title(), entry.size_bytes()),
+                Ok(entry) => println!(
+                    "Imported '{}' ({} bytes).",
+                    entry.title(),
+                    entry.size_bytes()
+                ),
                 Err(error) => eprintln!("Could not import content: {error}"),
             }
             continue;
