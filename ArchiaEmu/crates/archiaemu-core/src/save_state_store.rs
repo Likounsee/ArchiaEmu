@@ -271,15 +271,14 @@ mod tests {
 
             let _ = fs::remove_file(&path);
             let _ = fs::remove_file(backup_path(&path));
-            let prefix = format!("tmp-{}-", std::process::id());
+            let stem = path.file_stem().unwrap().to_string_lossy().to_string();
             if let Some(parent) = path.parent() {
                 if let Ok(entries) = fs::read_dir(parent) {
                     for entry in entries.flatten() {
                         let candidate = entry.path();
                         if candidate.file_name().is_some_and(|name| {
-                            name.to_string_lossy().starts_with(
-                                &path.file_stem().unwrap_or_default().to_string_lossy().to_string()
-                            ) && name.to_string_lossy().contains(&prefix)
+                            let name = name.to_string_lossy();
+                            name.starts_with(&stem) && name.contains(".tmp-")
                         }) {
                             let _ = fs::remove_file(candidate);
                         }
