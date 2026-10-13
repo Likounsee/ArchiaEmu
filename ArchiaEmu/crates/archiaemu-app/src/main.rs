@@ -224,19 +224,26 @@ fn command_loop(
                     continue;
                 }
             };
-            match controller.launch_library_entry(
-                index,
+            let Some(path) = library_entry_path(library, index) else {
+                eprintln!("No library entry at index {index}.");
+                continue;
+            };
+            match host.launch_content_path(
+                &path,
                 ContentLimits::new(MAX_CONTENT_BYTES),
                 &[probe],
                 registry,
             ) {
                 Ok(id) => {
                     active = Some(id);
-                    let title = controller
-                        .library_entry_path(index)
-                        .and_then(|path| path.file_stem().map(|name| name.to_string_lossy().into_owned()))
-                        .unwrap_or_else(|| format!("entry {index}"));
-                    println!("Opened library entry {index} ('{title}') in session {}.", id.get());
+                    println!(
+                        "Opened library entry {} ('{}') in session {}.",
+                        index,
+                        path.file_stem()
+                            .unwrap_or_else(|| path.as_os_str())
+                            .to_string_lossy(),
+                        id.get()
+                    );
                 }
                 Err(error) => eprintln!("Could not launch library entry {index}: {error}"),
             }
@@ -402,6 +409,16 @@ fn command_loop(
     }
     *active_state = active;
     Ok(())
+}
+
+fn library_entry_path(library: &archiaemu_app::library::ContentLibrary, index: usize) -> Option<PathBuf> {
+    if index == 0 {
+        return None;
+    }
+    library
+        .entries()
+        .nth(index - 1)
+        .map(|entry| entry.path().to_path_buf())
 }
 
 fn close_all_sessions(host: &mut HostRuntime, active: &mut Option<SessionId>) -> usize {
