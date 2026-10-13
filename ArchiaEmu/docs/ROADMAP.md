@@ -129,10 +129,11 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [ ] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur.
 - [x] Définir un conteneur binaire versionné avec ID/version du cœur, taille bornée, longueur exacte et contrôle CRC-32 d'intégrité (détection de corruption, pas authentification cryptographique).
 - [x] Valider les métadonnées et limites avant de fournir le payload au cœur; refuser les versions de format inconnues, systèmes/versions incompatibles, données tronquées ou excédentaires et checksums invalides.
-- [ ] Écrire de façon atomique et prévoir récupération après interruption.
+- [x] Écrire de façon atomique via fichier temporaire synchronisé et conserver une sauvegarde de récupération; au chargement, le store peut reprendre depuis le backup si le fichier principal est absent ou invalide.
 - [ ] Documenter que chaque cœur reste responsable de la validation de son état interne avant mutation.
 - [x] Tester corruption, version inconnue, payload vide/trop grand, incompatibilité de système/cœur, troncature et données excédentaires.
-- [ ] Tester les fichiers persistés trop grands, une restauration échouée et la reprise après crash.
+- [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup après corruption du fichier principal.
+- [ ] Injecter les échecs de renommage et vérifier la reprise après crash sur chaque plateforme.
 
 ### P1.4 — Première application hôte minimale
 - [ ] Ajouter une interface simple pour sélectionner un contenu et un module, puis lancer/mettre en pause/arrêter.

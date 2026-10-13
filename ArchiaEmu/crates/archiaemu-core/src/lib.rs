@@ -15,6 +15,9 @@ pub mod core_io;
 /// Bounded, versioned save-state envelopes and compatibility checks.
 pub mod save_state;
 
+/// Crash-conscious persistence for save-state envelopes.
+pub mod save_state_store;
+
 /// Host capability facts and console-independent performance planning.
 pub mod host_profile;
 
