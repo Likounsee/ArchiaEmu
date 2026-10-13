@@ -9,10 +9,18 @@ The native desktop frontend is built with eframe/egui and uses the shared applic
 - Game library search by title or path, filters for .gb and .gbc, and sorting by title, size, or path.
 - Per-game selection, readable file sizes, path details, launch, use-path, and remove-from-library actions.
 - Session management, registered-system capability reporting, and persistent appearance preferences.
-- A dedicated game view with a bounded host tick loop, RGBA frame-to-texture upload, nearest-neighbour scaling, semantic keyboard input mapping, and input release on window focus loss.
+- A dedicated Game page integrated into navigation and selected automatically after a successful launch.
+- Pause/resume, stop and reset controls in the Game page, plus shortcuts to the library and session manager.
+- A bounded host tick loop, newest-frame consumption, RGBA stride-aware conversion, a 64 MiB texture-upload cap, and a reusable nearest-neighbour egui texture.
+- Semantic keyboard mapping (arrows, Z/X/A/S, Enter, Backspace); repeated key-downs are ignored, and held inputs are released when focus is lost or the user leaves the Game page.
+- Cached video is cleared when sessions are switched or closed; empty and media-error states are shown without synthesizing fake frames.
 - User-facing empty states and import/launch error summaries.
 
 The library accepts files through the shared library validator (regular file, non-empty, bounded size and duplicate protection). Importing a file does **not** certify that the ROM is valid or compatible; the launch pipeline performs format probing and the emulator core remains experimental.
+
+## Validation status
+
+The new game-loop integration and video conversion tests are committed, but they must not be considered validated until the current Linux, Windows and macOS CI run completes successfully. The desktop checks include formatting, compilation and unit tests.
 
 ## Run
 
@@ -26,4 +34,4 @@ The native picker supports Game Boy and Game Boy Color extensions (.gb, .gbc) an
 
 ## Media pipeline status
 
-The desktop now consumes bounded RGBA video frames from cores that advertise video output and uploads the latest frame to an egui texture. The host loop uses a 60 Hz cadence accumulator with bounded catch-up and a per-tick event budget; this is a frontend scheduling scaffold, not proof of accurate console timing. Arrow keys map to directions, Z/X/A/S to action buttons, Enter to Start and Backspace to Select. Inputs are forwarded only through the shared semantic input contract. Audio playback is not integrated yet, and the current Game Boy core does not provide a playable video/audio implementation, so the game surface may remain a placeholder until a core produces media.
+The desktop now consumes bounded RGBA video frames from cores that advertise video output and uploads the latest frame to an egui texture. The host loop uses a 60 Hz cadence accumulator with bounded catch-up and a per-tick event budget; this is a frontend scheduling scaffold, not proof of accurate console timing. Arrow keys map to directions, Z/X/A/S to action buttons, Enter to Start and Backspace to Select. Inputs are forwarded only through the shared semantic input contract. Audio playback is not integrated yet. The current Game Boy core does not produce video frames or audio buffers, so the game surface remains an explicit placeholder for that core. A successful ROM launch does not imply playable-game compatibility.
