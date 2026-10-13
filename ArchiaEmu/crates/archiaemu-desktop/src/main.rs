@@ -48,10 +48,6 @@ impl DesktopApp {
         })
     }
 
-    fn probes(&self) -> [&dyn ContentFormatProbe; 1] {
-        [&self.probe]
-    }
-
     fn import_content(&mut self) {
         let path = self.content_path.trim();
         if path.is_empty() {
@@ -79,7 +75,7 @@ impl DesktopApp {
             self.message = "Enter a content path first.".to_owned();
             return;
         }
-        let probes = self.probes();
+        let probes: [&dyn ContentFormatProbe; 1] = [&self.probe];
         match self.controller.launch_content_path(
             Path::new(path),
             ContentLimits::new(MAX_CONTENT_BYTES),
