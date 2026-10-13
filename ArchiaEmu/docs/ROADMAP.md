@@ -14,7 +14,7 @@ Les pourcentages de chaque jalon sont des estimations fonctionnelles, pas des me
 | **P1** | Orchestration multi-sessions | 73 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 65 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 58 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
-| **P1** | Hôte terminal de diagnostic | 61 % | Sélectionner un module, gérer les sessions et diagnostiquer les capacités depuis le REPL |
+| **P1** | Hôte terminal de diagnostic | 62 % | Sélectionner un module, gérer les sessions et diagnostiquer les capacités depuis le REPL |
 | **P1** | Application desktop générique | 0 % | Interface native utilisable pour bibliothèque, lancement, sessions, commandes et diagnostics |
 | **P1** | Présentation média réelle | 0 % | Vidéo rendue et audio joué en temps réel, avec cadence et gestion de focus |
 | **P1** | Premier système réellement jouable | 5 % | Un cœur de console complet de bout en bout, avec contrôles et tests de compatibilité documentés |
@@ -144,7 +144,7 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Ajouter un test d'arrêt forcé du processus enfant aux checkpoints `temp-synced`, `primary-backed-up` et `primary-installed`; le test vérifie quel état doit être récupéré après la terminaison du processus.
 - [ ] Confirmer l'exécution réussie de cette matrice sur toutes les plateformes CI prises en charge. Tant que la CI du commit courant n'a pas terminé, ne pas considérer la validation multiplateforme comme acquise.
 
-### P1.4 — Hôte terminal de diagnostic — 61 %
+### P1.4 — Hôte terminal de diagnostic — 62 %
 
 Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, `--system` sélectionne explicitement le module, et le REPL permet `open <chemin>`, `sessions`, `switch <id>` et `close [id|all]` pour gérer plusieurs sessions; `close all`, `quit`, `exit` et EOF libèrent toutes les sessions. Un test frontend vérifie que la fermeture globale efface aussi la sélection active, libère toutes les sessions et reste idempotente. `save-state <path>` et `load-state <path>` réutilisent l'enveloppe versionnée et le stockage persistant commun, en refusant les cœurs qui n'annoncent pas cette capacité. Les erreurs de chargement et de commandes sont affichées sans fermer immédiatement l'interface. Les commandes `input <control> <press|release>` et `release-inputs` transmettent les transitions sémantiques au cœur actif et récupèrent les erreurs de capacité sans quitter le REPL. La commande `media` interroge au plus une trame vidéo et un tampon audio disponibles, puis affiche leurs métadonnées; elle ne fait pas encore de rendu graphique ni de lecture audio. Le cœur Game Boy ne déclare pas ces capacités.
 
@@ -154,6 +154,7 @@ La commande `close all` ferme désormais toutes les sessions et désactive la se
 - [x] Exposer les transitions d'entrée sémantiques (`input ... press|release`) et la libération globale (`release-inputs`) depuis le REPL; les cœurs sans capacité d'entrée retournent une erreur explicite.
 - [x] Exposer un chemin de diagnostic pour récupérer une trame et un tampon audio annoncés par le cœur (`media`), avec dimensions, stride, format, fréquence, canaux et nombre d'échantillons; ce n'est pas encore un backend de rendu/lecture.
 - [x] Exposer `run <events>` pour exécuter un budget explicite de 1 à 10 000 appels d'événement, retourner le nombre réellement exécuté, le dernier événement et indiquer si le budget a été épuisé; ajouter des tests des limites de budget. Cela ne remplace pas encore une horloge temps réel.
+- [x] Permettre de configurer la limite de sessions au lancement avec `--max-sessions <count>`, indépendamment de `--system` et du chemin du contenu; refuser les valeurs nulles, invalides, les options répétées et les chemins ambigus avec des tests dédiés.
 - [x] Ajouter un test de flux P1 au niveau du runtime : sélection via registre/sonde, validation et chargement du contenu, entrée sémantique, récupération des sorties vidéo/audio simulées, sauvegarde versionnée, exécution, restauration, libération des entrées, arrêt explicite et fermeture de session. Un test complémentaire confirme qu'un contenu refusé par le cœur ne laisse aucune session partiellement enregistrée.
 - [ ] Ne pas créer de menus ou d'améliorations propres à une console avant que le chemin de lancement générique fonctionne.
 - [ ] Séparer les réglages d'interface des réglages de matériel émulé.
