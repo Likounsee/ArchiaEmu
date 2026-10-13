@@ -174,6 +174,7 @@ fn command_loop(
         io::stdout().flush()?;
         let Some(line) = lines.next() else {
             host.close_all_sessions();
+            active = None;
             break;
         };
         let line = line?;
@@ -375,6 +376,7 @@ fn command_loop(
         }
         if command == "quit" || command == "exit" {
             host.close_all_sessions();
+            active = None;
             break;
         }
         let Some(id) = active else {
