@@ -8,10 +8,52 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
+use archiaemu_core::core_io::InputEvent;
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeError, SessionId};
+use archiaemu_core::runtime::{SessionError, SessionState};
 use archiaemu_core::CoreRegistry;
 
 use crate::library::{ContentEntry, ContentLibrary, ContentLibraryError};
+
+/// Lifecycle command accepted by the shared application controller.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SessionCommand {
+    /// Pause a running session.
+    Pause,
+    /// Resume a paused session.
+    Resume,
+    /// Stop execution and release held controls.
+    Stop,
+    /// Reset a loaded session and resume execution.
+    Reset,
+}
+
+/// Failure while sending a typed command to a session.
+#[derive(Debug)]
+pub enum SessionCommandError {
+    /// The requested session does not exist.
+    Host(HostRuntimeError),
+    /// The session rejected the command for its current state or core contract.
+    Session(SessionError),
+}
+
+impl fmt::Display for SessionCommandError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Host(error) => fmt::Display::fmt(error, f),
+            Self::Session(error) => fmt::Display::fmt(error, f),
+        }
+    }
+}
+
+impl Error for SessionCommandError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Host(error) => Some(error),
+            Self::Session(error) => Some(error),
+        }
+    }
+}
 
 /// Owns the state that every ArchiaEmu frontend must share.
 pub struct ApplicationController {
@@ -171,6 +213,45 @@ impl ApplicationController {
     pub fn close_all_sessions(&mut self) -> usize {
         self.active_session = None;
         self.host.close_all_sessions()
+    }
+
+    /// Sends a semantic input transition to a session through the shared controller.
+    ///
+    /// The session validates its own lifecycle state and core input capability.
+    pub fn send_input(
+        &mut self,
+        id: SessionId,
+        event: InputEvent,
+    ) -> Result<(), SessionCommandError> {
+        let session = self.host.session_mut(id).map_err(SessionCommandError::Host)?;
+        session.send_input(event).map_err(SessionCommandError::Session)
+    }
+
+    /// Releases every held input on a session when its lifecycle permits input.
+    pub fn release_inputs(&mut self, id: SessionId) -> Result<(), SessionCommandError> {
+        let session = self.host.session_mut(id).map_err(SessionCommandError::Host)?;
+        if matches!(session.state(), SessionState::Running | SessionState::Paused) {
+            session
+                .release_all_inputs()
+                .map_err(SessionCommandError::Session)?;
+        }
+        Ok(())
+    }
+
+    /// Applies a typed lifecycle command without exposing the mutable host runtime.
+    pub fn command_session(
+        &mut self,
+        id: SessionId,
+        command: SessionCommand,
+    ) -> Result<(), SessionCommandError> {
+        let session = self.host.session_mut(id).map_err(SessionCommandError::Host)?;
+        let result = match command {
+            SessionCommand::Pause => session.pause(),
+            SessionCommand::Resume => session.resume(),
+            SessionCommand::Stop => session.stop(),
+            SessionCommand::Reset => session.reset(),
+        };
+        result.map_err(SessionCommandError::Session)
     }
 
     /// Provides disjoint mutable access for a frontend command dispatcher.
