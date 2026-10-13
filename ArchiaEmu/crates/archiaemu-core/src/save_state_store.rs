@@ -110,6 +110,9 @@ impl SaveStateStore {
             .open(&temp)?;
         let write_result = file.write_all(&encoded).and_then(|()| file.sync_all());
         drop(file);
+        if write_result.is_ok() {
+            crash_at_test_checkpoint("temp-synced");
+        }
         if let Err(error) = write_result {
             let _ = fs::remove_file(&temp);
             return Err(error.into());
@@ -126,6 +129,7 @@ impl SaveStateStore {
             let _ = fs::remove_file(&temp);
             return Err(error.into());
         }
+        crash_at_test_checkpoint("primary-installed");
         sync_parent_directory(parent)?;
         Ok(())
     }
@@ -150,6 +154,16 @@ fn backup_path(path: &Path) -> PathBuf {
     path.with_extension("bak")
 }
 
+#[cfg(test)]
+fn crash_at_test_checkpoint(checkpoint: &str) {
+    if std::env::var("ARCHIAEMU_SAVE_CRASH_CHECKPOINT").as_deref() == Ok(checkpoint) {
+        std::process::abort();
+    }
+}
+
+#[cfg(not(test))]
+fn crash_at_test_checkpoint(_checkpoint: &str) {}
+
 fn replace_primary_with_temp(
     primary: &Path,
     temp: &Path,
@@ -158,6 +172,7 @@ fn replace_primary_with_temp(
 ) -> io::Result<()> {
     if had_original {
         platform_rename(primary, backup)?;
+        crash_at_test_checkpoint("primary-backed-up");
     }
     if let Err(install_error) = platform_rename(temp, primary) {
         if had_original {
@@ -205,6 +220,73 @@ mod tests {
             "archiaemu-save-state-{}-{unique}.state",
             std::process::id()
         ))
+    }
+
+    #[test]
+    fn crash_child_at_requested_save_checkpoint() {
+        let Ok(path) = std::env::var("ARCHIAEMU_SAVE_CRASH_PATH") else {
+            return;
+        };
+        let envelope = SaveStateEnvelope::new("game-boy", "0.1.0", vec![9, 8, 7]).unwrap();
+        SaveStateStore::new(path).save(&envelope).unwrap();
+        panic!("requested crash checkpoint was not reached");
+    }
+
+    #[test]
+    fn process_termination_recovers_only_committed_save_state() {
+        use std::process::Command;
+
+        for (checkpoint, expected_new) in [
+            ("temp-synced", false),
+            ("primary-backed-up", false),
+            ("primary-installed", true),
+        ] {
+            let path = temp_path();
+            let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
+            let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![9, 8, 7]).unwrap();
+            SaveStateStore::new(&path).save(&original).unwrap();
+
+            let output = Command::new(std::env::current_exe().unwrap())
+                .arg("--exact")
+                .arg("save_state_store::tests::crash_child_at_requested_save_checkpoint")
+                .arg("--nocapture")
+                .env("ARCHIAEMU_SAVE_CRASH_PATH", &path)
+                .env("ARCHIAEMU_SAVE_CRASH_CHECKPOINT", checkpoint)
+                .output()
+                .unwrap();
+
+            assert!(
+                !output.status.success(),
+                "child should terminate at checkpoint {checkpoint}; stdout: {} stderr: {}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+
+            let recovered = SaveStateStore::new(&path).load().unwrap();
+            assert_eq!(
+                recovered,
+                if expected_new { replacement } else { original },
+                "unexpected recovered state after process termination at {checkpoint}"
+            );
+
+            let _ = fs::remove_file(&path);
+            let _ = fs::remove_file(backup_path(&path));
+            let prefix = format!("tmp-{}-", std::process::id());
+            if let Some(parent) = path.parent() {
+                if let Ok(entries) = fs::read_dir(parent) {
+                    for entry in entries.flatten() {
+                        let candidate = entry.path();
+                        if candidate.file_name().is_some_and(|name| {
+                            name.to_string_lossy().starts_with(
+                                &path.file_stem().unwrap_or_default().to_string_lossy().to_string()
+                            ) && name.to_string_lossy().contains(&prefix)
+                        }) {
+                            let _ = fs::remove_file(candidate);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]
