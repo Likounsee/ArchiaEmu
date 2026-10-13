@@ -278,7 +278,7 @@ mod tests {
                         let candidate = entry.path();
                         if candidate.file_name().is_some_and(|name| {
                             let name = name.to_string_lossy();
-                            name.starts_with(&stem) && name.contains(".tmp-")
+                            name.starts_with(stem.as_str()) && name.contains(".tmp-")
                         }) {
                             let _ = fs::remove_file(candidate);
                         }
