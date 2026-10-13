@@ -6,7 +6,7 @@
 use core::fmt;
 use std::collections::BTreeMap;
 
-use crate::content::{ContentFormatProbe, ContentLimits};
+use crate::content::{ContentFormatProbe, ContentLimits, FormatProbeResult};
 use crate::runtime::{launch_content, EmulationSession, LaunchError};
 use crate::{CoreRegistry, EmulationCore};
 
@@ -202,6 +202,26 @@ mod tests {
     use super::*;
     use crate::{CoreApiVersion, CoreCapabilities, CoreDescriptor, CoreError, CoreEvent, SystemId};
 
+    struct MatchProbe;
+
+    impl ContentFormatProbe for MatchProbe {
+        fn format_id(&self) -> &'static str {
+            "test-system"
+        }
+
+        fn probe(&self, prefix: &[u8]) -> FormatProbeResult {
+            if prefix.starts_with(b"TEST") {
+                FormatProbeResult::Match
+            } else {
+                FormatProbeResult::NoMatch
+            }
+        }
+    }
+
+    fn make_mock_core() -> Box<dyn EmulationCore> {
+        Box::new(MockCore)
+    }
+
     struct MockCore;
 
     impl EmulationCore for MockCore {
@@ -265,6 +285,34 @@ mod tests {
             host.session(second).unwrap().state(),
             crate::runtime::SessionState::Empty
         );
+    }
+
+    #[test]
+    fn successful_content_launch_registers_one_running_session() {
+        let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
+        let registry = {
+            let mut registry = CoreRegistry::new();
+            registry
+                .register(SystemId::new("test-system").unwrap(), make_mock_core)
+                .unwrap();
+            registry
+        };
+        let probe = MatchProbe;
+        let id = host
+            .launch_content(
+                b"TEST-rom",
+                ContentLimits::new(1024),
+                &[&probe],
+                &registry,
+            )
+            .unwrap();
+
+        assert_eq!(host.session_count(), 1);
+        assert_eq!(
+            host.session(id).unwrap().state(),
+            crate::runtime::SessionState::Running
+        );
+        assert_eq!(host.session(id).unwrap().descriptor().system_id.as_str(), "test-system");
     }
 
     #[test]
