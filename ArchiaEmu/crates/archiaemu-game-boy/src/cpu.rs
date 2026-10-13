@@ -281,6 +281,8 @@ pub struct Cpu {
     /// Visible CPU registers.
     pub registers: CpuRegisters,
     halted: bool,
+    ime: bool,
+    ime_enable_delay: u8,
 }
 
 impl Cpu {
@@ -303,6 +305,8 @@ impl Cpu {
                 pc: 0,
             },
             halted: false,
+            ime: false,
+            ime_enable_delay: 0,
         }
     }
 
@@ -311,7 +315,12 @@ impl Cpu {
         self.halted
     }
 
-    /// Leaves the halted state. Interrupt arbitration is not implemented yet.
+    /// Returns whether the interrupt master enable (IME) latch is set.
+    pub const fn interrupts_enabled(&self) -> bool {
+        self.ime
+    }
+
+    /// Leaves the halted state. Interrupt requests are checked on the next step.
     pub fn wake(&mut self) {
         self.halted = false;
     }
@@ -322,6 +331,20 @@ impl Cpu {
     /// after the opcode byte has been fetched; no operands are consumed for an
     /// unsupported instruction.
     pub fn step<B: CpuBus>(&mut self, bus: &mut B) -> Result<StepResult, CpuError> {
+        let pending = bus.read8(0xFFFF) & bus.read8(0xFF0F) & 0x1F;
+        if pending != 0 && self.halted {
+            self.halted = false;
+        }
+        if self.ime && pending != 0 {
+            let interrupt = pending.trailing_zeros() as u8;
+            let request = bus.read8(0xFF0F) & !(1 << interrupt);
+            bus.write8(0xFF0F, request);
+            self.ime = false;
+            self.ime_enable_delay = 0;
+            self.push16(bus, self.registers.pc);
+            self.registers.pc = 0x0040 + u16::from(interrupt) * 8;
+            return Ok(StepResult { opcode: 0xFF, machine_cycles: 5 });
+        }
         if self.halted {
             return Ok(StepResult {
                 opcode: 0x76,
@@ -335,6 +358,21 @@ impl Cpu {
 
         let machine_cycles = match opcode {
             0x00 => 1, // NOP
+            0xD9 => {
+                self.registers.pc = self.pop16(bus);
+                self.ime = true;
+                self.ime_enable_delay = 0;
+                4
+            }
+            0xF3 => {
+                self.ime = false;
+                self.ime_enable_delay = 0;
+                1
+            }
+            0xFB => {
+                self.ime_enable_delay = 2;
+                1
+            }
             0xCB => {
                 let extended_opcode = self.fetch8(bus);
                 self.execute_cb(bus, extended_opcode)
@@ -810,6 +848,13 @@ impl Cpu {
             _ => return Err(CpuError::UnsupportedOpcode { address, opcode }),
         };
 
+        if self.ime_enable_delay > 0 {
+            self.ime_enable_delay -= 1;
+            if self.ime_enable_delay == 0 {
+                self.ime = true;
+            }
+        }
+
         Ok(StepResult {
             opcode,
             machine_cycles,
@@ -1180,6 +1225,54 @@ mod execution_tests {
         let result = cpu.step(&mut bus).unwrap();
         assert_eq!(result.machine_cycles, 4);
         assert_eq!(cpu.registers.pc, 0x1234);
+    }
+
+    #[test]
+    fn ei_enables_interrupts_after_the_following_instruction() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[0xFB, 0x00, 0x00]);
+        bus.0[0xFFFF] = 0x01;
+        bus.0[0xFF0F] = 0x01;
+        assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0xFB);
+        assert!(!cpu.interrupts_enabled());
+        assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0x00);
+        assert!(cpu.interrupts_enabled());
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 5);
+        assert_eq!(cpu.registers.pc, 0x0040);
+        assert_eq!(cpu.registers.sp, 0xFFFC);
+        assert_eq!(bus.0[0xFF0F] & 1, 0);
+        assert!(!cpu.interrupts_enabled());
+    }
+
+    #[test]
+    fn di_cancels_pending_ei_and_reti_restores_ime() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[0xFB, 0xF3, 0xD9]);
+        assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0xFB);
+        assert_eq!(cpu.step(&mut bus).unwrap().opcode, 0xF3);
+        assert!(!cpu.interrupts_enabled());
+        cpu.registers.sp = 0xC000;
+        bus.0[0xC000] = 0x34;
+        bus.0[0xC001] = 0x12;
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 4);
+        assert_eq!(cpu.registers.pc, 0x1234);
+        assert!(cpu.interrupts_enabled());
+    }
+
+    #[test]
+    fn interrupt_priority_acknowledges_only_the_highest_pending_bit() {
+        let mut cpu = Cpu::new();
+        let mut bus = TestBus::with_program(&[0x00]);
+        cpu.ime = true;
+        cpu.registers.pc = 0x1234;
+        cpu.registers.sp = 0xC100;
+        bus.0[0xFFFF] = 0x1F;
+        bus.0[0xFF0F] = 0x14;
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 5);
+        assert_eq!(cpu.registers.pc, 0x0050);
+        assert_eq!(bus.0[0xFF0F], 0x10);
+        assert_eq!(bus.0[0xC0FE], 0x34);
+        assert_eq!(bus.0[0xC0FF], 0x12);
     }
 
     #[test]

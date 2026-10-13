@@ -263,6 +263,8 @@ pub struct GameBoyCore {
     cpu: Cpu,
     work_ram: [u8; 0x2000],
     high_ram: [u8; 0x7F],
+    interrupt_enable: u8,
+    interrupt_request: u8,
 }
 
 impl GameBoyCore {
@@ -274,6 +276,8 @@ impl GameBoyCore {
             cpu: Cpu::new(),
             work_ram: [0; 0x2000],
             high_ram: [0; 0x7F],
+            interrupt_enable: 0,
+            interrupt_request: 0,
         }
     }
 
@@ -340,6 +344,8 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         self.header = Some(header);
         self.work_ram.fill(0);
         self.high_ram.fill(0);
+        self.interrupt_enable = 0;
+        self.interrupt_request = 0;
         self.cpu = Cpu::new();
         if header.cartridge_type == 0x00
             && header.preferred_hardware_mode().is_some()
@@ -400,6 +406,8 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         }
         self.work_ram.fill(0);
         self.high_ram.fill(0);
+        self.interrupt_enable = 0;
+        self.interrupt_request = 0;
         Ok(())
     }
 
@@ -435,6 +443,8 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
             image,
             work_ram: &mut self.work_ram,
             high_ram: &mut self.high_ram,
+            interrupt_enable: &mut self.interrupt_enable,
+            interrupt_request: &mut self.interrupt_request,
         };
         self.cpu.step(&mut bus).map_err(|_| {
             archiaemu_core::CoreError::Execution(
@@ -458,6 +468,8 @@ struct GameBoyBus<'a> {
     image: &'a [u8],
     work_ram: &'a mut [u8; 0x2000],
     high_ram: &'a mut [u8; 0x7F],
+    interrupt_enable: &'a mut u8,
+    interrupt_request: &'a mut u8,
 }
 
 impl CpuBus for GameBoyBus<'_> {
@@ -470,7 +482,9 @@ impl CpuBus for GameBoyBus<'_> {
                 .unwrap_or(0xFF),
             0xC000..=0xDFFF => self.work_ram[usize::from(address - 0xC000)],
             0xE000..=0xFDFF => self.work_ram[usize::from(address - 0xE000)],
+            0xFF0F => 0xE0 | *self.interrupt_request,
             0xFF80..=0xFFFE => self.high_ram[usize::from(address - 0xFF80)],
+            0xFFFF => 0xE0 | *self.interrupt_enable,
             _ => 0xFF,
         }
     }
@@ -479,7 +493,9 @@ impl CpuBus for GameBoyBus<'_> {
         match address {
             0xC000..=0xDFFF => self.work_ram[usize::from(address - 0xC000)] = value,
             0xE000..=0xFDFF => self.work_ram[usize::from(address - 0xE000)] = value,
+            0xFF0F => *self.interrupt_request = value & 0x1F,
             0xFF80..=0xFFFE => self.high_ram[usize::from(address - 0xFF80)] = value,
+            0xFFFF => *self.interrupt_enable = value & 0x1F,
             // Cartridge ROM and currently unimplemented hardware regions ignore writes.
             _ => {}
         }

@@ -586,7 +586,7 @@ mod preference_tests {
         ));
         fs::create_dir_all(&root).unwrap();
         let file = root.join("desktop.conf");
-        fs::write(&file, "version=1\\ndark=false\\nscale=NaN\\nscale=oops\\n").unwrap();
+        fs::write(&file, "version=1\ndark=false\nscale=NaN\nscale=oops\n").unwrap();
 
         let loaded = load_preferences(&file).unwrap().unwrap();
         assert!(!loaded.dark_mode);
@@ -600,7 +600,7 @@ mod preference_tests {
             std::env::temp_dir().join(format!("archiaemu-prefs-version-{}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         let file = root.join("desktop.conf");
-        fs::write(&file, "version=99\\ndark=false\\n").unwrap();
+        fs::write(&file, "version=99\ndark=false\n").unwrap();
 
         let error = match load_preferences(&file) {
             Err(error) => error,
