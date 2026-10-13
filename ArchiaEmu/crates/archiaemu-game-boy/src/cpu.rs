@@ -348,6 +348,44 @@ impl Cpu {
                 }
                 3
             }
+            // ADD HL,rr. Z is preserved; N is cleared.
+            0x09 | 0x19 | 0x29 | 0x39 => {
+                let value = match (opcode >> 4) & 0x03 {
+                    0 => self.registers.pair(RegisterPair::Bc),
+                    1 => self.registers.pair(RegisterPair::De),
+                    2 => self.registers.pair(RegisterPair::Hl),
+                    _ => self.registers.sp,
+                };
+                self.add_hl(value);
+                2
+            }
+            // Accumulator rotates. Z is always cleared for these four opcodes.
+            0x07 => {
+                let carry = self.registers.a & 0x80 != 0;
+                self.registers.a = self.registers.a.rotate_left(1);
+                self.registers.set_f(if carry { flags::CARRY } else { 0 });
+                1
+            }
+            0x0F => {
+                let carry = self.registers.a & 0x01 != 0;
+                self.registers.a = self.registers.a.rotate_right(1);
+                self.registers.set_f(if carry { flags::CARRY } else { 0 });
+                1
+            }
+            0x17 => {
+                let old_carry = u8::from(self.registers.flag(flags::CARRY));
+                let carry = self.registers.a & 0x80 != 0;
+                self.registers.a = (self.registers.a << 1) | old_carry;
+                self.registers.set_f(if carry { flags::CARRY } else { 0 });
+                1
+            }
+            0x1F => {
+                let old_carry = if self.registers.flag(flags::CARRY) { 0x80 } else { 0 };
+                let carry = self.registers.a & 0x01 != 0;
+                self.registers.a = (self.registers.a >> 1) | old_carry;
+                self.registers.set_f(if carry { flags::CARRY } else { 0 });
+                1
+            }
             // PUSH rr / POP rr.
             0xC5 | 0xD5 | 0xE5 | 0xF5 => {
                 self.push_pair(bus, (opcode >> 4) & 0x03);
@@ -557,7 +595,27 @@ impl Cpu {
                     1
                 }
             }
-            // ADD A,r; SUB r; XOR A,r.
+            // ADD A,r and ADC A,r.
+            0x80..=0x87 | 0x88..=0x8F => {
+                let value = self.read_register(bus, opcode & 0x07);
+                if opcode & 0xF8 == 0x88 {
+                    self.registers.add_a_with_carry(value);
+                } else {
+                    self.registers.add_a(value);
+                }
+                if opcode & 0x07 == 6 { 2 } else { 1 }
+            }
+            // SUB r and SBC A,r.
+            0x90..=0x97 | 0x98..=0x9F => {
+                let value = self.read_register(bus, opcode & 0x07);
+                if opcode & 0xF8 == 0x98 {
+                    self.registers.subtract_a_with_carry(value);
+                } else {
+                    self.registers.subtract_a(value);
+                }
+                if opcode & 0x07 == 6 { 2 } else { 1 }
+            }
+            // XOR A,r.
             0x80..=0x87 => {
                 let value = self.read_register(bus, opcode & 0x07);
                 self.registers.add_a(value);
@@ -617,6 +675,51 @@ impl Cpu {
                     1
                 }
             }
+            // LDH (a8),A / LDH A,(a8), plus C-indexed high-page transfers.
+            0xE0 | 0xF0 => {
+                let address = 0xFF00u16.wrapping_add(u16::from(self.fetch8(bus)));
+                if opcode == 0xE0 {
+                    bus.write8(address, self.registers.a);
+                } else {
+                    self.registers.a = bus.read8(address);
+                }
+                3
+            }
+            0xE2 => {
+                bus.write8(0xFF00u16.wrapping_add(u16::from(self.registers.c)), self.registers.a);
+                2
+            }
+            0xF2 => {
+                self.registers.a = bus.read8(0xFF00u16.wrapping_add(u16::from(self.registers.c)));
+                2
+            }
+            // ADD SP,e8 / LD HL,SP+e8. Flags use the unsigned immediate's low bits.
+            0xE8 | 0xF8 => {
+                let immediate = self.fetch8(bus);
+                let sp = self.registers.sp;
+                let result = sp.wrapping_add_signed(i16::from(immediate as i8));
+                self.registers.set_f(0);
+                self.registers.set_flag(
+                    flags::HALF_CARRY,
+                    (sp & 0x000F) + u16::from(immediate & 0x0F) > 0x000F,
+                );
+                self.registers.set_flag(
+                    flags::CARRY,
+                    (sp & 0x00FF) + u16::from(immediate) > 0x00FF,
+                );
+                if opcode == 0xE8 {
+                    self.registers.sp = result;
+                    4
+                } else {
+                    self.registers.set_pair(RegisterPair::Hl, result);
+                    3
+                }
+            }
+            // LD SP,HL.
+            0xF9 => {
+                self.registers.sp = self.registers.pair(RegisterPair::Hl);
+                2
+            }
             // INC r / DEC r.
             0x04 | 0x0C | 0x14 | 0x1C | 0x24 | 0x2C | 0x34 | 0x3C => {
                 let register = (opcode >> 3) & 0x07;
@@ -658,6 +761,18 @@ impl Cpu {
             opcode,
             machine_cycles,
         })
+    }
+
+    fn add_hl(&mut self, value: u16) {
+        let hl = self.registers.pair(RegisterPair::Hl);
+        let result = hl.wrapping_add(value);
+        self.registers.set_flag(flags::SUBTRACT, false);
+        self.registers.set_flag(
+            flags::HALF_CARRY,
+            (hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF,
+        );
+        self.registers.set_flag(flags::CARRY, u32::from(hl) + u32::from(value) > 0xFFFF);
+        self.registers.set_pair(RegisterPair::Hl, result);
     }
 
     fn condition_met(&self, condition: u8) -> bool {
@@ -780,6 +895,70 @@ mod execution_tests {
         fn write8(&mut self, address: u16, value: u8) {
             self.0[usize::from(address)] = value;
         }
+    }
+
+    #[test]
+    fn adc_sbc_and_add_hl_update_values_flags_and_cycles() {
+        let mut cpu = Cpu::new();
+        cpu.registers.a = 0x0F;
+        cpu.registers.set_flag(flags::CARRY, true);
+        cpu.registers.set_pair(RegisterPair::Hl, 0x0FFF);
+        cpu.registers.set_pair(RegisterPair::Bc, 1);
+        let mut bus = TestBus::with_program(&[0x88, 0x98, 0x09]);
+        cpu.registers.b = 0;
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0x10);
+        assert!(cpu.registers.flag(flags::HALF_CARRY));
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0x10);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.pair(RegisterPair::Hl), 0x1000);
+        assert!(cpu.registers.flag(flags::HALF_CARRY));
+        assert!(!cpu.registers.flag(flags::SUBTRACT));
+    }
+
+    #[test]
+    fn high_page_loads_and_signed_sp_offsets_use_hardware_flags() {
+        let mut cpu = Cpu::new();
+        cpu.registers.a = 0x5A;
+        cpu.registers.sp = 0x00FF;
+        cpu.registers.c = 0x80;
+        let mut bus = TestBus::with_program(&[
+            0xE0, 0x42, 0xF0, 0x42, 0xE2, 0xF2, 0xF8, 0x01,
+        ]);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(bus.0[0xFF42], 0x5A);
+        cpu.registers.a = 0;
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(cpu.registers.a, 0x5A);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(bus.0[0xFF80], 0x5A);
+        cpu.registers.a = 0;
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
+        assert_eq!(cpu.registers.a, 0x5A);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
+        assert_eq!(cpu.registers.pair(RegisterPair::Hl), 0x0100);
+        assert!(cpu.registers.flag(flags::HALF_CARRY));
+        assert!(cpu.registers.flag(flags::CARRY));
+        assert!(!cpu.registers.flag(flags::ZERO));
+        assert!(!cpu.registers.flag(flags::SUBTRACT));
+    }
+
+    #[test]
+    fn accumulator_rotate_clears_zero_and_sets_only_carry() {
+        let mut cpu = Cpu::new();
+        cpu.registers.a = 0x80;
+        cpu.registers.set_f(0xF0);
+        let mut bus = TestBus::with_program(&[0x07, 0x17, 0x1F]);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0x01);
+        assert_eq!(cpu.registers.f(), flags::CARRY);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0x03);
+        assert_eq!(cpu.registers.f(), 0);
+        assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 1);
+        assert_eq!(cpu.registers.a, 0x01);
+        assert_eq!(cpu.registers.f(), 0);
     }
 
     #[test]
