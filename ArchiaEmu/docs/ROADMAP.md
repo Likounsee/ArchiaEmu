@@ -11,10 +11,10 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Fiabilité du runtime commun | 100 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 100 % | Pipeline commun borné, validation de tous les formats actuellement enregistrés et contrat d'intégration hôte |
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
-| **P1** | Orchestration multi-sessions | 72 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
-| **P1** | Entrées, sorties et horloge hôte | 63 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
+| **P1** | Orchestration multi-sessions | 73 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
+| **P1** | Entrées, sorties et horloge hôte | 65 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 55 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
-| **P1** | Frontend minimal du framework | 60 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
+| **P1** | Frontend minimal du framework | 61 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
 | **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
 | **P3** | Performance et stabilité | 10 % | Benchmarks reproductibles et optimisation guidée par les mesures |
@@ -106,7 +106,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 ## P1 — construire le chemin complet de lancement
 
-### P1.1 — Orchestrateur et multi-sessions — 72 %
+### P1.1 — Orchestrateur et multi-sessions — 73 %
 - [x] Ajouter un gestionnaire hôte reliant le registre, le pipeline de chargement et les sessions.
 - [x] Distinguer l'identifiant hôte de session de l'identifiant de système; les IDs sont monotones et jamais réutilisés.
 - [x] Permettre la création, l'accès et la fermeture de plusieurs sessions indépendantes.
@@ -117,7 +117,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtime.rs`; l'identité de contenu persistante et le catalogue hôte restent à intégrer.
 
-### P1.2 — Entrées, vidéo, audio et cadence — 63 %
+### P1.2 — Entrées, vidéo, audio et cadence — 65 %
 - [x] Contrats d'entrée génériques avec transitions dédupliquées et libération de toutes les commandes à la perte de focus/déconnexion.
 - [x] Trames vidéo avec dimensions, stride explicite, format de pixel et propriété du tampon; lignes rembourrées et tailles incohérentes testées.
 - [x] Blocs audio PCM signés 16 bits entrelacés avec fréquence, canaux et nombre de frames validés.
@@ -139,7 +139,7 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Injecter les échecs de renommage et vérifier la restauration du primaire, le backup récupérable et le nettoyage du temporaire sur les plateformes CI prises en charge.
 - [ ] Simuler une interruption brutale du processus ou une coupure d'alimentation à chaque jalon durable; la CI ne simule pas une perte d'alimentation réelle.
 
-### P1.4 — Première application hôte minimale — 60 %
+### P1.4 — Première application hôte minimale — 61 %
 
 Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, `--system` sélectionne explicitement le module, et le REPL permet `open <chemin>`, `sessions`, `switch <id>` et `close [id|all]` pour gérer plusieurs sessions; `close all`, `quit`, `exit` et EOF libèrent toutes les sessions. Un test frontend vérifie que la fermeture globale efface aussi la sélection active, libère toutes les sessions et reste idempotente. `save-state <path>` et `load-state <path>` réutilisent l'enveloppe versionnée et le stockage persistant commun, en refusant les cœurs qui n'annoncent pas cette capacité. Les erreurs de chargement et de commandes sont affichées sans fermer immédiatement l'interface. Les commandes `input <control> <press|release>` et `release-inputs` transmettent les transitions sémantiques au cœur actif et récupèrent les erreurs de capacité sans quitter le REPL. La commande `media` interroge au plus une trame vidéo et un tampon audio disponibles, puis affiche leurs métadonnées; elle ne fait pas encore de rendu graphique ni de lecture audio. Le cœur Game Boy ne déclare pas ces capacités.
 
@@ -149,7 +149,7 @@ La commande `close all` ferme désormais toutes les sessions et désactive la se
 - [x] Exposer les transitions d'entrée sémantiques (`input ... press|release`) et la libération globale (`release-inputs`) depuis le REPL; les cœurs sans capacité d'entrée retournent une erreur explicite.
 - [x] Exposer un chemin de diagnostic pour récupérer une trame et un tampon audio annoncés par le cœur (`media`), avec dimensions, stride, format, fréquence, canaux et nombre d'échantillons; ce n'est pas encore un backend de rendu/lecture.
 - [x] Exposer `run <events>` pour exécuter un budget explicite de 1 à 10 000 appels d'événement, retourner le nombre réellement exécuté, le dernier événement et indiquer si le budget a été épuisé; ajouter des tests des limites de budget. Cela ne remplace pas encore une horloge temps réel.
-- [x] Ajouter un test de flux P1 au niveau du runtime : sélection via registre/sonde, validation et chargement du contenu, entrée sémantique, récupération des sorties vidéo/audio simulées, sauvegarde versionnée, exécution, restauration et fermeture de session. Un test complémentaire confirme qu'un contenu refusé par le cœur ne laisse aucune session partiellement enregistrée.
+- [x] Ajouter un test de flux P1 au niveau du runtime : sélection via registre/sonde, validation et chargement du contenu, entrée sémantique, récupération des sorties vidéo/audio simulées, sauvegarde versionnée, exécution, restauration, libération des entrées, arrêt explicite et fermeture de session. Un test complémentaire confirme qu'un contenu refusé par le cœur ne laisse aucune session partiellement enregistrée.
 - [ ] Ne pas créer de menus ou d'améliorations propres à une console avant que le chemin de lancement générique fonctionne.
 - [ ] Séparer les réglages d'interface des réglages de matériel émulé.
 
