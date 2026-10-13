@@ -163,8 +163,13 @@ fn command_loop(
         }
         if command == "close" || command.starts_with("close ") {
             let target = if let Some(raw) = command.strip_prefix("close ") {
-                raw.trim().parse::<u64>().ok().and_then(|n| host.session_ids().into_iter().find(|id| id.get() == n))
-            } else { active };
+                raw.trim()
+                    .parse::<u64>()
+                    .ok()
+                    .and_then(|n| host.session_ids().into_iter().find(|id| id.get() == n))
+            } else {
+                active
+            };
             match target {
                 Some(id) => {
                     host.close_session(id)?;
