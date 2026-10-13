@@ -588,7 +588,10 @@ mod tests {
     }
 
     fn args(values: &[&str]) -> Vec<std::ffi::OsString> {
-        values.iter().map(|value| std::ffi::OsString::from(*value)).collect()
+        values
+            .iter()
+            .map(|value| std::ffi::OsString::from(*value))
+            .collect()
     }
 
     #[test]
