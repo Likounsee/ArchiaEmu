@@ -377,14 +377,7 @@ mod tests {
 
     #[test]
     fn video_frame_supports_explicit_padded_row_stride() {
-        let frame = VideoFrame::with_stride(
-            1,
-            2,
-            PixelFormat::Rgba8888,
-            8,
-            vec![1; 16],
-        )
-        .unwrap();
+        let frame = VideoFrame::with_stride(1, 2, PixelFormat::Rgba8888, 8, vec![1; 16]).unwrap();
         assert_eq!(frame.row_stride_bytes(), 8);
         assert_eq!(frame.pixels().len(), 16);
     }
@@ -393,7 +386,10 @@ mod tests {
     fn video_frame_rejects_stride_smaller_than_a_packed_row() {
         assert_eq!(
             VideoFrame::with_stride(2, 1, PixelFormat::Rgba8888, 7, vec![0; 7]),
-            Err(MediaDataError::InvalidRowStride { minimum: 8, actual: 7 })
+            Err(MediaDataError::InvalidRowStride {
+                minimum: 8,
+                actual: 7,
+            })
         );
     }
 
