@@ -315,7 +315,12 @@ impl ModuleStateStore {
                 return Err(error.into());
             }
         }
-        replace_primary_with_temp(&self.path, &temp, &backup, had_original)?;
+        if let Err(error) =
+            replace_primary_with_temp(&self.path, &temp, &backup, had_original)
+        {
+            let _ = fs::remove_file(&temp);
+            return Err(error.into());
+        }
         sync_directory(parent)?;
         Ok(())
     }
