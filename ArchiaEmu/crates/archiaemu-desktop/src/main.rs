@@ -466,9 +466,9 @@ impl DesktopApp {
 
         let mut newest_frame: Option<VideoFrame> = None;
         let mut error = None;
-        let mut video_available = false;
-        let mut audio_available = false;
-        let mut state = SessionState::Empty;
+        let video_available;
+        let audio_available;
+        let state;
         {
             let session_result = self.controller.host_mut().session_mut(id);
             let Ok(session) = session_result else {
@@ -484,7 +484,7 @@ impl DesktopApp {
             let due = session.advance_frame_cadence(&mut self.frame_cadence, elapsed);
             if state == SessionState::Running {
                 for _ in 0..due.due_frames {
-                    if let Err(run_error) = session.run_for_events(4096) {
+                    if let Err(run_error) = session.run_for_events(1024) {
                         error = Some(format!("Execution error: {run_error}"));
                         break;
                     }
