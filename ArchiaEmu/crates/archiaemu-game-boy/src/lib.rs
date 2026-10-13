@@ -307,8 +307,11 @@ fn game_boy_core_descriptor() -> archiaemu_core::CoreDescriptor {
             .expect("the built-in Game Boy system ID is valid"),
         display_name: "Game Boy / Game Boy Color",
         core_version: env!("CARGO_PKG_VERSION"),
-        // Do not advertise execution capabilities before they exist.
-        capabilities: archiaemu_core::CoreCapabilities::default(),
+        // Loading and validating a cartridge is supported; machine I/O and full execution are not.
+        capabilities: archiaemu_core::CoreCapabilities {
+            content_loading: true,
+            ..archiaemu_core::CoreCapabilities::default()
+        },
     }
 }
 
@@ -500,6 +503,19 @@ fn create_game_boy_core() -> Box<dyn archiaemu_core::EmulationCore> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn descriptor_advertises_cartridge_loading_without_claiming_media_or_input_support() {
+        use archiaemu_core::EmulationCore;
+
+        let capabilities = super::GameBoyCore::new().descriptor().capabilities;
+        assert!(capabilities.content_loading);
+        assert!(!capabilities.input);
+        assert!(!capabilities.video_output);
+        assert!(!capabilities.audio_output);
+        assert!(!capabilities.save_states);
+        assert!(!capabilities.persistent_saves);
+    }
+
     #[test]
     fn cartridge_probe_id_matches_registered_core_system_id() {
         use archiaemu_core::content::ContentFormatProbe;
