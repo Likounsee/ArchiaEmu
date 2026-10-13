@@ -413,7 +413,10 @@ fn command_loop(
     Ok(())
 }
 
-fn library_entry_path(library: &archiaemu_app::library::ContentLibrary, index: usize) -> Option<PathBuf> {
+fn library_entry_path(
+    library: &archiaemu_app::library::ContentLibrary,
+    index: usize,
+) -> Option<PathBuf> {
     if index == 0 {
         return None;
     }
