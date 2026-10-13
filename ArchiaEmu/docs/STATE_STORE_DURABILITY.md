@@ -15,7 +15,8 @@ Les écritures concurrentes sur un même chemin doivent être sérialisées par 
 ## Garanties par plateforme
 
 - **Unix (dont Linux et macOS)** : après le remplacement, le code ouvre le répertoire parent et appelle `sync_all`. Les erreurs de cette opération sont propagées. Cela renforce la persistance de l'entrée de répertoire, sans garantir à lui seul le comportement de tous les systèmes de fichiers ou de tous les périphériques.
-- **Windows et autres plateformes non Unix** : la synchronisation explicite du répertoire parent est actuellement une opération sans effet. Le contenu temporaire est synchronisé avant le remplacement, mais la persistance du renommage après une coupure brutale n'est pas garantie par ce mécanisme. Le code ne doit pas être présenté comme offrant une durabilité identique à Unix.
+- **Windows** : la synchronisation explicite du répertoire parent n'est pas disponible via `FlushFileBuffers` sur un handle de répertoire. À la place, chaque renommage de la transaction de sauvegarde (primaire vers backup, temporaire vers primaire, restauration) passe par un petit crate isolé qui appelle `MoveFileExW` avec `MOVEFILE_WRITE_THROUGH` et `MOVEFILE_REPLACE_EXISTING`. Le contenu temporaire est également synchronisé avant le remplacement. Cette stratégie doit encore être confirmée par les quality gates Windows; elle ne simule pas une coupure d'alimentation.
+- **Autres plateformes non Unix** : le helper de synchronisation de répertoire reste sans effet; le renommage utilise `std::fs::rename`. Aucune garantie de durabilité supplémentaire n'est revendiquée pour ces cibles.
 
 ## Couverture et travaux restants
 
