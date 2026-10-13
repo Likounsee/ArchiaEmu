@@ -340,6 +340,7 @@ impl ModuleStateStore {
 }
 
 /// Installs a staged state file, restoring the previous primary if installation fails.
+#[cfg(test)]
 fn replace_primary_with_temp(
     primary: &Path,
     temp: &Path,
