@@ -128,7 +128,7 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Interfaces indépendantes d'une bibliothèque graphique ou audio particulière.
 - [x] Tester le transfert des trames vidéo et blocs audio via une session : payload remis une seule fois, lecture avant chargement refusée et capacités média non déclarées signalées explicitement.
 
-### P1.3 — Sauvegardes et restauration — 56 %
+### P1.3 — Sauvegardes et restauration — 58 %
 - [x] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur dans `docs/SAVE_STATE_POLICY.md`; le frontend propose `save-state <path>` et `load-state <path>` et respecte la capacité déclarée par le cœur.
 - [x] Définir un conteneur binaire versionné avec ID/version du cœur, taille bornée, longueur exacte et contrôle CRC-32 d'intégrité (détection de corruption, pas authentification cryptographique).
 - [x] Valider les métadonnées et limites avant de fournir le payload au cœur; refuser les versions de format inconnues, systèmes/versions incompatibles, données tronquées ou excédentaires et checksums invalides.
@@ -137,7 +137,8 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Tester corruption, version inconnue, payload vide/trop grand, incompatibilité de système/cœur, troncature et données excédentaires.
 - [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup lorsque le fichier principal est corrompu, absent ou dépasse la limite; vérifier que le primaire rejeté n'est pas réécrit silencieusement.
 - [x] Injecter les échecs de renommage et vérifier la restauration du primaire, le backup récupérable et le nettoyage du temporaire sur les plateformes CI prises en charge.
-- [ ] Étendre la simulation d'interruption à chaque jalon durable et aux plateformes CI. Un test modélise déjà l'arrêt après le déplacement de l'ancien primaire vers le backup, avant l'installation du temporaire : la reprise choisit le backup valide et ne promeut pas le temporaire non validé. Cela ne simule pas une véritable coupure d'alimentation.
+- [x] Modéliser la récupération aux checkpoints de sauvegarde : temporaire créé, écriture partielle, temporaire complet/synchronisé, backup retiré, ancien primaire déplacé vers le backup, nouveau primaire installé et répertoire synchronisé. Les tests vérifient que seul le primaire installé est considéré comme validé et qu'un temporaire orphelin n'est jamais promu. Ces tests modélisent les dispositions de fichiers après interruption; ils ne tuent pas réellement le processus à chaque instruction et ne simulent pas une coupure d'alimentation physique.
+- [ ] Ajouter des tests d'arrêt forcé du processus et exécuter cette matrice sur toutes les plateformes CI prises en charge.
 
 ### P1.4 — Première application hôte minimale — 61 %
 
