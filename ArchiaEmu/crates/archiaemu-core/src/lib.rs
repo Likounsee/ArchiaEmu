@@ -922,7 +922,6 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod core_instance_isolation_tests {
     use super::*;
@@ -991,8 +990,12 @@ mod core_instance_isolation_tests {
         let first_id = SystemId::new("isolation-test").unwrap();
         let second_id = SystemId::new("isolation-test-two").unwrap();
         let mut registry = CoreRegistry::new();
-        registry.register(first_id, make_first_isolation_module).unwrap();
-        registry.register(second_id, make_second_isolation_module).unwrap();
+        registry
+            .register(first_id, make_first_isolation_module)
+            .unwrap();
+        registry
+            .register(second_id, make_second_isolation_module)
+            .unwrap();
 
         let mut first = registry.create(first_id).unwrap();
         let mut second = registry.create(second_id).unwrap();

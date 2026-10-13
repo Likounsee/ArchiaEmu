@@ -328,13 +328,9 @@ impl ModuleStateStore {
                 return Err(error.into());
             }
         }
-        if let Err(error) = replace_primary_with_temp_using(
-            &self.path,
-            &temp,
-            &backup,
-            had_original,
-            &mut rename,
-        ) {
+        if let Err(error) =
+            replace_primary_with_temp_using(&self.path, &temp, &backup, had_original, &mut rename)
+        {
             let _ = fs::remove_file(&temp);
             return Err(error.into());
         }
@@ -450,23 +446,17 @@ mod tests {
         fs::write(&primary, original.encode()).unwrap();
 
         let mut rename_calls = 0;
-        let result = replace_primary_with_temp_using(
-            &primary,
-            &temp,
-            &backup,
-            true,
-            |from, to| {
-                rename_calls += 1;
-                match rename_calls {
-                    1 => fs::rename(from, to),
-                    2 | 3 => Err(io::Error::new(
-                        io::ErrorKind::PermissionDenied,
-                        "injected rename failure",
-                    )),
-                    _ => unreachable!("replacement must make at most three rename calls"),
-                }
-            },
-        );
+        let result = replace_primary_with_temp_using(&primary, &temp, &backup, true, |from, to| {
+            rename_calls += 1;
+            match rename_calls {
+                1 => fs::rename(from, to),
+                2 | 3 => Err(io::Error::new(
+                    io::ErrorKind::PermissionDenied,
+                    "injected rename failure",
+                )),
+                _ => unreachable!("replacement must make at most three rename calls"),
+            }
+        });
 
         assert_eq!(rename_calls, 3);
         assert!(result.is_err());
@@ -536,7 +526,12 @@ mod tests {
         let leftovers = fs::read_dir(parent)
             .unwrap()
             .filter_map(Result::ok)
-            .filter(|entry| entry.file_name().to_string_lossy().starts_with(&temp_prefix))
+            .filter(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(&temp_prefix)
+            })
             .collect::<Vec<_>>();
         assert!(leftovers.is_empty(), "staged state file must be removed");
 
