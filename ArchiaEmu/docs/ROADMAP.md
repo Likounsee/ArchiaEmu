@@ -138,9 +138,9 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 
 ### P1.4 — Première application hôte minimale — 45 %
 
-Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, `--system` sélectionne explicitement le module, et le REPL permet `open <chemin>`, `sessions`, `switch <id>` et `close [id]` pour gérer plusieurs sessions. Les erreurs de chargement sont affichées sans fermer immédiatement l'interface. Les entrées interactives et les sorties audio/vidéo restent à intégrer.
+Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, `--system` sélectionne explicitement le module, et le REPL permet `open <chemin>`, `sessions`, `switch <id>` et `close [id]` pour gérer plusieurs sessions. `save-state <path>` et `load-state <path>` réutilisent l'enveloppe versionnée et le stockage persistant commun, en refusant les cœurs qui n'annoncent pas cette capacité. Les erreurs de chargement et de commandes sont affichées sans fermer immédiatement l'interface. Les entrées interactives et les sorties audio/vidéo restent à intégrer.
 - [x] Ajouter une interface terminale pour sélectionner un module, ouvrir plusieurs contenus, basculer entre sessions, fermer une session et lancer/mettre en pause/arrêter.
-- [ ] Afficher les erreurs, capacités indisponibles et informations de diagnostic sans planter.
+- [x] Afficher les erreurs de chargement et de commandes, les capacités indisponibles et les états de session sans interrompre la boucle pour une erreur de commande.
 - [ ] Ne pas créer de menus ou d'améliorations propres à une console avant que le chemin de lancement générique fonctionne.
 - [ ] Séparer les réglages d'interface des réglages de matériel émulé.
 
