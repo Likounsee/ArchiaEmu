@@ -149,7 +149,7 @@ La commande `close all` ferme désormais toutes les sessions et désactive la se
 - [x] Exposer les transitions d'entrée sémantiques (`input ... press|release`) et la libération globale (`release-inputs`) depuis le REPL; les cœurs sans capacité d'entrée retournent une erreur explicite.
 - [x] Exposer un chemin de diagnostic pour récupérer une trame et un tampon audio annoncés par le cœur (`media`), avec dimensions, stride, format, fréquence, canaux et nombre d'échantillons; ce n'est pas encore un backend de rendu/lecture.
 - [x] Exposer `run <events>` pour exécuter un budget explicite de 1 à 10 000 appels d'événement, retourner le nombre réellement exécuté, le dernier événement et indiquer si le budget a été épuisé; ajouter des tests des limites de budget. Cela ne remplace pas encore une horloge temps réel.
-- [x] Ajouter un test de flux P1 au niveau du runtime : sélection via registre/sonde, validation et chargement du contenu, entrée sémantique, récupération des sorties vidéo/audio simulées, sauvegarde versionnée, exécution, restauration et fermeture de session.
+- [x] Ajouter un test de flux P1 au niveau du runtime : sélection via registre/sonde, validation et chargement du contenu, entrée sémantique, récupération des sorties vidéo/audio simulées, sauvegarde versionnée, exécution, restauration et fermeture de session. Un test complémentaire confirme qu'un contenu refusé par le cœur ne laisse aucune session partiellement enregistrée.
 - [ ] Ne pas créer de menus ou d'améliorations propres à une console avant que le chemin de lancement générique fonctionne.
 - [ ] Séparer les réglages d'interface des réglages de matériel émulé.
 
