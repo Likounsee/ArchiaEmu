@@ -610,6 +610,32 @@ mod tests {
     }
 
     #[test]
+    fn full_host_rejects_path_launch_before_touching_the_filesystem() {
+        let mut host = HostRuntime::new(HostRuntimeConfig { max_sessions: 1 }).unwrap();
+        let _occupied = host.create_session(Box::new(MockCore)).unwrap();
+        let registry = CoreRegistry::new();
+        let probe = MatchProbe;
+
+        // A full host must report capacity exhaustion deterministically, even if
+        // the supplied path does not exist. This keeps filesystem errors from
+        // obscuring the actionable lifecycle error and avoids needless I/O.
+        let missing_path = std::env::temp_dir()
+            .join(format!("archiaemu-must-not-read-{}-missing.rom", std::process::id()));
+        let result = host.launch_content_path(
+            &missing_path,
+            ContentLimits::new(1024),
+            &[&probe],
+            &registry,
+        );
+
+        assert!(matches!(
+            result,
+            Err(HostRuntimeError::SessionLimitReached { limit: 1 })
+        ));
+        assert_eq!(host.session_count(), 1);
+    }
+
+    #[test]
     fn rejects_zero_capacity_and_unknown_ids() {
         assert!(matches!(
             HostRuntime::new(HostRuntimeConfig { max_sessions: 0 }),
