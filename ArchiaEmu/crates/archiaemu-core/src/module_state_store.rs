@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-//! Versioned, dependency-free persistence for first-launch and module state.
+//! Versioned persistence for first-launch and module state.
 
 use core::fmt;
 use std::collections::HashSet;
@@ -278,7 +278,7 @@ impl ModuleStateStore {
     where
         F: FnOnce(&Path) -> io::Result<()>,
     {
-        self.save_with_operations(state, sync_directory, fs::rename)
+        self.save_with_operations(state, sync_directory, platform_rename)
     }
 
     fn save_with_operations<F, R>(
@@ -350,7 +350,7 @@ fn replace_primary_with_temp(
     backup: &Path,
     had_original: bool,
 ) -> io::Result<()> {
-    replace_primary_with_temp_using(primary, temp, backup, had_original, fs::rename)
+    replace_primary_with_temp_using(primary, temp, backup, had_original, platform_rename)
 }
 
 fn replace_primary_with_temp_using<F>(
@@ -378,11 +378,9 @@ where
     Ok(())
 }
 
-/// Makes a successful rename durable where the platform exposes directory
-/// synchronization. On Unix, failure is returned instead of silently claiming
-/// the replacement is durable. Other platforms currently rely on the flushed
-/// file and their filesystem's rename guarantees because opening directories as
-/// ordinary files is not uniformly supported by the standard library.
+/// Synchronizes directory metadata where the platform exposes directory sync.
+/// Windows instead uses write-through MoveFileExW for every rename in the save
+/// transaction; directory handles cannot be flushed with FlushFileBuffers.
 #[cfg(unix)]
 fn sync_parent_directory(parent: &Path) -> io::Result<()> {
     File::open(parent)?.sync_all()
@@ -391,6 +389,19 @@ fn sync_parent_directory(parent: &Path) -> io::Result<()> {
 #[cfg(not(unix))]
 fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
     Ok(())
+}
+
+/// Uses a write-through rename on Windows and the standard rename elsewhere.
+fn platform_rename(from: &Path, to: &Path) -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        return archiaemu_windows_durability::rename_write_through(from, to);
+    }
+
+    #[cfg(not(windows))]
+    {
+        fs::rename(from, to)
+    }
 }
 
 fn read_state(path: &Path) -> Result<ModuleManagerState, ModuleStateStoreError> {
