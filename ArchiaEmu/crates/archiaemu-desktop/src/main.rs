@@ -759,35 +759,34 @@ impl DesktopApp {
                 });
         }
 
-        if let Some(path) = self.selected_content.clone() {
-            if let Some((title, size)) = self
-                .controller
+        let selected_details = self.selected_content.clone().and_then(|path| {
+            self.controller
                 .library()
                 .entries()
                 .find(|entry| entry.path() == path)
-                .map(|entry| (entry.title().to_owned(), entry.size_bytes()))
-            {
-                ui.add_space(8.0);
-                egui::Frame::group(ui.style()).show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.vertical(|ui| {
-                            ui.heading("Selected content");
-                            ui.label(&title);
-                            ui.small(path.display().to_string());
-                            ui.small(format!(
-                                "{} · ready for the shared launch pipeline",
-                                format_size(size)
-                            ));
-                        });
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.button("Launch selected").clicked() {
-                                self.content_path = path.display().to_string();
-                                self.launch_content();
-                            }
-                        });
+                .map(|entry| (path, entry.title().to_owned(), entry.size_bytes()))
+        });
+        if let Some((path, title, size)) = selected_details {
+            ui.add_space(8.0);
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        ui.heading("Selected content");
+                        ui.label(&title);
+                        ui.small(path.display().to_string());
+                        ui.small(format!(
+                            "{} · ready for the shared launch pipeline",
+                            format_size(size)
+                        ));
+                    });
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button("Launch selected").clicked() {
+                            self.content_path = path.display().to_string();
+                            self.launch_content();
+                        }
                     });
                 });
-            }
+            });
         }
     }
 
