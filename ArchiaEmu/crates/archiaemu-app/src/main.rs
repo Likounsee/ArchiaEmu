@@ -7,9 +7,9 @@ use std::error::Error;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
+use archiaemu_app::controller::ApplicationController;
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::core_io::{InputControl, InputEvent};
-use archiaemu_app::controller::ApplicationController;
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::save_state_store::SaveStateStore;
 use archiaemu_core::CoreRegistry;
