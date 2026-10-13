@@ -7,6 +7,7 @@
 //! renderer, audio backend, scheduler, controller mapper, or console emulation.
 
 use core::fmt;
+use std::collections::VecDeque;
 
 /// Host-level control intent before it is mapped to a console's hardware.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -357,6 +358,101 @@ impl FrameCadence {
     }
 }
 
+/// Policy applied when a bounded media queue is full.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QueueOverflowPolicy {
+    /// Preserve recent video by removing the oldest queued item.
+    DropOldest,
+    /// Preserve all queued audio by rejecting the newly submitted item.
+    RejectNewest,
+}
+
+/// Outcome of submitting an item to a bounded media queue.
+#[derive(Debug, Eq, PartialEq)]
+pub enum QueuePushResult<T> {
+    /// The item was added without discarding queued data.
+    Enqueued,
+    /// The item was added after removing the oldest queued item.
+    EnqueuedDroppingOldest(T),
+    /// The queue was full and the submitted item was returned to the caller.
+    Rejected(T),
+}
+
+/// A bounded FIFO for host-facing media with an explicit overflow policy.
+///
+/// Capacity is enforced before accepting data. Hosts can use DropOldest for
+/// latency-sensitive video and RejectNewest for audio, where the producer
+/// must handle back-pressure rather than silently losing already queued audio.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BoundedMediaQueue<T> {
+    capacity: usize,
+    policy: QueueOverflowPolicy,
+    items: VecDeque<T>,
+}
+
+impl<T> BoundedMediaQueue<T> {
+    /// Creates an empty queue with a non-zero item capacity.
+    pub fn new(capacity: usize, policy: QueueOverflowPolicy) -> Result<Self, QueueCapacityError> {
+        if capacity == 0 {
+            return Err(QueueCapacityError);
+        }
+        Ok(Self {
+            capacity,
+            policy,
+            items: VecDeque::with_capacity(capacity),
+        })
+    }
+
+    /// Returns the maximum number of queued items.
+    pub const fn capacity(&self) -> usize {
+        self.capacity
+    }
+
+    /// Returns the number of currently queued items.
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    /// Returns true when no items are queued.
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    /// Removes and returns the oldest queued item.
+    pub fn pop_front(&mut self) -> Option<T> {
+        self.items.pop_front()
+    }
+
+    /// Adds an item, applying the configured full-queue policy.
+    pub fn push(&mut self, item: T) -> QueuePushResult<T> {
+        if self.items.len() < self.capacity {
+            self.items.push_back(item);
+            return QueuePushResult::Enqueued;
+        }
+
+        match self.policy {
+            QueueOverflowPolicy::DropOldest => {
+                let dropped = self.items.pop_front().expect("full queue is non-empty");
+                self.items.push_back(item);
+                QueuePushResult::EnqueuedDroppingOldest(dropped)
+            }
+            QueueOverflowPolicy::RejectNewest => QueuePushResult::Rejected(item),
+        }
+    }
+}
+
+/// Error returned when a bounded queue is configured with zero capacity.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct QueueCapacityError;
+
+impl fmt::Display for QueueCapacityError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("media queue capacity must be greater than zero")
+    }
+}
+
+impl std::error::Error for QueueCapacityError {}
+
 /// Canonical host-side input state shared by all emulation cores.
 ///
 /// It deduplicates repeated transitions and can synthesize releases when the
@@ -451,6 +547,35 @@ impl InputControl {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bounded_media_queue_drops_oldest_for_video_without_growing() {
+        let mut queue = BoundedMediaQueue::new(2, QueueOverflowPolicy::DropOldest).unwrap();
+        assert_eq!(queue.push(10), QueuePushResult::Enqueued);
+        assert_eq!(queue.push(20), QueuePushResult::Enqueued);
+        assert_eq!(queue.push(30), QueuePushResult::EnqueuedDroppingOldest(10));
+        assert_eq!(queue.len(), 2);
+        assert_eq!(queue.pop_front(), Some(20));
+        assert_eq!(queue.pop_front(), Some(30));
+        assert!(queue.is_empty());
+    }
+
+    #[test]
+    fn bounded_media_queue_rejects_new_audio_without_losing_queued_samples() {
+        let mut queue = BoundedMediaQueue::new(1, QueueOverflowPolicy::RejectNewest).unwrap();
+        assert_eq!(queue.push("first"), QueuePushResult::Enqueued);
+        assert_eq!(queue.push("second"), QueuePushResult::Rejected("second"));
+        assert_eq!(queue.len(), 1);
+        assert_eq!(queue.pop_front(), Some("first"));
+    }
+
+    #[test]
+    fn bounded_media_queue_rejects_zero_capacity() {
+        assert_eq!(
+            BoundedMediaQueue::<u8>::new(0, QueueOverflowPolicy::DropOldest).unwrap_err(),
+            QueueCapacityError
+        );
+    }
 
     #[test]
     fn video_frame_requires_nonzero_dimensions_and_exact_rgba_payload() {
