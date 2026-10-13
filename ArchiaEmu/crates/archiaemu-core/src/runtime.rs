@@ -1126,6 +1126,125 @@ mod tests {
     }
 
     #[test]
+    fn lifecycle_transition_matrix_covers_pause_resume_and_execution_in_every_state() {
+        fn session_in_state(target: SessionState) -> EmulationSession {
+            let next_event = if target == SessionState::Halted {
+                CoreEvent::Halted
+            } else {
+                CoreEvent::Yielded
+            };
+            let mut session = EmulationSession::new(Box::new(TestCore {
+                loaded: false,
+                calls: 0,
+                next_event,
+            }));
+
+            match target {
+                SessionState::Empty => {}
+                SessionState::Running => session.load_content(&[1]).unwrap(),
+                SessionState::Paused => {
+                    session.load_content(&[1]).unwrap();
+                    session.pause().unwrap();
+                }
+                SessionState::Halted => {
+                    session.load_content(&[1]).unwrap();
+                    assert_eq!(session.run_until_event(), Ok(CoreEvent::Halted));
+                }
+                SessionState::Stopped => {
+                    session.load_content(&[1]).unwrap();
+                    session.stop().unwrap();
+                }
+            }
+            assert_eq!(session.state(), target);
+            session
+        }
+
+        let states = [
+            SessionState::Empty,
+            SessionState::Running,
+            SessionState::Paused,
+            SessionState::Halted,
+            SessionState::Stopped,
+        ];
+
+        for state in states {
+            let mut pausing = session_in_state(state);
+            let pause_result = pausing.pause();
+            if state == SessionState::Running {
+                assert_eq!(pause_result, Ok(()), "pause from {state:?}");
+                assert_eq!(pausing.state(), SessionState::Paused);
+            } else {
+                assert_eq!(
+                    pause_result,
+                    Err(SessionError::InvalidTransition {
+                        operation: "pause",
+                        state,
+                    }),
+                    "pause from {state:?}"
+                );
+                assert_eq!(pausing.state(), state);
+            }
+
+            let mut resuming = session_in_state(state);
+            let resume_result = resuming.resume();
+            if state == SessionState::Paused {
+                assert_eq!(resume_result, Ok(()), "resume from {state:?}");
+                assert_eq!(resuming.state(), SessionState::Running);
+            } else {
+                assert_eq!(
+                    resume_result,
+                    Err(SessionError::InvalidTransition {
+                        operation: "resume",
+                        state,
+                    }),
+                    "resume from {state:?}"
+                );
+                assert_eq!(resuming.state(), state);
+            }
+
+            let mut stepping = session_in_state(state);
+            let step_result = stepping.run_until_event();
+            if state == SessionState::Running {
+                assert_eq!(step_result, Ok(CoreEvent::Yielded), "run from {state:?}");
+            } else {
+                assert_eq!(
+                    step_result,
+                    Err(SessionError::InvalidTransition {
+                        operation: "run",
+                        state,
+                    }),
+                    "run from {state:?}"
+                );
+            }
+            assert_eq!(stepping.state(), state, "single-step state {state:?}");
+
+            let mut bounded = session_in_state(state);
+            let bounded_result = bounded.run_for_events(1);
+            if state == SessionState::Running {
+                assert_eq!(
+                    bounded_result,
+                    Ok(SessionRunReport {
+                        events_processed: 1,
+                        last_event: Some(CoreEvent::Yielded),
+                        budget_exhausted: true,
+                    }),
+                    "bounded run from {state:?}"
+                );
+            } else {
+                assert_eq!(
+                    bounded_result,
+                    Err(SessionError::InvalidTransition {
+                        operation: "run",
+                        state,
+                    }),
+                    "bounded run from {state:?}"
+                );
+            }
+            assert_eq!(bounded.state(), state, "bounded-run state {state:?}");
+        }
+    }
+
+    #[test]
     fn invalid_lifecycle_transitions_are_rejected_without_state_changes() {
         let mut session = session();
 
