@@ -344,6 +344,27 @@ fn release_session_inputs(
         .map_err(|error| error.to_string())
 }
 
+fn inspect_inputs(
+    host: &mut HostRuntime,
+    active: Option<SessionId>,
+) -> Result<String, String> {
+    let id = active.ok_or_else(|| "no active session".to_owned())?;
+    let session = host.session(id).map_err(|error| error.to_string())?;
+    if !session.descriptor().capabilities.input {
+        return Ok("input: unsupported by this core".to_owned());
+    }
+    let pressed = session.pressed_inputs();
+    if pressed.is_empty() {
+        return Ok("held inputs: none".to_owned());
+    }
+    let names = pressed
+        .iter()
+        .map(|control| format!("{control:?}").to_ascii_lowercase())
+        .collect::<Vec<_>>()
+        .join(", ");
+    Ok(format!("held inputs: {names}"))
+}
+
 fn inspect_media(
     host: &mut HostRuntime,
     active: Option<SessionId>,
