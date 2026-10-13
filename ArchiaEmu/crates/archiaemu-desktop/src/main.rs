@@ -525,7 +525,9 @@ impl DesktopApp {
                 }
             }
             if video_available && state != SessionState::Empty {
-                for _ in 0..4 {
+                // Drain a bounded batch and retain only the newest frame; never let stale
+                // frames accumulate in the UI texture pipeline.
+                for _ in 0..64 {
                     match session.take_video_frame() {
                         Ok(Some(frame)) => newest_frame = Some(frame),
                         Ok(None) => break,
