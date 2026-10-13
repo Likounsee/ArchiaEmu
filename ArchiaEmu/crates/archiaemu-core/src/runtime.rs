@@ -2882,5 +2882,4 @@ mod shared_input_runtime_tests {
         assert_eq!(session.state(), SessionState::Running);
         assert_eq!(session.last_core_error(), Some(CoreError::NotInitialized));
     }
-
 }
