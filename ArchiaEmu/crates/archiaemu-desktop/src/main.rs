@@ -18,7 +18,12 @@ const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let app = DesktopApp::new()?;
-    let options = eframe::NativeOptions::default();
+    let options = eframe::NativeOptions {
+        initial_window_size: Some(egui::vec2(1280.0, 820.0)),
+        min_window_size: Some(egui::vec2(900.0, 600.0)),
+        centered: true,
+        ..Default::default()
+    };
     eframe::run_native(
         "ArchiaEmu",
         options,
@@ -227,6 +232,14 @@ impl eframe::App for DesktopApp {
         context.style_mut(|style| {
             style.spacing.item_spacing = egui::vec2(10.0, 10.0);
             style.spacing.button_padding = egui::vec2(12.0, 8.0);
+            style.spacing.window_margin = egui::Margin::same(16.0);
+            style.visuals.selection.bg_fill = egui::Color32::from_rgb(75, 115, 210);
+            style.visuals.selection.stroke =
+                egui::Stroke::new(1.0, egui::Color32::from_rgb(125, 160, 245));
+            style.visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
+            style.visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
+            style.visuals.widgets.active.rounding = egui::Rounding::same(6.0);
+            style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(6.0);
         });
 
         egui::SidePanel::left("navigation")
@@ -298,7 +311,22 @@ impl eframe::App for DesktopApp {
             ui.add_space(12.0);
             ui.separator();
             ui.horizontal(|ui| {
-                ui.label("●");
+                let is_error = [
+                    "Import failed:",
+                    "Launch failed:",
+                    "Could not ",
+                    "Preferences unavailable:",
+                    "Session ",
+                ]
+                .iter()
+                .any(|prefix| self.message.starts_with(prefix))
+                    && !self.message.ends_with(" succeeded.");
+                let (symbol, color) = if is_error {
+                    ("●", egui::Color32::LIGHT_RED)
+                } else {
+                    ("●", egui::Color32::from_rgb(95, 190, 140))
+                };
+                ui.colored_label(color, symbol);
                 ui.label(&self.message);
             });
         });

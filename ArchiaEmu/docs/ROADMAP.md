@@ -175,12 +175,12 @@ Construire l'application utilisateur au-dessus du runtime et des contrats commun
 - [x] Documenter le choix initial d'eframe/egui et ses critères de validation multiplateforme dans `docs/ADR_0001_DESKTOP_UI.md`; le choix reste conditionné à un prototype minimal et à l'audit des dépendances exactes.
 - [x] Introduire un modèle de bibliothèque indépendant du frontend et des commandes terminal `import`, `library` et `forget`; l'import vérifie fichier régulier, contenu non vide, taille maximale et doublons. Le catalogue est actuellement en mémoire et n'effectue pas la validation du format, qui reste au pipeline de lancement.
 - [x] Extraire les modèles d'application dans une bibliothèque Rust réutilisable et ajouter `ApplicationController` pour partager bibliothèque, lancement via le pipeline commun, sélection de session et fermeture cohérente entre frontends; tester sélection périmée, fermeture globale et index de bibliothèque invalide.
-- [ ] Construire un prototype desktop minimal sur Linux, Windows et macOS et valider la pile réelle avant d'ajouter les dépendances UI au workspace.
+- [x] Construire et valider le prototype desktop eframe/egui sur Linux, Windows et macOS dans la CI (run [38459966204](https://github.com/Likounsee/ArchiaEmu/actions/runs/38459966204), commit [1a0b221](https://github.com/Likounsee/ArchiaEmu/commit/1a0b221ef14d887599c5ea700a62badf3f4cb724)); poursuivre les contrôles après chaque modification.
 - [x] Afficher la bibliothèque de contenus importés, les systèmes enregistrés et les capacités réellement déclarées.
 - [x] Permettre de sélectionner un contenu par chemin ou sélecteur natif, lancer une session via le pipeline commun et afficher les erreurs de validation/lancement. Le sélecteur natif filtre les ROM Game Boy (`.gb`, `.gbc`) et propose aussi tous les fichiers.
 - [x] Gérer plusieurs sessions, la session active, pause/reprise, arrêt/réinitialisation et fermeture propre depuis l'interface.
-- [ ] Séparer paramètres de présentation (taille, ratio, thème, périphériques hôte) et paramètres matériels émulés.
-- [ ] Tester les états vides, les contenus invalides, les erreurs de lancement, les changements de session et la fermeture globale; valider la pile native sur Linux, Windows et macOS dans la CI.
+- [x] Séparer les premiers paramètres de présentation (thème et échelle UI) du matériel émulé; définir une taille de fenêtre initiale de 1280×820 et une taille minimale de 900×600. Les paramètres avancés d'affichage et les périphériques hôte restent à faire.
+- [ ] Tester systématiquement les états vides, les contenus invalides, les erreurs de lancement, les changements de session et la fermeture globale avec des tests frontend dédiés; la CI compile désormais le frontend natif sur Linux, Windows et macOS.
 
 **Sortie attendue :** une application desktop réellement utilisable pour parcourir et lancer les contenus pris en charge; une interface qui n'affiche pas une capacité non implémentée.
 
