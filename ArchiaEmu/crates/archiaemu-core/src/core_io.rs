@@ -59,7 +59,14 @@ pub enum MediaDataError {
     EmptyFrame,
     /// Dimensions overflow the host address space when calculating byte size.
     FrameSizeOverflow,
-    /// Pixel payload length does not match the declared dimensions and format.
+    /// Row stride is smaller than the bytes required by one row.
+    InvalidRowStride {
+        /// Minimum valid number of bytes in one row.
+        minimum: usize,
+        /// Declared number of bytes in one row.
+        actual: usize,
+    },
+    /// Pixel payload length does not match the declared dimensions, stride and format.
     InvalidPixelDataLength {
         /// Expected number of bytes.
         expected: usize,
@@ -82,6 +89,10 @@ impl fmt::Display for MediaDataError {
         match self {
             Self::EmptyFrame => formatter.write_str("video frame dimensions must be non-zero"),
             Self::FrameSizeOverflow => formatter.write_str("video frame byte size overflows usize"),
+            Self::InvalidRowStride { minimum, actual } => write!(
+                formatter,
+                "invalid video row stride: expected at least {minimum} bytes, got {actual}"
+            ),
             Self::InvalidPixelDataLength { expected, actual } => write!(
                 formatter,
                 "invalid video pixel data length: expected {expected} bytes, got {actual}"
@@ -106,6 +117,7 @@ pub struct VideoFrame {
     width: u32,
     height: u32,
     format: PixelFormat,
+    row_stride_bytes: usize,
     pixels: Vec<u8>,
 }
 
@@ -125,12 +137,19 @@ impl VideoFrame {
         self.format
     }
 
-    /// Returns the row-major pixel bytes, with no implicit row padding.
+    /// Returns the byte distance between the starts of adjacent rows.
+    pub const fn row_stride_bytes(&self) -> usize {
+        self.row_stride_bytes
+    }
+
+    /// Returns the owned pixel payload, including any padding at the end of each row.
     pub fn pixels(&self) -> &[u8] {
         &self.pixels
     }
 
-    /// Creates a frame after validating dimensions and exact payload length.
+    /// Creates a tightly packed frame after validating dimensions and exact payload length.
+    ///
+    /// The row stride is inferred from the width and pixel format.
     pub fn new(
         width: u32,
         height: u32,
@@ -143,9 +162,40 @@ impl VideoFrame {
         let bytes_per_pixel = match format {
             PixelFormat::Rgba8888 => 4usize,
         };
-        let expected = (width as usize)
+        let row_stride_bytes = (width as usize)
+            .checked_mul(bytes_per_pixel)
+            .ok_or(MediaDataError::FrameSizeOverflow)?;
+        Self::with_stride(width, height, format, row_stride_bytes, pixels)
+    }
+
+    /// Creates a frame with an explicit row stride and exact owned payload length.
+    ///
+    /// A stride may include padding but cannot be smaller than one packed pixel row.
+    /// The payload length must equal `row_stride_bytes * height`.
+    pub fn with_stride(
+        width: u32,
+        height: u32,
+        format: PixelFormat,
+        row_stride_bytes: usize,
+        pixels: Vec<u8>,
+    ) -> Result<Self, MediaDataError> {
+        if width == 0 || height == 0 {
+            return Err(MediaDataError::EmptyFrame);
+        }
+        let bytes_per_pixel = match format {
+            PixelFormat::Rgba8888 => 4usize,
+        };
+        let minimum_stride = (width as usize)
+            .checked_mul(bytes_per_pixel)
+            .ok_or(MediaDataError::FrameSizeOverflow)?;
+        if row_stride_bytes < minimum_stride {
+            return Err(MediaDataError::InvalidRowStride {
+                minimum: minimum_stride,
+                actual: row_stride_bytes,
+            });
+        }
+        let expected = row_stride_bytes
             .checked_mul(height as usize)
-            .and_then(|pixel_count| pixel_count.checked_mul(bytes_per_pixel))
             .ok_or(MediaDataError::FrameSizeOverflow)?;
         if pixels.len() != expected {
             return Err(MediaDataError::InvalidPixelDataLength {
@@ -157,6 +207,7 @@ impl VideoFrame {
             width,
             height,
             format,
+            row_stride_bytes,
             pixels,
         })
     }
@@ -322,6 +373,28 @@ mod tests {
         assert_eq!(frame.width(), 2);
         assert_eq!(frame.height(), 1);
         assert_eq!(frame.pixels().len(), 8);
+    }
+
+    #[test]
+    fn video_frame_supports_explicit_padded_row_stride() {
+        let frame = VideoFrame::with_stride(
+            1,
+            2,
+            PixelFormat::Rgba8888,
+            8,
+            vec![1; 16],
+        )
+        .unwrap();
+        assert_eq!(frame.row_stride_bytes(), 8);
+        assert_eq!(frame.pixels().len(), 16);
+    }
+
+    #[test]
+    fn video_frame_rejects_stride_smaller_than_a_packed_row() {
+        assert_eq!(
+            VideoFrame::with_stride(2, 1, PixelFormat::Rgba8888, 7, vec![0; 7]),
+            Err(MediaDataError::InvalidRowStride { minimum: 8, actual: 7 })
+        );
     }
 
     #[test]
