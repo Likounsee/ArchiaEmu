@@ -738,6 +738,24 @@ mod tests {
     }
 
     #[test]
+    fn media_retrieval_rejects_undeclared_capabilities_explicitly() {
+        let mut session = session();
+        assert!(matches!(
+            session.take_video_frame(),
+            Err(SessionError::InvalidTransition { .. })
+        ));
+        session.load_content(&[1]).unwrap();
+        assert!(matches!(
+            session.take_video_frame(),
+            Err(SessionError::Core(CoreError::Unsupported("video output")))
+        ));
+        assert!(matches!(
+            session.take_audio_buffer(),
+            Err(SessionError::Core(CoreError::Unsupported("audio output")))
+        ));
+    }
+
+    #[test]
     fn media_retrieval_transfers_owned_payload_once_and_then_returns_empty() {
         let frame = VideoFrame::new(
             2,
