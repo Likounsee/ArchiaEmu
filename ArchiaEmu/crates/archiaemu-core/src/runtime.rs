@@ -2882,4 +2882,52 @@ mod shared_input_runtime_tests {
         assert_eq!(session.state(), SessionState::Running);
         assert_eq!(session.last_core_error(), Some(CoreError::NotInitialized));
     }
+    #[test]
+    fn advertised_save_state_unsupported_error_is_retained() {
+        struct UnsupportedSaveCore;
+
+        impl EmulationCore for UnsupportedSaveCore {
+            fn descriptor(&self) -> CoreDescriptor {
+                CoreDescriptor {
+                    api_version: crate::CURRENT_CORE_API_VERSION,
+                    system_id: SystemId::new("unsupported-save-test").unwrap(),
+                    display_name: "Unsupported save test core",
+                    core_version: "0.0.0-test",
+                    capabilities: CoreCapabilities {
+                        content_loading: true,
+                        save_states: true,
+                        ..CoreCapabilities::default()
+                    },
+                }
+            }
+
+            fn load_content(&mut self, content: &[u8]) -> Result<(), CoreError> {
+                if content.is_empty() {
+                    return Err(CoreError::InvalidContent("empty test content"));
+                }
+                Ok(())
+            }
+
+            fn reset(&mut self) -> Result<(), CoreError> {
+                Ok(())
+            }
+
+            fn run_until_event(&mut self) -> Result<CoreEvent, CoreError> {
+                Ok(CoreEvent::Yielded)
+            }
+        }
+
+        let mut session = EmulationSession::new(Box::new(UnsupportedSaveCore));
+        session.load_content(&[1]).unwrap();
+
+        assert_eq!(
+            session.save_state(),
+            Err(SessionError::Core(CoreError::Unsupported("save states")))
+        );
+        assert_eq!(
+            session.last_core_error(),
+            Some(CoreError::Unsupported("save states"))
+        );
+        assert_eq!(session.state(), SessionState::Running);
+    }
 }
