@@ -18,6 +18,9 @@ allow = [
     "ISC",
     "Unicode-3.0",
     "Zlib",
+    "BSL-1.0",
+    "OFL-1.1",
+    "LicenseRef-UFL-1.0",
 ]
 # Do not silently accept dependencies whose license could not be identified.
 
