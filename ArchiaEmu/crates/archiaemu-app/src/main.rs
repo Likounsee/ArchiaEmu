@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     println!("Content loaded into host session {}.", session_id.get());
     println!("This core is an early implementation, not yet a playable emulator.");
-    println!("Commands: status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, media, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
+    println!("Commands: status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
     command_loop(&mut host, session_id, &probe, &registry)
 }
 
@@ -177,6 +177,13 @@ fn command_loop(
             }
             continue;
         }
+        if let Some(raw) = command.strip_prefix("run ") {
+            match run_session_events(host, active, raw) {
+                Ok(report) => println!("{report}"),
+                Err(error) => eprintln!("Run failed: {error}"),
+            }
+            continue;
+        }
         if let Some(path) = command.strip_prefix("save-state ") {
             match save_state_to_path(host, active, path.trim()) {
                 Ok(()) => println!("Save state written."),
@@ -244,11 +251,42 @@ fn command_loop(
             }
             "" => {}
             other => eprintln!(
-                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, media, save-state <path>, load-state <path>, pause, resume, reset, stop, step, or quit."
+                "Unknown command: {other}. Use status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, or quit."
             ),
         }
     }
     Ok(())
+}
+
+const MAX_RUN_EVENT_BUDGET: usize = 10_000;
+
+fn parse_event_budget(raw: &str) -> Result<usize, String> {
+    let budget = raw
+        .trim()
+        .parse::<usize>()
+        .map_err(|_| "expected a positive event budget (1..=10000)".to_owned())?;
+    if budget == 0 || budget > MAX_RUN_EVENT_BUDGET {
+        return Err(format!("event budget must be between 1 and {MAX_RUN_EVENT_BUDGET}"));
+    }
+    Ok(budget)
+}
+
+fn run_session_events(
+    host: &mut HostRuntime,
+    active: Option<SessionId>,
+    raw_budget: &str,
+) -> Result<String, String> {
+    let budget = parse_event_budget(raw_budget)?;
+    let id = active.ok_or_else(|| "no active session".to_owned())?;
+    let report = host
+        .session_mut(id)
+        .map_err(|error| error.to_string())?
+        .run_for_events(budget)
+        .map_err(|error| error.to_string())?;
+    Ok(format!(
+        "session={} processed={} last_event={:?} budget_exhausted={}",
+        id.get(), report.events_processed, report.last_event, report.budget_exhausted
+    ))
 }
 
 fn parse_input_control(raw: &str) -> Option<InputControl> {
@@ -426,6 +464,7 @@ fn print_usage() {
     println!("Interactive input: input <up|down|left|right|action1|action2|action3|action4|start|select> <press|release>");
     println!("                  release-inputs releases all held controls.");
     println!("                  media polls one video frame/audio buffer and reports metadata.");
+    println!("                  run <events> runs a bounded number of core event calls (1..=10000).");
 }
 
 fn validate_system_selection(
@@ -498,6 +537,15 @@ mod tests {
             inspect_media(&mut host, Some(id)).unwrap(),
             "video: unsupported; audio: unsupported"
         );
+    }
+
+    #[test]
+    fn event_budget_is_bounded_and_rejects_invalid_values() {
+        assert_eq!(parse_event_budget("1").unwrap(), 1);
+        assert_eq!(parse_event_budget("10000").unwrap(), 10_000);
+        assert!(parse_event_budget("0").is_err());
+        assert!(parse_event_budget("10001").is_err());
+        assert!(parse_event_budget("many").is_err());
     }
 
     #[test]
