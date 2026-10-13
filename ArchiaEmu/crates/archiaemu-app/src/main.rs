@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     println!("Content loaded into host session {}.", session_id.get());
     println!("This core is an early implementation, not yet a playable emulator.");
-    println!("Commands: status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
+    println!("Commands: status, sessions, switch <id>, open <path>, close [id], input <control> <press|release>, release-inputs, inputs, media, run <events>, save-state <path>, load-state <path>, pause, resume, reset, stop, step, quit");
     command_loop(&mut host, session_id, &probe, &registry)
 }
 
@@ -167,6 +167,13 @@ fn command_loop(
             match release_session_inputs(host, active) {
                 Ok(()) => println!("All held inputs released."),
                 Err(error) => eprintln!("Could not release inputs: {error}"),
+            }
+            continue;
+        }
+        if command == "inputs" {
+            match inspect_inputs(host, active) {
+                Ok(report) => println!("{report}"),
+                Err(error) => eprintln!("Input inspection failed: {error}"),
             }
             continue;
         }
@@ -545,6 +552,20 @@ mod tests {
             assert_eq!(parse_input_control(name), Some(expected));
         }
         assert_eq!(parse_input_control("spacebar"), None);
+    }
+
+    #[test]
+    fn input_inspection_reports_unsupported_capability_and_missing_session() {
+        let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
+        assert_eq!(inspect_inputs(&mut host, None).unwrap_err(), "no active session");
+
+        let id = host
+            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .unwrap();
+        assert_eq!(
+            inspect_inputs(&mut host, Some(id)).unwrap(),
+            "input: unsupported by this core"
+        );
     }
 
     #[test]
