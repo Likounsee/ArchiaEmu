@@ -852,7 +852,11 @@ impl Cpu {
         }
 
         if register == 6 {
-            if group == 1 { 3 } else { 4 }
+            if group == 1 {
+                3
+            } else {
+                4
+            }
         } else {
             2
         }
@@ -1007,14 +1011,20 @@ mod execution_tests {
         assert_eq!(cpu.registers.b, 0x03);
         assert_eq!(cpu.registers.f(), flags::CARRY);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
-        assert_eq!(cpu.registers.f(), flags::ZERO | flags::HALF_CARRY | flags::CARRY);
+        assert_eq!(
+            cpu.registers.f(),
+            flags::ZERO | flags::HALF_CARRY | flags::CARRY
+        );
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
         assert_eq!(cpu.registers.c, 0x01);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 2);
         assert_eq!(cpu.registers.c, 0x00);
         cpu.registers.set_pair(RegisterPair::Hl, 0xC000);
         assert_eq!(cpu.step(&mut bus).unwrap().machine_cycles, 3);
-        assert_eq!(cpu.registers.f(), flags::ZERO | flags::HALF_CARRY | flags::CARRY);
+        assert_eq!(
+            cpu.registers.f(),
+            flags::ZERO | flags::HALF_CARRY | flags::CARRY
+        );
     }
 
     #[test]
