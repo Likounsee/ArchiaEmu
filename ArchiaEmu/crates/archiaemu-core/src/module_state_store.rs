@@ -426,13 +426,16 @@ mod tests {
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    static TEST_PATH_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
     fn temp_path() -> PathBuf {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
+        let sequence = TEST_PATH_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         std::env::temp_dir().join(format!(
-            "archiaemu-module-state-{}-{unique}.state",
+            "archiaemu-module-state-{}-{unique}-{sequence}.state",
             std::process::id()
         ))
     }

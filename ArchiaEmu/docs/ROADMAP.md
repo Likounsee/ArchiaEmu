@@ -125,14 +125,14 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Tests des tailles invalides, du débordement de taille vidéo, du tampon audio incomplet/vide et des retards de cadence.
 - [x] Interfaces indépendantes d'une bibliothèque graphique ou audio particulière.
 
-### P1.3 — Sauvegardes et restauration — 30 %
+### P1.3 — Sauvegardes et restauration — 40 %
 - [ ] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur.
 - [x] Définir un conteneur binaire versionné avec ID/version du cœur, taille bornée, longueur exacte et contrôle CRC-32 d'intégrité (détection de corruption, pas authentification cryptographique).
 - [x] Valider les métadonnées et limites avant de fournir le payload au cœur; refuser les versions de format inconnues, systèmes/versions incompatibles, données tronquées ou excédentaires et checksums invalides.
 - [x] Écrire de façon atomique via fichier temporaire synchronisé et conserver une sauvegarde de récupération; au chargement, le store peut reprendre depuis le backup si le fichier principal est absent ou invalide.
 - [ ] Documenter que chaque cœur reste responsable de la validation de son état interne avant mutation.
 - [x] Tester corruption, version inconnue, payload vide/trop grand, incompatibilité de système/cœur, troncature et données excédentaires.
-- [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup après corruption du fichier principal.
+- [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup lorsque le fichier principal est corrompu ou absent.
 - [ ] Injecter les échecs de renommage et vérifier la reprise après crash sur chaque plateforme.
 
 ### P1.4 — Première application hôte minimale

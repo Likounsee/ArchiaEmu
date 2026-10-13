@@ -240,6 +240,23 @@ mod tests {
     }
 
     #[test]
+    fn store_recovers_backup_when_primary_is_missing() {
+        let path = temp_path();
+        let store = SaveStateStore::new(&path);
+        let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
+        let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![4, 5, 6]).unwrap();
+
+        store.save(&original).unwrap();
+        store.save(&replacement).unwrap();
+        fs::remove_file(&path).unwrap();
+
+        assert_eq!(store.load().unwrap(), original);
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(backup_path(&path));
+    }
+
+    #[test]
     fn store_rejects_oversized_persisted_files() {
         let path = temp_path();
         fs::write(&path, vec![0; MAX_SAVE_STATE_FILE_BYTES as usize + 1]).unwrap();
