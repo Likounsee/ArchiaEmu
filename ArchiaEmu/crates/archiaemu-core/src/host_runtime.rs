@@ -631,10 +631,10 @@ mod tests {
             .unwrap()
             .is_input_pressed(InputControl::Action1));
         host.session_mut(id).unwrap().stop().unwrap();
-        assert_eq!(host.session(id).unwrap().state(), SessionState::Halted);
+        assert_eq!(host.session(id).unwrap().state(), SessionState::Stopped);
 
         let closed = host.close_session(id).unwrap();
-        assert_eq!(closed.state(), SessionState::Halted);
+        assert_eq!(closed.state(), SessionState::Stopped);
         assert!(!closed.is_input_pressed(InputControl::Action1));
         assert!(host.is_empty());
         assert!(
