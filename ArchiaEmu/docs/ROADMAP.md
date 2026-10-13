@@ -11,10 +11,10 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Fiabilité du runtime commun | 100 % | Contrats cohérents, cycle de vie sûr, erreurs récupérables, tests de régression |
 | **P0** | Chargement et validation du contenu | 100 % | Pipeline commun borné, validation de tous les formats actuellement enregistrés et contrat d'intégration hôte |
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
-| **P1** | Orchestration multi-sessions | 60 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
+| **P1** | Orchestration multi-sessions | 70 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 55 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
 | **P1** | Sauvegardes et restauration | 45 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
-| **P1** | Frontend minimal du framework | 25 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
+| **P1** | Frontend minimal du framework | 40 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
 | **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
 | **P3** | Performance et stabilité | 10 % | Benchmarks reproductibles et optimisation guidée par les mesures |
@@ -106,7 +106,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 
 ## P1 — construire le chemin complet de lancement
 
-### P1.1 — Orchestrateur et multi-sessions — 60 %
+### P1.1 — Orchestrateur et multi-sessions — 70 %
 - [x] Ajouter un gestionnaire hôte reliant le registre, le pipeline de chargement et les sessions.
 - [x] Distinguer l'identifiant hôte de session de l'identifiant de système; les IDs sont monotones et jamais réutilisés.
 - [x] Permettre la création, l'accès et la fermeture de plusieurs sessions indépendantes.
@@ -136,10 +136,10 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup lorsque le fichier principal est corrompu ou absent.
 - [ ] Injecter les échecs de renommage et vérifier la reprise après crash sur chaque plateforme.
 
-### P1.4 — Première application hôte minimale — 25 %
+### P1.4 — Première application hôte minimale — 40 %
 
-Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, et `archiaemu <chemin>` charge un contenu sous limite puis propose `status`, `pause`, `resume`, `reset`, `stop`, `step` et `quit`. La sélection explicite du module via `--system`, les entrées interactives et les sorties audio/vidéo restent à intégrer.
-- [ ] Ajouter une interface simple pour sélectionner un contenu et un module, puis lancer/mettre en pause/arrêter.
+Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, `--system` sélectionne explicitement le module, et le REPL permet `open <chemin>`, `sessions`, `switch <id>` et `close [id]` pour gérer plusieurs sessions. Les erreurs de chargement sont affichées sans fermer immédiatement l'interface. Les entrées interactives et les sorties audio/vidéo restent à intégrer.
+- [x] Ajouter une interface terminale pour sélectionner un module, ouvrir plusieurs contenus, basculer entre sessions, fermer une session et lancer/mettre en pause/arrêter.
 - [ ] Afficher les erreurs, capacités indisponibles et informations de diagnostic sans planter.
 - [ ] Ne pas créer de menus ou d'améliorations propres à une console avant que le chemin de lancement générique fonctionne.
 - [ ] Séparer les réglages d'interface des réglages de matériel émulé.
