@@ -13,8 +13,8 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 | **P0** | Contrats de modules et capacités | 100 % | Modules isolés dans le processus, capacités explicites, découverte et création prévisibles |
 | **P1** | Orchestration multi-sessions | 60 % | Hôte capable de gérer plusieurs sessions indépendantes sans état partagé accidentel |
 | **P1** | Entrées, sorties et horloge hôte | 55 % | Contrats génériques d'entrée, vidéo, audio, cadence et arrêt propre |
-| **P1** | Sauvegardes et restauration | 40 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
-| **P1** | Frontend minimal du framework | 20 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
+| **P1** | Sauvegardes et restauration | 45 % | Stockage persistant robuste et formats de sauvegarde validés/versionnés |
+| **P1** | Frontend minimal du framework | 25 % | Parcourir le contenu, sélectionner un module, lancer/arrêter et afficher les erreurs |
 | **P2** | Sécurité et distribution des modules | 49 % | Frontières de confiance, provenance, installation atomique et récupération |
 | **P2** | Diagnostics, tests et compatibilité | 35 % | Rapports exploitables, tests de conformité communs et matrice CI |
 | **P3** | Performance et stabilité | 10 % | Benchmarks reproductibles et optimisation guidée par les mesures |
@@ -126,19 +126,19 @@ L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtim
 - [x] Tests des tailles invalides, du débordement de taille vidéo, du tampon audio incomplet/vide et des retards de cadence.
 - [x] Interfaces indépendantes d'une bibliothèque graphique ou audio particulière.
 
-### P1.3 — Sauvegardes et restauration — 40 %
+### P1.3 — Sauvegardes et restauration — 45 %
 - [ ] Distinguer sauvegarde persistante du jeu, configuration et save state de l'émulateur.
 - [x] Définir un conteneur binaire versionné avec ID/version du cœur, taille bornée, longueur exacte et contrôle CRC-32 d'intégrité (détection de corruption, pas authentification cryptographique).
 - [x] Valider les métadonnées et limites avant de fournir le payload au cœur; refuser les versions de format inconnues, systèmes/versions incompatibles, données tronquées ou excédentaires et checksums invalides.
 - [x] Écrire de façon atomique via fichier temporaire synchronisé et conserver une sauvegarde de récupération; au chargement, le store peut reprendre depuis le backup si le fichier principal est absent ou invalide.
-- [ ] Documenter que chaque cœur reste responsable de la validation de son état interne avant mutation.
+- [x] Documenter que chaque cœur reste responsable de la validation de son état interne avant mutation dans `docs/CORE_INTERFACE.md`.
 - [x] Tester corruption, version inconnue, payload vide/trop grand, incompatibilité de système/cœur, troncature et données excédentaires.
 - [x] Tester les fichiers persistés trop grands, le round-trip disque et la récupération depuis un backup lorsque le fichier principal est corrompu ou absent.
 - [ ] Injecter les échecs de renommage et vérifier la reprise après crash sur chaque plateforme.
 
-### P1.4 — Première application hôte minimale
+### P1.4 — Première application hôte minimale — 25 %
 
-Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, et `archiaemu <chemin>` charge un contenu sous limite puis propose `status`, `pause`, `resume`, `reset`, `stop`, `step` et `quit`. La sélection explicite du module, les entrées interactives et les sorties audio/vidéo restent à intégrer.
+Une première application terminale est en place : `archiaemu --list-systems` expose les systèmes/capacités, et `archiaemu <chemin>` charge un contenu sous limite puis propose `status`, `pause`, `resume`, `reset`, `stop`, `step` et `quit`. La sélection explicite du module via `--system`, les entrées interactives et les sorties audio/vidéo restent à intégrer.
 - [ ] Ajouter une interface simple pour sélectionner un contenu et un module, puis lancer/mettre en pause/arrêter.
 - [ ] Afficher les erreurs, capacités indisponibles et informations de diagnostic sans planter.
 - [ ] Ne pas créer de menus ou d'améliorations propres à une console avant que le chemin de lancement générique fonctionne.

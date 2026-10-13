@@ -53,7 +53,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             )
             .into());
         }
-        (PathBuf::from(content), Some(selected.to_string_lossy().into_owned()))
+        (
+            PathBuf::from(content),
+            Some(selected.to_string_lossy().into_owned()),
+        )
     } else {
         if args.next().is_some() {
             eprintln!("error: expected one content path");
