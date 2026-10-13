@@ -186,10 +186,8 @@ mod tests {
     impl TempFile {
         fn new(name: &str, bytes: &[u8]) -> Self {
             let id = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
-            let directory = std::env::temp_dir().join(format!(
-                "archiaemu-library-{}-{id}",
-                std::process::id()
-            ));
+            let directory =
+                std::env::temp_dir().join(format!("archiaemu-library-{}-{id}", std::process::id()));
             fs::create_dir(&directory).unwrap();
             let path = directory.join(name);
             fs::write(&path, bytes).unwrap();
