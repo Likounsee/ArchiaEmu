@@ -129,19 +129,34 @@ fn command_loop(
             for id in host.session_ids() {
                 let session = host.session(id)?;
                 let marker = if active == Some(id) { "*" } else { " " };
-                println!("{marker} {} system={} state={:?}", id.get(), session.descriptor().system_id.as_str(), session.state());
+                println!(
+                    "{marker} {} system={} state={:?}",
+                    id.get(),
+                    session.descriptor().system_id.as_str(),
+                    session.state()
+                );
             }
             continue;
         }
         if let Some(raw) = command.strip_prefix("switch ") {
             let wanted = raw.trim().parse::<u64>().ok();
             active = wanted.and_then(|n| host.session_ids().into_iter().find(|id| id.get() == n));
-            if active.is_none() { eprintln!("Unknown or invalid session ID: {}", raw.trim()); }
+            if active.is_none() {
+                eprintln!("Unknown or invalid session ID: {}", raw.trim());
+            }
             continue;
         }
         if let Some(path) = command.strip_prefix("open ") {
-            match host.launch_content_path(PathBuf::from(path.trim()), ContentLimits::new(MAX_CONTENT_BYTES), &[probe], registry) {
-                Ok(id) => { active = Some(id); println!("Opened session {}.", id.get()); }
+            match host.launch_content_path(
+                PathBuf::from(path.trim()),
+                ContentLimits::new(MAX_CONTENT_BYTES),
+                &[probe],
+                registry,
+            ) {
+                Ok(id) => {
+                    active = Some(id);
+                    println!("Opened session {}.", id.get());
+                }
                 Err(error) => eprintln!("Could not open content: {error}"),
             }
             continue;
