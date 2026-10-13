@@ -18,6 +18,13 @@ The native desktop frontend is built with eframe/egui and uses the shared applic
 
 The library accepts files through the shared library validator (regular file, non-empty, bounded size and duplicate protection). Importing a file does **not** certify that the ROM is valid or compatible; the launch pipeline performs format probing and the emulator core remains experimental.
 
+## Architecture boundaries
+
+- `main.rs` composes the application and renders egui navigation; keyboard translation and video-frame adaptation live in the separate `game_view.rs` module.
+- Desktop lifecycle and input commands go through typed `ApplicationController` methods rather than directly mutating session internals. The controller remains frontend-independent.
+- The core runtime owns session lifecycle rules, semantic input state and bounded execution contracts. The desktop owns host scheduling and rendering.
+- New frontend features should extend the shared application/controller boundary before reaching into the host runtime. Keep console-specific behavior out of shared UI and controller modules.
+
 ## Validation status
 
 The new game-loop integration and video conversion tests are committed, but they must not be considered validated until the current Linux, Windows and macOS CI run completes successfully. The desktop checks include formatting, compilation and unit tests.
