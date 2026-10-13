@@ -78,9 +78,7 @@ impl SaveStateStore {
             Ok(envelope) => Ok(envelope),
             Err(primary_error) => match read_envelope(&backup_path(&self.path)) {
                 Ok(envelope) => Ok(envelope),
-                Err(SaveStateStoreError::Io(error))
-                    if error.kind() == io::ErrorKind::NotFound =>
-                {
+                Err(SaveStateStoreError::Io(error)) if error.kind() == io::ErrorKind::NotFound => {
                     Err(primary_error)
                 }
                 Err(backup_error) => Err(backup_error),
@@ -102,10 +100,9 @@ impl SaveStateStore {
         fs::create_dir_all(parent)?;
 
         let sequence = TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let temp = self.path.with_extension(format!(
-            "tmp-{}-{sequence}",
-            std::process::id()
-        ));
+        let temp = self
+            .path
+            .with_extension(format!("tmp-{}-{sequence}", std::process::id()));
         let backup = backup_path(&self.path);
         let mut file = OpenOptions::new()
             .write(true)
@@ -141,7 +138,8 @@ fn read_envelope(path: &Path) -> Result<SaveStateEnvelope, SaveStateStoreError> 
         return Err(SaveStateStoreError::TooLarge);
     }
     let mut bytes = Vec::with_capacity(size as usize);
-    file.take(MAX_SAVE_STATE_FILE_BYTES + 1).read_to_end(&mut bytes)?;
+    file.take(MAX_SAVE_STATE_FILE_BYTES + 1)
+        .read_to_end(&mut bytes)?;
     if bytes.len() as u64 > MAX_SAVE_STATE_FILE_BYTES {
         return Err(SaveStateStoreError::TooLarge);
     }
