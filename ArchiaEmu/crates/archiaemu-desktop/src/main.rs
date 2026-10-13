@@ -596,10 +596,8 @@ mod preference_tests {
 
     #[test]
     fn unsupported_preferences_version_is_rejected() {
-        let root = std::env::temp_dir().join(format!(
-            "archiaemu-prefs-version-{}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("archiaemu-prefs-version-{}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         let file = root.join("desktop.conf");
         fs::write(&file, "version=99\\ndark=false\\n").unwrap();
