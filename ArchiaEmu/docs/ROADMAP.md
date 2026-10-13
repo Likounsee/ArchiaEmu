@@ -111,7 +111,7 @@ Les pourcentages sont des estimations d'avancement fonctionnel, fondées sur le 
 - [x] Distinguer l'identifiant hôte de session de l'identifiant de système; les IDs sont monotones et jamais réutilisés.
 - [x] Permettre la création, l'accès et la fermeture de plusieurs sessions indépendantes.
 - [x] Définir une limite de sessions configurable et imposer la sérialisation des mutations via l'accès exclusif `&mut`; aucun parallélisme implicite.
-- [ ] Ajouter des tests d'intégration du lancement, d'échec de lancement sans session fantôme et de fermeture répétée.
+- [x] Tester l'échec de lancement sans session fantôme, la fermeture répétée et l'épuisement des IDs sans bouclage; le lancement réussi via l'orchestrateur reste à couvrir par un test d'intégration dédié.
 
 L'implémentation initiale se trouve dans `crates/archiaemu-core/src/host_runtime.rs`; l'identité de contenu persistante et le catalogue hôte restent à intégrer.
 

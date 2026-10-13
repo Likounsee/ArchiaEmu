@@ -284,6 +284,36 @@ mod tests {
     }
 
     #[test]
+    fn closing_twice_reports_unknown_session_without_affecting_other_sessions() {
+        let mut host = HostRuntime::new(HostRuntimeConfig { max_sessions: 2 }).unwrap();
+        let closed = host.create_session(Box::new(MockCore)).unwrap();
+        let remaining = host.create_session(Box::new(MockCore)).unwrap();
+
+        host.close_session(closed).unwrap();
+        assert!(matches!(
+            host.close_session(closed),
+            Err(HostRuntimeError::UnknownSession(id)) if id == closed
+        ));
+        assert_eq!(host.session_ids(), vec![remaining]);
+        assert_eq!(host.session_count(), 1);
+    }
+
+    #[test]
+    fn exhausted_session_ids_never_wrap_or_create_a_partial_session() {
+        let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
+        host.next_id = u64::MAX;
+        let final_id = host.create_session(Box::new(MockCore)).unwrap();
+        assert_eq!(final_id.get(), u64::MAX);
+        host.close_session(final_id).unwrap();
+
+        assert!(matches!(
+            host.create_session(Box::new(MockCore)),
+            Err(HostRuntimeError::SessionIdExhausted)
+        ));
+        assert!(host.is_empty());
+    }
+
+    #[test]
     fn rejects_zero_capacity_and_unknown_ids() {
         assert!(matches!(
             HostRuntime::new(HostRuntimeConfig { max_sessions: 0 }),
