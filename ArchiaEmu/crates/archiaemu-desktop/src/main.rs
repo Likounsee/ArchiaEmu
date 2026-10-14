@@ -395,6 +395,7 @@ impl DesktopApp {
             self.message = "Enter a content path first.".to_owned();
             return;
         }
+        let previous_active = self.controller.active_session();
         let probes: [&dyn ContentFormatProbe; 1] = [&self.probe];
         match self.controller.launch_content_path(
             Path::new(path),
@@ -403,12 +404,24 @@ impl DesktopApp {
             &self.registry,
         ) {
             Ok(id) => {
+                // Launching changes the host's active session. Release controls from the
+                // previous session and discard its queued audio before presenting the new one.
+                let release_status = previous_active
+                    .filter(|previous_id| *previous_id != id)
+                    .and_then(|previous_id| {
+                        self.controller
+                            .release_inputs(previous_id)
+                            .err()
+                            .map(|error| format!(" Previous session input release failed: {error}."))
+                    })
+                    .unwrap_or_default();
+                self.audio_output.clear();
                 let launched_path =
                     std::fs::canonicalize(Path::new(path)).unwrap_or_else(|_| PathBuf::from(path));
                 self.session_content_paths
                     .retain(|(session_id, _)| *session_id != id);
                 self.session_content_paths.push((id, launched_path));
-                self.message = format!("Launched session {}.", id.get());
+                self.message = format!("Launched session {}.{release_status}", id.get());
                 self.frame_cadence.reset();
                 self.frame_texture = None;
                 self.video_size = None;
