@@ -171,33 +171,33 @@ Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale d
 
 **Critère de sortie P1.7 :** un utilisateur peut télécharger l'installateur, installer ArchiaEmu, obtenir ses raccourcis, utiliser les fonctions génériques prises en charge entièrement en local, recevoir les vérifications de mises à jour du programme et mettre à jour de manière sûre sans environnement de développement ni fichiers manquants.
 
-## P2 — modules : installation, confiance et maintenance (après P1)
+## P2 — catalogue et téléchargement des modules (après P1)
 
-Les contrats de base existent; on reprend leur approfondissement après validation de l'application. Le frontend doit consommer un catalogue et des capacités, sans dépendre des détails internes des modules.
+Les contrats de base existent; on reprend leur approfondissement après validation de l'application. **Le rôle de la page Modules est de présenter le catalogue et de permettre le téléchargement individuel des paquets de modules. Elle ne doit ni installer ni activer automatiquement un module.** Télécharger un module doit récupérer uniquement l'artefact de ce module, jamais l'application complète, le dépôt source ou un paquet global contenant tous les modules. Le frontend consomme un catalogue et des capacités, sans dépendre des détails internes des modules.
 
 - [x] Identifiants stables, descripteurs, capacités et compatibilité de version de contrat.
 - [x] Validation des dépendances et planification de l'ordre d'activation.
 - [x] Plan d'installation/désinstallation, contrôle de budget, journal d'installation borné et récupération par jalons.
 - [x] Staging borné des artefacts et validation SHA-256 fournie par l'hôte.
 - [x] Validation portable des chemins d'archives avant extraction.
-- [ ] Maintenir un manifeste de versions de modules séparé du manifeste de l'application, hébergé dans une source officielle vérifiable (par exemple le dépôt GitHub du projet), avec identifiant du module, version, version minimale compatible, URL d'artefact, taille, SHA-256, notes de version et métadonnées de signature.
-- [ ] N'inclure dans le manifeste public de distribution que les versions de modules explicitement déclarées stables et publiables après validation des tests, de la compatibilité et des artefacts; garder les versions de développement/préversions dans un canal séparé (ou hors manifeste stable), clairement marquées et désactivées par défaut.
-- [ ] Vérifier automatiquement les mises à jour des modules installés en comparant leur version locale à celle du manifeste distant; afficher les mises à jour disponibles et permettre une vérification manuelle.
-- [ ] Ne jamais installer un module simplement parce que la version distante est plus élevée : vérifier signature/provenance, intégrité, compatibilité et anti-downgrade avant activation.
-- [ ] Appliquer les mises à jour de modules seulement dans un état stable : aucun cœur/module concerné chargé, aucune session active qui l'utilise, aucun installateur concurrent, et aucune opération d'écriture en cours; sinon mettre la mise à jour en attente et la proposer/appliquer au prochain état sûr.
-- [ ] Préparer chaque mise à jour dans une zone de staging, activer atomiquement, conserver la version précédente jusqu'à validation et effectuer un rollback si l'installation, le démarrage ou la vérification échoue.
-- [ ] Intégrer un téléchargeur réseau robuste avec limites, délais et annulation.
+- [ ] Maintenir un manifeste de catalogue de modules séparé du manifeste de l'application, hébergé dans une source officielle vérifiable (par exemple le dépôt GitHub du projet), avec identifiant, version, version minimale compatible, URL de l'artefact individuel, taille, SHA-256, notes et métadonnées de signature.
+- [ ] Mettre à jour la page **Modules** pour afficher les modules disponibles, leur description, version, compatibilité, statut stable et taille, avec une action explicite « Télécharger » pour chaque module.
+- [ ] Au clic sur « Télécharger », récupérer uniquement l'artefact du module sélectionné, avec progression, annulation, gestion des erreurs et destination clairement indiquée; ne pas télécharger l'application complète ni tous les modules.
+- [ ] Ne pas installer, extraire, activer, charger ni mettre à jour automatiquement un module après son téléchargement. Le périmètre de cette page est le catalogue et le téléchargement; toute future fonction d'installation devra faire l'objet d'une décision distincte et d'une action explicite de l'utilisateur.
+- [ ] Vérifier la taille et le SHA-256 de l'artefact téléchargé et afficher un résultat clair; ne pas présenter un fichier invalide ou incomplet comme un téléchargement réussi.
+- [ ] N'afficher dans le catalogue stable que les versions explicitement déclarées stables et publiables après validation des tests, de la compatibilité et des artefacts; garder les versions de développement/préversions dans un canal séparé ou hors catalogue stable.
+- [ ] Fournir un rafraîchissement du catalogue et afficher les nouvelles versions disponibles; cela met à jour la page et les métadonnées, sans remplacer ni installer les fichiers locaux.
+- [ ] Intégrer un téléchargeur réseau robuste avec limites, délais, progression et annulation.
 - [ ] Utiliser une implémentation cryptographique maintenue et auditée pour vérifier les signatures; ne pas inventer de cryptographie.
-- [ ] Vérifier la signature et la provenance avant de faire confiance à un catalogue ou à un paquet.
-- [ ] Rendre les mises à jour résistantes au retour vers une ancienne révision.
-- [ ] Définir permissions, chemins autorisés et politique de liens symboliques pour l'extraction.
-- [ ] Vérifier extraction, activation atomique, rollback et récupération après interruption.
+- [ ] Vérifier la signature et la provenance avant de faire confiance au catalogue ou à un artefact téléchargé.
+- [ ] Définir une destination de téléchargement sûre, éviter l'écrasement silencieux d'un fichier existant et permettre à l'utilisateur de choisir le dossier si nécessaire.
+- [ ] Tester les téléchargements interrompus, annulés, corrompus, incompatibles et repris, sans laisser de fichier final trompeur.
 - [ ] Produire des diagnostics structurés avec contexte et causes sans exposer de données sensibles.
 - [ ] Ajouter fuzzing ciblé pour les parseurs et fichiers non fiables.
 - [ ] Vérifier dépendances, licences, provenance et contenu des paquets dans la CI.
-- [ ] Afficher dans l'application les modules disponibles, installés, incompatibles et leurs capacités, sans annoncer une compatibilité non démontrée.
+- [ ] Afficher dans l'application les modules disponibles, les fichiers déjà téléchargés et les incompatibilités connues, sans prétendre que les modules téléchargés sont installés ou utilisables.
 
-**Critère de sortie :** les modules peuvent être découverts et gérés avec une provenance vérifiable, des opérations récupérables et des limites de confiance documentées. Seules les versions explicitement stables et validées apparaissent dans le canal stable; les versions en développement restent séparées. Un manifeste valide ne prouve pas l'innocuité du code natif; aucun sandboxing ne doit être revendiqué sans mécanisme réel.
+**Critère de sortie :** la page Modules actualise le catalogue et télécharge uniquement l'artefact choisi, avec validation d'intégrité, erreurs récupérables et limites de confiance documentées. Seules les versions explicitement stables et validées apparaissent dans le catalogue stable; les versions en développement restent séparées. Le téléchargement n'installe ni n'active rien. Un manifeste valide ne prouve pas l'innocuité du code natif; aucun sandboxing ne doit être revendiqué sans mécanisme réel.
 
 ## P3 — premier module de console réellement fonctionnel (après P1)
 
