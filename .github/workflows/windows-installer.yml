@@ -76,10 +76,10 @@ jobs:
           $installer = Get-ChildItem "$env:GITHUB_WORKSPACE/dist" -Filter "ArchiaEmu-Setup-*.exe" | Select-Object -First 1
           if (!$installer) { throw "Installer output is missing for smoke test." }
           $installDir = Join-Path $env:RUNNER_TEMP "ArchiaEmu Installer Smoke"
-          $install = Start-Process -FilePath $installer.FullName -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/DIR=$installDir") -Wait -PassThru
+          $install = Start-Process -FilePath $installer.FullName -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/DIR=`"$installDir`"") -Wait -PassThru
           if ($install.ExitCode -ne 0) { throw "Silent install failed with exit code $($install.ExitCode)." }
           $installedExe = Join-Path $installDir "archiaemu-desktop.exe"
-          if (!(Test-Path $installedExe)) { throw "Installed desktop executable is missing." }
+          if (!(Test-Path $installedExe)) {\n            Get-ChildItem -Force $installDir -ErrorAction SilentlyContinue | Format-List FullName, Length\n            throw "Installed desktop executable is missing at expected path: $installedExe"\n          }
           $uninstaller = Join-Path $installDir "unins000.exe"
           if (!(Test-Path $uninstaller)) { throw "Uninstaller executable is missing." }
           $uninstall = Start-Process -FilePath $uninstaller -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES") -Wait -PassThru
