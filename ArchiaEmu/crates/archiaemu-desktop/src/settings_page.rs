@@ -110,6 +110,10 @@ impl DesktopApp {
                     } else {
                         ui.small("No installable update artifact is currently published for this platform.");
                     }
+                } else if update::is_newer_version(current, &version) {
+                    ui.label(format!(
+                        "Installed version ({current}) is newer than the stable manifest ({version})."
+                    ));
                 } else {
                     ui.label(format!("ArchiaEmu is up to date ({current})."));
                 }
