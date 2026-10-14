@@ -268,3 +268,57 @@ impl DesktopApp {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::content_path_status;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn unique_temp_path(label: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "archiaemu-library-{label}-{}-{nonce}",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn missing_library_path_requests_reimport() {
+        let path = unique_temp_path("missing");
+        assert_eq!(
+            content_path_status(&path),
+            "Missing · re-import required"
+        );
+    }
+
+    #[test]
+    fn directory_is_not_reported_as_launchable_content() {
+        let path = unique_temp_path("directory");
+        std::fs::create_dir(&path).expect("create temporary test directory");
+
+        assert_eq!(
+            content_path_status(&path),
+            "Unavailable · not a regular file"
+        );
+
+        std::fs::remove_dir(&path).expect("remove temporary test directory");
+    }
+
+    #[test]
+    fn existing_regular_file_requires_launch_validation() {
+        let path = unique_temp_path("file");
+        std::fs::write(&path, b"test").expect("create temporary test file");
+
+        assert_eq!(
+            content_path_status(&path),
+            "File exists · launch validation pending"
+        );
+
+        std::fs::remove_file(&path).expect("remove temporary test file");
+    }
+}
+
