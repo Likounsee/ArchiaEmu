@@ -9,12 +9,12 @@ The native desktop frontend is built with eframe/egui and uses the shared applic
 - Persisted library paths are revalidated on startup; unavailable or invalid paths are skipped with a recovery message so users can re-import files that moved or disappeared.
 - Game library search by title or path, filters for .gb and .gbc, and sorting by title, size, or path.
 - Per-game selection, readable file sizes, path details, launch, use-path, and remove-from-library actions.
-- Session management, registered-system capability reporting, and persistent appearance preferences (light/dark theme, UI scale and customizable accent color).
+- Session management, registered-system capability reporting, per-session video/audio capability labels, and persistent appearance preferences (light/dark theme, UI scale and customizable accent color).
 - A dedicated Game page integrated into navigation and selected automatically after a successful launch.
 - Pause/resume, stop and reset controls in the Game page, plus shortcuts to the library and session manager.
 - A bounded host tick loop, newest-frame consumption, RGBA stride-aware conversion, a 64 MiB texture-upload cap, and a reusable nearest-neighbour egui texture.
 - Semantic keyboard mapping (arrows, Z/X/A/S, Enter, Backspace); repeated key-downs are ignored, and held inputs are released when focus is lost or the user leaves the Game page.
-- Cached video is cleared when sessions are switched or closed; empty and media-error states are shown without synthesizing fake frames.
+- Cached video is cleared when sessions are switched or closed, and when the active session is stopped or reset from either the Game page or session manager; empty and media-error states are shown without synthesizing fake frames.
 - User-facing empty states and import/launch error summaries.
 - Light/dark appearance modes plus a persistent accent-color picker; the accent changes button/selection highlights while leaving light/dark surfaces intact.
 
