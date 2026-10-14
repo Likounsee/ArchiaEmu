@@ -232,7 +232,7 @@ fn create_verified_link(partial_path: &Path, verified_path: &Path) -> Result<(),
 
 fn validate_release_notes_url(url: &str) -> Result<(), String> {
     validate_https_url(url, "release notes")?;
-    if url.contains(['?', '#']) {
+    if url.contains('?') || url.contains('#') {
         return Err("Release notes URL must not contain a query or fragment.".to_owned());
     }
     let rest = url
