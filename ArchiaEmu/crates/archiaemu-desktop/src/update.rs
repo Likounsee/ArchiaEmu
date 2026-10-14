@@ -95,6 +95,8 @@ pub(crate) fn download_and_verify(
     download: &UpdateDownload,
     version: &str,
 ) -> Result<PathBuf, String> {
+    parse_version(version)
+        .ok_or_else(|| format!("Invalid application version for update staging: {version}"))?;
     validate_download_url(&download.url)?;
     if download.size_bytes == 0 || download.size_bytes > MAX_DOWNLOAD_BYTES {
         return Err("Update download size is outside the accepted limits.".to_owned());
@@ -521,6 +523,23 @@ mod tests {
             assert!(
                 !is_newer_version(malformed, "0.1.0"),
                 "malformed version must not be considered newer: {malformed}"
+            );
+        }
+    }
+
+    #[test]
+    fn update_staging_rejects_noncanonical_versions_before_network_access() {
+        let download = super::UpdateDownload {
+            url: "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe"
+                .to_owned(),
+            size_bytes: 1,
+            sha256: "a".repeat(64),
+        };
+
+        for malformed in ["", "01.2.3", "1.2", "1.2.3-beta", "1.2.3.4"] {
+            assert!(
+                super::download_and_verify(&download, malformed).is_err(),
+                "invalid version must be rejected before downloading: {malformed}"
             );
         }
     }
