@@ -98,7 +98,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Persister la couleur d'accent dans la configuration versionnée tout en acceptant les préférences de version 1.
 - [x] Ajouter une page de paramètres claire avec thème clair/sombre, échelle UI, sélecteur de couleur d'accent et réinitialisation de la couleur.
 - [ ] Tester lecture/écriture, version inconnue, données malformées, valeurs hors limites et paramètres absents.
-- [x] Couvrir en tests le premier démarrage sans fichier de préférences, les versions inconnues et le repli sûr pour des valeurs malformées (échelle, accent, chemin).
+- [x] Couvrir en tests le premier démarrage sans fichier de préférences, les versions inconnues, le repli sûr pour des valeurs malformées (échelle, accent, chemin) et le bornage de l'échelle UI.
 - [ ] Fournir un panneau de diagnostic par session : état, système, capacités, contenu chargé et dernière erreur exploitable.
 - [ ] Distinguer les réglages hôte (interface, audio, vidéo, raccourcis, dossiers) des réglages spécifiques à un cœur, qui attendront l'arrivée des modules.
 - [ ] Mettre en place l'internationalisation avant la finition UX : catalogue de langues séparé du code Rust (par exemple `locales/en.json` et `locales/fr.json`), clés stables (`settings.title`, `common.save`), langue sélectionnable dans les paramètres et choix persistant.
