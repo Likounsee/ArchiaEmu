@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1280.0, 820.0])
-            .with_min_inner_size([900.0, 600.0]),
+            .with_min_inner_size([640.0, 480.0]),
         ..Default::default()
     };
     eframe::run_native(
@@ -221,6 +221,13 @@ impl DesktopApp {
         })
     }
 
+    fn navigate_to(&mut self, page: DesktopPage) {
+        if self.active_page == DesktopPage::Game && page != DesktopPage::Game {
+            self.release_game_inputs();
+        }
+        self.active_page = page;
+    }
+
     fn choose_content_file(&mut self) {
         let selected = rfd::FileDialog::new()
             .add_filter("Game Boy ROMs", &["gb", "gbc"])
@@ -398,6 +405,17 @@ impl SessionAction {
     }
 }
 
+fn navigation_items() -> [(DesktopPage, &'static str, &'static str); 6] {
+    [
+        (DesktopPage::Home, "⌂", "Overview"),
+        (DesktopPage::Library, "▤", "Game library"),
+        (DesktopPage::Sessions, "▣", "Sessions"),
+        (DesktopPage::Game, "▶", "Game"),
+        (DesktopPage::Systems, "◉", "Systems"),
+        (DesktopPage::Settings, "⚙", "Settings"),
+    ]
+}
+
 impl eframe::App for DesktopApp {
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
         self.advance_emulation(context);
@@ -429,50 +447,55 @@ impl eframe::App for DesktopApp {
             style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(6.0);
         });
 
-        egui::SidePanel::left("navigation")
-            .resizable(false)
-            .exact_width(204.0)
-            .show(context, |ui| {
-                ui.add_space(10.0);
-                ui.horizontal(|ui| {
-                    ui.heading("◈");
-                    ui.vertical(|ui| {
-                        ui.heading("ArchiaEmu");
-                        ui.small("EMULATION STUDIO");
+        let compact_navigation = context.input(|input| input.screen_rect().width() < 980.0);
+
+        if !compact_navigation {
+            egui::SidePanel::left("navigation")
+                .resizable(false)
+                .exact_width(204.0)
+                .show(context, |ui| {
+                    ui.add_space(10.0);
+                    ui.horizontal(|ui| {
+                        ui.heading("◈");
+                        ui.vertical(|ui| {
+                            ui.heading("ArchiaEmu");
+                            ui.small("EMULATION STUDIO");
+                        });
+                    });
+                    ui.add_space(24.0);
+                    ui.label("WORKSPACE");
+                    ui.add_space(4.0);
+                    for (page, glyph, label) in navigation_items() {
+                        if ui.selectable_label(self.active_page == page, format!("{glyph}   {label}")).clicked() {
+                            self.navigate_to(page);
+                        }
+                    }
+                    ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+                        ui.separator();
+                        ui.label("EARLY DEVELOPMENT");
+                        ui.small("Core support is experimental.");
+                        ui.small("No game compatibility is implied.");
                     });
                 });
-                ui.add_space(24.0);
-                ui.label("WORKSPACE");
-                ui.add_space(4.0);
-                for (page, glyph, label) in [
-                    (DesktopPage::Home, "⌂", "Overview"),
-                    (DesktopPage::Library, "▤", "Game library"),
-                    (DesktopPage::Sessions, "▣", "Sessions"),
-                    (DesktopPage::Game, "▶", "Game"),
-                    (DesktopPage::Systems, "◉", "Systems"),
-                    (DesktopPage::Settings, "⚙", "Settings"),
-                ] {
-                    let selected = self.active_page == page;
-                    if ui
-                        .selectable_label(selected, format!("{glyph}   {label}"))
-                        .clicked()
-                    {
-                        if self.active_page == DesktopPage::Game && page != DesktopPage::Game {
-                            self.release_game_inputs();
-                        }
-                        self.active_page = page;
-                    }
-                }
-                ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
-                    ui.separator();
-                    ui.label("EARLY DEVELOPMENT");
-                    ui.small("Core support is experimental.");
-                    ui.small("No game compatibility is implied.");
+        } else {
+            egui::TopBottomPanel::top("compact_navigation")
+                .show(context, |ui| {
+                    egui::ScrollArea::horizontal().show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.strong("◈ ArchiaEmu");
+                            ui.separator();
+                            for (page, glyph, label) in navigation_items() {
+                                if ui.selectable_label(self.active_page == page, format!("{glyph} {label}")).clicked() {
+                                    self.navigate_to(page);
+                                }
+                            }
+                        });
+                    });
                 });
-            });
+        }
 
         egui::TopBottomPanel::top("app_header").show(context, |ui| {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.vertical(|ui| {
                     ui.heading(self.active_page.title());
                     ui.label("Your library, sessions and emulator tools in one place.");
@@ -499,7 +522,7 @@ impl eframe::App for DesktopApp {
             }
             ui.add_space(12.0);
             ui.separator();
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 let is_error = [
                     "Import failed:",
                     "Launch failed:",
