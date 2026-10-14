@@ -5,7 +5,8 @@ The native desktop frontend is built with eframe/egui and uses the shared applic
 ## Current experience
 
 - Overview dashboard with library/session/system counts and recent content.
-- Multi-file ROM import through the native file picker, with a summary of imported and rejected files.
+- Multi-file ROM import through the native file picker, with a summary of imported and rejected files; the current selection follows the first successfully imported canonical path rather than a rejected file.
+- Persisted library paths are revalidated on startup; unavailable or invalid paths are skipped with a recovery message so users can re-import files that moved or disappeared.
 - Game library search by title or path, filters for .gb and .gbc, and sorting by title, size, or path.
 - Per-game selection, readable file sizes, path details, launch, use-path, and remove-from-library actions.
 - Session management, registered-system capability reporting, and persistent appearance preferences (light/dark theme, UI scale and customizable accent color).
