@@ -368,7 +368,7 @@ impl DesktopApp {
             if imported > 0 {
                 self.navigate_to(DesktopPage::Library);
                 if !self.save_preferences() {
-                    let save_error = std::mem::replace(&mut self.message, String::new());
+                    let save_error = std::mem::take(&mut self.message);
                     self.message = format!(
                         "{import_message} Library changes are active for this session, but preferences were not saved. {save_error}"
                     );
