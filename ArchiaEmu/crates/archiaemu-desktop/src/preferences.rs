@@ -306,6 +306,24 @@ mod tests {
     }
 
     #[test]
+    fn saving_preferences_reports_unwritable_parent_directory() {
+        let blocker = temporary_config("parent-is-file");
+        fs::write(&blocker, "not a directory").expect("blocker file should be created");
+        let path = blocker.join("desktop.conf");
+
+        let error = write_preferences(&path, true, 1.0, [75, 115, 210], &[])
+            .expect_err("a file cannot be used as the configuration parent");
+        assert!(
+            matches!(
+                error.kind(),
+                std::io::ErrorKind::NotADirectory | std::io::ErrorKind::AlreadyExists
+            ),
+            "unexpected error kind: {error}"
+        );
+        let _ = fs::remove_file(blocker);
+    }
+
+    #[test]
     fn malformed_escape_sequences_are_rejected_without_panicking() {
         assert_eq!(
             unescape_config_value("valid\\\\path"),
