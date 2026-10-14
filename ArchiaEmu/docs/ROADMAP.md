@@ -133,11 +133,13 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 - [x] Ajouter une cadence hôte à 60 Hz avec accumulation du temps fractionnaire et rattrapage borné.
 - [ ] Valider en CI les tests de conversion RGBA, de stride et de limite mémoire.
 - [ ] Vérifier pause/reprise, arrêt et absence de progression pendant la pause avec un cœur de test dont le compteur est observable.
-- [ ] Ajouter un adaptateur audio hôte derrière une interface testable et indépendante du cœur.
-- [ ] Acheminer les blocs audio avec gestion des buffers invalides, files pleines, back-pressure et arrêt propre.
-- [ ] Tester une mire vidéo et un signal audio déterministes produits par un cœur de test.
+- [x] Ajouter un adaptateur audio hôte natif via rodio, indépendant du cœur, avec ouverture facultative du périphérique par défaut et repli propre si aucun périphérique n'est disponible.
+- [x] Acheminer les buffers PCM signés 16 bits depuis le contrôleur jusqu'au périphérique hôte; la collecte par tick est bornée à 16 buffers et la file de lecture à 8 blocs, avec purge du retard excessif.
+- [x] Synchroniser pause/reprise et purger l'audio lors de l'arrêt, de la réinitialisation, du changement ou de la fermeture des sessions.
+- [x] Tester la collecte du signal PCM déterministe depuis un cœur de test, la normalisation i16 vers f32 et la limite de file audio.
+- [ ] Valider en CI le rendu audio sur les trois plateformes; l'accès à un vrai périphérique audio n'est pas garanti dans les runners headless.
 - [ ] Documenter formats de pixels, formats audio, limites de mémoire et comportement en cas de capacité absente.
-- [ ] Confirmer le nettoyage des textures et des ressources audio lors du changement/arrêt d'une session.
+- [x] Nettoyer la file audio lors du changement/arrêt d'une session; les textures vidéo continuent d'être libérées par les chemins existants.
 
 **Critère de sortie :** les sorties annoncées sont présentées par des adaptateurs testés; aucune fonctionnalité média inexistante n'est présentée comme opérationnelle.
 
