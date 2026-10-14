@@ -480,7 +480,7 @@ mod tests {
                 "version": "0.2.0",
                 "release_notes_url": "https://github.com/Likounsee/ArchiaEmu/releases",
                 "downloads": {
-                    platform: {
+                    (platform): {
                         "url": "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app",
                         "size_bytes": 1,
                         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
