@@ -169,7 +169,7 @@ pub(crate) fn unescape_config_value(value: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_preferences, write_preferences};
+    use super::{load_preferences, unescape_config_value, write_preferences};
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -274,6 +274,34 @@ mod tests {
         assert!(load_preferences(&path)
             .expect("missing preferences should not be an I/O failure")
             .is_none());
+    }
+
+    #[test]
+    fn escaped_path_values_round_trip_without_creating_extra_settings() {
+        let path = temporary_config("escaped-path-roundtrip");
+        let paths = vec![
+            PathBuf::from("library/line\nbreak\\\\game.gb"),
+            PathBuf::from("library/carriage\rreturn.gb"),
+            PathBuf::from("library/trailing-backslash\\\\"),
+        ];
+
+        write_preferences(&path, true, 1.0, [75, 115, 210], &paths)
+            .expect("preferences with escaped paths should be written");
+        let saved = load_preferences(&path)
+            .expect("preferences with escaped paths should load")
+            .expect("saved preferences should exist");
+
+        assert_eq!(saved.paths, paths);
+        assert!(saved.dark_mode);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn malformed_escape_sequences_are_rejected_without_panicking() {
+        assert_eq!(unescape_config_value("valid\\\\path"), Some("valid\\path".to_owned()));
+        assert_eq!(unescape_config_value("line\\nnext"), Some("line\nnext".to_owned()));
+        assert_eq!(unescape_config_value("bad\\qescape"), None);
+        assert_eq!(unescape_config_value("trailing\\\\"), None);
     }
 
     #[test]
