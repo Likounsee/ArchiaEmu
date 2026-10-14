@@ -602,6 +602,51 @@ mod tests {
     }
 
     #[test]
+    fn empty_and_oversized_content_are_rejected_without_changing_app_state() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-invalid-content-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let empty_file = root.join("empty.gb");
+        let oversized_file = root.join("oversized.gb");
+        std::fs::write(&empty_file, b"").unwrap();
+        std::fs::write(&oversized_file, b"12345").unwrap();
+
+        let mut app = controller();
+        let existing_session = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(existing_session).unwrap();
+
+        for path in [&empty_file, &oversized_file] {
+            let result = app.launch_content_path(
+                path,
+                ContentLimits::new(4),
+                &[],
+                &CoreRegistry::new(),
+            );
+
+            assert!(result.is_err(), "invalid content must be rejected: {}", path.display());
+            assert_eq!(app.session_count(), 1);
+            assert_eq!(app.active_session(), Some(existing_session));
+            assert_eq!(app.session_summary(existing_session).unwrap().state, SessionState::Empty);
+        }
+
+        app.close_all_sessions();
+        std::fs::remove_file(empty_file).unwrap();
+        std::fs::remove_file(oversized_file).unwrap();
+        std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
     fn library_index_errors_are_explicit_and_do_not_create_sessions() {
         let mut app = controller();
         let error = app
