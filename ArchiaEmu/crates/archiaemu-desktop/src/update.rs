@@ -114,7 +114,13 @@ pub(crate) fn download_and_verify(
         .as_nanos();
     let safe_version: String = version
         .chars()
-        .map(|character| if character.is_ascii_alphanumeric() || character == '.' || character == '-' { character } else { '_' })
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || character == '.' || character == '-' {
+                character
+            } else {
+                '_'
+            }
+        })
         .collect();
     let partial_path = directory.join(format!("archiaemu-{safe_version}-{nonce}.part"));
     let verified_path = directory.join(format!("archiaemu-{safe_version}-{nonce}.verified"));
@@ -162,7 +168,9 @@ pub(crate) fn download_and_verify(
         }
         let actual = format!("{:x}", hasher.finalize());
         if !actual.eq_ignore_ascii_case(&download.sha256) {
-            return Err("Downloaded update SHA-256 does not match the official manifest.".to_owned());
+            return Err(
+                "Downloaded update SHA-256 does not match the official manifest.".to_owned(),
+            );
         }
         fs::rename(&partial_path, &verified_path)
             .map_err(|error| format!("Could not finalize verified update file: {error}"))?;
@@ -191,9 +199,13 @@ fn validate_download_url(url: &str) -> Result<(), String> {
         .to_ascii_lowercase();
     if !matches!(
         authority.as_str(),
-        "github.com" | "objects.githubusercontent.com" | "release-assets.githubusercontent.com"
+        "github.com"
+            | "objects.githubusercontent.com"
+            | "release-assets.githubusercontent.com"
     ) {
-        return Err("Update artifacts must be hosted on official GitHub release domains.".to_owned());
+        return Err(
+            "Update artifacts must be hosted on official GitHub release domains.".to_owned(),
+        );
     }
     Ok(())
 }
@@ -288,7 +300,9 @@ fn current_platform_key() -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_newer_version, validate_download_url, verify_staged_file, write_test_file, UpdateManifest};
+    use super::{
+        is_newer_version, validate_download_url, verify_staged_file, write_test_file, UpdateManifest,
+    };
     use sha2::{Digest, Sha256};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -325,7 +339,10 @@ mod tests {
 
     #[test]
     fn rejects_untrusted_update_download_hosts() {
-        assert!(validate_download_url("https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe").is_ok());
+        assert!(validate_download_url(
+            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe"
+        )
+        .is_ok());
         assert!(validate_download_url("https://example.com/app.exe").is_err());
         assert!(validate_download_url("http://github.com/app.exe").is_err());
     }
