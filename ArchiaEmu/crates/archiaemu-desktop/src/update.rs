@@ -228,8 +228,20 @@ fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
 }
 
 fn validate_https_url(url: &str, label: &str) -> Result<(), String> {
-    if !url.starts_with("https://") || url.chars().any(char::is_control) {
-        return Err(format!("The {label} URL must use HTTPS."));
+    let authority = url
+        .strip_prefix("https://")
+        .and_then(|rest| rest.split(['/', '?', '#']).next())
+        .unwrap_or_default();
+    if authority.is_empty()
+        || authority.starts_with('.')
+        || authority.ends_with('.')
+        || authority.contains('@')
+        || authority.contains('\\')
+        || authority.chars().any(|character| {
+            character.is_control() || character.is_whitespace()
+        })
+    {
+        return Err(format!("The {label} URL must use HTTPS and contain a valid host."));
     }
     Ok(())
 }
@@ -335,6 +347,18 @@ mod tests {
         )
         .expect("manifest JSON should parse");
         assert!(manifest.validate().is_err());
+        for malformed in [
+            "https://",
+            "https:///example.com/notes",
+            "https://user@example.com/notes",
+            "https://example.com\\\\@attacker.invalid/notes",
+            "https://example.com/notes\\\\\\n",
+        ] {
+            assert!(
+                super::validate_https_url(malformed, "release notes").is_err(),
+                "malformed HTTPS URL should be rejected: {malformed}"
+            );
+        }
     }
 
     #[test]
