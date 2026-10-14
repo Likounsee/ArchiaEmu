@@ -65,9 +65,9 @@ impl DesktopApp {
                     {
                         if self.controller.active_session() != Some(id) {
                             self.release_game_inputs();
-                            self.audio_output.clear();
                             match self.controller.select_session(id) {
                                 Ok(()) => {
+                                    self.audio_output.clear();
                                     self.frame_cadence.reset();
                                     self.frame_texture = None;
                                     self.video_size = None;
