@@ -188,11 +188,28 @@ impl DesktopApp {
                     .default_open(false)
                     .show(ui, |ui| {
                         ui.label(format!("Session identifier: {}", id.get()));
-                        ui.label(format!("Selected by host: {}", self.controller.active_session() == Some(id)));
+                        ui.label(format!(
+                            "Selected by host: {}",
+                            self.controller.active_session() == Some(id)
+                        ));
                         ui.label(format!("Lifecycle state: {state:?}"));
                         ui.label(format!("Content loaded: {content_loaded}"));
-                        ui.label(format!("Video output capability: {}", if video_available { "declared available" } else { "unavailable in this core" }));
-                        ui.label(format!("Audio output capability: {}", if audio_available { "declared available" } else { "unavailable in this core" }));
+                        ui.label(format!(
+                            "Video output capability: {}",
+                            if video_available {
+                                "declared available"
+                            } else {
+                                "unavailable in this core"
+                            }
+                        ));
+                        ui.label(format!(
+                            "Audio output capability: {}",
+                            if audio_available {
+                                "declared available"
+                            } else {
+                                "unavailable in this core"
+                            }
+                        ));
                         if !video_available {
                             ui.label("Video output is unavailable because this core does not declare the capability.");
                         }
@@ -200,12 +217,18 @@ impl DesktopApp {
                             ui.label("Audio output is unavailable because this core does not declare the capability.");
                         }
                         if let Some(error) = &tick_error {
-                            ui.colored_label(egui::Color32::LIGHT_RED, format!("Most recent tick/media failure: {error}"));
+                            ui.colored_label(
+                                egui::Color32::LIGHT_RED,
+                                format!("Most recent tick/media failure: {error}"),
+                            );
                         } else {
                             ui.label("Most recent tick/media failure: none recorded");
                         }
                         if let Some(error) = &core_diagnostic {
-                            ui.colored_label(egui::Color32::LIGHT_RED, format!("Core diagnostic: {error}"));
+                            ui.colored_label(
+                                egui::Color32::LIGHT_RED,
+                                format!("Core diagnostic: {error}"),
+                            );
                         } else {
                             ui.label("Core diagnostic: none recorded");
                         }
