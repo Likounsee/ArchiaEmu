@@ -228,6 +228,9 @@ fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
 }
 
 fn validate_https_url(url: &str, label: &str) -> Result<(), String> {
+    if url.chars().any(|character| character.is_control() || character == '\\\\') {
+        return Err(format!("The {label} URL contains a forbidden control character or backslash."));
+    }
     let authority = url
         .strip_prefix("https://")
         .and_then(|rest| rest.split(['/', '?', '#']).next())
@@ -236,10 +239,7 @@ fn validate_https_url(url: &str, label: &str) -> Result<(), String> {
         || authority.starts_with('.')
         || authority.ends_with('.')
         || authority.contains('@')
-        || authority.contains('\\')
-        || authority.chars().any(|character| {
-            character.is_control() || character.is_whitespace()
-        })
+        || authority.chars().any(char::is_whitespace)
     {
         return Err(format!("The {label} URL must use HTTPS and contain a valid host."));
     }
@@ -393,6 +393,10 @@ mod tests {
             .expect("valid staged file should pass");
         assert!(verify_staged_file(&path, contents.len() as u64 + 1, &digest).is_err());
         assert!(verify_staged_file(&path, contents.len() as u64, &"0".repeat(64)).is_err());
+
+        // A staged file can be changed after download; re-verification must catch it.
+        write_test_file(&path, b"tampered update contents");
+        assert!(verify_staged_file(&path, contents.len() as u64, &digest).is_err());
         let _ = std::fs::remove_file(path);
     }
 }
