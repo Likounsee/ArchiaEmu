@@ -251,6 +251,20 @@ fn validate_download_url(url: &str) -> Result<(), String> {
             "Update artifacts must be hosted on official GitHub release domains.".to_owned(),
         );
     }
+    // A github.com URL must identify this project's release asset, not merely
+    // any page or release in any repository on the trusted domain. Redirected
+    // release-assets.githubusercontent.com URLs are checked by the host allowlist.
+    if authority == "github.com" {
+        let path = url
+            .strip_prefix("https://")
+            .and_then(|rest| rest.split_once('/').map(|(_, path)| format!("/{path}")))
+            .unwrap_or_default();
+        if !path.starts_with("/Likounsee/ArchiaEmu/releases/download/") {
+            return Err(
+                "Update artifacts must come from an ArchiaEmu GitHub release.".to_owned(),
+            );
+        }
+    }
     Ok(())
 }
 
@@ -514,6 +528,8 @@ mod tests {
         )
         .is_ok());
         assert!(validate_download_url("https://example.com/app.exe").is_err());
+        assert!(validate_download_url("https://github.com/other/project/releases/download/v0.2.0/app.exe").is_err());
+        assert!(validate_download_url("https://github.com/Likounsee/ArchiaEmu/releases/tag/v0.2.0").is_err());
         assert!(validate_download_url("http://github.com/app.exe").is_err());
         // User-info must not be stripped before checking the actual URL authority.
         assert!(validate_download_url("https://attacker@github.com/app.exe").is_err());
