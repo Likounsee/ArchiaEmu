@@ -45,7 +45,7 @@ Le runtime commun, le cycle de vie des sessions, les capacités, le registre, le
 
 ### P1.1 — architecture de l'application et séparation frontend/backend
 
-**État estimé : en cours — environ 32 % pour l'objectif global P1, estimation qualitative.**
+**État estimé : en cours — environ 40 % pour l'objectif global P1, estimation qualitative.**
 
 Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'application partagé. Les adaptateurs de vue, les commandes typées du contrôleur, l'avancement des sessions via `ApplicationController::advance_session` et les préférences dans `preferences.rs` ont commencé à séparer l'interface de l'exécution.
 
@@ -71,7 +71,8 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Supprimer une entrée avec désélection cohérente.
 - [x] Persister la bibliothèque entre les redémarrages via les préférences, revalider chaque chemin au chargement et signaler les fichiers absents/invalides avec quelques détails pour permettre leur réimport.
 - [ ] Clarifier le modèle de contenu : chemin source, nom affiché, format détecté, système compatible, dernier résultat de validation et état de disponibilité.
-- [ ] Prévoir des états vides utiles et des actions claires lorsque la bibliothèque ne contient aucun fichier.
+- [x] Prévoir des états vides utiles et des actions claires lorsque la bibliothèque ne contient aucun fichier.
+- [x] Détecter à l'affichage les chemins de bibliothèque devenus indisponibles, expliquer qu'une réimportation est nécessaire et désactiver le lancement direct quand le chemin ne désigne plus un fichier.
 - [ ] Tester fichiers absents, fichiers vides, formats inconnus, contenu ambigu, contenu trop grand, contenu refusé par le cœur et fichier inaccessible.
 - [ ] Garantir qu'un échec de lancement n'ajoute pas de session fantôme et n'endommage pas la bibliothèque.
 
