@@ -203,16 +203,21 @@ impl DesktopApp {
             if paths.is_empty() {
                 return;
             }
-            self.content_path = paths[0].display().to_string();
             let mut imported = 0usize;
             let mut rejected = 0usize;
+            let mut first_imported_path = None;
             let mut failures = Vec::new();
             for path in paths {
                 match self
                     .controller
                     .import_content(&path, MAX_CONTENT_BYTES as u64)
                 {
-                    Ok(_) => imported += 1,
+                    Ok(entry) => {
+                        imported += 1;
+                        if first_imported_path.is_none() {
+                            first_imported_path = Some(entry.path().to_path_buf());
+                        }
+                    }
                     Err(error) => {
                         rejected += 1;
                         if failures.len() < 3 {
@@ -221,7 +226,10 @@ impl DesktopApp {
                     }
                 }
             }
-            self.selected_content = Some(PathBuf::from(&self.content_path));
+            if let Some(path) = first_imported_path {
+                self.content_path = path.display().to_string();
+                self.selected_content = Some(path);
+            }
             if imported > 0 {
                 self.save_preferences();
                 self.active_page = DesktopPage::Library;
