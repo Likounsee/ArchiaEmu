@@ -3,6 +3,7 @@
 
 use std::error::Error;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, Instant};
 
 use archiaemu_app::controller::{ApplicationController, SessionCommand};
@@ -20,6 +21,7 @@ mod sessions_page;
 
 mod settings_page;
 mod systems_page;
+mod update;
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::runtime::SessionState;
 use archiaemu_core::CoreRegistry;
@@ -70,6 +72,9 @@ struct DesktopApp {
     media_status: String,
     last_tick_errors: Vec<(SessionId, String)>,
     session_content_paths: Vec<(SessionId, PathBuf)>,
+    update_check_receiver: Option<Receiver<Result<update::UpdateManifest, String>>>,
+    update_manifest: Option<update::UpdateManifest>,
+    update_status: String,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -218,6 +223,9 @@ impl DesktopApp {
             media_status: "No active session.".to_owned(),
             last_tick_errors: Vec::new(),
             session_content_paths: Vec::new(),
+            update_check_receiver: None,
+            update_manifest: None,
+            update_status: "Not checked yet.".to_owned(),
         })
     }
 
@@ -418,6 +426,35 @@ fn navigation_items() -> [(DesktopPage, &'static str, &'static str); 6] {
 
 impl eframe::App for DesktopApp {
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+        let update_result = self
+            .update_check_receiver
+            .as_ref()
+            .and_then(|receiver| receiver.try_recv().ok());
+        if let Some(result) = update_result {
+            self.update_check_receiver = None;
+            match result {
+                Ok(manifest) => {
+                    let current = option_env!("CARGO_PKG_VERSION").unwrap_or("0.0.0");
+                    self.update_status = if update::is_newer_version(&manifest.version, current) {
+                        if manifest.download_for_current_platform().is_some() {
+                            format!("Version {} is available. Download and safe installation are not implemented yet.", manifest.version)
+                        } else {
+                            format!("Version {} is published, but no download is available for this platform yet.", manifest.version)
+                        }
+                    } else {
+                        format!("You are using the latest stable version ({}).", current)
+                    };
+                    self.update_manifest = Some(manifest);
+                }
+                Err(error) => {
+                    self.update_status = format!("Update check failed: {error}");
+                    self.update_manifest = None;
+                }
+            }
+        }
+        if self.update_check_receiver.is_some() {
+            context.request_repaint_after(Duration::from_millis(250));
+        }
         self.advance_emulation(context);
         let previous_dark_mode = self.dark_mode;
         let previous_ui_scale = self.ui_scale;
@@ -529,7 +566,7 @@ impl eframe::App for DesktopApp {
                 DesktopPage::Sessions => self.show_sessions(ui),
                 DesktopPage::Game => self.show_game(ui),
                 DesktopPage::Systems => self.show_systems(ui),
-                DesktopPage::Settings => self.show_settings(ui),
+                DesktopPage::Settings => self.show_settings(ui, context),
             }
             ui.add_space(12.0);
             ui.separator();
