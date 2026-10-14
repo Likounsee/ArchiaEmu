@@ -549,6 +549,8 @@ mod tests {
             "https://github.com/Likounsee/ArchiaEmu/releases-evil",
             "https://attacker@github.com/Likounsee/ArchiaEmu/releases",
             "https://github.com:8443/Likounsee/ArchiaEmu/releases",
+            "https://github.com/Likounsee/ArchiaEmu/releases?redirect=example.com",
+            "https://github.com/Likounsee/ArchiaEmu/releases#other-project",
         ] {
             assert!(
                 super::validate_release_notes_url(url).is_err(),
