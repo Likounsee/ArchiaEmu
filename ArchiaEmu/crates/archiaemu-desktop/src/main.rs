@@ -56,6 +56,7 @@ struct DesktopApp {
     message: String,
     dark_mode: bool,
     ui_scale: f32,
+    accent_color: egui::Color32,
     config_path: Option<PathBuf>,
     active_page: DesktopPage,
     last_tick: Instant,
@@ -143,12 +144,14 @@ impl DesktopApp {
         let config_path = config_file_path();
         let mut dark_mode = true;
         let mut ui_scale = 1.0;
+        let mut accent_color = egui::Color32::from_rgb(75, 115, 210);
         let mut message = String::from("Ready. Select a content path to import or launch.");
         if let Some(path) = config_path.as_deref() {
             match load_preferences(path) {
                 Ok(Some(saved)) => {
                     dark_mode = saved.dark_mode;
                     ui_scale = saved.ui_scale.clamp(0.8, 1.4);
+                    accent_color = egui::Color32::from_rgb(saved.accent_rgb[0], saved.accent_rgb[1], saved.accent_rgb[2]);
                     let mut restored = 0usize;
                     for content_path in saved.paths {
                         if controller
@@ -178,6 +181,7 @@ impl DesktopApp {
             message,
             dark_mode,
             ui_scale,
+            accent_color,
             config_path,
             active_page: DesktopPage::Home,
             last_tick: Instant::now(),
@@ -296,7 +300,7 @@ impl DesktopApp {
             .entries()
             .map(|entry| entry.path().to_path_buf())
             .collect();
-        if let Err(error) = write_preferences(path, self.dark_mode, self.ui_scale, &paths) {
+        if let Err(error) = write_preferences(path, self.dark_mode, self.ui_scale, [self.accent_color.r(), self.accent_color.g(), self.accent_color.b()], &paths) {
             self.message = format!("Could not save preferences: {error}");
         }
     }
@@ -343,6 +347,7 @@ impl eframe::App for DesktopApp {
         self.advance_emulation(context);
         let previous_dark_mode = self.dark_mode;
         let previous_ui_scale = self.ui_scale;
+        let previous_accent_color = self.accent_color;
         context.set_visuals(if self.dark_mode {
             egui::Visuals::dark()
         } else {
@@ -353,9 +358,14 @@ impl eframe::App for DesktopApp {
             style.spacing.item_spacing = egui::vec2(10.0, 10.0);
             style.spacing.button_padding = egui::vec2(12.0, 8.0);
             style.spacing.window_margin = egui::Margin::same(16.0);
-            style.visuals.selection.bg_fill = egui::Color32::from_rgb(75, 115, 210);
-            style.visuals.selection.stroke =
-                egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(125, 160, 245));
+            let accent = self.accent_color;
+            style.visuals.selection.bg_fill = accent.gamma_multiply(0.45);
+            style.visuals.selection.stroke = egui::Stroke::new(1.0_f32, accent);
+            style.visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, accent.gamma_multiply(0.45));
+            style.visuals.widgets.hovered.bg_fill = accent.gamma_multiply(0.22);
+            style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, accent);
+            style.visuals.widgets.active.bg_fill = accent.gamma_multiply(0.38);
+            style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent);
             style.visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
             style.visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
             style.visuals.widgets.active.rounding = egui::Rounding::same(6.0);
@@ -458,6 +468,7 @@ impl eframe::App for DesktopApp {
 
         if self.dark_mode != previous_dark_mode
             || (self.ui_scale - previous_ui_scale).abs() > f32::EPSILON
+            || self.accent_color != previous_accent_color
         {
             self.save_preferences();
         }
