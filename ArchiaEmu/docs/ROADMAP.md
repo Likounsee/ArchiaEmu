@@ -110,7 +110,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Persister la couleur d'accent dans la configuration versionnée tout en acceptant les préférences de version 1.
 - [x] Ajouter une page de paramètres claire avec thème clair/sombre, échelle UI, sélecteur de couleur d'accent et réinitialisation de la couleur.
 - [x] Tester lecture/écriture, version inconnue, données malformées, valeurs hors limites et paramètres absents, y compris l’aller-retour des chemins contenant des échappements et le rejet des séquences d’échappement invalides.
-- [x] Couvrir en tests le premier démarrage sans fichier de préférences, les versions inconnues, le repli sûr pour des valeurs malformées (échelle, accent, chemin) et le bornage de l'échelle UI.
+- [x] Couvrir en tests le premier démarrage sans fichier de préférences, les versions inconnues, le repli sûr pour des valeurs malformées (échelle, accent, chemin) et le bornage de l'échelle UI; l'écriture normalise aussi les échelles non finies vers 1,0 et borne les valeurs hors plage avant persistance. Les tests sont ajoutés, leur exécution reste à confirmer en CI.
 - [ ] Fournir un panneau de diagnostic par session : état, système, capacités, contenu chargé et dernière erreur exploitable.
 - [x] Exposer l'indicateur « contenu chargé » dans le résumé contrôleur et l'afficher dans le gestionnaire de sessions.
 - [x] Conserver le chemin source associé à chaque session lancée depuis le bureau, l'afficher dans le gestionnaire et le nettoyer à la fermeture de la session ou de toutes les sessions.
