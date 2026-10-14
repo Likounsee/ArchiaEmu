@@ -510,6 +510,27 @@ impl DesktopApp {
     }
 
     fn session_action(&mut self, id: SessionId, action: SessionAction) {
+        let is_active = self.controller.active_session() == Some(id);
+        let release_error = if is_active
+            && matches!(action, SessionAction::Stop | SessionAction::Reset)
+        {
+            self.release_game_inputs().err()
+        } else {
+            None
+        };
+
+        // A reset is only safe once held controls have been released. Stop, however, must
+        // remain available as a recovery action even if releasing input itself fails.
+        if matches!(action, SessionAction::Reset) {
+            if let Some(error) = release_error {
+                self.message = format!(
+                    "Session {}: reset aborted because input release failed: {error}",
+                    id.get()
+                );
+                return;
+            }
+        }
+
         let command = match action {
             SessionAction::Pause => SessionCommand::Pause,
             SessionAction::Resume => SessionCommand::Resume,
@@ -520,7 +541,7 @@ impl DesktopApp {
             .controller
             .command_session(id, command)
             .map_err(|error| error.to_string());
-        if result.is_ok() && self.controller.active_session() == Some(id) {
+        if result.is_ok() && is_active {
             match action {
                 SessionAction::Pause => self.audio_output.pause(),
                 SessionAction::Resume => self.audio_output.resume(),
@@ -531,9 +552,16 @@ impl DesktopApp {
             // A deliberate lifecycle transition supersedes an earlier execution/media tick error.
             clear_tick_error_for_session(&mut self.last_tick_errors, id);
         }
-        self.message = match result {
-            Ok(()) => format!("Session {}: {} succeeded.", id.get(), action.label()),
-            Err(error) => format!("Session {}: {} failed: {error}", id.get(), action.label()),
+        self.message = match (result, release_error) {
+            (Ok(()), Some(error)) => format!(
+                "Session {}: {} succeeded, but input release failed: {error}",
+                id.get(),
+                action.label()
+            ),
+            (Ok(()), None) => format!("Session {}: {} succeeded.", id.get(), action.label()),
+            (Err(error), _) => {
+                format!("Session {}: {} failed: {error}", id.get(), action.label())
+            }
         };
     }
 }
