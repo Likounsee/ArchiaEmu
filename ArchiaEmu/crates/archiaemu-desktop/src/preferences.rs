@@ -141,7 +141,7 @@ pub(crate) fn escape_config_value(value: &str) -> String {
     for character in value.chars() {
         match character {
             '\\' => escaped.push_str("\\\\"),
-            '\n' => escaped.push_str("\n"),
+            '\n' => escaped.push_str("\\n"),
             '\r' => escaped.push_str("\\r"),
             other => escaped.push(other),
         }
