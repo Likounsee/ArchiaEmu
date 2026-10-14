@@ -42,7 +42,7 @@ impl UpdateManifest {
         }
         parse_version(&self.version)
             .ok_or_else(|| format!("Invalid application version: {}", self.version))?;
-        validate_https_url(&self.release_notes_url, "release notes")?;
+        validate_release_notes_url(&self.release_notes_url)?;
         for (platform, download) in &self.downloads {
             if !is_supported_platform_key(platform) {
                 return Err(format!("Unsupported update platform key: {platform}."));
@@ -226,6 +226,28 @@ fn create_verified_link(partial_path: &Path, verified_path: &Path) -> Result<(),
             "Could not finalize verified update file without overwriting an existing file: {error}"
         )
     })
+}
+
+fn validate_release_notes_url(url: &str) -> Result<(), String> {
+    validate_https_url(url, "release notes")?;
+    let rest = url
+        .strip_prefix("https://")
+        .ok_or_else(|| "Release notes must use HTTPS.".to_owned())?;
+    let (authority, path) = rest
+        .split_once('/')
+        .map(|(authority, path)| (authority, format!("/{path}")))
+        .unwrap_or((rest, String::new()));
+    if !authority.eq_ignore_ascii_case("github.com")
+        || authority.contains('@')
+        || authority.contains(':')
+        || !(path == "/Likounsee/ArchiaEmu/releases"
+            || path.starts_with("/Likounsee/ArchiaEmu/releases/"))
+    {
+        return Err(
+            "Release notes must point to the official ArchiaEmu GitHub releases page.".to_owned(),
+        );
+    }
+    Ok(())
 }
 
 fn validate_download_url(url: &str) -> Result<(), String> {
@@ -499,6 +521,30 @@ mod tests {
         )
         .expect("manifest JSON should parse");
         assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn rejects_release_notes_outside_the_official_project_releases() {
+        for url in [
+            "https://example.com/releases",
+            "https://github.com/another/project/releases",
+            "https://github.com/Likounsee/ArchiaEmu/releases-evil",
+            "https://attacker@github.com/Likounsee/ArchiaEmu/releases",
+            "https://github.com:8443/Likounsee/ArchiaEmu/releases",
+        ] {
+            assert!(
+                super::validate_release_notes_url(url).is_err(),
+                "untrusted release notes URL should be rejected: {url}"
+            );
+        }
+        assert!(super::validate_release_notes_url(
+            "https://github.com/Likounsee/ArchiaEmu/releases"
+        )
+        .is_ok());
+        assert!(super::validate_release_notes_url(
+            "https://github.com/Likounsee/ArchiaEmu/releases/tag/v0.2.0"
+        )
+        .is_ok());
     }
 
     #[test]
