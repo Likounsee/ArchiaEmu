@@ -136,12 +136,8 @@ mod tests {
             status: "No audio output device".to_owned(),
             dropped_buffers: 0,
         };
-        let buffer = archiaemu_core::core_io::AudioBuffer::new(
-            48_000,
-            2,
-            vec![100, -100],
-        )
-        .unwrap();
+        let buffer =
+            archiaemu_core::core_io::AudioBuffer::new(48_000, 2, vec![100, -100]).unwrap();
 
         output.submit(&buffer);
 
