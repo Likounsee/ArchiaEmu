@@ -430,6 +430,8 @@ mod tests {
     use super::*;
     use archiaemu_game_boy::GameBoyCore;
     use std::collections::VecDeque;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
     fn controller() -> ApplicationController {
         ApplicationController::new(HostRuntime::new(Default::default()).unwrap())
@@ -606,7 +608,7 @@ mod tests {
     struct AudioQueueCore {
         loaded: bool,
         pending_audio: VecDeque<AudioBuffer>,
-        run_count: usize,
+        run_count: Arc<AtomicUsize>,
     }
 
     impl archiaemu_core::EmulationCore for AudioQueueCore {
@@ -643,7 +645,7 @@ mod tests {
             if !self.loaded {
                 return Err(archiaemu_core::CoreError::NotInitialized);
             }
-            self.run_count += 1;
+            self.run_count.fetch_add(1, Ordering::SeqCst);
             Ok(archiaemu_core::CoreEvent::Yielded)
         }
 
@@ -663,7 +665,7 @@ mod tests {
             .create_session(Box::new(AudioQueueCore {
                 loaded: false,
                 pending_audio: std::iter::once(expected.clone()).collect(),
-                run_count: 0,
+                run_count: Arc::new(AtomicUsize::new(0)),
             }))
             .unwrap();
         app.host_mut()
@@ -717,6 +719,7 @@ mod tests {
     #[test]
     fn media_session_does_not_advance_while_paused_and_resumes_cleanly() {
         let mut app = controller();
+        let run_count = Arc::new(AtomicUsize::new(0));
         let id = app
             .host_mut()
             .create_session(Box::new(AudioQueueCore {
@@ -734,7 +737,7 @@ mod tests {
 
         app.advance_session(id, Duration::from_millis(17), &mut cadence)
             .unwrap();
-        assert_eq!(app.host().session(id).unwrap().core_run_count_for_test(), 1);
+        assert_eq!(run_count.load(Ordering::SeqCst), 1);
         app.command_session(id, SessionCommand::Pause).unwrap();
         app.advance_session(id, Duration::from_secs(10), &mut cadence)
             .unwrap();
