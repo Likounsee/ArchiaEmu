@@ -10,6 +10,20 @@ impl DesktopApp {
         );
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.checkbox(&mut self.dark_mode, "Use dark theme");
+            ui.horizontal(|ui| {
+                ui.label("Accent color");
+                ui.color_edit_button_srgba(&mut self.accent_color);
+                ui.monospace(format!(
+                    "#{:02X}{:02X}{:02X}",
+                    self.accent_color.r(),
+                    self.accent_color.g(),
+                    self.accent_color.b()
+                ));
+                if ui.button("Reset").clicked() {
+                    self.accent_color = egui::Color32::from_rgb(75, 115, 210);
+                }
+            });
+            ui.label("Changes the buttons, selection and highlights—not the light or dark backgrounds.");
             ui.add(
                 egui::Slider::new(&mut self.ui_scale, 0.8..=1.4)
                     .text("Interface scale")
