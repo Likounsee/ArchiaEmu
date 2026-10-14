@@ -9,12 +9,39 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+/// Validation outcome recorded for a library item.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ContentValidation {
+    /// The content has not yet passed through a registered format probe and core.
+    Pending,
+    /// A registered probe and compatible core accepted the content at launch.
+    Accepted,
+    /// The latest launch attempt rejected the content.
+    Rejected(String),
+}
+
+/// Live filesystem availability of a library item.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ContentAvailability {
+    /// The path currently points to a regular file.
+    Available,
+    /// The original path no longer exists.
+    Missing,
+    /// The path exists but is not a regular file.
+    NotRegularFile,
+    /// Metadata could not be read for a reason other than a missing path.
+    Unavailable,
+}
+
 /// A content item that has been imported into the current host library.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ContentEntry {
     path: PathBuf,
     title: String,
     size_bytes: u64,
+    format_hint: Option<String>,
+    compatible_system_hint: Option<String>,
+    validation: ContentValidation,
 }
 
 impl ContentEntry {
@@ -31,6 +58,34 @@ impl ContentEntry {
     /// Returns the content file size captured when it was imported.
     pub const fn size_bytes(&self) -> u64 {
         self.size_bytes
+    }
+
+    /// Returns the extension-derived format hint, which is not proof of validity.
+    pub fn format_hint(&self) -> Option<&str> {
+        self.format_hint.as_deref()
+    }
+
+    /// Returns the system family suggested by the extension, if recognized.
+    ///
+    /// This is a display hint only. The registered format probe and core remain
+    /// authoritative for compatibility.
+    pub fn compatible_system_hint(&self) -> Option<&str> {
+        self.compatible_system_hint.as_deref()
+    }
+
+    /// Returns the most recently recorded launch-validation outcome.
+    pub fn validation(&self) -> &ContentValidation {
+        &self.validation
+    }
+
+    /// Checks the current filesystem state instead of trusting import-time metadata.
+    pub fn availability(&self) -> ContentAvailability {
+        match fs::metadata(&self.path) {
+            Ok(metadata) if metadata.is_file() => ContentAvailability::Available,
+            Ok(_) => ContentAvailability::NotRegularFile,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => ContentAvailability::Missing,
+            Err(_) => ContentAvailability::Unavailable,
+        }
     }
 }
 
@@ -156,16 +211,44 @@ impl ContentLibrary {
             .map(|name| name.to_string_lossy().into_owned())
             .filter(|name| !name.is_empty())
             .unwrap_or_else(|| canonical.display().to_string());
+        let extension = canonical
+            .extension()
+            .and_then(|value| value.to_str())
+            .map(str::to_ascii_lowercase);
+        let compatible_system_hint = extension.as_deref().and_then(|extension| match extension {
+            "gb" => Some("Game Boy"),
+            "gbc" => Some("Game Boy / Game Boy Color"),
+            _ => None,
+        });
         let entry = ContentEntry {
             path: canonical.clone(),
             title,
             size_bytes,
+            format_hint: extension,
+            compatible_system_hint: compatible_system_hint.map(str::to_owned),
+            validation: ContentValidation::Pending,
         };
         self.entries.insert(canonical.clone(), entry);
         Ok(self
             .entries
             .get(&canonical)
             .expect("entry was just inserted"))
+    }
+
+    /// Records the latest launch-validation outcome for a canonical library path.
+    ///
+    /// Returns false if the path is not currently in the catalog.
+    pub fn record_validation(
+        &mut self,
+        canonical_path: impl AsRef<Path>,
+        validation: ContentValidation,
+    ) -> bool {
+        if let Some(entry) = self.entries.get_mut(canonical_path.as_ref()) {
+            entry.validation = validation;
+            true
+        } else {
+            false
+        }
     }
 
     /// Removes an imported file by path; the file must still be present.
@@ -216,6 +299,10 @@ mod tests {
         assert_eq!(entry.path(), fs::canonicalize(&file.0).unwrap());
         assert_eq!(entry.title(), "zelda");
         assert_eq!(entry.size_bytes(), 8);
+        assert_eq!(entry.format_hint(), Some("gb"));
+        assert_eq!(entry.compatible_system_hint(), Some("Game Boy"));
+        assert_eq!(entry.validation(), &ContentValidation::Pending);
+        assert_eq!(entry.availability(), ContentAvailability::Available);
         assert_eq!(library.len(), 1);
     }
 
@@ -237,6 +324,27 @@ mod tests {
         assert!(matches!(
             library.import(&file.0, 3),
             Err(ContentLibraryError::TooLarge { .. })
+        ));
+    }
+
+    #[test]
+    fn validation_outcome_is_recorded_without_claiming_extension_proves_validity() {
+        let file = TempFile::new("bad.gb", b"not a valid cartridge");
+        let mut library = ContentLibrary::new();
+        library.import(&file.0, 64).unwrap();
+        let canonical = fs::canonicalize(&file.0).unwrap();
+
+        assert!(library.record_validation(
+            &canonical,
+            ContentValidation::Rejected("invalid cartridge header".to_owned())
+        ));
+        assert_eq!(
+            library.entries().next().unwrap().validation(),
+            &ContentValidation::Rejected("invalid cartridge header".to_owned())
+        );
+        assert!(!library.record_validation(
+            PathBuf::from("not-in-library.gb"),
+            ContentValidation::Accepted
         ));
     }
 
