@@ -52,7 +52,7 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
                 }
             }
         } else if let Some(value) = line.strip_prefix("accent=") {
-            if value.len() == 6 {
+            if value.len() == 6 && value.is_ascii() {
                 if let (Ok(r), Ok(g), Ok(b)) = (u8::from_str_radix(&value[0..2], 16), u8::from_str_radix(&value[2..4], 16), u8::from_str_radix(&value[4..6], 16)) {
                     accent_rgb = [r, g, b];
                 }
