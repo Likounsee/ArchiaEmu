@@ -51,7 +51,9 @@ fn read_preferences_file(path: &Path) -> std::io::Result<String> {
             format!("preferences file exceeds the {MAX_PREFERENCES_BYTES}-byte limit"),
         ));
     }
-    String::from_utf8(bytes).map_err(std::io::Error::from)
+    String::from_utf8(bytes).map_err(|error| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, error)
+    })
 }
 
 pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
