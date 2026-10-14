@@ -109,7 +109,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Ajouter une couleur d'accent personnalisable pour boutons/états sélectionnés/surlignages, sans recolorer les fonds du thème.
 - [x] Persister la couleur d'accent dans la configuration versionnée tout en acceptant les préférences de version 1.
 - [x] Ajouter une page de paramètres claire avec thème clair/sombre, échelle UI, sélecteur de couleur d'accent et réinitialisation de la couleur.
-- [ ] Tester lecture/écriture, version inconnue, données malformées, valeurs hors limites et paramètres absents.
+- [x] Tester lecture/écriture, version inconnue, données malformées, valeurs hors limites et paramètres absents, y compris l’aller-retour des chemins contenant des échappements et le rejet des séquences d’échappement invalides.
 - [x] Couvrir en tests le premier démarrage sans fichier de préférences, les versions inconnues, le repli sûr pour des valeurs malformées (échelle, accent, chemin) et le bornage de l'échelle UI.
 - [ ] Fournir un panneau de diagnostic par session : état, système, capacités, contenu chargé et dernière erreur exploitable.
 - [x] Exposer l'indicateur « contenu chargé » dans le résumé contrôleur et l'afficher dans le gestionnaire de sessions.
