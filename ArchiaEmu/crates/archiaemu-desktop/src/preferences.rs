@@ -549,7 +549,7 @@ mod tests {
             .expect("out-of-range scale should be handled")
             .expect("preferences should exist");
         assert!((saved.ui_scale - 1.4).abs() < f32::EPSILON);
-        let _ = fs::write(&path, "version=2\nscale=0.1\n").expect("low scale should be written");
+        fs::write(&path, "version=2\nscale=0.1\n").expect("low scale should be written");
         let saved = load_preferences(&path)
             .expect("low scale should be handled")
             .expect("preferences should exist");
