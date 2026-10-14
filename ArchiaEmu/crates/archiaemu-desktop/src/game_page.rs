@@ -68,7 +68,7 @@ impl DesktopApp {
                 ui.heading("No active game session");
                 ui.label("Import a ROM in the library and launch it to create a session.");
                 if ui.button("Browse library").clicked() {
-                    self.active_page = DesktopPage::Library;
+                    self.navigate_to(DesktopPage::Library);
                 }
             });
         }
