@@ -185,6 +185,7 @@ Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale d
 - [ ] Permettre à l'utilisateur de choisir la fréquence de vérification, d'être informé de la version et des notes de version, et de différer une mise à jour; ne jamais remplacer les fichiers exécutables en cours d'utilisation.
 - [ ] Vérifier mise à niveau depuis une version précédente, échec/annulation d'installation et désinstallation sans supprimer les contenus personnels sans consentement explicite.
 - [x] Documenter la procédure de packaging, les limites de reproductibilité et la checklist d'acceptation Windows dans `docs/WINDOWS_INSTALLER.md`; le comportement réel doit encore être validé.
+- [x] Étendre le smoke test Windows pour vérifier qu'une désinstallation silencieuse supprime bien l'exécutable installé sans effacer ni modifier le fichier de préférences utilisateur (la suppression des données doit rester liée à un consentement explicite); exécution CI à confirmer.
 - [ ] Tester installateur, désinstallateur et mise à jour sur une machine/VM Windows propre et conserver une preuve de résultat; ne pas cocher le critère sur la seule présence d'un fichier .exe.
 
 **Critère de sortie P1.7 :** un utilisateur peut télécharger l'installateur, installer ArchiaEmu, obtenir ses raccourcis, utiliser les fonctions génériques prises en charge entièrement en local, recevoir les vérifications de mises à jour du programme et mettre à jour de manière sûre sans environnement de développement ni fichiers manquants.
