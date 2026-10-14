@@ -1127,6 +1127,70 @@ mod tests {
     }
 
     #[test]
+    fn successful_library_launch_loads_content_and_supports_session_lifecycle() {
+        use archiaemu_core::content::ContentFormatProbe;
+        use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-successful-launch-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let rom_path = root.join("valid-test.gb");
+
+        // Build a minimal 32 KiB ROM-only image with a valid logo and header checksum.
+        let mut rom = vec![0u8; 0x8000];
+        rom[0x0104..0x0134].copy_from_slice(&[
+            0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C,
+            0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6,
+            0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC,
+            0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
+        ]);
+        rom[0x0134..0x013C].copy_from_slice(b"CI TEST ");
+        rom[0x0147] = 0x00;
+        rom[0x0148] = 0x00;
+        rom[0x0149] = 0x00;
+        let mut checksum = 0u8;
+        for byte in &rom[0x0134..=0x014C] {
+            checksum = checksum.wrapping_sub(*byte).wrapping_sub(1);
+        }
+        rom[0x014D] = checksum;
+        std::fs::write(&rom_path, rom).unwrap();
+
+        let mut app = controller();
+        app.import_content(&rom_path, 0x10000).unwrap();
+        let mut registry = CoreRegistry::new();
+        register_game_boy(&mut registry).unwrap();
+        let probe = GameBoyCartridgeProbe;
+        let probes: [&dyn ContentFormatProbe; 1] = [&probe];
+
+        let id = app
+            .launch_library_entry(1, ContentLimits::new(0x10000), &probes, &registry)
+            .expect("a valid ROM-only test image should launch through the library");
+
+        assert_eq!(app.active_session(), Some(id));
+        assert_eq!(app.session_count(), 1);
+        assert!(app.session_summary(id).unwrap().content_loaded);
+
+        app.command_session(id, SessionCommand::Pause).unwrap();
+        assert_eq!(app.session_summary(id).unwrap().state, SessionState::Paused);
+        app.command_session(id, SessionCommand::Resume).unwrap();
+        assert_eq!(app.session_summary(id).unwrap().state, SessionState::Running);
+        app.command_session(id, SessionCommand::Stop).unwrap();
+        app.close_session(id).unwrap();
+        assert_eq!(app.session_count(), 0);
+        assert_eq!(app.active_session(), None);
+
+        std::fs::remove_file(rom_path).unwrap();
+        std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
     fn library_index_errors_are_explicit_and_do_not_create_sessions() {
         let mut app = controller();
         let error = app
