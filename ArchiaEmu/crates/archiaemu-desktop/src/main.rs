@@ -342,6 +342,10 @@ impl DesktopApp {
             .controller
             .command_session(id, command)
             .map_err(|error| error.to_string());
+        if result.is_ok() && matches!(action, SessionAction::Stop | SessionAction::Reset) {
+            // A deliberate lifecycle transition supersedes an earlier execution/media tick error.
+            self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+        }
         self.message = match result {
             Ok(()) => format!("Session {}: {} succeeded.", id.get(), action.label()),
             Err(error) => format!("Session {}: {} failed: {error}", id.get(), action.label()),
