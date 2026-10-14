@@ -11,10 +11,10 @@ impl DesktopApp {
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("Manage sessions").clicked() {
-                    self.active_page = DesktopPage::Sessions;
+                    self.navigate_to(DesktopPage::Sessions);
                 }
                 if ui.button("Open library").clicked() {
-                    self.active_page = DesktopPage::Library;
+                    self.navigate_to(DesktopPage::Library);
                 }
             });
         });
