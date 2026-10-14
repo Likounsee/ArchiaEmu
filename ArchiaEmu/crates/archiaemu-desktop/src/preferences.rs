@@ -261,6 +261,24 @@ mod tests {
     }
 
     #[test]
+    fn saving_preferences_does_not_truncate_a_preexisting_temporary_path() {
+        let path = temporary_config("preserve-stale-temp");
+        let stale_temporary = path.with_extension("conf.tmp");
+        fs::write(&stale_temporary, b"preserve unrelated existing file")
+            .expect("stale temporary sentinel should be created");
+
+        write_preferences(&path, true, 1.0, [75, 115, 210], &[])
+            .expect("preferences should save through a unique temporary file");
+
+        assert_eq!(
+            fs::read(&stale_temporary).expect("pre-existing file should remain"),
+            b"preserve unrelated existing file"
+        );
+        let _ = fs::remove_file(path);
+        let _ = fs::remove_file(stale_temporary);
+    }
+
+    #[test]
     fn version_one_preferences_keep_default_accent() {
         let path = temporary_config("legacy-v1");
         fs::write(&path, "version=1\ndark=false\nscale=1.0\n")
