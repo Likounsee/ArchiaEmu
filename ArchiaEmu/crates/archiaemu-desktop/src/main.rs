@@ -522,7 +522,7 @@ impl DesktopApp {
         // A reset is only safe once held controls have been released. Stop, however, must
         // remain available as a recovery action even if releasing input itself fails.
         if matches!(action, SessionAction::Reset) {
-            if let Some(error) = release_error {
+            if let Some(error) = release_error.as_ref() {
                 self.message = format!(
                     "Session {}: reset aborted because input release failed: {error}",
                     id.get()
