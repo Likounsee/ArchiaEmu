@@ -19,10 +19,13 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | **P1.3** | Sessions et commandes génériques | **≈ 60 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
 | **P1.4** | Paramètres, diagnostics et ergonomie | **≈ 55 %** | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
 | **P1.5** | Sorties média hôte et validation multiplateforme | **≈ 80 %** | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
-| **P2** | Intégration et fiabilité des modules logiciels | **≈ 24 %** — après P1 | Découverte, installation, mise à jour, provenance, récupération et frontières de confiance |
-| **P3** | Premier module de console réellement fonctionnel | Après P1 | Un système testé de bout en bout, avec limites de compatibilité honnêtes |
-| **P4** | Autres modules/systèmes | Après stabilisation de P3 | Étendre le catalogue sans coupler les cœurs à l'application |
-| **P5** | Publication et maintenance | En dernier | Paquets reproductibles, documentation de support, mises à jour et politique de version |
+| **P1.6** | Tests de parcours, CI et finition | **≈ 45 %** | Tests exécutés et validation multiplateforme de l'application |
+| **P1.7** | Livraison locale et installateur Windows | **≈ 35 %** | Installateur testé en environnement propre et mise à jour sûre |
+| **P2** | Intégration et fiabilité des modules logiciels | **≈ 24 %** — après P1 | Découverte, téléchargement de modules logiciels autorisés, provenance et frontières de confiance; aucun catalogue de ROM |
+| **CPU** | Architecture transversale des stratégies d'exécution | **≈ 20 %** | Contrats CPU/ABI/GPU et stratégies réellement implémentées |
+| **P3** | Premier module de console réellement fonctionnel | **0 %** — après P1 | Un système testé de bout en bout, avec limites de compatibilité honnêtes |
+| **P4** | Autres modules/systèmes | **0 %** — après P3 | Étendre le catalogue sans coupler les cœurs à l'application |
+| **P5** | Publication et maintenance | **0 %** — en dernier | Paquets reproductibles, documentation de support, mises à jour et politique de version |
 
 > **Définition stricte de fin de P1 :** P1 n'est terminé que si l'application est utilisable en local et livrable à un utilisateur qui n'a pas configuré l'environnement de développement. Le code nécessaire à l'application générique doit déjà être implémenté; les phases suivantes peuvent ajouter des modules/systèmes et leurs capacités, mais ne doivent pas servir à compléter les mécanismes essentiels de l'application. Il faut une interface cohérente, une bibliothèque et des sessions fiables, des préférences persistantes, des diagnostics, des sorties média honnêtes, des tests et une CI validés, ainsi qu'un installateur Windows .exe qui installe tous les fichiers et dépendances requis dans des emplacements locaux définis. Après installation, l'application doit démarrer et fonctionner localement sans dépendre du dépôt Git, du dossier de build ou d'outils Rust. L'installation, le premier démarrage, les chemins de données/configuration, la désinstallation et les erreurs d'installation doivent être vérifiés. Cela ne signifie pas encore qu'une console est jouable : aucun cœur factice ne doit être présenté comme un système fonctionnel.
 
