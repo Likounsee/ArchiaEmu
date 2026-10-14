@@ -342,14 +342,25 @@ impl ApplicationController {
         id: SessionId,
         event: InputEvent,
     ) -> Result<(), SessionCommandError> {
-        let session = self.host.session_mut(id).map_err(SessionCommandError::Host)?;
-        session.send_input(event).map_err(SessionCommandError::Session)
+        let session = self
+            .host
+            .session_mut(id)
+            .map_err(SessionCommandError::Host)?;
+        session
+            .send_input(event)
+            .map_err(SessionCommandError::Session)
     }
 
     /// Releases every held input on a session when its lifecycle permits input.
     pub fn release_inputs(&mut self, id: SessionId) -> Result<(), SessionCommandError> {
-        let session = self.host.session_mut(id).map_err(SessionCommandError::Host)?;
-        if matches!(session.state(), SessionState::Running | SessionState::Paused) {
+        let session = self
+            .host
+            .session_mut(id)
+            .map_err(SessionCommandError::Host)?;
+        if matches!(
+            session.state(),
+            SessionState::Running | SessionState::Paused
+        ) {
             session
                 .release_all_inputs()
                 .map_err(SessionCommandError::Session)?;
@@ -363,7 +374,10 @@ impl ApplicationController {
         id: SessionId,
         command: SessionCommand,
     ) -> Result<(), SessionCommandError> {
-        let session = self.host.session_mut(id).map_err(SessionCommandError::Host)?;
+        let session = self
+            .host
+            .session_mut(id)
+            .map_err(SessionCommandError::Host)?;
         let result = match command {
             SessionCommand::Pause => session.pause(),
             SessionCommand::Resume => session.resume(),
@@ -627,17 +641,20 @@ mod tests {
         app.select_session(existing_session).unwrap();
 
         for path in [&empty_file, &oversized_file] {
-            let result = app.launch_content_path(
-                path,
-                ContentLimits::new(4),
-                &[],
-                &CoreRegistry::new(),
-            );
+            let result =
+                app.launch_content_path(path, ContentLimits::new(4), &[], &CoreRegistry::new());
 
-            assert!(result.is_err(), "invalid content must be rejected: {}", path.display());
+            assert!(
+                result.is_err(),
+                "invalid content must be rejected: {}",
+                path.display()
+            );
             assert_eq!(app.session_count(), 1);
             assert_eq!(app.active_session(), Some(existing_session));
-            assert_eq!(app.session_summary(existing_session).unwrap().state, SessionState::Empty);
+            assert_eq!(
+                app.session_summary(existing_session).unwrap().state,
+                SessionState::Empty
+            );
         }
 
         app.close_all_sessions();
@@ -755,10 +772,10 @@ mod tests {
         let malformed_rom = root.join("malformed.gb");
         let mut bytes = vec![0u8; 0x8000];
         bytes[0x0104..0x0134].copy_from_slice(&[
-            0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83,
-            0x00, 0x0C, 0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E,
-            0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63,
-            0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
+            0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C,
+            0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6,
+            0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC,
+            0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
         ]);
         bytes[0x148] = 0;
         bytes[0x149] = 0;
