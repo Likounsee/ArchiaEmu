@@ -69,6 +69,7 @@ struct DesktopApp {
     video_size: Option<[u32; 2]>,
     media_status: String,
     last_tick_errors: Vec<(SessionId, String)>,
+    session_content_paths: Vec<(SessionId, PathBuf)>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -211,6 +212,7 @@ impl DesktopApp {
             video_size: None,
             media_status: "No active session.".to_owned(),
             last_tick_errors: Vec::new(),
+            session_content_paths: Vec::new(),
         })
     }
 
@@ -309,6 +311,10 @@ impl DesktopApp {
             &self.registry,
         ) {
             Ok(id) => {
+                let launched_path = std::fs::canonicalize(Path::new(path))
+                    .unwrap_or_else(|_| PathBuf::from(path));
+                self.session_content_paths.retain(|(session_id, _)| *session_id != id);
+                self.session_content_paths.push((id, launched_path));
                 self.message = format!("Launched session {}.", id.get());
                 self.frame_cadence.reset();
                 self.frame_texture = None;
