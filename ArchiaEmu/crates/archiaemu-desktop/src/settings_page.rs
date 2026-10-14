@@ -81,12 +81,17 @@ impl DesktopApp {
                     if let Some(download) = download {
                         let downloading = self.update_download_receiver.is_some();
                         if ui
-                            .add_enabled(!downloading, egui::Button::new("Download and verify update"))
+                            .add_enabled(
+                                !downloading,
+                                egui::Button::new("Download and verify update"),
+                            )
                             .clicked()
                         {
                             let (sender, receiver) = mpsc::channel();
                             self.update_download_receiver = Some(receiver);
-                            self.update_status = format!("Downloading version {version} to a temporary staging area…");
+                            self.update_status = format!(
+                                "Downloading version {version} to a temporary staging area…"
+                            );
                             std::thread::spawn(move || {
                                 let result = update::download_and_verify(&download, &version);
                                 let _ = sender.send(result);
