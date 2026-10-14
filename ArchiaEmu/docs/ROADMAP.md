@@ -102,7 +102,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Conserver les diagnostics de tick séparément par identifiant de session, puis les retirer à la fermeture de la session concernée ou de toutes les sessions.
 - [x] Effacer le diagnostic de tick obsolète après un arrêt ou une réinitialisation réussis, sans toucher aux diagnostics des autres sessions; ajouter un test ciblé de ce nettoyage.
 - [ ] Tester les erreurs de tick, les transitions après arrêt/suppression de la session active et le nettoyage des ressources sur ces chemins.
-- [x] Relâcher les entrées sur perte de focus, changement/fermeture de session et fermeture globale; tenter également de les libérer quand l'avancement de session échoue ou remonte une erreur média. La vérification manuelle des périphériques reste à exécuter.
+- [x] Relâcher les entrées sur perte de focus, changement/fermeture de session et fermeture globale; tenter également de les libérer quand l'avancement de session échoue ou remonte une erreur média. Avant de lancer un nouveau contenu, la libération de la session active est maintenant préalable et un échec annule le lancement au lieu de laisser une transition ambiguë. La vérification manuelle des périphériques et ce nouveau parcours restent à exécuter.
 - [x] Afficher les capacités réellement déclarées et expliquer explicitement l'absence de vidéo/audio dans la vue de jeu, la liste des sessions et les diagnostics.
 - [ ] Ne pas présenter un cœur factice comme une session de console jouable.
 
