@@ -48,3 +48,16 @@ Cette checklist valide les parcours génériques de l'application, pas la compat
 - [ ] Vérifier séparément les résultats GitHub Actions du commit exact sur Linux, macOS et Windows.
 
 Une case ne doit être cochée qu'après observation réelle. Cette checklist documente des vérifications à effectuer; sa présence dans le dépôt ne signifie pas qu'elles ont déjà été réalisées.
+
+
+## Windows installer acceptance
+
+- [ ] Run `.github/workflows/windows-installer.yml` and retain the installer artifact and commit SHA.
+- [ ] Verify the installer version and SHA-256 sidecar file.
+- [ ] Install on a clean Windows VM without Rust, Git, the repository, or build tools.
+- [ ] Launch from Start Menu and optional desktop shortcut; close and restart.
+- [ ] Verify preferences and imported content paths persist across restart.
+- [ ] Upgrade over a previous version and verify existing settings remain intact.
+- [ ] Uninstall while choosing to preserve user data; verify settings and ROMs remain.
+- [ ] Repeat uninstall choosing removal of the explicitly documented settings/log/cache files; verify unrelated files and ROMs remain.
+- [ ] Record Windows version, commit SHA, checksum, and observed results.
