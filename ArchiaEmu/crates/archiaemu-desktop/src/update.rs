@@ -369,6 +369,40 @@ mod tests {
     }
 
     #[test]
+    fn rejects_unsupported_manifest_schema_and_invalid_download_metadata() {
+        let unsupported: UpdateManifest = serde_json::from_str(
+            r#"{"schema_version":2,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{}}"#,
+        )
+        .expect("manifest JSON should parse");
+        assert!(unsupported.validate().is_err());
+
+        let valid_url = "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe";
+        for (size, digest) in [
+            (0, "a".repeat(64)),
+            (1, "not-a-sha256-digest".to_owned()),
+            (1, "g".repeat(64)),
+        ] {
+            let manifest: UpdateManifest = serde_json::from_value(serde_json::json!({
+                "schema_version": 1,
+                "version": "0.2.0",
+                "release_notes_url": "https://github.com/Likounsee/ArchiaEmu/releases",
+                "downloads": {
+                    "windows-x86_64": {
+                        "url": valid_url,
+                        "size_bytes": size,
+                        "sha256": digest
+                    }
+                }
+            }))
+            .expect("manifest JSON should parse");
+            assert!(
+                manifest.validate().is_err(),
+                "invalid size or digest must be rejected"
+            );
+        }
+    }
+
+    #[test]
     fn rejects_untrusted_update_download_hosts() {
         assert!(validate_download_url(
             "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe"
