@@ -8,7 +8,14 @@ impl DesktopApp {
         ui.label("Pick up where you left off or add a game to your library.");
         ui.add_space(8.0);
 
-        ui.columns(3, |columns| {
+        let card_columns = if ui.available_width() < 560.0 {
+            1
+        } else if ui.available_width() < 820.0 {
+            2
+        } else {
+            3
+        };
+        ui.columns(card_columns, |columns| {
             let cards = [
                 (
                     "LIBRARY",
@@ -26,7 +33,8 @@ impl DesktopApp {
                     "Registered cores",
                 ),
             ];
-            for (column, (title, value, detail)) in columns.iter_mut().zip(cards) {
+            for (index, (title, value, detail)) in cards.into_iter().enumerate() {
+                let column = &mut columns[index % card_columns];
                 egui::Frame::group(column.style()).show(column, |ui| {
                     ui.label(title);
                     ui.heading(value);
@@ -40,11 +48,11 @@ impl DesktopApp {
             ui.heading("Start playing");
             ui.label("Choose a Game Boy or Game Boy Color ROM to add it to your library.");
             ui.add_space(8.0);
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.add(
                     egui::TextEdit::singleline(&mut self.content_path)
                         .hint_text("Path to a .gb or .gbc file")
-                        .desired_width(ui.available_width() * 0.58),
+                        .desired_width(ui.available_width().min(560.0)),
                 );
                 if ui.button("Browse…").clicked() {
                     self.choose_content_file();
@@ -59,7 +67,7 @@ impl DesktopApp {
         });
 
         ui.add_space(14.0);
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             ui.heading("Recently imported");
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.link("View library →").clicked() {
@@ -112,7 +120,7 @@ impl DesktopApp {
 
         ui.add_space(12.0);
         egui::Frame::group(ui.style()).show(ui, |ui| {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.vertical(|ui| {
                     ui.heading("Emulation status");
                     ui.label("The desktop shell is being built before full hardware emulation.");

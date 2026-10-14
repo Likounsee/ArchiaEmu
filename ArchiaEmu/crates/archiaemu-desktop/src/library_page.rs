@@ -16,7 +16,7 @@ fn content_path_status(path: &Path) -> &'static str {
 impl DesktopApp {
     pub(super) fn show_library(&mut self, ui: &mut egui::Ui) {
         let total = self.controller.library().len();
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.heading("Your games");
                 ui.label(format!("{total} imported item(s)"));
@@ -30,12 +30,12 @@ impl DesktopApp {
 
         ui.add_space(8.0);
         egui::Frame::group(ui.style()).show(ui, |ui| {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.label("⌕ Search");
                 ui.add(
                     egui::TextEdit::singleline(&mut self.library_filter)
                         .hint_text("Search titles and file paths…")
-                        .desired_width(260.0),
+                        .desired_width(ui.available_width().min(260.0)),
                 );
                 egui::ComboBox::from_id_source("library_format_filter")
                     .selected_text(self.library_format.label())

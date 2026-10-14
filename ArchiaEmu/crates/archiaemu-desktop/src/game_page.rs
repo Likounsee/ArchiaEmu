@@ -4,7 +4,7 @@ use super::*;
 
 impl DesktopApp {
     pub(super) fn show_game(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.heading("Game view");
                 ui.label("The host runs the selected session and displays its latest video frame.");
@@ -27,7 +27,7 @@ impl DesktopApp {
             let state = summary.state;
             let system = summary.system_name;
             egui::Frame::group(ui.style()).show(ui, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.vertical(|ui| {
                         ui.heading(format!("{system} · Session {}", id.get()));
                         ui.label(format!("State: {state:?}"));
@@ -57,7 +57,7 @@ impl DesktopApp {
                     });
                 });
                 ui.separator();
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.label(if summary.video_available {
                         "Video: available"
                     } else {

@@ -4,7 +4,7 @@ use super::*;
 
 impl DesktopApp {
     pub(super) fn show_sessions(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.heading("Session manager");
                 ui.label("Select a session to manage its lifecycle.");
@@ -50,7 +50,7 @@ impl DesktopApp {
                 }
             });
             egui::Frame::group(ui.style()).show(ui, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     let selected = self.controller.active_session() == Some(id);
                     if ui
                         .selectable_label(selected, format!("Session {}", id.get()))
