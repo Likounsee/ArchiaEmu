@@ -35,6 +35,7 @@ impl DesktopApp {
         for summary in sessions {
             let id = summary.id;
             let state = summary.state;
+            let content_loaded = summary.content_loaded;
             let system_name = summary.system_name;
             let video_available = summary.video_available;
             let audio_available = summary.audio_available;
@@ -83,6 +84,12 @@ impl DesktopApp {
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.label(format!("State: {state:?}"));
+                    ui.separator();
+                    ui.label(if content_loaded {
+                        "Content: loaded"
+                    } else {
+                        "Content: not loaded"
+                    });
                     if state == SessionState::Running && ui.button("Pause").clicked() {
                         self.session_action(id, SessionAction::Pause);
                     }
