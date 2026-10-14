@@ -468,6 +468,31 @@ mod tests {
     }
 
     #[test]
+    fn accepts_each_supported_update_platform_key() {
+        for platform in [
+            "windows-x86_64",
+            "macos-aarch64",
+            "macos-x86_64",
+            "linux-x86_64",
+        ] {
+            let manifest: UpdateManifest = serde_json::from_value(serde_json::json!({
+                "schema_version": 1,
+                "version": "0.2.0",
+                "release_notes_url": "https://github.com/Likounsee/ArchiaEmu/releases",
+                "downloads": {
+                    platform: {
+                        "url": "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app",
+                        "size_bytes": 1,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    }
+                }
+            }))
+            .expect("manifest JSON should parse");
+            manifest.validate().expect("supported platform key should be accepted");
+        }
+    }
+
+    #[test]
     fn rejects_unknown_update_platform_keys_instead_of_silently_ignoring_them() {
         let manifest: UpdateManifest = serde_json::from_str(
             r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{"linux-x64":{"url":"https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app","size_bytes":1,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}"#,
