@@ -6,10 +6,8 @@
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::Read;
-#[cfg(test)]
-use std::io::Write;
+use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Write};
 use std::path::Path;
 use std::time::Duration;
 
@@ -49,7 +47,7 @@ impl UpdateManifest {
             if platform.trim().is_empty() {
                 return Err("Update download has an empty platform key.".to_owned());
             }
-            validate_https_url(&download.url, "download")?;
+            validate_download_url(&download.url)?;
             if download.size_bytes == 0 || download.size_bytes > MAX_DOWNLOAD_BYTES {
                 return Err(format!("Invalid download size for platform {platform}."));
             }
@@ -89,6 +87,115 @@ pub(crate) fn fetch_manifest() -> Result<UpdateManifest, String> {
         .map_err(|error| format!("Official update manifest is invalid: {error}"))?;
     manifest.validate()?;
     Ok(manifest)
+}
+
+/// Downloads a published application artifact into a private staging directory,
+/// verifies its declared length and SHA-256, and never executes or installs it.
+pub(crate) fn download_and_verify(
+    download: &UpdateDownload,
+    version: &str,
+) -> Result<PathBuf, String> {
+    validate_download_url(&download.url)?;
+    if download.size_bytes == 0 || download.size_bytes > MAX_DOWNLOAD_BYTES {
+        return Err("Update download size is outside the accepted limits.".to_owned());
+    }
+    if download.sha256.len() != 64
+        || !download.sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+    {
+        return Err("Update download has a malformed SHA-256 digest.".to_owned());
+    }
+
+    let directory = std::env::temp_dir().join("ArchiaEmu").join("updates");
+    fs::create_dir_all(&directory)
+        .map_err(|error| format!("Could not create update staging directory: {error}"))?;
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| format!("System clock is invalid: {error}"))?
+        .as_nanos();
+    let safe_version: String = version
+        .chars()
+        .map(|character| if character.is_ascii_alphanumeric() || character == '.' || character == '-' { character } else { '_' })
+        .collect();
+    let partial_path = directory.join(format!("archiaemu-{safe_version}-{nonce}.part"));
+    let verified_path = directory.join(format!("archiaemu-{safe_version}-{nonce}.verified"));
+
+    let result = (|| {
+        let agent = ureq::AgentBuilder::new()
+            .timeout_connect(Duration::from_secs(10))
+            .timeout_read(Duration::from_secs(30))
+            .build();
+        let response = agent
+            .get(&download.url)
+            .call()
+            .map_err(|error| format!("Could not download the update artifact: {error}"))?;
+        let mut reader = response.into_reader();
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&partial_path)
+            .map_err(|error| format!("Could not create staged update file: {error}"))?;
+        let mut hasher = Sha256::new();
+        let mut total = 0_u64;
+        let mut buffer = [0_u8; 64 * 1024];
+        loop {
+            let count = reader
+                .read(&mut buffer)
+                .map_err(|error| format!("Update download was interrupted: {error}"))?;
+            if count == 0 {
+                break;
+            }
+            total = total.saturating_add(count as u64);
+            if total > download.size_bytes || total > MAX_DOWNLOAD_BYTES {
+                return Err("Update download exceeded its declared size limit.".to_owned());
+            }
+            file.write_all(&buffer[..count])
+                .map_err(|error| format!("Could not write staged update: {error}"))?;
+            hasher.update(&buffer[..count]);
+        }
+        file.sync_all()
+            .map_err(|error| format!("Could not flush staged update: {error}"))?;
+        if total != download.size_bytes {
+            return Err(format!(
+                "Update download size mismatch (expected {} bytes, received {total}).",
+                download.size_bytes
+            ));
+        }
+        let actual = format!("{:x}", hasher.finalize());
+        if !actual.eq_ignore_ascii_case(&download.sha256) {
+            return Err("Downloaded update SHA-256 does not match the official manifest.".to_owned());
+        }
+        fs::rename(&partial_path, &verified_path)
+            .map_err(|error| format!("Could not finalize verified update file: {error}"))?;
+        Ok(verified_path.clone())
+    })();
+
+    if result.is_err() {
+        let _ = fs::remove_file(&partial_path);
+        let _ = fs::remove_file(&verified_path);
+    }
+    result
+}
+
+fn validate_download_url(url: &str) -> Result<(), String> {
+    validate_https_url(url, "download")?;
+    let authority = url
+        .strip_prefix("https://")
+        .and_then(|rest| rest.split('/').next())
+        .unwrap_or_default()
+        .split('@')
+        .last()
+        .unwrap_or_default()
+        .split(':')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    if !matches!(
+        authority.as_str(),
+        "github.com" | "objects.githubusercontent.com" | "release-assets.githubusercontent.com"
+    ) {
+        return Err("Update artifacts must be hosted on official GitHub release domains.".to_owned());
+    }
+    Ok(())
 }
 
 pub(crate) fn is_newer_version(candidate: &str, current: &str) -> bool {
@@ -181,7 +288,7 @@ fn current_platform_key() -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_newer_version, verify_staged_file, write_test_file, UpdateManifest};
+    use super::{is_newer_version, validate_download_url, verify_staged_file, write_test_file, UpdateManifest};
     use sha2::{Digest, Sha256};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
