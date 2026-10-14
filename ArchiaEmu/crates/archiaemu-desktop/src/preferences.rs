@@ -156,6 +156,12 @@ pub(crate) fn write_preferences(
         contents.push_str("path=");
         contents.push_str(&escape_config_value(&path.to_string_lossy()));
         contents.push('\n');
+        if contents.len() > MAX_PREFERENCES_BYTES {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("serialized preferences exceed the {MAX_PREFERENCES_BYTES}-byte limit"),
+            ));
+        }
     }
     // Use a unique, create-new temporary file. A fixed .tmp path could be
     // left behind after a crash or redirected through a pre-existing symlink;
