@@ -63,25 +63,24 @@ impl DesktopApp {
                     if ui
                         .selectable_label(selected, format!("Session {}", id.get()))
                         .clicked()
+                        && self.controller.active_session() != Some(id)
                     {
-                        if self.controller.active_session() != Some(id) {
-                            // Do not switch away if held controls could not be released:
-                            // the old session must not keep receiving stuck input.
-                            if let Err(error) = self.release_game_inputs() {
-                                self.message = error;
-                                return;
+                        // Do not switch away if held controls could not be released:
+                        // the old session must not keep receiving stuck input.
+                        if let Err(error) = self.release_game_inputs() {
+                            self.message = error;
+                            return;
+                        }
+                        match self.controller.select_session(id) {
+                            Ok(()) => {
+                                self.audio_output.clear();
+                                self.frame_cadence.reset();
+                                self.frame_texture = None;
+                                self.video_size = None;
+                                self.last_tick = Instant::now();
+                                self.active_page = DesktopPage::Game;
                             }
-                            match self.controller.select_session(id) {
-                                Ok(()) => {
-                                    self.audio_output.clear();
-                                    self.frame_cadence.reset();
-                                    self.frame_texture = None;
-                                    self.video_size = None;
-                                    self.last_tick = Instant::now();
-                                    self.active_page = DesktopPage::Game;
-                                }
-                                Err(error) => self.message = error.to_string(),
-                            }
+                            Err(error) => self.message = error.to_string(),
                         }
                     }
                     ui.label(&system_name);
