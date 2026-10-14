@@ -1,4 +1,4 @@
-name: Desktop preview
+name: Desktop smoke test
 
 on:
   push:
@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 jobs:
-  screenshot:
+  desktop-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -30,10 +30,7 @@ jobs:
       - name: Install Linux desktop dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config libx11-dev libxkbcommon-x11-dev libwayland-dev \
-            libxrandr-dev libxcursor-dev libxi-dev libgl1-mesa-dev \
-            libasound2-dev xvfb imagemagick
+          sudo apt-get install -y pkg-config libx11-dev libxkbcommon-x11-dev libwayland-dev libxrandr-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev xvfb
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -41,11 +38,10 @@ jobs:
       - name: Build desktop application
         run: cargo build --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
 
-      - name: Capture the running application
+      - name: Smoke-test application startup
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p preview
           BIN="ArchiaEmu/target/debug/archiaemu-desktop"
           if [ ! -x "$BIN" ]; then
             BIN="ArchiaEmu/crates/archiaemu-desktop/target/debug/archiaemu-desktop"
@@ -59,34 +55,15 @@ jobs:
           fi
           export BIN
           xvfb-run -a bash -lc '
-            set +e
-            "$BIN" >preview/application.log 2>&1 &
+            set -euo pipefail
+            "$BIN" >/tmp/archiaemu-desktop-smoke.log 2>&1 &
             app_pid=$!
-            sleep 8
+            sleep 5
             if ! kill -0 "$app_pid" 2>/dev/null; then
-              echo "Desktop application exited before the screenshot."
-              cat preview/application.log
+              echo "Desktop application exited during startup."
+              cat /tmp/archiaemu-desktop-smoke.log
               exit 1
             fi
-            if import -window root preview/archiaemu-desktop.png 2>/dev/null; then
-              identify preview/archiaemu-desktop.png
-              kill "$app_pid" 2>/dev/null
-              wait "$app_pid" 2>/dev/null
-              exit 0
-            fi
-            cat preview/application.log
-            kill "$app_pid" 2>/dev/null
-            wait "$app_pid" 2>/dev/null
-            exit 1
+            kill "$app_pid" 2>/dev/null || true
+            wait "$app_pid" 2>/dev/null || true
           '
-
-      - name: Upload screenshot and launch log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: archiaemu-desktop-preview-${{ github.sha }}
-          path: |
-            preview/archiaemu-desktop.png
-            preview/application.log
-          if-no-files-found: warn
-          retention-days: 14
