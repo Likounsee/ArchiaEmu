@@ -353,9 +353,12 @@ impl DesktopApp {
         }
     }
 
-    fn save_preferences(&mut self) {
+    fn save_preferences(&mut self) -> bool {
         let Some(path) = self.config_path.as_deref() else {
-            return;
+            self.message =
+                "Could not save preferences: no writable user configuration directory is available."
+                    .to_owned();
+            return false;
         };
         let paths: Vec<PathBuf> = self
             .controller
@@ -375,7 +378,9 @@ impl DesktopApp {
             &paths,
         ) {
             self.message = format!("Could not save preferences: {error}");
+            return false;
         }
+        true
     }
 
     fn session_action(&mut self, id: SessionId, action: SessionAction) {
