@@ -1,7 +1,7 @@
 //! library page for the ArchiaEmu desktop frontend.
 
 use super::*;
-use archiaemu_app::library::{ContentAvailability, ContentValidation};
+use archiaemu_app::library::{ContentAvailability, ContentFormatDetection, ContentValidation};
 
 fn content_path_status(path: &Path) -> &'static str {
     match std::fs::metadata(path) {
@@ -174,15 +174,32 @@ impl DesktopApp {
                                         .map(|entry| (
                                             entry.format_hint().map(str::to_owned),
                                             entry.compatible_system_hint().map(str::to_owned),
+                                            entry.format_detection().clone(),
                                             entry.validation().clone(),
                                             entry.availability(),
                                         ));
-                                    if let Some((format_hint, system_hint, validation_state, availability_state)) = entry_metadata {
+                                    if let Some((format_hint, system_hint, detection_state, validation_state, availability_state)) = entry_metadata {
                                         ui.small(format!(
-                                            "Format hint: {} · compatibility hint: {}",
+                                            "Extension hint: {} · compatibility hint: {}",
                                             format_hint.as_deref().unwrap_or("unknown extension"),
                                             system_hint.as_deref().unwrap_or("undetermined")
                                         ));
+                                        let detected = match &detection_state {
+                                            ContentFormatDetection::Pending => "Detected format: not probed yet",
+                                            ContentFormatDetection::NoMatch => "Detected format: no registered probe matched",
+                                            ContentFormatDetection::Detected(format) => {
+                                                ui.label(format!("Detected format: {format}"));
+                                                ""
+                                            }
+                                            ContentFormatDetection::Ambiguous(formats) => {
+                                                ui.colored_label(egui::Color32::from_rgb(210, 115, 45), format!("Ambiguous format probes: {}", formats.join(", ")));
+                                                ""
+                                            }
+                                            ContentFormatDetection::NeedsMoreData => "Detected format: probe needs more data",
+                                        };
+                                        if !detected.is_empty() {
+                                            ui.small(detected);
+                                        }
                                         let validation = match &validation_state {
                                             ContentValidation::Pending => "Validation: pending until launch",
                                             ContentValidation::Accepted => "Validation: last launch accepted",
