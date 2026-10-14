@@ -9,9 +9,11 @@ use std::time::{Duration, Instant};
 use archiaemu_app::controller::{ApplicationController, SessionCommand};
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent};
+use audio_output::AudioOutput;
 use game_view::{map_key_to_control, video_frame_to_image};
 use preferences::{config_file_path, load_preferences, write_preferences};
 
+mod audio_output;
 mod game_page;
 mod game_view;
 mod home_page;
@@ -70,6 +72,7 @@ struct DesktopApp {
     frame_texture: Option<egui::TextureHandle>,
     video_size: Option<[u32; 2]>,
     media_status: String,
+    audio_output: AudioOutput,
     last_tick_errors: Vec<(SessionId, String)>,
     session_content_paths: Vec<(SessionId, PathBuf)>,
     update_check_receiver: Option<Receiver<Result<update::UpdateManifest, String>>>,
@@ -223,6 +226,7 @@ impl DesktopApp {
             frame_texture: None,
             video_size: None,
             media_status: "No active session.".to_owned(),
+            audio_output: AudioOutput::new(),
             last_tick_errors: Vec::new(),
             session_content_paths: Vec::new(),
             update_check_receiver: None,
@@ -394,6 +398,13 @@ impl DesktopApp {
             .controller
             .command_session(id, command)
             .map_err(|error| error.to_string());
+        if result.is_ok() {
+            match action {
+                SessionAction::Pause => self.audio_output.pause(),
+                SessionAction::Resume => self.audio_output.resume(),
+                SessionAction::Stop | SessionAction::Reset => self.audio_output.clear(),
+            }
+        }
         if result.is_ok() && matches!(action, SessionAction::Stop | SessionAction::Reset) {
             // A deliberate lifecycle transition supersedes an earlier execution/media tick error.
             clear_tick_error_for_session(&mut self.last_tick_errors, id);
@@ -693,6 +704,11 @@ impl DesktopApp {
         let audio_available = update.audio_available;
         let mut error = update.error;
         let newest_frame = update.newest_frame;
+        if state == SessionState::Running {
+            for buffer in &update.audio_buffers {
+                self.audio_output.submit(buffer);
+            }
+        }
 
         if let Some(frame) = newest_frame {
             match video_frame_to_image(&frame) {
@@ -724,7 +740,7 @@ impl DesktopApp {
                 .retain(|(error_id, _)| *error_id != id);
         }
 
-        self.media_status = if let Some(error) = error {
+        let pipeline_status = if let Some(error) = error {
             error
         } else if state == SessionState::Paused {
             "Paused — video output is frozen until you resume.".to_owned()
@@ -733,10 +749,15 @@ impl DesktopApp {
         } else if !video_available {
             "This core does not currently advertise video output; the display area is a placeholder.".to_owned()
         } else if audio_available {
-            "Video pipeline connected. Audio is advertised by the core but host playback is not integrated yet.".to_owned()
+            "Video pipeline connected; core audio buffers are forwarded to the host output.".to_owned()
         } else {
             "Video pipeline connected. This core does not currently advertise audio output."
                 .to_owned()
+        };
+        self.media_status = if audio_available {
+            format!("{pipeline_status} Audio device: {}.", self.audio_output.status())
+        } else {
+            pipeline_status
         };
         if state == SessionState::Running {
             context.request_repaint_after(Duration::from_millis(16));
