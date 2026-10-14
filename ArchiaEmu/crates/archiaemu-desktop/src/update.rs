@@ -44,8 +44,8 @@ impl UpdateManifest {
             .ok_or_else(|| format!("Invalid application version: {}", self.version))?;
         validate_https_url(&self.release_notes_url, "release notes")?;
         for (platform, download) in &self.downloads {
-            if platform.trim().is_empty() {
-                return Err("Update download has an empty platform key.".to_owned());
+            if !is_supported_platform_key(platform) {
+                return Err(format!("Unsupported update platform key: {platform}."));
             }
             validate_download_url(&download.url)?;
             if download.size_bytes == 0 || download.size_bytes > MAX_DOWNLOAD_BYTES {
@@ -370,6 +370,13 @@ pub(crate) fn write_test_file(path: &Path, contents: &[u8]) {
         .expect("test file should be written");
 }
 
+fn is_supported_platform_key(platform: &str) -> bool {
+    matches!(
+        platform,
+        "windows-x86_64" | "macos-aarch64" | "macos-x86_64" | "linux-x86_64"
+    )
+}
+
 fn current_platform_key() -> &'static str {
     if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
         "windows-x86_64"
@@ -458,6 +465,15 @@ mod tests {
         .expect("manifest JSON should parse");
         manifest.validate().expect("empty release channel is valid");
         assert!(manifest.download_for_current_platform().is_none());
+    }
+
+    #[test]
+    fn rejects_unknown_update_platform_keys_instead_of_silently_ignoring_them() {
+        let manifest: UpdateManifest = serde_json::from_str(
+            r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{"linux-x64":{"url":"https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app","size_bytes":1,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}"#,
+        )
+        .expect("manifest JSON should parse");
+        assert!(manifest.validate().is_err());
     }
 
     #[test]
