@@ -617,6 +617,7 @@ mod tests {
 
         assert_eq!(update.state, SessionState::Empty);
         assert!(update.newest_frame.is_none());
+        assert!(update.audio_buffers.is_empty());
         assert!(update.error.is_none());
     }
 
