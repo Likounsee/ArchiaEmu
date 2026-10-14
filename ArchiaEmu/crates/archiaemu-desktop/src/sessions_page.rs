@@ -23,7 +23,7 @@ impl DesktopApp {
                     self.last_tick_errors.clear();
                     self.session_content_paths.clear();
                     self.message = match release_error {
-                        Some(error) => format!("Closed {count} session(s), but {error}"),
+                        Some(error) => format!("{error}; closed {count} session(s)."),
                         None => format!("Closed {count} session(s)."),
                     };
                 }
@@ -88,7 +88,7 @@ impl DesktopApp {
                             match self.controller.close_session(id) {
                                 Ok(()) => {
                                     self.message = match release_error {
-                                        Some(error) => format!("Closed session {}, but {error}", id.get()),
+                                        Some(error) => format!("Session {} closed, but {error}", id.get()),
                                         None => format!("Closed session {}.", id.get()),
                                     };
                                     if was_active {
