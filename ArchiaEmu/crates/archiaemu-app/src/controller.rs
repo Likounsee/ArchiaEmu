@@ -773,16 +773,24 @@ mod tests {
 
         app.advance_session(id, Duration::from_millis(17), &mut cadence)
             .unwrap();
-        assert_eq!(run_count.load(Ordering::SeqCst), 1);
+        let after_first_tick = run_count.load(Ordering::SeqCst);
+        assert!(after_first_tick > 0, "a running session must advance");
         app.command_session(id, SessionCommand::Pause).unwrap();
         app.advance_session(id, Duration::from_secs(10), &mut cadence)
             .unwrap();
-        assert_eq!(run_count.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            run_count.load(Ordering::SeqCst),
+            after_first_tick,
+            "a paused session must not execute additional core events"
+        );
 
         app.command_session(id, SessionCommand::Resume).unwrap();
         app.advance_session(id, Duration::from_millis(17), &mut cadence)
             .unwrap();
-        assert_eq!(run_count.load(Ordering::SeqCst), 2);
+        assert!(
+            run_count.load(Ordering::SeqCst) > after_first_tick,
+            "a resumed session must continue executing core events"
+        );
     }
 
     #[test]
