@@ -162,6 +162,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 **Avancement estimé : ≈ 45 %.** Les workflows et quality gates sont présents, mais leur réussite sur le dernier commit et les tests manuels ne sont pas encore confirmés.
 - [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante.
 - [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; les résultats de cette nouvelle matrice restent à confirmer en CI.
+- [x] Étendre également Clippy du workspace partagé aux runners Linux, Windows et macOS (au lieu de Linux seulement); les résultats restent à confirmer sur les trois runners.
 - [x] Installer explicitement les dépendances système X11/Wayland/OpenGL/audio requises avant les contrôles du desktop sur les runners Linux du workflow CI principal; la réussite effective des jobs doit encore être vérifiée.
 
 - [ ] Ajouter des tests de parcours couvrant démarrage, bibliothèque vide, import, lancement réussi, lancement refusé, changement de session, paramètres, arrêt et fermeture globale.
