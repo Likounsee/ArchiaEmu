@@ -142,6 +142,7 @@ pub(crate) fn download_and_verify(
         // GitHub release URLs commonly redirect to release-assets.githubusercontent.com.
         // Validate the final destination too, rather than trusting only the manifest URL.
         validate_download_url(response.get_url())?;
+        validate_content_length(response.header("Content-Length"), download.size_bytes)?;
         let mut reader = response.into_reader();
         let mut file = OpenOptions::new()
             .write(true)
@@ -200,6 +201,23 @@ pub(crate) fn download_and_verify(
         }
     }
     result
+}
+
+/// Reject a contradictory or malformed HTTP length before creating a staged file.
+fn validate_content_length(header: Option<&str>, expected_size: u64) -> Result<(), String> {
+    let Some(header) = header else {
+        // Chunked or otherwise length-less responses are still bounded by the streaming check.
+        return Ok(());
+    };
+    let declared_size = header
+        .parse::<u64>()
+        .map_err(|_| "Update server returned an invalid Content-Length header.".to_owned())?;
+    if declared_size != expected_size {
+        return Err(format!(
+            "Update server Content-Length mismatch (expected {expected_size} bytes, declared {declared_size})."
+        ));
+    }
+    Ok(())
 }
 
 fn create_verified_link(partial_path: &Path, verified_path: &Path) -> Result<(), String> {
@@ -542,6 +560,15 @@ mod tests {
                 "invalid version must be rejected before downloading: {malformed}"
             );
         }
+    }
+
+    #[test]
+    fn validates_http_content_length_before_staging() {
+        assert!(validate_content_length(None, 10).is_ok());
+        assert!(validate_content_length(Some("10"), 10).is_ok());
+        assert!(validate_content_length(Some("9"), 10).is_err());
+        assert!(validate_content_length(Some("not-a-number"), 10).is_err());
+        assert!(validate_content_length(Some("-1"), 10).is_err());
     }
 
     #[test]
