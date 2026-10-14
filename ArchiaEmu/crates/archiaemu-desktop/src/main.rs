@@ -64,7 +64,7 @@ struct DesktopApp {
     frame_texture: Option<egui::TextureHandle>,
     video_size: Option<[u32; 2]>,
     media_status: String,
-    last_tick_error: Option<(SessionId, String)>,
+    last_tick_errors: Vec<(SessionId, String)>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -206,7 +206,7 @@ impl DesktopApp {
             frame_texture: None,
             video_size: None,
             media_status: "No active session.".to_owned(),
-            last_tick_error: None,
+            last_tick_errors: Vec::new(),
         })
     }
 
@@ -535,7 +535,6 @@ impl DesktopApp {
             self.frame_texture = None;
             self.video_size = None;
             self.media_status = "No active session. Launch a ROM to receive core-provided frames.".to_owned();
-            self.last_tick_error = None;
             return;
         };
 
@@ -543,7 +542,8 @@ impl DesktopApp {
             Ok(update) => update,
             Err(error) => {
                 self.media_status = format!("Could not advance selected session: {error}");
-                self.last_tick_error = Some((id, self.media_status.clone()));
+                self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+                self.last_tick_errors.push((id, self.media_status.clone()));
                 self.frame_texture = None;
                 self.video_size = None;
                 return;
@@ -575,11 +575,12 @@ impl DesktopApp {
         }
 
         if let Some(error_message) = error.as_ref() {
-            self.last_tick_error = Some((id, error_message.clone()));
+            self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+            self.last_tick_errors.push((id, error_message.clone()));
             self.frame_texture = None;
             self.video_size = None;
-        } else if self.last_tick_error.as_ref().is_some_and(|(error_id, _)| *error_id == id) {
-            self.last_tick_error = None;
+        } else {
+            self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
         }
 
         self.media_status = if let Some(error) = error {
