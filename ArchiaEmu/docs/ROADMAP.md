@@ -56,7 +56,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Déplacer l'avancement des sessions et la collecte bornée des médias derrière `ApplicationController::advance_session`.
 - [x] Extraire la persistance des préférences dans `preferences.rs`.
 - [x] Découper le rendu des pages hors de `main.rs` : accueil, bibliothèque, jeu, sessions, systèmes et paramètres ont désormais chacune leur module UI (`*_page.rs`). La navigation et la composition de l'application restent dans `main.rs`.
-- [ ] Retirer les accès directs restants au runtime depuis les vues; exposer au contrôleur toutes les lectures nécessaires à l'UI via des modèles de vue stables.
+- [x] Retirer les accès directs au runtime depuis les vues pour les lectures de sessions; exposer au contrôleur le nombre de sessions et des résumés de session stables. Les commandes de cycle de vie restent aussi derrière le contrôleur.
 - [ ] Définir des états de vue explicites pour chargement, succès, absence de contenu, capacité indisponible et erreur.
 - [ ] Ajouter des tests du contrôleur et du frontend pour les transitions et les erreurs, sans nécessiter de cœur réel.
 - [ ] Valider les changements avec `cargo fmt --all -- --check`, `cargo test --workspace --locked`, `cargo clippy --workspace --all-targets --locked -- -D warnings` et la CI multiplateforme.
