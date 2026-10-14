@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
-use archiaemu_core::core_io::{FrameCadence, InputEvent, VideoFrame};
+use archiaemu_core::core_io::{AudioBuffer, FrameCadence, InputEvent, VideoFrame};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeError, SessionId};
 use archiaemu_core::runtime::{SessionError, SessionState};
 use archiaemu_core::CoreRegistry;
@@ -67,6 +67,8 @@ pub struct SessionAdvance {
     pub audio_available: bool,
     /// Newest video frame collected during this tick, if any.
     pub newest_frame: Option<VideoFrame>,
+    /// Audio buffers collected from the core during this tick, in playback order.
+    pub audio_buffers: Vec<AudioBuffer>,
     /// First execution or media error observed during this tick.
     pub error: Option<String>,
 }
@@ -328,11 +330,29 @@ impl ApplicationController {
             }
         }
 
+        let mut audio_buffers = Vec::new();
+        if capabilities.audio_output && session.state() != SessionState::Empty {
+            // Bound per-tick work and preserve buffer order for the host audio device.
+            for _ in 0..16 {
+                match session.take_audio_buffer() {
+                    Ok(Some(buffer)) => audio_buffers.push(buffer),
+                    Ok(None) => break,
+                    Err(audio_error) => {
+                        if error.is_none() {
+                            error = Some(format!("Audio output error: {audio_error}"));
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
         Ok(SessionAdvance {
             state: session.state(),
             video_available: capabilities.video_output,
             audio_available: capabilities.audio_output,
             newest_frame,
+            audio_buffers,
             error,
         })
     }
