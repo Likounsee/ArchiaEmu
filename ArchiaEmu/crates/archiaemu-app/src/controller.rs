@@ -602,6 +602,76 @@ mod tests {
         assert_eq!(app.active_session(), None);
     }
 
+    struct AudioOnceCore {
+        loaded: bool,
+        pending_audio: Option<AudioBuffer>,
+    }
+
+    impl archiaemu_core::EmulationCore for AudioOnceCore {
+        fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
+            archiaemu_core::CoreDescriptor {
+                api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
+                system_id: archiaemu_core::SystemId::new("audio-test").unwrap(),
+                display_name: "Audio test core",
+                core_version: "0.0.0-test",
+                capabilities: archiaemu_core::CoreCapabilities {
+                    content_loading: true,
+                    audio_output: true,
+                    ..archiaemu_core::CoreCapabilities::default()
+                },
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), archiaemu_core::CoreError> {
+            if content.is_empty() {
+                return Err(archiaemu_core::CoreError::InvalidContent("empty test content"));
+            }
+            self.loaded = true;
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), archiaemu_core::CoreError> {
+            self.loaded = true;
+            Ok(())
+        }
+
+        fn run_until_event(&mut self) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
+            if !self.loaded {
+                return Err(archiaemu_core::CoreError::NotInitialized);
+            }
+            Ok(archiaemu_core::CoreEvent::Yielded)
+        }
+
+        fn take_audio_buffer(
+            &mut self,
+        ) -> Result<Option<AudioBuffer>, archiaemu_core::CoreError> {
+            Ok(self.pending_audio.take())
+        }
+    }
+
+    #[test]
+    fn backend_tick_collects_core_audio_buffers_in_order() {
+        let expected = AudioBuffer::new(48_000, 2, vec![0, 1, -1, 2]).unwrap();
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(AudioOnceCore {
+                loaded: false,
+                pending_audio: Some(expected.clone()),
+            }))
+            .unwrap();
+        app.host_mut().session_mut(id).unwrap().load_content(&[1]).unwrap();
+        let mut cadence = FrameCadence::new(60, 3).unwrap();
+
+        let update = app
+            .advance_session(id, Duration::ZERO, &mut cadence)
+            .unwrap();
+
+        assert!(update.audio_available);
+        assert_eq!(update.audio_buffers, vec![expected]);
+        assert!(update.error.is_none());
+    }
+
     #[test]
     fn backend_tick_keeps_empty_session_state_and_returns_no_frame() {
         let mut app = controller();
