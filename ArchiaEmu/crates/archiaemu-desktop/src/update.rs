@@ -99,8 +99,7 @@ pub(crate) fn download_and_verify(
     if download.size_bytes == 0 || download.size_bytes > MAX_DOWNLOAD_BYTES {
         return Err("Update download size is outside the accepted limits.".to_owned());
     }
-    if download.sha256.len() != 64
-        || !download.sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+    if download.sha256.len() != 64 || !download.sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
     {
         return Err("Update download has a malformed SHA-256 digest.".to_owned());
     }
