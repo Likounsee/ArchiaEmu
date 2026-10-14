@@ -301,7 +301,7 @@ mod tests {
         assert_eq!(unescape_config_value("valid\\\\path"), Some("valid\\path".to_owned()));
         assert_eq!(unescape_config_value("line\\nnext"), Some("line\nnext".to_owned()));
         assert_eq!(unescape_config_value("bad\\qescape"), None);
-        assert_eq!(unescape_config_value("trailing\\\\"), None);
+        assert_eq!(unescape_config_value("trailing\\"), None);
     }
 
     #[test]
