@@ -414,24 +414,27 @@ mod tests {
     }
 
     #[test]
-    fn failed_temporary_write_preserves_the_previous_preferences_file() {
+    fn stale_temporary_path_does_not_block_save_or_damage_previous_preferences() {
         let path = temporary_config("preserve-previous");
-        let temporary = path.with_extension("conf.tmp");
+        let stale_temporary = path.with_extension("conf.tmp");
         fs::write(&path, "version=2\ndark=false\n")
             .expect("previous preferences should be written");
-        fs::create_dir(&temporary)
-            .expect("temporary path should block creation of a temporary file");
+        fs::create_dir(&stale_temporary)
+            .expect("stale temporary path should be created");
 
-        let error = write_preferences(&path, true, 1.0, [75, 115, 210], &[])
-            .expect_err("writing over a directory should fail");
-        // Filesystem error kinds differ between Windows, macOS, and Linux.
-        assert!(!error.to_string().is_empty());
-        assert_eq!(
-            fs::read_to_string(&path).expect("previous preferences must remain readable"),
-            "version=2\ndark=false\n"
+        write_preferences(&path, true, 1.0, [75, 115, 210], &[])
+            .expect("unique temporary file should allow save despite stale path");
+
+        let saved = load_preferences(&path)
+            .expect("new preferences should load")
+            .expect("new preferences should exist");
+        assert!(saved.dark_mode, "new complete preferences should be active");
+        assert!(
+            stale_temporary.is_dir(),
+            "save must not remove or overwrite a stale path it did not create"
         );
 
-        let _ = fs::remove_dir(temporary);
+        let _ = fs::remove_dir(stale_temporary);
         let _ = fs::remove_file(path);
     }
 
