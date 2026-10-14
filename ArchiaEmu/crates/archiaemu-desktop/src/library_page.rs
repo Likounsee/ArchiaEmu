@@ -6,7 +6,9 @@ fn content_path_status(path: &Path) -> &'static str {
     match std::fs::metadata(path) {
         Ok(metadata) if metadata.is_file() => "File exists · launch validation pending",
         Ok(_) => "Unavailable · not a regular file",
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => "Missing · re-import required",
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            "Missing · re-import required"
+        }
         Err(_) => "Unavailable · cannot read file metadata",
     }
 }
@@ -253,10 +255,7 @@ impl DesktopApp {
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui
-                            .add_enabled(
-                                path.is_file(),
-                                egui::Button::new("Launch selected"),
-                            )
+                            .add_enabled(path.is_file(), egui::Button::new("Launch selected"))
                             .clicked()
                         {
                             self.content_path = path.display().to_string();
@@ -289,10 +288,7 @@ mod tests {
     #[test]
     fn missing_library_path_requests_reimport() {
         let path = unique_temp_path("missing");
-        assert_eq!(
-            content_path_status(&path),
-            "Missing · re-import required"
-        );
+        assert_eq!(content_path_status(&path), "Missing · re-import required");
     }
 
     #[test]

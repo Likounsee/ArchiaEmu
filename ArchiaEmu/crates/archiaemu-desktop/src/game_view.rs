@@ -96,8 +96,7 @@ mod tests {
             PixelFormat::Rgba8888,
             8,
             vec![
-                255, 0, 0, 255, 99, 99, 99, 99,
-                0, 255, 0, 255, 88, 88, 88, 88,
+                255, 0, 0, 255, 99, 99, 99, 99, 0, 255, 0, 255, 88, 88, 88, 88,
             ],
         )
         .unwrap();
@@ -125,8 +124,6 @@ mod tests {
             vec![0; (width as usize) * (height as usize) * 4],
         )
         .unwrap();
-        assert!(video_frame_to_image(&frame)
-            .unwrap_err()
-            .contains("64 MiB"));
+        assert!(video_frame_to_image(&frame).unwrap_err().contains("64 MiB"));
     }
 }

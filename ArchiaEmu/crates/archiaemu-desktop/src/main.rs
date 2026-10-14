@@ -1,5 +1,4 @@
 #![forbid(unsafe_code)]
-
 //! Experimental desktop frontend for the shared ArchiaEmu application controller.
 
 use std::error::Error;
@@ -12,14 +11,16 @@ use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent};
 use game_view::{map_key_to_control, video_frame_to_image};
 use preferences::{config_file_path, load_preferences, write_preferences, SavedPreferences};
 
-mod game_view;
-mod preferences;
+
 mod game_page;
+mod game_view;
 mod home_page;
 mod library_page;
+mod preferences;
 mod sessions_page;
-mod systems_page;
+
 mod settings_page;
+mod systems_page;
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::runtime::SessionState;
 use archiaemu_core::CoreRegistry;
@@ -157,7 +158,11 @@ impl DesktopApp {
                 Ok(Some(saved)) => {
                     dark_mode = saved.dark_mode;
                     ui_scale = saved.ui_scale.clamp(0.8, 1.4);
-                    accent_color = egui::Color32::from_rgb(saved.accent_rgb[0], saved.accent_rgb[1], saved.accent_rgb[2]);
+                    accent_color = egui::Color32::from_rgb(
+                        saved.accent_rgb[0],
+                        saved.accent_rgb[1],
+                        saved.accent_rgb[2],
+                    );
                     let mut restored = 0usize;
                     let mut skipped = 0usize;
                     let mut skipped_details = Vec::new();
@@ -167,7 +172,8 @@ impl DesktopApp {
                             Err(error) => {
                                 skipped += 1;
                                 if skipped_details.len() < 3 {
-                                    skipped_details.push(format!("{}: {error}", content_path.display()));
+                                    skipped_details
+                                        .push(format!("{}: {error}", content_path.display()));
                                 }
                             }
                         }
@@ -311,9 +317,10 @@ impl DesktopApp {
             &self.registry,
         ) {
             Ok(id) => {
-                let launched_path = std::fs::canonicalize(Path::new(path))
-                    .unwrap_or_else(|_| PathBuf::from(path));
-                self.session_content_paths.retain(|(session_id, _)| *session_id != id);
+                let launched_path =
+                    std::fs::canonicalize(Path::new(path)).unwrap_or_else(|_| PathBuf::from(path));
+                self.session_content_paths
+                    .retain(|(session_id, _)| *session_id != id);
                 self.session_content_paths.push((id, launched_path));
                 self.message = format!("Launched session {}.", id.get());
                 self.frame_cadence.reset();
@@ -336,7 +343,17 @@ impl DesktopApp {
             .entries()
             .map(|entry| entry.path().to_path_buf())
             .collect();
-        if let Err(error) = write_preferences(path, self.dark_mode, self.ui_scale, [self.accent_color.r(), self.accent_color.g(), self.accent_color.b()], &paths) {
+        if let Err(error) = write_preferences(
+            path,
+            self.dark_mode,
+            self.ui_scale,
+            [
+                self.accent_color.r(),
+                self.accent_color.g(),
+                self.accent_color.b(),
+            ],
+            &paths,
+        ) {
             self.message = format!("Could not save preferences: {error}");
         }
     }
@@ -401,7 +418,8 @@ impl eframe::App for DesktopApp {
             let accent = self.accent_color;
             style.visuals.selection.bg_fill = accent.gamma_multiply(0.45);
             style.visuals.selection.stroke = egui::Stroke::new(1.0_f32, accent);
-            style.visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, accent.gamma_multiply(0.45));
+            style.visuals.widgets.inactive.bg_stroke =
+                egui::Stroke::new(1.0, accent.gamma_multiply(0.45));
             style.visuals.widgets.hovered.bg_fill = accent.gamma_multiply(0.22);
             style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, accent);
             style.visuals.widgets.active.bg_fill = accent.gamma_multiply(0.38);
@@ -466,10 +484,7 @@ impl eframe::App for DesktopApp {
                     } else {
                         "☼ Light"
                     });
-                    ui.label(format!(
-                        "{} session(s)",
-                        self.controller.session_count()
-                    ));
+                    ui.label(format!("{} session(s)", self.controller.session_count()));
                 });
             });
         });
@@ -548,15 +563,20 @@ impl DesktopApp {
             self.frame_cadence.reset();
             self.frame_texture = None;
             self.video_size = None;
-            self.media_status = "No active session. Launch a ROM to receive core-provided frames.".to_owned();
+            self.media_status =
+                "No active session. Launch a ROM to receive core-provided frames.".to_owned();
             return;
         };
 
-        let update = match self.controller.advance_session(id, elapsed, &mut self.frame_cadence) {
+        let update = match self
+            .controller
+            .advance_session(id, elapsed, &mut self.frame_cadence)
+        {
             Ok(update) => update,
             Err(error) => {
                 self.media_status = format!("Could not advance selected session: {error}");
-                self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+                self.last_tick_errors
+                .retain(|(error_id, _)| *error_id != id);
                 self.last_tick_errors.push((id, self.media_status.clone()));
                 self.frame_texture = None;
                 self.video_size = None;
@@ -589,7 +609,8 @@ impl DesktopApp {
         }
 
         if let Some(error_message) = error.as_ref() {
-            self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+            self.last_tick_errors
+                .retain(|(error_id, _)| *error_id != id);
             self.last_tick_errors.push((id, error_message.clone()));
             self.frame_texture = None;
             self.video_size = None;
@@ -670,7 +691,9 @@ fn capability_label(enabled: bool) -> &'static str {
 #[cfg(test)]
 mod preference_tests {
     use super::*;
-    use crate::preferences::{escape_config_value, load_preferences, unescape_config_value, write_preferences};
+    use crate::preferences::{
+        escape_config_value, load_preferences, unescape_config_value, write_preferences,
+    };
     use std::fs;
 
     #[test]
@@ -729,7 +752,14 @@ mod preference_tests {
     fn preference_scale_is_clamped_and_invalid_values_are_ignored() {
         let root = std::env::temp_dir().join(format!("archiaemu-prefs-{}", std::process::id()));
         let file = root.join("desktop.conf");
-        write_preferences(&file, false, 2.0, [75, 115, 210], &[PathBuf::from("sample.gb")]).unwrap();
+        write_preferences(
+            &file,
+            false,
+            2.0,
+            [75, 115, 210],
+            &[PathBuf::from("sample.gb")],
+        )
+        .unwrap();
         let loaded = load_preferences(&file).unwrap().unwrap();
         assert!(!loaded.dark_mode);
         assert_eq!(loaded.ui_scale, 1.4);
@@ -743,7 +773,14 @@ mod preference_tests {
             std::env::temp_dir().join(format!("archiaemu-prefs-replace-{}", std::process::id()));
         let file = root.join("desktop.conf");
         write_preferences(&file, true, 1.0, [75, 115, 210], &[PathBuf::from("old.gb")]).unwrap();
-        write_preferences(&file, false, 1.2, [75, 115, 210], &[PathBuf::from("new.gb")]).unwrap();
+        write_preferences(
+            &file,
+            false,
+            1.2,
+            [75, 115, 210],
+            &[PathBuf::from("new.gb")],
+        )
+        .unwrap();
 
         let loaded = load_preferences(&file).unwrap().unwrap();
         assert!(!loaded.dark_mode);

@@ -57,7 +57,11 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
             }
         } else if let Some(value) = line.strip_prefix("accent=") {
             if value.len() == 6 && value.is_ascii() {
-                if let (Ok(r), Ok(g), Ok(b)) = (u8::from_str_radix(&value[0..2], 16), u8::from_str_radix(&value[2..4], 16), u8::from_str_radix(&value[4..6], 16)) {
+                if let (Ok(r), Ok(g), Ok(b)) = (
+                    u8::from_str_radix(&value[0..2], 16),
+                    u8::from_str_radix(&value[2..4], 16),
+                    u8::from_str_radix(&value[4..6], 16),
+                ) {
                     accent_rgb = [r, g, b];
                 }
             }
@@ -89,7 +93,10 @@ pub(crate) fn write_preferences(
         )
     })?;
     fs::create_dir_all(parent)?;
-    let mut contents = format!("version=2\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\n", accent_rgb[0], accent_rgb[1], accent_rgb[2]);
+    let mut contents = format!(
+        "version=2\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\n",
+        accent_rgb[0], accent_rgb[1], accent_rgb[2]
+    );
     for path in paths {
         contents.push_str("path=");
         contents.push_str(&escape_config_value(&path.to_string_lossy()));
@@ -221,19 +228,23 @@ mod tests {
         let saved = load_preferences(&path)
             .expect("malformed optional value should not invalidate the whole file")
             .expect("preferences should exist");
-        assert!(!saved.dark_mode, "invalid value must preserve the last valid value");
+        assert!(
+            !saved.dark_mode,
+            "invalid value must preserve the last valid value"
+        );
         let _ = fs::remove_file(path);
     }
 
     #[test]
     fn unknown_preferences_version_is_rejected() {
         let path = temporary_config("unknown-version");
-        fs::write(&path, "version=99\ndark=false\n")
-            .expect("preferences should be written");
+        fs::write(&path, "version=99\ndark=false\n").expect("preferences should be written");
 
         let error = load_preferences(&path).expect_err("unknown version must be rejected");
         assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
-        assert!(error.to_string().contains("unsupported preferences version"));
+        assert!(error
+            .to_string()
+            .contains("unsupported preferences version"));
         let _ = fs::remove_file(path);
     }
 
@@ -268,15 +279,13 @@ mod tests {
     #[test]
     fn out_of_range_ui_scale_is_clamped_to_supported_limits() {
         let path = temporary_config("scale-clamping");
-        fs::write(&path, "version=2\\nscale=9.0\\n")
-            .expect("preferences should be written");
+        fs::write(&path, "version=2\\nscale=9.0\\n").expect("preferences should be written");
 
         let saved = load_preferences(&path)
             .expect("out-of-range scale should be handled")
             .expect("preferences should exist");
         assert!((saved.ui_scale - 1.4).abs() < f32::EPSILON);
-        let _ = fs::write(&path, "version=2\\nscale=0.1\\n")
-            .expect("low scale should be written");
+        let _ = fs::write(&path, "version=2\\nscale=0.1\\n").expect("low scale should be written");
         let saved = load_preferences(&path)
             .expect("low scale should be handled")
             .expect("preferences should exist");

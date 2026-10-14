@@ -23,7 +23,9 @@ impl DesktopApp {
                     self.accent_color = egui::Color32::from_rgb(75, 115, 210);
                 }
             });
-            ui.label("Changes the buttons, selection and highlights—not the light or dark backgrounds.");
+            ui.label(
+                "Changes the buttons, selection and highlights—not the light or dark backgrounds.",
+            );
             ui.add(
                 egui::Slider::new(&mut self.ui_scale, 0.8..=1.4)
                     .text("Interface scale")
