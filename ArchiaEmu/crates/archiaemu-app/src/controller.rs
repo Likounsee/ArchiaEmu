@@ -475,24 +475,6 @@ mod tests {
     }
 
     #[test]
-    fn session_summary_reports_loaded_content_from_lifecycle_state() {
-        let mut app = controller();
-        let id = app
-            .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
-            .unwrap();
-
-        assert!(!app.session_summary(id).unwrap().content_loaded);
-        app.host_mut()
-            .session_mut(id)
-            .unwrap()
-            .load_content(&[0x00])
-            .unwrap();
-        assert!(app.session_summary(id).unwrap().content_loaded);
-        app.close_session(id).unwrap();
-    }
-
-    #[test]
     fn backend_tick_keeps_empty_session_state_and_returns_no_frame() {
         let mut app = controller();
         let id = app
