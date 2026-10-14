@@ -13,6 +13,7 @@ The native desktop frontend is built with eframe/egui and uses the shared applic
 - A dedicated Game page integrated into navigation and selected automatically after a successful launch.
 - Pause/resume, stop and reset controls in the Game page, plus shortcuts to the library and session manager.
 - A bounded host tick loop, newest-frame consumption, RGBA stride-aware conversion, a 64 MiB texture-upload cap, and a reusable nearest-neighbour egui texture.
+- Execution/media tick failures are retained per session in the session manager; failed ticks clear the cached video texture so a stale frame is not presented as current output.
 - Semantic keyboard mapping (arrows, Z/X/A/S, Enter, Backspace); repeated key-downs are ignored, and held inputs are released when focus is lost or the user leaves the Game page.
 - Cached video is cleared when sessions are switched or closed, and when the active session is stopped or reset from either the Game page or session manager; empty and media-error states are shown without synthesizing fake frames.
 - User-facing empty states and import/launch error summaries.
