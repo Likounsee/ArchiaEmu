@@ -29,13 +29,13 @@ jobs:
           components: rustfmt
 
       - name: Build desktop executable
-        run: cargo build --release --locked --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+        run: cargo build --release --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
 
       - name: Stage application
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $exe = "ArchiaEmu/target/release/archiaemu-desktop.exe"
+          $exe = "ArchiaEmu/crates/archiaemu-desktop/target/release/archiaemu-desktop.exe"
           if (!(Test-Path $exe)) {
             throw "Expected desktop executable was not produced: $exe"
           }
