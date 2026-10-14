@@ -17,6 +17,7 @@ const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
 const MAX_DOWNLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct UpdateManifest {
     pub(crate) schema_version: u32,
     pub(crate) version: String,
@@ -26,6 +27,7 @@ pub(crate) struct UpdateManifest {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct UpdateDownload {
     pub(crate) url: String,
     pub(crate) size_bytes: u64,
@@ -230,6 +232,9 @@ fn create_verified_link(partial_path: &Path, verified_path: &Path) -> Result<(),
 
 fn validate_release_notes_url(url: &str) -> Result<(), String> {
     validate_https_url(url, "release notes")?;
+    if url.contains(['?', '#']) {
+        return Err("Release notes URL must not contain a query or fragment.".to_owned());
+    }
     let rest = url
         .strip_prefix("https://")
         .ok_or_else(|| "Release notes must use HTTPS.".to_owned())?;
@@ -521,6 +526,19 @@ mod tests {
         )
         .expect("manifest JSON should parse");
         assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn rejects_unknown_manifest_and_download_fields() {
+        let unknown_manifest_field = serde_json::from_str::<UpdateManifest>(
+            r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{},"unexpected":true}"#,
+        );
+        assert!(unknown_manifest_field.is_err());
+
+        let unknown_download_field = serde_json::from_str::<UpdateManifest>(
+            r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{"linux-x86_64":{"url":"https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app","size_bytes":1,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","signature":"ignored-by-old-clients"}}}"#,
+        );
+        assert!(unknown_download_field.is_err());
     }
 
     #[test]
