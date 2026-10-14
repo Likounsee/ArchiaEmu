@@ -3,8 +3,12 @@
 //! Desktop preference persistence, isolated from UI composition and emulation.
 
 use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+
+// Preferences are user-editable input. Bound reads so a damaged config cannot
+// allocate unbounded memory during application startup.
+const MAX_PREFERENCES_BYTES: usize = 4 * 1024 * 1024;
 
 #[derive(Debug)]
 pub(crate) struct SavedPreferences {
@@ -36,15 +40,29 @@ pub(crate) fn config_file_path() -> Option<PathBuf> {
     base.map(|directory| directory.join("ArchiaEmu").join("desktop.conf"))
 }
 
+fn read_preferences_file(path: &Path) -> std::io::Result<String> {
+    let file = fs::File::open(path)?;
+    let mut contents = String::new();
+    file.take(MAX_PREFERENCES_BYTES as u64 + 1)
+        .read_to_string(&mut contents)?;
+    if contents.len() > MAX_PREFERENCES_BYTES {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("preferences file exceeds the {MAX_PREFERENCES_BYTES}-byte limit"),
+        ));
+    }
+    Ok(contents)
+}
+
 pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
-    let contents = match fs::read_to_string(path) {
+    let contents = match read_preferences_file(path) {
         Ok(contents) => contents,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             // A crash can occur after the previous config is moved aside but
             // before the freshly written temporary file is promoted. Recover
             // the last known-good backup instead of silently starting with defaults.
             let backup = path.with_extension("conf.bak");
-            match fs::read_to_string(&backup) {
+            match read_preferences_file(&backup) {
                 Ok(contents) => {
                     // Best effort: keep the recovered values usable even if restoring
                     // the filename fails due to a read-only or unusual filesystem.
@@ -227,7 +245,7 @@ pub(crate) fn unescape_config_value(value: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_preferences, unescape_config_value, write_preferences};
+    use super::{load_preferences, unescape_config_value, write_preferences, MAX_PREFERENCES_BYTES};
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -241,6 +259,28 @@ mod tests {
             "archiaemu-preferences-{name}-{}-{nonce}.conf",
             std::process::id()
         ))
+    }
+
+    #[test]
+    fn oversized_preferences_and_recovery_backup_are_rejected() {
+        let path = temporary_config("oversized-config");
+        fs::write(&path, vec![b'x'; MAX_PREFERENCES_BYTES + 1])
+            .expect("oversized preferences fixture should be written");
+
+        let error = load_preferences(&path).expect_err("oversized config must be rejected");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("exceeds"));
+
+        fs::remove_file(&path).expect("oversized config should be removed");
+        let backup = path.with_extension("conf.bak");
+        fs::write(&backup, vec![b'x'; MAX_PREFERENCES_BYTES + 1])
+            .expect("oversized backup fixture should be written");
+        let error = load_preferences(&path).expect_err("oversized backup must be rejected");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("exceeds"));
+
+        let _ = fs::remove_file(path);
+        let _ = fs::remove_file(backup);
     }
 
     #[test]
