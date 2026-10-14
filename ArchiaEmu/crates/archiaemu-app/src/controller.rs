@@ -690,6 +690,69 @@ mod tests {
     }
 
     #[test]
+    fn core_rejection_preserves_existing_session_selection() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-core-rejection-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let malformed_rom = root.join("malformed.gb");
+        let mut bytes = vec![0u8; 0x8000];
+        bytes[0x0104..0x0134].copy_from_slice(&[
+            0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83,
+            0x00, 0x0C, 0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E,
+            0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63,
+            0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
+        ]);
+        bytes[0x148] = 0;
+        bytes[0x149] = 0;
+        // Keep the default checksum byte invalid so the probe matches but the core rejects it.
+        bytes[0x14D] = 0;
+        std::fs::write(&malformed_rom, bytes).unwrap();
+
+        let mut registry = CoreRegistry::new();
+        registry
+            .register(
+                archiaemu_core::SystemId::new(archiaemu_game_boy::SYSTEM_ID).unwrap(),
+                || Box::new(GameBoyCore::new()),
+            )
+            .unwrap();
+        let probe = archiaemu_game_boy::GameBoyCartridgeProbe;
+
+        let mut app = controller();
+        let existing_session = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(existing_session).unwrap();
+
+        let result = app.launch_content_path(
+            &malformed_rom,
+            ContentLimits::new(0x10000),
+            &[&probe],
+            &registry,
+        );
+
+        assert!(result.is_err(), "the core must reject the malformed header");
+        assert_eq!(app.session_count(), 1);
+        assert_eq!(app.active_session(), Some(existing_session));
+        assert_eq!(
+            app.session_summary(existing_session).unwrap().state,
+            SessionState::Empty
+        );
+
+        app.close_all_sessions();
+        std::fs::remove_file(malformed_rom).unwrap();
+        std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
     fn library_index_errors_are_explicit_and_do_not_create_sessions() {
         let mut app = controller();
         let error = app
