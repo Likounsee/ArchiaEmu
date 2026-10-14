@@ -28,7 +28,9 @@ jobs:
         with:
           components: rustfmt
 
-      - name: Build desktop executable
+      - name: Build desktop executable with static MSVC runtime
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
         run: cargo build --release --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
 
       - name: Stage application
@@ -83,6 +85,15 @@ jobs:
             Get-ChildItem -Force $installDir -ErrorAction SilentlyContinue | Format-List FullName, Length
             throw "Installed desktop executable is missing at expected path: $installedExe"
           }
+          # Launch from the isolated install directory, not the repository or Cargo target tree.
+          $app = Start-Process -FilePath $installedExe -PassThru
+          Start-Sleep -Seconds 5
+          $app.Refresh()
+          if ($app.HasExited) {
+            throw "Installed desktop executable exited during its startup smoke test (exit code $($app.ExitCode))."
+          }
+          Stop-Process -Id $app.Id -Force
+          Wait-Process -Id $app.Id -ErrorAction SilentlyContinue
           $uninstaller = Join-Path $installDir "unins000.exe"
           if (!(Test-Path $uninstaller)) { throw "Uninstaller executable is missing." }
           $uninstall = Start-Process -FilePath $uninstaller -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES") -Wait -PassThru
