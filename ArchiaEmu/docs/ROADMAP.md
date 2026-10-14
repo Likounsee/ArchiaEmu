@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 42 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
+| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 43 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
@@ -45,7 +45,7 @@ Le runtime commun, le cycle de vie des sessions, les capacités, le registre, le
 
 ### P1.1 — architecture de l'application et séparation frontend/backend
 
-**État estimé : en cours — environ 42 % pour l'objectif global P1, estimation qualitative.**
+**État estimé : en cours — environ 43 % pour l'objectif global P1, estimation qualitative.**
 
 Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'application partagé. Les adaptateurs de vue, les commandes typées du contrôleur, l'avancement des sessions via `ApplicationController::advance_session` et les préférences dans `preferences.rs` ont commencé à séparer l'interface de l'exécution.
 
@@ -74,7 +74,8 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Prévoir des états vides utiles et des actions claires lorsque la bibliothèque ne contient aucun fichier.
 - [x] Détecter à l'affichage les chemins de bibliothèque devenus indisponibles, expliquer qu'une réimportation est nécessaire et désactiver le lancement direct quand le chemin ne désigne plus un fichier.
 - [x] Ajouter des tests unitaires des états de chemin : fichier absent, répertoire au lieu d'un fichier et fichier existant en attente de validation du lancement.
-- [ ] Tester fichiers absents, fichiers vides, formats inconnus, contenu ambigu, contenu trop grand, contenu refusé par le cœur et fichier inaccessible.
+- [ ] Tester formats inconnus, contenu ambigu, contenu refusé par le cœur et fichier inaccessible.
+- [x] Tester le refus d'un contenu vide ou dépassant la limite de taille sans modifier la session active ni son état.
 - [x] Tester qu'un échec de lancement sur un chemin absent ne crée pas de session fantôme et préserve la session active ainsi que les entrées de bibliothèque existantes.
 
 **Critère de sortie :** les parcours import → bibliothèque → sélection → validation → lancement fonctionnent et les erreurs sont récupérables.
