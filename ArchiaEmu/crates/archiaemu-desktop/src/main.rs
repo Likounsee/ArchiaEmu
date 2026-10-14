@@ -290,7 +290,10 @@ impl DesktopApp {
     fn navigate_to(&mut self, page: DesktopPage) {
         if self.active_page == DesktopPage::Game && page != DesktopPage::Game {
             if let Err(error) = self.release_game_inputs() {
-                self.message = error;
+                self.message = format!(
+                    "{error}. Navigation was cancelled so the game can safely release its controls."
+                );
+                return;
             }
         }
         self.active_page = page;
