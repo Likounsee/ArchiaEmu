@@ -6,20 +6,20 @@
 
 Les fondations du runtime et des modules déjà présentes sont conservées et corrigées si nécessaire, mais leur présence ne signifie pas qu'il faut continuer à enrichir le système de modules avant que l'application soit utilisable. Le terminal reste un outil de diagnostic; il ne remplace pas l'application desktop.
 
-Les pourcentages sont des **estimations fonctionnelles** fondées sur les critères observables, pas sur le temps passé. Les jalons se recouvrent et ne doivent pas être moyennés mécaniquement. Le code écrit ou un test avec un cœur factice ne prouve ni le succès de la CI ni la compatibilité d'une console. Une case n'est cochée qu'après vérification du critère décrit.
+Les pourcentages sont des **estimations fonctionnelles** fondées sur les critères observables, pas sur le temps passé. Ils tiennent compte de l'implémentation, des validations encore manquantes et des critères de sortie; ils ne sont pas calculés comme une simple proportion de cases cochées. Les jalons se recouvrent et ne doivent pas être moyennés mécaniquement. Le code écrit ou un test avec un cœur factice ne prouve ni le succès de la CI ni la compatibilité d'une console. Une case n'est cochée qu'après vérification du critère décrit.
 
 ## Ordre général des priorités
 
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
-| **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 56 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
-| **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
-| **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
-| **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
-| **P1.4** | Paramètres, diagnostics et ergonomie | À faire en partie | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
-| **P1.5** | Sorties média hôte et validation multiplateforme | À faire en partie | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
-| **P2** | Intégration et fiabilité des modules | Après l'application utilisable | Découverte, installation, mise à jour, provenance, récupération et frontières de confiance |
+| **P0** | Fondations déjà présentes | **100 %** | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
+| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 59 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
+| **P1.1** | Architecture frontend/backend de l'application | **≈ 65 %** | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
+| **P1.2** | Parcours de bibliothèque et lancement | **≈ 85 %** | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
+| **P1.3** | Sessions et commandes génériques | **≈ 60 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
+| **P1.4** | Paramètres, diagnostics et ergonomie | **≈ 55 %** | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
+| **P1.5** | Sorties média hôte et validation multiplateforme | **≈ 80 %** | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
+| **P2** | Intégration et fiabilité des modules logiciels | **≈ 24 %** — après P1 | Découverte, installation, mise à jour, provenance, récupération et frontières de confiance |
 | **P3** | Premier module de console réellement fonctionnel | Après P1 | Un système testé de bout en bout, avec limites de compatibilité honnêtes |
 | **P4** | Autres modules/systèmes | Après stabilisation de P3 | Étendre le catalogue sans coupler les cœurs à l'application |
 | **P5** | Publication et maintenance | En dernier | Paquets reproductibles, documentation de support, mises à jour et politique de version |
@@ -45,7 +45,7 @@ Le runtime commun, le cycle de vie des sessions, les capacités, le registre, le
 
 ### P1.1 — architecture de l'application et séparation frontend/backend
 
-**État estimé : en cours — environ 45 % pour l'objectif global P1, estimation qualitative.**
+**Avancement estimé : ≈ 65 %.** Les principaux découpages sont en place; la validation visuelle, l'unification complète des états et les quality gates restent ouverts.
 
 Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'application partagé. Les adaptateurs de vue, les commandes typées du contrôleur, l'avancement des sessions via `ApplicationController::advance_session` et les préférences dans `preferences.rs` ont commencé à séparer l'interface de l'exécution.
 
@@ -65,7 +65,9 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 
 **Critère de sortie :** l'interface orchestre l'application par des API explicites; le code UI ne pilote pas directement l'exécution du cœur et les comportements essentiels sont testables séparément.
 
-### P1.2 — bibliothèque de contenus et lancement fiable
+### P1.2 — bibliothèque locale de contenus et lancement fiable
+
+**Avancement estimé : ≈ 85 %.** L'import, le classement et le lancement local sont largement implémentés. Les tests/quality gates et le parcours desktop complet restent à valider. Cette bibliothèque référence uniquement les fichiers présents sur le PC de l'utilisateur : aucun catalogue de ROM à télécharger ni hébergement/redistribution de jeux n'est prévu.
 
 - [x] Afficher la bibliothèque, les systèmes enregistrés et leurs capacités déclarées.
 - [x] Importer plusieurs fichiers, afficher les imports rejetés, rechercher titre/chemin, filtrer et trier les entrées.
@@ -87,6 +89,8 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 
 ### P1.3 — gestion des sessions et commandes génériques
 
+**Avancement estimé : ≈ 60 %.** Les commandes essentielles et plusieurs protections sont implémentées; la matrice complète de parcours et la validation manuelle restent ouvertes.
+
 - [x] Gérer plusieurs sessions, la sélection de la session active, pause/reprise, arrêt/réinitialisation et fermeture depuis l'interface.
 - [x] Avancer les sessions via le contrôleur avec budget borné et remonter état, capacités, trame la plus récente et erreur.
 - [x] Relier les transitions de clavier aux commandes sémantiques partagées et libérer les contrôles lors de la perte de focus.
@@ -102,6 +106,8 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 **Critère de sortie :** les commandes sont prévisibles et aucun changement de session ou échec ne laisse l'interface dans un état périmé.
 
 ### P1.4 — préférences, diagnostics et ergonomie
+
+**Avancement estimé : ≈ 55 %.** Les préférences persistantes et diagnostics sont bien avancés; l'internationalisation, les réglages séparés par domaine et la finition UX restent à réaliser.
 
 - [x] Séparer les préférences de présentation du matériel émulé et extraire leur persistance.
 - [x] Signaler correctement l'échec de sauvegarde dans l'interface au lieu d'afficher un succès trompeur; tester l'échec d'écriture et la préservation de l'ancien fichier de préférences.
@@ -129,6 +135,8 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 
 ### P1.5 — présentation média et cadence hôte génériques
 
+**Avancement estimé : ≈ 80 %.** Les adaptateurs vidéo/audio et leurs tests sont écrits; la validation CI multiplateforme reste nécessaire, notamment pour l'audio réel.
+
 Cette étape concerne les adaptateurs de l'application, pas l'implémentation vidéo/audio d'une console. Si aucun cœur disponible ne fournit ces sorties, les tests utilisent un cœur de test déterministe et l'application indique honnêtement que le média réel n'est pas disponible.
 
 - [x] Ajouter un adaptateur de rendu vidéo RGBA via texture egui, avec prise en compte du stride et allocations bornées.
@@ -146,6 +154,8 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 **Critère de sortie :** les sorties annoncées sont présentées par des adaptateurs testés; aucune fonctionnalité média inexistante n'est présentée comme opérationnelle.
 
 ### P1.6 — tests de parcours, CI et finition de l'application
+
+**Avancement estimé : ≈ 45 %.** Les workflows et quality gates sont présents, mais leur réussite sur le dernier commit et les tests manuels ne sont pas encore confirmés.
 - [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante.
 - [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; les résultats de cette nouvelle matrice restent à confirmer en CI.
 - [x] Installer explicitement les dépendances système X11/Wayland/OpenGL/audio requises avant les contrôles du desktop sur les runners Linux du workflow CI principal; la réussite effective des jobs doit encore être vérifiée.
@@ -167,6 +177,8 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 **Critère de sortie P1 — application utilisable :** bibliothèque et préférences fiables, sessions génériques gérables, diagnostics compréhensibles, adaptateurs média honnêtes, tests reproductibles et CI verte sur les plateformes configurées. La compatibilité d'une console reste hors de ce critère.
 
 ### P1.7 — livraison locale et installateur Windows
+
+**Avancement estimé : ≈ 35 %.** Le script et le workflow existent, mais le build reproductible, les dépendances embarquées, le fonctionnement réel en VM propre et la mise à jour/rollback sûre restent des bloqueurs majeurs.
 
 Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale de livraison est Windows, cohérente avec le besoin d'un installateur .exe; les autres plateformes doivent continuer à passer leurs quality gates sans être considérées comme livrées si aucun paquet n'est produit.
 
@@ -198,9 +210,9 @@ Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale d
 
 **Critère de sortie P1.7 :** un utilisateur peut télécharger l'installateur, installer ArchiaEmu, obtenir ses raccourcis, utiliser les fonctions génériques prises en charge entièrement en local, recevoir les vérifications de mises à jour du programme et mettre à jour de manière sûre sans environnement de développement ni fichiers manquants.
 
-## P2 — catalogue et téléchargement des modules (après P1)
+## P2 — catalogue et téléchargement des modules logiciels (≈ 24 %, après P1)
 
-Les contrats de base existent; on reprend leur approfondissement après validation de l'application. **Le rôle de la page Modules est de présenter le catalogue et de permettre le téléchargement individuel des paquets de modules. Elle ne doit ni installer ni activer automatiquement un module.** Télécharger un module doit récupérer uniquement l'artefact de ce module, jamais l'application complète, le dépôt source ou un paquet global contenant tous les modules. Le frontend consomme un catalogue et des capacités, sans dépendre des détails internes des modules.
+Les contrats de base existent; on reprend leur approfondissement après validation de l'application. **Cette phase concerne uniquement des paquets logiciels de modules d'émulation, pas une bibliothèque de jeux.** La page Modules peut présenter et télécharger individuellement des modules dont la distribution est autorisée; elle ne doit ni installer ni activer automatiquement un module. Aucun jeu/ROM commercial, firmware propriétaire ou asset protégé ne sera proposé, hébergé ou redistribué sans autorisation. Télécharger un module doit récupérer uniquement l'artefact de ce module, jamais l'application complète, le dépôt source ou un paquet global contenant tous les modules. Le frontend consomme un catalogue et des capacités, sans dépendre des détails internes des modules.
 
 - [x] Identifiants stables, descripteurs, capacités et compatibilité de version de contrat.
 - [x] Validation des dépendances et planification de l'ordre d'activation.
@@ -228,7 +240,7 @@ Les contrats de base existent; on reprend leur approfondissement après validati
 
 ## Architecture transversale — stratégies d'exécution CPU (préparation de P3/P4)
 
-**État de cette sous-phase : environ 20 %** — les couches sont documentées et un sélecteur de stratégie CPU explicite avec tests unitaires existe; les moteurs CPU, le pont ABI, les services système, le JIT et la traduction GPU ne sont pas implémentés par ce jalon. Cette piste architecturale ne remplace pas la priorité P1 et ne doit pas gonfler artificiellement son pourcentage.
+**Avancement estimé : ≈ 20 %** — les couches sont documentées et un sélecteur de stratégie CPU explicite avec tests unitaires existe; les moteurs CPU, le pont ABI, les services système, le JIT et la traduction GPU ne sont pas implémentés par ce jalon. Cette piste architecturale ne remplace pas la priorité P1 et ne doit pas gonfler artificiellement son pourcentage.
 
 ### Contrat et politique CPU
 
@@ -254,7 +266,9 @@ Les contrats de base existent; on reprend leur approfondissement après validati
 - CPU, compatibilité système et traduction GPU restent trois couches distinctes.
 - Une stratégie choisie par la politique est une préférence; le module doit confirmer qu'il la prend en charge.
 
-## P3 — premier module de console réellement fonctionnel (après P1)
+## P3 — premier module de console réellement fonctionnel (0 %, après P1)
+
+**Avancement estimé : 0 %.** Le périmètre reste volontairement non démarré tant que P1 n'est pas validé; l'existence d'un crate Game Boy ne vaut pas compatibilité fonctionnelle démontrée.
 
 Le module Game Boy existant peut servir de première cible, mais son existence ne signifie pas que les jeux sont jouables. Cette phase ne commence qu'une fois P1 validé, sauf corrections minimales requises pour garder l'application testable.
 
@@ -268,7 +282,9 @@ Le module Game Boy existant peut servir de première cible, mais son existence n
 
 **Critère de sortie :** un périmètre de système documenté fonctionne réellement de bout en bout; un cœur factice ou un crate compilable ne suffit pas.
 
-## P4 — autres modules/systèmes
+## P4 — autres modules/systèmes (0 %)
+
+**Avancement estimé : 0 %.** Phase différée jusqu'à la stabilisation de P3.
 
 - [ ] Garder chaque cœur dans un crate indépendant dépendant du contrat commun, pas du frontend.
 - [ ] Créer une suite de conformité réutilisable pour tous les cœurs.
@@ -278,7 +294,9 @@ Le module Game Boy existant peut servir de première cible, mais son existence n
 - [ ] Ne pas distribuer de firmware, d'assets propriétaires ou de jeux sans autorisation.
 - [ ] Ne jamais présenter une interface recréée comme le firmware original.
 
-## P5 — publication et maintenance
+## P5 — publication et maintenance (0 %)
+
+**Avancement estimé : 0 %.** Aucun cycle de publication complet n'est encore validé.
 
 - [ ] Construire des paquets reproductibles pour chaque plateforme cible.
 - [ ] Documenter installation, désinstallation, mises à jour, rollback et collecte des diagnostics.
