@@ -29,6 +29,7 @@ Cette checklist valide les parcours génériques de l'application, pas la compat
 - [ ] Ouvrir les diagnostics de chaque session et vérifier identifiant, sélection active, état, capacités média et dernières erreurs propres à cette session.
 - [ ] Fermer une session non active puis toutes les sessions; vérifier que la sélection active ne pointe jamais vers une session fermée.
 - [ ] Changer de page pendant que des contrôles sont maintenus, puis fermer ou arrêter une session; vérifier la libération des entrées.
+- [ ] Maintenir un contrôle dans une session, tenter de lancer un autre contenu, puis vérifier que les entrées de l'ancienne session sont libérées avant le changement; si la libération échoue, le lancement doit être annulé et la session active ne doit pas changer.
 - [ ] Vérifier que l'absence de trame/audio est indiquée honnêtement si le cœur ne fournit pas ces médias; vérifier que l'absence de périphérique audio ne fait pas planter l'application.
 
 ## Préférences, erreurs et redémarrage
