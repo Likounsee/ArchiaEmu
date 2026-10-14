@@ -306,6 +306,35 @@ mod tests {
     }
 
     #[test]
+    fn failed_temporary_write_preserves_the_previous_preferences_file() {
+        let path = temporary_config("preserve-previous");
+        let temporary = path.with_extension("conf.tmp");
+        fs::write(&path, "version=2\ndark=false\n")
+            .expect("previous preferences should be written");
+        fs::create_dir(&temporary)
+            .expect("temporary path should block creation of a temporary file");
+
+        let error = write_preferences(&path, true, 1.0, [75, 115, 210], &[])
+            .expect_err("writing over a directory should fail");
+        assert!(
+            matches!(
+                error.kind(),
+                std::io::ErrorKind::IsADirectory
+                    | std::io::ErrorKind::PermissionDenied
+                    | std::io::ErrorKind::InvalidInput
+            ),
+            "unexpected error kind: {error}"
+        );
+        assert_eq!(
+            fs::read_to_string(&path).expect("previous preferences must remain readable"),
+            "version=2\ndark=false\n"
+        );
+
+        let _ = fs::remove_dir(temporary);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
     fn saving_preferences_reports_unwritable_parent_directory() {
         let blocker = temporary_config("parent-is-file");
         fs::write(&blocker, "not a directory").expect("blocker file should be created");
