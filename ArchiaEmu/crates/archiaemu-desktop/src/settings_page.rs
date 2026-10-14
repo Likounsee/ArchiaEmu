@@ -10,7 +10,7 @@ impl DesktopApp {
         );
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.checkbox(&mut self.dark_mode, "Use dark theme");
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.label("Accent color");
                 ui.color_edit_button_srgba(&mut self.accent_color);
                 ui.monospace(format!(
