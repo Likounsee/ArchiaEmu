@@ -20,6 +20,21 @@ pub enum ContentValidation {
     Rejected(String),
 }
 
+/// Result of probing content bytes against the registered format probes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ContentFormatDetection {
+    /// No byte probe has run yet.
+    Pending,
+    /// No registered probe matched the inspected prefix.
+    NoMatch,
+    /// Exactly one format probe matched the inspected prefix.
+    Detected(String),
+    /// More than one format probe matched; launch must resolve compatibility.
+    Ambiguous(Vec<String>),
+    /// At least one probe requires a longer prefix before deciding.
+    NeedsMoreData,
+}
+
 /// Live filesystem availability of a library item.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ContentAvailability {
@@ -41,6 +56,7 @@ pub struct ContentEntry {
     size_bytes: u64,
     format_hint: Option<String>,
     compatible_system_hint: Option<String>,
+    format_detection: ContentFormatDetection,
     validation: ContentValidation,
 }
 
@@ -71,6 +87,11 @@ impl ContentEntry {
     /// authoritative for compatibility.
     pub fn compatible_system_hint(&self) -> Option<&str> {
         self.compatible_system_hint.as_deref()
+    }
+
+    /// Returns the latest byte-probe result, distinct from the filename extension hint.
+    pub fn format_detection(&self) -> &ContentFormatDetection {
+        &self.format_detection
     }
 
     /// Returns the most recently recorded launch-validation outcome.
@@ -226,6 +247,7 @@ impl ContentLibrary {
             size_bytes,
             format_hint: extension,
             compatible_system_hint: compatible_system_hint.map(str::to_owned),
+            format_detection: ContentFormatDetection::Pending,
             validation: ContentValidation::Pending,
         };
         self.entries.insert(canonical.clone(), entry);
@@ -233,6 +255,22 @@ impl ContentLibrary {
             .entries
             .get(&canonical)
             .expect("entry was just inserted"))
+    }
+
+    /// Records a format-probe result for a canonical library path.
+    ///
+    /// Returns false if the path is not currently in the catalog.
+    pub fn record_format_detection(
+        &mut self,
+        canonical_path: impl AsRef<Path>,
+        detection: ContentFormatDetection,
+    ) -> bool {
+        if let Some(entry) = self.entries.get_mut(canonical_path.as_ref()) {
+            entry.format_detection = detection;
+            true
+        } else {
+            false
+        }
     }
 
     /// Records the latest launch-validation outcome for a canonical library path.
@@ -301,6 +339,7 @@ mod tests {
         assert_eq!(entry.size_bytes(), 8);
         assert_eq!(entry.format_hint(), Some("gb"));
         assert_eq!(entry.compatible_system_hint(), Some("Game Boy"));
+        assert_eq!(entry.format_detection(), &ContentFormatDetection::Pending);
         assert_eq!(entry.validation(), &ContentValidation::Pending);
         assert_eq!(entry.availability(), ContentAvailability::Available);
         assert_eq!(library.len(), 1);
