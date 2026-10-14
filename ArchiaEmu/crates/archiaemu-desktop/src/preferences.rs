@@ -283,3 +283,4 @@ mod tests {
         assert!((saved.ui_scale - 0.8).abs() < f32::EPSILON);
         let _ = fs::remove_file(path);
     }
+}
