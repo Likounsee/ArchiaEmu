@@ -73,7 +73,9 @@ struct DesktopApp {
     last_tick_errors: Vec<(SessionId, String)>,
     session_content_paths: Vec<(SessionId, PathBuf)>,
     update_check_receiver: Option<Receiver<Result<update::UpdateManifest, String>>>,
+    update_download_receiver: Option<Receiver<Result<PathBuf, String>>>,
     update_manifest: Option<update::UpdateManifest>,
+    staged_update_path: Option<PathBuf>,
     update_status: String,
 }
 
@@ -224,7 +226,9 @@ impl DesktopApp {
             last_tick_errors: Vec::new(),
             session_content_paths: Vec::new(),
             update_check_receiver: None,
+            update_download_receiver: None,
             update_manifest: None,
+            staged_update_path: None,
             update_status: "Not checked yet.".to_owned(),
         })
     }
@@ -452,7 +456,27 @@ impl eframe::App for DesktopApp {
                 }
             }
         }
-        if self.update_check_receiver.is_some() {
+        let download_result = self
+            .update_download_receiver
+            .as_ref()
+            .and_then(|receiver| receiver.try_recv().ok());
+        if let Some(result) = download_result {
+            self.update_download_receiver = None;
+            match result {
+                Ok(path) => {
+                    self.update_status = format!(
+                        "Update downloaded and SHA-256 verified at {}. Installation is not automatic.",
+                        path.display()
+                    );
+                    self.staged_update_path = Some(path);
+                }
+                Err(error) => {
+                    self.update_status = format!("Update download failed: {error}");
+                    self.staged_update_path = None;
+                }
+            }
+        }
+        if self.update_check_receiver.is_some() || self.update_download_receiver.is_some() {
             context.request_repaint_after(Duration::from_millis(250));
         }
         self.advance_emulation(context);
