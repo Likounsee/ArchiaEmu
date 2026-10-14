@@ -39,7 +39,26 @@ pub(crate) fn config_file_path() -> Option<PathBuf> {
 pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
     let contents = match fs::read_to_string(path) {
         Ok(contents) => contents,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            // A crash can occur after the previous config is moved aside but
+            // before the freshly written temporary file is promoted. Recover
+            // the last known-good backup instead of silently starting with defaults.
+            let backup = path.with_extension("conf.bak");
+            match fs::read_to_string(&backup) {
+                Ok(contents) => {
+                    // Best effort: keep the recovered values usable even if restoring
+                    // the filename fails due to a read-only or unusual filesystem.
+                    let _ = fs::rename(&backup, path);
+                    contents
+                }
+                Err(backup_error)
+                    if backup_error.kind() == std::io::ErrorKind::NotFound =>
+                {
+                    return Ok(None);
+                }
+                Err(backup_error) => return Err(backup_error),
+            }
+        }
         Err(error) => return Err(error),
     };
     let mut dark_mode = true;
@@ -317,6 +336,25 @@ mod tests {
             );
         }
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn recovers_previous_preferences_when_crash_left_only_backup() {
+        let path = temporary_config("crash-recovery");
+        let backup = path.with_extension("conf.bak");
+        fs::write(&backup, "version=2\ndark=false\nscale=1.2\n")
+            .expect("backup preferences should be written");
+
+        let saved = load_preferences(&path)
+            .expect("backup preferences should recover")
+            .expect("backup should provide preferences");
+        assert!(!saved.dark_mode);
+        assert!((saved.ui_scale - 1.2).abs() < f32::EPSILON);
+        assert!(path.exists(), "recovery should restore the active config path");
+        assert!(!backup.exists(), "successful rename should consume the backup");
+
+        let _ = fs::remove_file(path);
+        let _ = fs::remove_file(backup);
     }
 
     #[test]
