@@ -65,7 +65,7 @@ impl DesktopApp {
                     });
                     ui.separator();
                     ui.label(if summary.audio_available {
-                        "Audio: core capability declared"
+                        "Audio: core output declared; host playback integrated"
                     } else {
                         "Audio: unavailable"
                     });
