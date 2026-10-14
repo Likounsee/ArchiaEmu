@@ -67,7 +67,6 @@ fn message_indicates_error(message: &str) -> bool {
         || (message.starts_with("session ") && message.contains(" failed:"))
 }
 
-
 /// Polls a background task and drops its receiver on success or disconnection.
 /// A disconnected worker must not leave the UI repainting forever as if it were still running.
 fn poll_background_result<T>(receiver: &mut Option<Receiver<T>>) -> Result<Option<T>, ()> {
@@ -520,13 +519,12 @@ impl DesktopApp {
 
     fn session_action(&mut self, id: SessionId, action: SessionAction) {
         let is_active = self.controller.active_session() == Some(id);
-        let release_error = if is_active
-            && matches!(action, SessionAction::Stop | SessionAction::Reset)
-        {
-            self.release_game_inputs().err()
-        } else {
-            None
-        };
+        let release_error =
+            if is_active && matches!(action, SessionAction::Stop | SessionAction::Reset) {
+                self.release_game_inputs().err()
+            } else {
+                None
+            };
 
         // A reset is only safe once held controls have been released. Stop, however, must
         // remain available as a recovery action even if releasing input itself fails.
@@ -573,8 +571,7 @@ impl DesktopApp {
                     self.frame_texture = None;
                     self.video_size = None;
                     self.last_tick = Instant::now();
-                    self.media_status =
-                        "Active session reset; waiting for a new frame.".to_owned();
+                    self.media_status = "Active session reset; waiting for a new frame.".to_owned();
                 }
             }
         }
@@ -871,7 +868,8 @@ impl DesktopApp {
                 } else {
                     String::new()
                 };
-                self.media_status = format!("Could not advance selected session: {error}.{release_status}");
+                self.media_status =
+                    format!("Could not advance selected session: {error}.{release_status}");
                 self.last_tick_errors
                     .retain(|(error_id, _)| *error_id != id);
                 self.last_tick_errors.push((id, self.media_status.clone()));
@@ -936,13 +934,17 @@ impl DesktopApp {
         } else if !video_available {
             "This core does not currently advertise video output; the display area is a placeholder.".to_owned()
         } else if audio_available {
-            "Video pipeline connected; core audio buffers are forwarded to the host output.".to_owned()
+            "Video pipeline connected; core audio buffers are forwarded to the host output."
+                .to_owned()
         } else {
             "Video pipeline connected. This core does not currently advertise audio output."
                 .to_owned()
         };
         self.media_status = if audio_available {
-            format!("{pipeline_status} Audio device: {}.", self.audio_output.status())
+            format!(
+                "{pipeline_status} Audio device: {}.",
+                self.audio_output.status()
+            )
         } else {
             pipeline_status
         };
