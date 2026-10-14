@@ -151,8 +151,8 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 - [x] Étendre le workflow aux tests et à Clippy du workspace partagé, en plus du crate desktop exclu du workspace (exécution CI toujours en attente de résultats vérifiables).
 - [x] Corriger le parcours « Save settings now » : un échec d'écriture ou l'absence de répertoire de configuration ne peut plus être affiché comme une sauvegarde réussie; ajouter un test de défaillance du système de fichiers.\n- [ ] Faire passer la CI desktop sur Linux, Windows et macOS; traiter toute régression avant de continuer.
 - [ ] Vérifier démarrage et fermeture propres, absence de panique sur erreurs utilisateur et absence de session/ressource orpheline.
-- [ ] Actualiser le README avec les fonctions disponibles, les limitations et les étapes de lancement de l'application.
-- [ ] Ajouter une checklist de test manuel courte pour les parcours principaux.
+- [x] Actualiser le README pour décrire honnêtement les fonctions/limites du projet et les quality gates configurés.
+- [x] Ajouter `docs/MANUAL_TEST_CHECKLIST.md` pour les parcours principaux; la checklist reste à exécuter et à documenter sur chaque plateforme.
 - [ ] Définir le critère de « version application utilisable » et le vérifier explicitement avant de déclarer P1 terminé.
 
 **Critère de sortie P1 — application utilisable :** bibliothèque et préférences fiables, sessions génériques gérables, diagnostics compréhensibles, adaptateurs média honnêtes, tests reproductibles et CI verte sur les plateformes configurées. La compatibilité d'une console reste hors de ce critère.
