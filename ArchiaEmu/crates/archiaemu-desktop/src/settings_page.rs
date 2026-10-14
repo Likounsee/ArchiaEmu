@@ -161,6 +161,15 @@ impl DesktopApp {
             );
             ui.label("Media status:");
             ui.label(&self.media_status);
+            ui.label("Update status:");
+            ui.label(&self.update_status);
+            ui.label("Staged update:");
+            ui.label(
+                self.staged_update_path
+                    .as_deref()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|| "none".to_owned()),
+            );
             ui.label("Latest application message:");
             ui.label(&self.message);
             if !self.last_tick_errors.is_empty() {
@@ -183,7 +192,7 @@ impl DesktopApp {
                     .map(|id| id.get().to_string())
                     .unwrap_or_else(|| "none".to_owned());
                 let report = format!(
-                    "ArchiaEmu {}\nPlatform: {} / {}\nLibrary items: {}\nOpen sessions: {}\nActive session: {}\nExecution errors: {}\nConfiguration: {}\nMedia status: {}\nLatest message: {}\nRecent errors:\n{}",
+                    "ArchiaEmu {}\nPlatform: {} / {}\nLibrary items: {}\nOpen sessions: {}\nActive session: {}\nExecution errors: {}\nConfiguration: {}\nMedia status: {}\nUpdate status: {}\nStaged update: {}\nLatest message: {}\nRecent errors:\n{}",
                     option_env!("CARGO_PKG_VERSION").unwrap_or("unknown"),
                     std::env::consts::OS,
                     std::env::consts::ARCH,
@@ -196,6 +205,11 @@ impl DesktopApp {
                         .map(|path| path.display().to_string())
                         .unwrap_or_else(|| "unavailable".to_owned()),
                     self.media_status,
+                    self.update_status,
+                    self.staged_update_path
+                        .as_deref()
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| "none".to_owned()),
                     self.message,
                     recent_errors
                 );
