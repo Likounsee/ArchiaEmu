@@ -1,5 +1,7 @@
 #define AppName "ArchiaEmu"
-#define AppVersion "0.1.0"
+#ifndef AppVersion
+  #define AppVersion "0.1.0"
+#endif
 #define AppPublisher "Likounsee"
 #define AppExeName "archiaemu-desktop.exe"
 
