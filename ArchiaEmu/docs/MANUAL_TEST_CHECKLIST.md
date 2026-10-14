@@ -13,8 +13,11 @@ Cette checklist valide les parcours génériques de l'application, pas la compat
 
 - [ ] Vérifier l'état vide de la bibliothèque et ses instructions d'import.
 - [ ] Importer un fichier de test autorisé, puis vérifier titre/chemin, recherche, filtre, tri et sélection.
+- [ ] Vérifier que l'extension est présentée comme un indice, que la détection par octets est distincte, et que les états en attente, détecté, ambigu et sans correspondance sont compréhensibles.
+- [ ] Après un lancement accepté puis un lancement rejeté, vérifier que le dernier résultat de validation est affiché correctement.
 - [ ] Importer plusieurs fichiers en mélangeant fichiers acceptés et refusés; vérifier que les erreurs sont explicites et que les imports valides restent accessibles.
 - [ ] Tenter de lancer un fichier absent, vide, trop volumineux, de format inconnu ou malformé; vérifier qu'aucune session fantôme n'est créée et que la sélection existante est préservée.
+- [ ] Vérifier les erreurs d'ouverture/lecture avec un fichier supprimé après import et, si l'OS le permet, avec un fichier dont les permissions interdisent la lecture.
 - [ ] Vérifier le lancement réussi uniquement avec un contenu de test compatible et un cœur dont le périmètre est réellement implémenté. Ne pas compter un cœur factice comme preuve de compatibilité console.
 - [ ] Supprimer une entrée et vérifier que la sélection et l'état de lancement restent cohérents.
 
@@ -23,6 +26,7 @@ Cette checklist valide les parcours génériques de l'application, pas la compat
 - [ ] Créer plusieurs sessions de test, sélectionner chacune et vérifier que la session active affichée est la bonne.
 - [ ] Mettre en pause puis reprendre; vérifier que l'exécution ne progresse pas pendant la pause.
 - [ ] Arrêter, réinitialiser et fermer une session; vérifier que les diagnostics, entrées et médias obsolètes sont nettoyés.
+- [ ] Ouvrir les diagnostics de chaque session et vérifier identifiant, sélection active, état, capacités média et dernières erreurs propres à cette session.
 - [ ] Fermer une session non active puis toutes les sessions; vérifier que la sélection active ne pointe jamais vers une session fermée.
 - [ ] Changer de page pendant que des contrôles sont maintenus, puis fermer ou arrêter une session; vérifier la libération des entrées.
 - [ ] Vérifier que l'absence de trame/audio est indiquée honnêtement si le cœur ne fournit pas ces médias; vérifier que l'absence de périphérique audio ne fait pas planter l'application.
