@@ -70,7 +70,9 @@ begin
 
     { Delete only the known preferences file and known log/cache folders.
       Never recursively remove the user's entire application-data directory. }
-    DeleteFile(RoamingDir + '\preferences.json');
+    DeleteFile(RoamingDir + '\desktop.conf');
+    DeleteFile(RoamingDir + '\desktop.conf.bak');
+    DeleteFile(RoamingDir + '\desktop.conf.tmp');
     DelTree(RoamingDir + '\logs', True, True, True);
     DelTree(RoamingDir + '\cache', True, True, True);
     DelTree(LocalDir + '\logs', True, True, True);
