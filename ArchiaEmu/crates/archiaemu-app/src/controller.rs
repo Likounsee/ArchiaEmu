@@ -71,6 +71,23 @@ pub struct SessionAdvance {
     pub error: Option<String>,
 }
 
+/// Read-only session information intended for frontend view models.
+#[derive(Clone, Debug)]
+pub struct SessionSummary {
+    /// Stable session identifier.
+    pub id: SessionId,
+    /// Current lifecycle state.
+    pub state: SessionState,
+    /// Human-readable name of the registered core/system.
+    pub system_name: String,
+    /// Whether the core advertises video output.
+    pub video_available: bool,
+    /// Whether the core advertises audio output.
+    pub audio_available: bool,
+    /// Most recent core error, if any.
+    pub last_error: Option<String>,
+}
+
 /// Owns the state that every ArchiaEmu frontend must share.
 pub struct ApplicationController {
     host: HostRuntime,
@@ -144,6 +161,37 @@ impl ApplicationController {
     /// Mutably borrows the content catalog for import and removal operations.
     pub fn library_mut(&mut self) -> &mut ContentLibrary {
         &mut self.library
+    }
+
+    /// Returns the number of currently open sessions.
+    pub fn session_count(&self) -> usize {
+        self.host.session_count()
+    }
+
+    /// Returns stable read-only summaries for every currently open session.
+    ///
+    /// Frontends should use these summaries instead of reaching into the runtime
+    /// to inspect session internals while rendering views.
+    pub fn session_summaries(&self) -> Vec<SessionSummary> {
+        self.host
+            .session_ids()
+            .into_iter()
+            .filter_map(|id| self.session_summary(id).ok())
+            .collect()
+    }
+
+    /// Returns a read-only summary for a session, rejecting stale identifiers.
+    pub fn session_summary(&self, id: SessionId) -> Result<SessionSummary, HostRuntimeError> {
+        let session = self.host.session(id)?;
+        let capabilities = session.descriptor().capabilities;
+        Ok(SessionSummary {
+            id,
+            state: session.state(),
+            system_name: session.descriptor().display_name.to_owned(),
+            video_available: capabilities.video_output,
+            audio_available: capabilities.audio_output,
+            last_error: session.last_core_error().map(|error| error.to_string()),
+        })
     }
 
     /// Returns the currently selected session, if any.
