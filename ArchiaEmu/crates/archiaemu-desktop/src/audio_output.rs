@@ -68,10 +68,6 @@ impl AudioOutput {
         if should_clear_backlog(sink.len()) {
             sink.clear();
             self.dropped_buffers = self.dropped_buffers.saturating_add(1);
-            self.status = format!(
-                "Audio active; cleared playback backlog ({} time(s))",
-                self.dropped_buffers
-            );
         }
         self.status = if self.dropped_buffers == 0 {
             "Audio playback active".to_owned()
