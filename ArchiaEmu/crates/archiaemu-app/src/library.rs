@@ -328,6 +328,24 @@ mod tests {
     }
 
     #[test]
+    fn availability_is_rechecked_when_an_imported_file_disappears() {
+        let file = TempFile::new("removed.gb", b"rom-data");
+        let mut library = ContentLibrary::new();
+        library.import(&file.0, 64).unwrap();
+        let canonical = fs::canonicalize(&file.0).unwrap();
+
+        assert_eq!(
+            library.entries().next().unwrap().availability(),
+            ContentAvailability::Available
+        );
+        fs::remove_file(&canonical).unwrap();
+        assert_eq!(
+            library.entries().next().unwrap().availability(),
+            ContentAvailability::Missing
+        );
+    }
+
+    #[test]
     fn validation_outcome_is_recorded_without_claiming_extension_proves_validity() {
         let file = TempFile::new("bad.gb", b"not a valid cartridge");
         let mut library = ContentLibrary::new();
