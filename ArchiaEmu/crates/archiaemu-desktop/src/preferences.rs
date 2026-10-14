@@ -114,7 +114,7 @@ pub(crate) fn write_preferences(
     Ok(())
 }
 
-fn escape_config_value(value: &str) -> String {
+pub(crate) fn escape_config_value(value: &str) -> String {
     let mut escaped = String::with_capacity(value.len());
     for character in value.chars() {
         match character {
@@ -127,7 +127,7 @@ fn escape_config_value(value: &str) -> String {
     escaped
 }
 
-fn unescape_config_value(value: &str) -> Option<String> {
+pub(crate) fn unescape_config_value(value: &str) -> Option<String> {
     let mut decoded = String::with_capacity(value.len());
     let mut characters = value.chars();
     while let Some(character) = characters.next() {
