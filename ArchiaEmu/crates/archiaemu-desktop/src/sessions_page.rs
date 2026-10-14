@@ -65,7 +65,12 @@ impl DesktopApp {
                         .clicked()
                     {
                         if self.controller.active_session() != Some(id) {
-                            self.release_game_inputs();
+                            // Do not switch away if held controls could not be released:
+                            // the old session must not keep receiving stuck input.
+                            if let Err(error) = self.release_game_inputs() {
+                                self.message = error;
+                                return;
+                            }
                             match self.controller.select_session(id) {
                                 Ok(()) => {
                                     self.audio_output.clear();
