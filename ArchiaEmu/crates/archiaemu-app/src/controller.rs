@@ -522,6 +522,28 @@ mod tests {
     }
 
     #[test]
+    fn failed_path_launch_does_not_create_a_phantom_session() {
+        let mut app = controller();
+        let missing = std::env::temp_dir().join(format!(
+            "archiaemu-missing-launch-{}-never-created.gb",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&missing);
+
+        let result = app.launch_content_path(
+            &missing,
+            ContentLimits::new(1024),
+            &[],
+            &CoreRegistry::new(),
+        );
+
+        assert!(result.is_err());
+        assert!(app.host().is_empty());
+        assert_eq!(app.active_session(), None);
+        let _ = std::fs::remove_file(missing);
+    }
+
+    #[test]
     fn library_index_errors_are_explicit_and_do_not_create_sessions() {
         let mut app = controller();
         let error = app
