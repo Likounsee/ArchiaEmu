@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 32 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
+| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 33 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
@@ -83,7 +83,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Avancer les sessions via le contrôleur avec budget borné et remonter état, capacités, trame la plus récente et erreur.
 - [x] Relier les transitions de clavier aux commandes sémantiques partagées et libérer les contrôles lors de la perte de focus.
 - [ ] Tester explicitement création, changement de session, pause/reprise, arrêt, réinitialisation, fermeture d'une session et fermeture globale.
-- [ ] Définir le comportement lorsque la session active est arrêtée, supprimée ou échoue pendant un tick.
+- [ ] Définir le comportement lorsque la session active est arrêtée, supprimée ou échoue pendant un tick. Le gestionnaire de sessions efface désormais la trame mise en cache lors d'un arrêt/réinitialisation de la session active; les chemins d'erreur pendant un tick restent à tester.
 - [ ] Vérifier que les entrées sont relâchées dans tous les chemins de perte de focus, de fermeture et d'erreur.
 - [ ] Afficher les capacités réellement disponibles et désactiver ou expliquer les commandes non prises en charge.
 - [ ] Ne pas présenter un cœur factice comme une session de console jouable.
