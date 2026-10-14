@@ -168,8 +168,8 @@ Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale d
 - [ ] Construire l'application desktop en mode release depuis un environnement propre, avec versions verrouillées. Le workflow release existe, mais le crate desktop n'a pas encore de lockfile dédié validé.
 - [ ] Recenser et embarquer tous les fichiers, bibliothèques natives, ressources et runtimes réellement requis; le workflow stage actuellement le binaire seul, à confirmer sur une VM Windows propre.
 - [x] Ajouter un workflow Windows x64 qui construit l'application, génère l'installateur versionné et son checksum SHA-256, publie un artefact de workflow et joint l'installateur aux releases créées depuis un tag `v*`; le premier run et ses résultats restent à vérifier.
-- [ ] Installer dans un répertoire local choisi (par défaut sous Program Files), avec données/configuration utilisateur dans les répertoires Windows adaptés; ne pas écrire les préférences à côté de l'exécutable installé si cela exige des droits administrateur.
-- [ ] Proposer les options de raccourci au cours de l'installation : menu Démarrer activé par défaut et raccourci bureau activable/désactivable.
+- [x] Installer dans un répertoire local choisi, avec mode utilisateur par défaut et possibilité d'élévation; les préférences restent dans `%APPDATA%\\ArchiaEmu\\desktop.conf`, pas à côté de l'exécutable. Vérification réelle des chemins en VM toujours requise.
+- [x] Créer un raccourci Menu Démarrer et proposer le raccourci bureau comme option décochée par défaut dans l'assistant.
 - [x] Fournir le désinstallateur Inno Setup via Windows et le menu Démarrer, avec une question explicite sur la suppression des préférences/journaux/cache connus; les ROM et fichiers arbitraires ne sont pas ciblés. Vérification réelle en VM toujours requise.
 - [ ] Vérifier le premier démarrage depuis le menu Démarrer et depuis le raccourci bureau, sans Rust, dépôt source ni dossier de build présents.
 - [ ] Vérifier bibliothèque, préférences, journaux/diagnostics et chemins de contenus après fermeture puis redémarrage.
