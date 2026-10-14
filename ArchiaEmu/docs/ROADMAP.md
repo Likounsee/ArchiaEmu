@@ -116,7 +116,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Signaler correctement l'échec de sauvegarde dans l'interface au lieu d'afficher un succès trompeur; tester l'échec d'écriture et la préservation de l'ancien fichier de préférences.
 - [x] Synchroniser le fichier temporaire de préférences sur le disque (`sync_all`) avant de le promouvoir en configuration active, et nettoyer le temporaire si l'écriture ou la synchronisation échoue.
 - [x] Récupérer la dernière configuration de sauvegarde si une interruption survient après la mise à l'écart du fichier actif mais avant la promotion du nouveau fichier; tester ce scénario de récupération.
-- [x] Limiter la taille des fichiers de préférences lus au démarrage à 4 Mio, y compris le fichier de récupération; tests ajoutés, exécution à confirmer en CI.
+- [x] Limiter les fichiers de préférences lus au démarrage à 4 Mio, y compris le fichier de récupération, et refuser d'écrire une configuration sérialisée qui dépasserait cette limite. Le test de lecture vérifie aussi que la limite est appliquée avant le décodage UTF-8; tests ajoutés, exécution à confirmer en CI.
 - [x] Prévoir thème clair/sombre, échelle UI et dimensions initiales de fenêtre.
 - [x] Ajouter une couleur d'accent personnalisable pour boutons/états sélectionnés/surlignages, sans recolorer les fonds du thème.
 - [x] Persister la couleur d'accent dans la configuration versionnée tout en acceptant les préférences de version 1.
