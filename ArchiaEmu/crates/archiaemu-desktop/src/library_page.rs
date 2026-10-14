@@ -189,15 +189,20 @@ impl DesktopApp {
                                         detection_state,
                                         validation_state,
                                         availability_state,
-                                    )) = entry_metadata {
+                                    )) = entry_metadata
+                                    {
                                         ui.small(format!(
                                             "Extension hint: {} · compatibility hint: {}",
                                             format_hint.as_deref().unwrap_or("unknown extension"),
                                             system_hint.as_deref().unwrap_or("undetermined")
                                         ));
                                         let detected = match &detection_state {
-                                            ContentFormatDetection::Pending => "Detected format: not probed yet",
-                                            ContentFormatDetection::NoMatch => "Detected format: no registered probe matched",
+                                            ContentFormatDetection::Pending => {
+                                                "Detected format: not probed yet"
+                                            }
+                                            ContentFormatDetection::NoMatch => {
+                                                "Detected format: no registered probe matched"
+                                            }
                                             ContentFormatDetection::Detected(format) => {
                                                 ui.label(format!("Detected format: {format}"));
                                                 ""
@@ -212,25 +217,37 @@ impl DesktopApp {
                                                 );
                                                 ""
                                             }
-                                            ContentFormatDetection::NeedsMoreData => "Detected format: probe needs more data",
+                                            ContentFormatDetection::NeedsMoreData => {
+                                                "Detected format: probe needs more data"
+                                            }
                                         };
                                         if !detected.is_empty() {
                                             ui.small(detected);
                                         }
                                         let validation = match &validation_state {
-                                            ContentValidation::Pending => "Validation: pending until launch",
-                                            ContentValidation::Accepted => "Validation: last launch accepted",
-                                            ContentValidation::Rejected(_) => "Validation: last launch rejected",
+                                            ContentValidation::Pending => {
+                                                "Validation: pending until launch"
+                                            }
+                                            ContentValidation::Accepted => {
+                                                "Validation: last launch accepted"
+                                            }
+                                            ContentValidation::Rejected(_) => {
+                                                "Validation: last launch rejected"
+                                            }
                                         };
                                         ui.small(validation);
-                                        if let ContentValidation::Rejected(detail) = &validation_state {
+                                        if let ContentValidation::Rejected(detail) =
+                                            &validation_state
+                                        {
                                             ui.colored_label(egui::Color32::LIGHT_RED, detail);
                                         }
                                         let availability = match availability_state {
                                             ContentAvailability::Available => {
                                                 "Available · ready for launch validation"
                                             }
-                                            ContentAvailability::Missing => "Missing · re-import required",
+                                            ContentAvailability::Missing => {
+                                                "Missing · re-import required"
+                                            }
                                             ContentAvailability::NotRegularFile => {
                                                 "Unavailable · not a regular file"
                                             }
@@ -239,7 +256,8 @@ impl DesktopApp {
                                             }
                                         };
                                         ui.colored_label(
-                                            if availability_state == ContentAvailability::Available {
+                                            if availability_state == ContentAvailability::Available
+                                            {
                                                 ui.visuals().weak_text_color()
                                             } else {
                                                 egui::Color32::from_rgb(210, 115, 45)
@@ -248,7 +266,10 @@ impl DesktopApp {
                                         );
                                     } else {
                                         let path_status = content_path_status(&path);
-                                        ui.colored_label(egui::Color32::from_rgb(210, 115, 45), path_status);
+                                        ui.colored_label(
+                                            egui::Color32::from_rgb(210, 115, 45),
+                                            path_status,
+                                        );
                                     }
                                 });
                                 ui.with_layout(
