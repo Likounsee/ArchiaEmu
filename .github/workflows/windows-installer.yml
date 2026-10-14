@@ -27,6 +27,12 @@ jobs:
         with:
           components: rustfmt
 
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ArchiaEmu/crates/archiaemu-desktop -> ArchiaEmu/crates/archiaemu-desktop/target
+
       - name: Build desktop executable with static MSVC runtime
         env:
           RUSTFLAGS: -C target-feature=+crt-static
