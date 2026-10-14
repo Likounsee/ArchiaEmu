@@ -145,7 +145,8 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 - [ ] Ajouter des tests de parcours couvrant démarrage, bibliothèque vide, import, lancement réussi, lancement refusé, changement de session, paramètres, arrêt et fermeture globale.
 - [ ] Exécuter les quality gates Rust sur le dernier commit, pas seulement s'appuyer sur des résultats CI historiques.
 - [x] Ajouter `.github/workflows/desktop-ci.yml` pour lancer formatage, tests et Clippy du desktop sur Linux, Windows et macOS (le workflow est créé, ses résultats restent à vérifier).
-- [x] Étendre le workflow aux tests et à Clippy du workspace partagé, en plus du crate desktop exclu du workspace (exécution CI toujours en attente de résultats vérifiables).\n- [ ] Faire passer la CI desktop sur Linux, Windows et macOS; traiter toute régression avant de continuer.
+- [x] Étendre le workflow aux tests et à Clippy du workspace partagé, en plus du crate desktop exclu du workspace (exécution CI toujours en attente de résultats vérifiables).
+- [x] Corriger le parcours « Save settings now » : un échec d'écriture ou l'absence de répertoire de configuration ne peut plus être affiché comme une sauvegarde réussie; ajouter un test de défaillance du système de fichiers.\n- [ ] Faire passer la CI desktop sur Linux, Windows et macOS; traiter toute régression avant de continuer.
 - [ ] Vérifier démarrage et fermeture propres, absence de panique sur erreurs utilisateur et absence de session/ressource orpheline.
 - [ ] Actualiser le README avec les fonctions disponibles, les limitations et les étapes de lancement de l'application.
 - [ ] Ajouter une checklist de test manuel courte pour les parcours principaux.
