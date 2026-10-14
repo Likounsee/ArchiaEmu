@@ -691,9 +691,11 @@ impl DesktopApp {
             Ok(update) => update,
             Err(error) => {
                 let release_status = if self.controller.active_session() == Some(id) {
-                    self.controller.release_inputs(id).err().map(|release| {
-                        format!(" Input release also failed: {release}")
-                    }).unwrap_or_default()
+                    self.controller
+                        .release_inputs(id)
+                        .err()
+                        .map(|release| format!(" Input release also failed: {release}"))
+                        .unwrap_or_default()
                 } else {
                     String::new()
                 };
