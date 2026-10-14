@@ -114,6 +114,7 @@ fn validate_https_url(url: &str, label: &str) -> Result<(), String> {
 }
 
 /// Verifies a staged update without executing it or changing installed files.
+#[allow(dead_code)] // Used when the downloader/apply transaction is introduced.
 pub(crate) fn verify_staged_file(
     path: &Path,
     expected_size: u64,
@@ -122,10 +123,7 @@ pub(crate) fn verify_staged_file(
     if expected_size == 0 || expected_size > MAX_DOWNLOAD_BYTES {
         return Err("Staged update size is outside the accepted limits.".to_owned());
     }
-    if expected_sha256.len() != 64
-        || !expected_sha256
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit())
+    if expected_sha256.len() != 64 || !expected_sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
     {
         return Err("Expected SHA-256 digest is malformed.".to_owned());
     }
@@ -137,8 +135,8 @@ pub(crate) fn verify_staged_file(
             metadata.len()
         ));
     }
-    let mut file = File::open(path)
-        .map_err(|error| format!("Could not open staged update: {error}"))?;
+    let mut file =
+        File::open(path).map_err(|error| format!("Could not open staged update: {error}"))?;
     let mut hasher = Sha256::new();
     let mut buffer = [0u8; 64 * 1024];
     loop {
@@ -160,7 +158,8 @@ pub(crate) fn verify_staged_file(
 #[cfg(test)]
 pub(crate) fn write_test_file(path: &Path, contents: &[u8]) {
     let mut file = File::create(path).expect("test file should be created");
-    file.write_all(contents).expect("test file should be written");
+    file.write_all(contents)
+        .expect("test file should be written");
 }
 
 fn current_platform_key() -> &'static str {
@@ -189,7 +188,10 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("clock should be valid")
             .as_nanos();
-        std::env::temp_dir().join(format!("archiaemu-update-{}-{nonce}.bin", std::process::id()))
+        std::env::temp_dir().join(format!(
+            "archiaemu-update-{}-{nonce}.bin",
+            std::process::id()
+        ))
     }
 
     #[test]
