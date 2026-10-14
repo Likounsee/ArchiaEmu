@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 45 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
+| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 50 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
@@ -57,9 +57,9 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Extraire la persistance des préférences dans `preferences.rs`.
 - [x] Découper le rendu des pages hors de `main.rs` : accueil, bibliothèque, jeu, sessions, systèmes et paramètres ont désormais chacune leur module UI (`*_page.rs`). La navigation et la composition de l'application restent dans `main.rs`.
 - [x] Première adaptation responsive du desktop : navigation latérale remplacée par une barre horizontale défilante sous 980 px, cartes d'accueil adaptées à la largeur, barres d'actions repliables et taille minimale de fenêtre abaissée à 640 × 480.
-- [ ] Vérifier visuellement les pages à plusieurs tailles de fenêtre et corriger les éventuels débordements restants.
+- [ ] Vérifier visuellement les pages à plusieurs tailles de fenêtre et corriger les éventuels débordements restants; les dispositions adaptatives et la navigation clavier existent, mais la vérification visuelle manuelle n'a pas été exécutée.
 - [x] Retirer les accès directs au runtime depuis les vues pour les lectures de sessions; exposer au contrôleur le nombre de sessions et des résumés de session stables. Les commandes de cycle de vie restent aussi derrière le contrôleur.
-- [ ] Définir des états de vue explicites pour chargement, succès, absence de contenu, capacité indisponible et erreur.
+- [ ] Unifier les états de vue chargement/succès/absence/capacité indisponible/erreur dans un modèle typé commun. Les pages affichent déjà des états vides, indisponibilités, validations en attente et erreurs, mais la migration complète du système de messages reste à faire.
 - [x] Ajouter une première série de tests ciblés du contrôleur pour les transitions invalides, les identifiants fermés, les lancements rejetés et la cohérence de la sélection; les tests de frontend et les autres états de vue restent à faire.
 - [ ] Valider les changements avec `cargo fmt --all -- --check`, `cargo test --workspace --locked`, `cargo clippy --workspace --all-targets --locked -- -D warnings` et la CI multiplateforme.
 
@@ -72,7 +72,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Sélectionner un contenu, lancer via le pipeline commun et afficher les erreurs de validation/lancement.
 - [x] Supprimer une entrée avec désélection cohérente.
 - [x] Persister la bibliothèque entre les redémarrages via les préférences, revalider chaque chemin au chargement et signaler les fichiers absents/invalides avec quelques détails pour permettre leur réimport.
-- [ ] Clarifier le modèle de contenu : chemin source, nom affiché, format détecté, système compatible, dernier résultat de validation et état de disponibilité.
+- [x] Enrichir le modèle de bibliothèque avec le chemin source, le nom affiché, un indice de format issu de l'extension, un indice de système compatible, le dernier résultat de lancement et une disponibilité vérifiée en direct. L'extension reste un indice et ne remplace pas la détection par sonde ni la validation du cœur.
 - [x] Prévoir des états vides utiles et des actions claires lorsque la bibliothèque ne contient aucun fichier.
 - [x] Détecter à l'affichage les chemins de bibliothèque devenus indisponibles, expliquer qu'une réimportation est nécessaire et désactiver le lancement direct quand le chemin ne désigne plus un fichier.
 - [x] Ajouter des tests unitaires des états de chemin : fichier absent, répertoire au lieu d'un fichier et fichier existant en attente de validation du lancement.
@@ -80,7 +80,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Tester le refus d'un format inconnu sans créer de session fantôme ni modifier la session active.
 - [x] Tester le refus par le cœur d'une ROM détectée mais invalide, sans modifier les sessions existantes.
 - [x] Tester le rejet d'un contenu reconnu par plusieurs sondes, sans créer de session fantôme ni changer la sélection active.
-- [ ] Tester un fichier inaccessible sans créer de session fantôme ni changer la sélection active.
+- [x] Tester la disparition d'un fichier déjà importé et vérifier que sa disponibilité passe à « manquant »; les erreurs d'ouverture sont propagées par le pipeline de chargement. Le test de permissions OS strictement inaccessibles reste dépendant de la plateforme.
 - [x] Tester le refus d'un contenu vide ou dépassant la limite de taille sans modifier la session active ni son état.
 - [x] Tester qu'un échec de lancement sur un chemin absent ne crée pas de session fantôme et préserve la session active ainsi que les entrées de bibliothèque existantes.
 
@@ -91,13 +91,13 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Gérer plusieurs sessions, la sélection de la session active, pause/reprise, arrêt/réinitialisation et fermeture depuis l'interface.
 - [x] Avancer les sessions via le contrôleur avec budget borné et remonter état, capacités, trame la plus récente et erreur.
 - [x] Relier les transitions de clavier aux commandes sémantiques partagées et libérer les contrôles lors de la perte de focus.
-- [ ] Tester explicitement création, changement de session, pause/reprise, arrêt, réinitialisation, fermeture d'une session et fermeture globale.
+- [ ] Exécuter et compléter la matrice de tests de création, changement de session, pause/reprise, arrêt, réinitialisation, fermeture d'une session et fermeture globale; plusieurs tests unitaires de contrôleur existent, mais la validation complète du parcours desktop reste en attente.
 - [x] Sur erreur d'exécution ou de conversion/récupération vidéo, afficher l'erreur de tick dans le gestionnaire de sessions et effacer la trame mise en cache pour ne pas laisser une image périmée à l'écran.
 - [x] Conserver les diagnostics de tick séparément par identifiant de session, puis les retirer à la fermeture de la session concernée ou de toutes les sessions.
 - [x] Effacer le diagnostic de tick obsolète après un arrêt ou une réinitialisation réussis, sans toucher aux diagnostics des autres sessions; ajouter un test ciblé de ce nettoyage.
 - [ ] Tester les erreurs de tick, les transitions après arrêt/suppression de la session active et le nettoyage des ressources sur ces chemins.
-- [ ] Vérifier que les entrées sont relâchées dans tous les chemins de perte de focus, de fermeture et d'erreur.
-- [ ] Afficher les capacités réellement disponibles et désactiver ou expliquer les commandes non prises en charge.
+- [x] Relâcher les entrées sur perte de focus, changement/fermeture de session et fermeture globale; tenter également de les libérer quand l'avancement de session échoue ou remonte une erreur média. La vérification manuelle des périphériques reste à exécuter.
+- [x] Afficher les capacités réellement déclarées et expliquer explicitement l'absence de vidéo/audio dans la vue de jeu, la liste des sessions et les diagnostics.
 - [ ] Ne pas présenter un cœur factice comme une session de console jouable.
 
 **Critère de sortie :** les commandes sont prévisibles et aucun changement de session ou échec ne laisse l'interface dans un état périmé.
