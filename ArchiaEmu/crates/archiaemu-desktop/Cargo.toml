@@ -13,3 +13,7 @@ archiaemu-core = { version = "0.1.0", path = "../archiaemu-core" }
 archiaemu-game-boy = { version = "0.1.0", path = "../archiaemu-game-boy" }
 eframe = { version = "=0.27.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 rfd = "=0.14.1"
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.145"
+sha2 = "=0.10.9"
+ureq = "=2.12.1"
