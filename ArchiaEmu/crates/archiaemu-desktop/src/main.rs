@@ -475,12 +475,12 @@ impl DesktopApp {
             return UiStatus::CapabilityUnavailable;
         }
 
-        if message.starts_with("imported ")
-            || message.starts_with("launched ")
-            || message.starts_with("closed ")
-            || message.starts_with("removed ")
-            || message.contains(" succeeded.")
-            || message.starts_with("settings saved")
+        if self.message.starts_with("imported ")
+            || self.message.starts_with("launched ")
+            || self.message.starts_with("closed ")
+            || self.message.starts_with("removed ")
+            || self.message.contains(" succeeded.")
+            || self.message.starts_with("settings saved")
         {
             return UiStatus::Success;
         }
