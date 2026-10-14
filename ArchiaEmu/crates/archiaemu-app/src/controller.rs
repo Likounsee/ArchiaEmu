@@ -647,6 +647,56 @@ mod tests {
     }
 
     #[test]
+    fn ambiguous_format_rejection_does_not_create_a_session() {
+        use archiaemu_core::content::FormatProbeResult;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        struct AlwaysMatch(&'static str);
+
+        impl ContentFormatProbe for AlwaysMatch {
+            fn format_id(&self) -> &'static str {
+                self.0
+            }
+
+            fn probe(&self, _prefix: &[u8]) -> FormatProbeResult {
+                FormatProbeResult::Match
+            }
+        }
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-ambiguous-format-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let ambiguous_file = root.join("ambiguous.bin");
+        std::fs::write(&ambiguous_file, b"content matched by two probes").unwrap();
+
+        let first_probe = AlwaysMatch("format-one");
+        let second_probe = AlwaysMatch("format-two");
+        let probes: [&dyn ContentFormatProbe; 2] = [&first_probe, &second_probe];
+        let mut app = controller();
+
+        let result = app.launch_content_path(
+            &ambiguous_file,
+            ContentLimits::new(1024),
+            &probes,
+            &CoreRegistry::new(),
+        );
+
+        assert!(result.is_err(), "ambiguous content must be rejected");
+        assert_eq!(app.session_count(), 0);
+        assert_eq!(app.active_session(), None);
+        assert!(app.session_summaries().is_empty());
+
+        std::fs::remove_file(ambiguous_file).unwrap();
+        std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
     fn unknown_format_rejection_preserves_existing_session_selection() {
         use std::time::{SystemTime, UNIX_EPOCH};
 
