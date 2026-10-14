@@ -84,7 +84,9 @@ impl DesktopApp {
                     ui.hyperlink_to("Release notes", &release_notes_url);
                 });
                 let current = option_env!("CARGO_PKG_VERSION").unwrap_or("0.0.0");
-                if update::is_newer_version(&version, current) {
+                let update_available = update::is_newer_version(&version, current);
+                if update_available {
+                    ui.label(format!("Update available: {current} → {version}"));
                     if let Some(download) = download {
                         let downloading = self.update_download_receiver.is_some();
                         if ui
@@ -108,6 +110,8 @@ impl DesktopApp {
                     } else {
                         ui.small("No installable update artifact is currently published for this platform.");
                     }
+                } else {
+                    ui.label(format!("ArchiaEmu is up to date ({current})."));
                 }
             }
             if let Some(path) = self.staged_update_path.as_ref() {
