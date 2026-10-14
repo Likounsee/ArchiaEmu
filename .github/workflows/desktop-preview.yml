@@ -1,0 +1,94 @@
+name: Desktop preview
+
+on:
+  push:
+    branches:
+      - ArchiaEmu
+    paths:
+      - "ArchiaEmu/crates/archiaemu-desktop/**"
+      - "ArchiaEmu/crates/archiaemu-app/**"
+      - "ArchiaEmu/crates/archiaemu-core/**"
+      - "ArchiaEmu/crates/archiaemu-game-boy/**"
+      - "ArchiaEmu/Cargo.toml"
+      - "ArchiaEmu/Cargo.lock"
+      - ".github/workflows/desktop-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout ArchiaEmu branch
+        uses: actions/checkout@v4
+        with:
+          ref: ArchiaEmu
+
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config libx11-dev libxkbcommon-x11-dev libwayland-dev \
+            libxrandr-dev libxcursor-dev libxi-dev libgl1-mesa-dev \
+            libasound2-dev xvfb imagemagick
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build desktop application
+        run: cargo build --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+
+      - name: Capture the running application
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p preview
+          BIN="ArchiaEmu/target/debug/archiaemu-desktop"
+          if [ ! -x "$BIN" ]; then
+            BIN="ArchiaEmu/crates/archiaemu-desktop/target/debug/archiaemu-desktop"
+          fi
+          if [ ! -x "$BIN" ]; then
+            BIN="$(find target ArchiaEmu -path '*/debug/archiaemu-desktop' -type f -executable -print -quit 2>/dev/null || true)"
+          fi
+          if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
+            echo "Could not locate the compiled desktop binary." >&2
+            exit 1
+          fi
+          export BIN
+          xvfb-run -a bash -lc '
+            set +e
+            "$BIN" >preview/application.log 2>&1 &
+            app_pid=$!
+            for i in $(seq 1 20); do
+              sleep 1
+              if ! kill -0 "$app_pid" 2>/dev/null; then
+                echo "Desktop application exited before the screenshot."
+                cat preview/application.log
+                exit 1
+              fi
+              if import -window root preview/archiaemu-desktop.png 2>/dev/null; then
+                identify preview/archiaemu-desktop.png
+                kill "$app_pid" 2>/dev/null
+                wait "$app_pid" 2>/dev/null
+                exit 0
+              fi
+            done
+            cat preview/application.log
+            kill "$app_pid" 2>/dev/null
+            wait "$app_pid" 2>/dev/null
+            exit 1
+          '
+
+      - name: Upload screenshot and launch log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: archiaemu-desktop-preview-${{ github.sha }}
+          path: |
+            preview/archiaemu-desktop.png
+            preview/application.log
+          if-no-files-found: warn
+          retention-days: 14
