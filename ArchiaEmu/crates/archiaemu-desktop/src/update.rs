@@ -395,6 +395,28 @@ mod tests {
     }
 
     #[test]
+    fn finalizing_verified_update_preserves_contents_at_the_new_path() {
+        let source = temporary_file();
+        let mut destination = temporary_file();
+        destination.set_extension("verified");
+        write_test_file(&source, b"verified update");
+
+        super::create_verified_link(&source, &destination)
+            .expect("new verified destination should be created");
+
+        assert_eq!(
+            std::fs::read(&destination).expect("verified destination should be readable"),
+            b"verified update"
+        );
+        assert_eq!(
+            std::fs::read(&source).expect("source should remain until caller removes it"),
+            b"verified update"
+        );
+        let _ = std::fs::remove_file(source);
+        let _ = std::fs::remove_file(destination);
+    }
+
+    #[test]
     fn validates_a_manifest_without_publishing_unavailable_downloads() {
         let manifest: UpdateManifest = serde_json::from_str(
             r#"{"schema_version":1,"version":"0.1.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{}}"#,
