@@ -38,8 +38,7 @@ impl DesktopApp {
             ui.label("ArchiaEmu is under active development.");
             ui.label("The Game Boy Color core is experimental; launching a ROM does not imply compatibility.");
             ui.label("Imported library paths and appearance preferences are saved in your user configuration.");
-            if ui.button("Save settings now").clicked() {
-                self.save_preferences();
+            if ui.button("Save settings now").clicked() && self.save_preferences() {
                 self.message = "Settings saved.".to_owned();
             }
         });
