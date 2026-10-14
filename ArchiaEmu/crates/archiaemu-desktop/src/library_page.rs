@@ -4,7 +4,7 @@ use super::*;
 
 fn content_path_status(path: &Path) -> &'static str {
     match std::fs::metadata(path) {
-        Ok(metadata) if metadata.is_file() => "Available",
+        Ok(metadata) if metadata.is_file() => "File exists · launch validation pending",
         Ok(_) => "Unavailable · not a regular file",
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => "Missing · re-import required",
         Err(_) => "Unavailable · cannot read file metadata",
@@ -168,7 +168,7 @@ impl DesktopApp {
                                     ));
                                     let path_status = content_path_status(&path);
                                     ui.colored_label(
-                                        if path_status == "Available" {
+                                        if path_status.starts_with("File exists") {
                                             ui.visuals().weak_text_color()
                                         } else {
                                             egui::Color32::from_rgb(210, 115, 45)
@@ -252,7 +252,13 @@ impl DesktopApp {
                         ));
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("Launch selected").clicked() {
+                        if ui
+                            .add_enabled(
+                                path.is_file(),
+                                egui::Button::new("Launch selected"),
+                            )
+                            .clicked()
+                        {
                             self.content_path = path.display().to_string();
                             self.launch_content();
                         }
