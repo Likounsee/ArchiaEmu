@@ -68,9 +68,12 @@ impl UpdateManifest {
 }
 
 pub(crate) fn fetch_manifest() -> Result<UpdateManifest, String> {
-    let response = ureq::get(MANIFEST_URL)
+    let agent = ureq::AgentBuilder::new()
         .timeout_connect(Duration::from_secs(5))
         .timeout_read(Duration::from_secs(5))
+        .build();
+    let response = agent
+        .get(MANIFEST_URL)
         .call()
         .map_err(|error| format!("Could not reach the official update manifest: {error}"))?;
     let mut body = String::new();
