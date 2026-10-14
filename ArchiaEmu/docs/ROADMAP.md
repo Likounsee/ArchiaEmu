@@ -93,8 +93,10 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 ### P1.4 — préférences, diagnostics et ergonomie
 
 - [x] Séparer les préférences de présentation du matériel émulé et extraire leur persistance.
-- [x] Prévoir thème, échelle UI et dimensions initiales de fenêtre.
-- [ ] Ajouter une page de paramètres claire avec valeurs par défaut, validation et réinitialisation.
+- [x] Prévoir thème clair/sombre, échelle UI et dimensions initiales de fenêtre.
+- [x] Ajouter une couleur d'accent personnalisable pour boutons/états sélectionnés/surlignages, sans recolorer les fonds du thème.
+- [x] Persister la couleur d'accent dans la configuration versionnée tout en acceptant les préférences de version 1.
+- [x] Ajouter une page de paramètres claire avec thème clair/sombre, échelle UI, sélecteur de couleur d'accent et réinitialisation de la couleur.
 - [ ] Tester lecture/écriture, version inconnue, données malformées, valeurs hors limites et paramètres absents.
 - [ ] Fournir un panneau de diagnostic par session : état, système, capacités, contenu chargé et dernière erreur exploitable.
 - [ ] Distinguer les réglages hôte (interface, audio, vidéo, raccourcis, dossiers) des réglages spécifiques à un cœur, qui attendront l'arrivée des modules.
