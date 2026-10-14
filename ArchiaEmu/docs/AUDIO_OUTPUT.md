@@ -23,4 +23,4 @@ The current experimental Game Boy core does not yet synthesize audio. Therefore 
 
 ## Validation
 
-Unit tests cover deterministic PCM collection through the application controller, signed-16-bit normalization, and the playback backlog threshold. CI verifies compilation and tests on Linux, macOS, and Windows. Automated CI cannot guarantee audible output because hosted runners may not expose a physical or virtual audio device; manual smoke testing with a core that emits audio is still required.
+Unit tests cover deterministic PCM collection through the application controller, signed-16-bit normalization, and the playback backlog threshold. The desktop CI workflow is configured to verify compilation and tests on Linux, macOS, and Windows; its result for this change still needs confirmation. Automated CI cannot guarantee audible output because hosted runners may not expose a physical or virtual audio device; manual smoke testing with a core that emits audio is still required.
