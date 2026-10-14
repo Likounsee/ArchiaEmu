@@ -690,7 +690,14 @@ impl DesktopApp {
         {
             Ok(update) => update,
             Err(error) => {
-                self.media_status = format!("Could not advance selected session: {error}");
+                let release_status = if self.controller.active_session() == Some(id) {
+                    self.controller.release_inputs(id).err().map(|release| {
+                        format!(" Input release also failed: {release}")
+                    }).unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                self.media_status = format!("Could not advance selected session: {error}.{release_status}");
                 self.last_tick_errors
                     .retain(|(error_id, _)| *error_id != id);
                 self.last_tick_errors.push((id, self.media_status.clone()));
@@ -730,9 +737,15 @@ impl DesktopApp {
         }
 
         if let Some(error_message) = error.as_ref() {
+            let mut diagnostic = error_message.clone();
+            if self.controller.active_session() == Some(id) {
+                if let Err(release_error) = self.controller.release_inputs(id) {
+                    diagnostic.push_str(&format!(" Input release also failed: {release_error}"));
+                }
+            }
             self.last_tick_errors
                 .retain(|(error_id, _)| *error_id != id);
-            self.last_tick_errors.push((id, error_message.clone()));
+            self.last_tick_errors.push((id, diagnostic));
             self.frame_texture = None;
             self.video_size = None;
         } else {
