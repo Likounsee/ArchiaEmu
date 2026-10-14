@@ -104,7 +104,7 @@ impl DesktopApp {
                     ui.label("Source: path unavailable for this session");
                 }
                 ui.separator();
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.label(format!("State: {state:?}"));
                     ui.separator();
                     ui.label(if content_loaded {
@@ -140,7 +140,7 @@ impl DesktopApp {
                         self.session_action(id, SessionAction::Reset);
                     }
                 });
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.label(if video_available {
                         "Video: available"
                     } else {
