@@ -181,8 +181,11 @@ pub(crate) fn download_and_verify(
         }
         // A rename may replace an existing destination on some platforms. Creating
         // a hard link is atomic and fails if the verified path already exists.
-        fs::hard_link(&partial_path, &verified_path)
-            .map_err(|error| format!("Could not finalize verified update file without overwriting an existing file: {error}"))?;
+        fs::hard_link(&partial_path, &verified_path).map_err(|error| {
+            format!(
+                "Could not finalize verified update file without overwriting an existing file: {error}"
+            )
+        })?;
         verified_created = true;
         fs::remove_file(&partial_path)
             .map_err(|error| format!("Could not remove temporary update file after verification: {error}"))?;
