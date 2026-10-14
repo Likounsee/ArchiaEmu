@@ -49,3 +49,7 @@ The native picker supports Game Boy and Game Boy Color extensions (.gb, .gbc) an
 ## Media pipeline status
 
 The desktop now consumes bounded RGBA video frames from cores that advertise video output and uploads the latest frame to an egui texture. The host loop uses a 60 Hz cadence accumulator with bounded catch-up and a per-tick event budget; this is a frontend scheduling scaffold, not proof of accurate console timing. Arrow keys map to directions, Z/X/A/S to action buttons, Enter to Start and Backspace to Select. Inputs are forwarded only through the shared semantic input contract. Audio playback is not integrated yet. The current Game Boy core does not produce video frames or audio buffers, so the game surface remains an explicit placeholder for that core. A successful ROM launch does not imply playable-game compatibility.
+
+### Préférences et tests de robustesse
+
+Le parseur de préférences accepte la version 1 historique et la version 2 actuelle. Une version inconnue est rejetée explicitement; les champs malformés utilisent des valeurs par défaut sûres et un chemin échappé invalide est ignoré. Des tests couvrent aussi le premier démarrage sans fichier de configuration. Les tests ont été ajoutés sur la branche `ArchiaEmu`; leur exécution reste à confirmer par la CI.
