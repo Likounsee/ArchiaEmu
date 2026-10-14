@@ -218,9 +218,15 @@ pub(crate) fn is_newer_version(candidate: &str, current: &str) -> bool {
 
 fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
     let mut parts = version.split('.');
-    let major = parts.next()?.parse().ok()?;
-    let minor = parts.next()?.parse().ok()?;
-    let patch = parts.next()?.parse().ok()?;
+    let parse_component = |part: &str| {
+        if part.is_empty() || !part.bytes().all(|byte| byte.is_ascii_digit()) {
+            return None;
+        }
+        part.parse().ok()
+    };
+    let major = parse_component(parts.next()?)?;
+    let minor = parse_component(parts.next()?)?;
+    let patch = parse_component(parts.next()?)?;
     if parts.next().is_some() {
         return None;
     }
@@ -421,7 +427,20 @@ mod tests {
         assert!(is_newer_version("0.10.0", "0.9.9"));
         assert!(is_newer_version("1.0.0", "0.99.99"));
         assert!(!is_newer_version("0.1.0", "0.1.0"));
-        assert!(!is_newer_version("invalid", "0.1.0"));
+        for malformed in [
+            "invalid",
+            "1..3",
+            "1.2.3.4",
+            "+1.2.3",
+            "1.2.-3",
+            "1.2.3-beta",
+            " 1.2.3",
+        ] {
+            assert!(
+                !is_newer_version(malformed, "0.1.0"),
+                "malformed version must not be considered newer: {malformed}"
+            );
+        }
     }
 
     #[test]
