@@ -5,16 +5,17 @@
 
 use std::error::Error;
 use std::fmt;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
+use archiaemu_core::content::{detect_content_formats, ContentFormatProbe, ContentLimits};
 use archiaemu_core::core_io::{AudioBuffer, FrameCadence, InputEvent, VideoFrame};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeError, SessionId};
 use archiaemu_core::runtime::{SessionError, SessionState};
 use archiaemu_core::CoreRegistry;
 
-use crate::library::{ContentEntry, ContentLibrary, ContentLibraryError, ContentValidation};
+use crate::library::{ContentEntry, ContentFormatDetection, ContentLibrary, ContentLibraryError, ContentValidation};
 
 /// Lifecycle command accepted by the shared application controller.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -241,6 +242,27 @@ impl ApplicationController {
         registry: &CoreRegistry,
     ) -> Result<SessionId, HostRuntimeError> {
         let canonical_path = std::fs::canonicalize(path.as_ref()).ok();
+        let detection = std::fs::File::open(path.as_ref())
+            .ok()
+            .and_then(|file| {
+                let mut prefix = Vec::with_capacity(4096);
+                file.take(4096).read_to_end(&mut prefix).ok()?;
+                Some(detect_content_formats(&prefix, probes))
+            });
+        if let (Some(canonical_path), Some(detection)) = (canonical_path.as_ref(), detection) {
+            let detection = if detection.matches.len() > 1 {
+                ContentFormatDetection::Ambiguous(
+                    detection.matches.iter().map(|format| (*format).to_owned()).collect()
+                )
+            } else if let Some(format) = detection.matches.first() {
+                ContentFormatDetection::Detected((*format).to_owned())
+            } else if !detection.needs_more_data.is_empty() {
+                ContentFormatDetection::NeedsMoreData
+            } else {
+                ContentFormatDetection::NoMatch
+            };
+            self.library.record_format_detection(canonical_path, detection);
+        }
         let result = self
             .host
             .launch_content_path(path, limits, probes, registry);
