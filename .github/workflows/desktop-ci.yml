@@ -46,10 +46,10 @@ jobs:
           components: rustfmt, clippy
 
       - name: Check desktop formatting
-        run: cargo fmt --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml -- --check
+        run: cargo fmt --manifest-path ArchiaEmu/Cargo.toml --all -- --check
 
       - name: Test desktop and application dependencies
-        run: cargo test --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+        run: cargo test --manifest-path ArchiaEmu/Cargo.toml --workspace --locked
 
       - name: Lint desktop and application dependencies
-        run: cargo clippy --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path ArchiaEmu/Cargo.toml --workspace --all-targets --locked -- -D warnings
