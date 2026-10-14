@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 44 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
+| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 44 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
@@ -24,7 +24,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | **P4** | Autres modules/systèmes | Après stabilisation de P3 | Étendre le catalogue sans coupler les cœurs à l'application |
 | **P5** | Publication et maintenance | En dernier | Paquets reproductibles, documentation de support, mises à jour et politique de version |
 
-> **Définition de « application utilisable » pour P1 :** l'application démarre, présente une interface cohérente, permet de gérer les contenus et les sessions prises en charge, explique clairement les capacités absentes, récupère les erreurs sans se fermer ni laisser de session fantôme, conserve ses préférences, et passe les tests et la CI configurés. Cela ne signifie pas encore qu'une console est jouable. Tant qu'aucun cœur ne produit de vraies sorties, les vues vidéo/audio doivent afficher un état honnête plutôt que prétendre lire un jeu.
+> **Définition stricte de fin de P1 :** P1 n'est terminé que si l'application est utilisable en local et livrable à un utilisateur qui n'a pas configuré l'environnement de développement. Le code nécessaire à l'application générique doit déjà être implémenté; les phases suivantes peuvent ajouter des modules/systèmes et leurs capacités, mais ne doivent pas servir à compléter les mécanismes essentiels de l'application. Il faut une interface cohérente, une bibliothèque et des sessions fiables, des préférences persistantes, des diagnostics, des sorties média honnêtes, des tests et une CI validés, ainsi qu'un installateur Windows .exe qui installe tous les fichiers et dépendances requis dans des emplacements locaux définis. Après installation, l'application doit démarrer et fonctionner localement sans dépendre du dépôt Git, du dossier de build ou d'outils Rust. L'installation, le premier démarrage, les chemins de données/configuration, la désinstallation et les erreurs d'installation doivent être vérifiés. Cela ne signifie pas encore qu'une console est jouable : aucun cœur factice ne doit être présenté comme un système fonctionnel.
 
 ## P0 — préserver les fondations communes
 
@@ -148,6 +148,23 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 - [ ] Définir le critère de « version application utilisable » et le vérifier explicitement avant de déclarer P1 terminé.
 
 **Critère de sortie P1 — application utilisable :** bibliothèque et préférences fiables, sessions génériques gérables, diagnostics compréhensibles, adaptateurs média honnêtes, tests reproductibles et CI verte sur les plateformes configurées. La compatibilité d'une console reste hors de ce critère.
+
+### P1.7 — livraison locale et installateur Windows
+
+Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale de livraison est Windows, cohérente avec le besoin d'un installateur .exe; les autres plateformes doivent continuer à passer leurs quality gates sans être considérées comme livrées si aucun paquet n'est produit.
+
+- [ ] Choisir et documenter une technologie d'installateur Windows maintenue et reproductible.
+- [ ] Construire l'application desktop en mode release depuis un environnement propre, avec versions verrouillées.
+- [ ] Recenser et embarquer tous les fichiers, bibliothèques natives, ressources et runtimes réellement requis; ne pas supposer que le seul binaire suffit.
+- [ ] Générer un installateur .exe versionné depuis la CI ou un processus reproductible documenté.
+- [ ] Installer dans un répertoire local choisi (par défaut sous Program Files), avec données/configuration utilisateur dans les répertoires Windows adaptés; ne pas écrire les préférences à côté de l'exécutable installé si cela exige des droits administrateur.
+- [ ] Vérifier le premier démarrage depuis le menu Démarrer et depuis le raccourci installé, sans Rust, dépôt source ni dossier de build présents.
+- [ ] Vérifier bibliothèque, préférences, journaux/diagnostics et chemins de contenus après fermeture puis redémarrage.
+- [ ] Vérifier mise à niveau depuis une version précédente, échec/annulation d'installation et désinstallation sans supprimer les contenus personnels sans consentement explicite.
+- [ ] Documenter les prérequis, les plateformes Windows prises en charge, l'installation, la désinstallation et les limitations connues.
+- [ ] Tester l'installateur sur une machine/VM Windows propre et conserver une preuve de résultat; ne pas cocher le critère sur la seule présence d'un fichier .exe.
+
+**Critère de sortie P1.7 :** un utilisateur peut télécharger l'installateur, installer ArchiaEmu, lancer l'application et utiliser les fonctions génériques prises en charge entièrement en local, sans environnement de développement ni fichiers manquants.
 
 ## P2 — modules : installation, confiance et maintenance (après P1)
 
