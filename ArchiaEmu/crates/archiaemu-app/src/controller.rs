@@ -496,14 +496,22 @@ mod tests {
             .create_session(Box::new(GameBoyCore::new()))
             .unwrap();
 
-        let error = app.command_session(id, SessionCommand::Pause).unwrap_err();
-        assert!(matches!(
-            error,
-            SessionCommandError::Session(SessionError::InvalidTransition {
-                operation: "pause",
-                state: SessionState::Empty,
-            })
-        ));
+        for (command, expected_operation) in [
+            (SessionCommand::Pause, "pause"),
+            (SessionCommand::Resume, "resume"),
+            (SessionCommand::Stop, "stop"),
+            (SessionCommand::Reset, "reset"),
+        ] {
+            let error = app.command_session(id, command).unwrap_err();
+            assert!(matches!(
+                error,
+                SessionCommandError::Session(SessionError::InvalidTransition {
+                    operation,
+                    state: SessionState::Empty,
+                }) if operation == expected_operation
+            ));
+            assert_eq!(app.session_summary(id).unwrap().state, SessionState::Empty);
+        }
 
         app.close_session(id).unwrap();
         let error = app.command_session(id, SessionCommand::Stop).unwrap_err();
