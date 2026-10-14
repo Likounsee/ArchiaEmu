@@ -725,7 +725,7 @@ mod tests {
             .create_session(Box::new(AudioQueueCore {
                 loaded: false,
                 pending_audio: VecDeque::new(),
-                run_count: 0,
+                run_count: Arc::clone(&run_count),
             }))
             .unwrap();
         app.host_mut()
@@ -741,7 +741,7 @@ mod tests {
         app.command_session(id, SessionCommand::Pause).unwrap();
         app.advance_session(id, Duration::from_secs(10), &mut cadence)
             .unwrap();
-        assert_eq!(app.host().session(id).unwrap().core_run_count_for_test(), 1);
+        assert_eq!(run_count.load(Ordering::SeqCst), 1);
 
         app.command_session(id, SessionCommand::Resume).unwrap();
         app.advance_session(id, Duration::from_millis(17), &mut cadence)
