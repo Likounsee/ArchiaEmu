@@ -66,6 +66,45 @@ impl Default for CpuExecutionPolicy {
     }
 }
 
+/// CPU execution strategies actually implemented by one console module.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SupportedCpuStrategies {
+    /// The module implements native x86-64 execution behind its compatibility layer.
+    pub native_x64_with_compatibility: bool,
+    /// The module implements a reference instruction interpreter.
+    pub interpreter: bool,
+    /// The module implements a dynamic recompiler for its guest architecture.
+    pub dynamic_recompiler: bool,
+}
+
+impl SupportedCpuStrategies {
+    /// Returns whether this module implements the requested strategy.
+    pub const fn supports(self, strategy: CpuExecutionStrategy) -> bool {
+        match strategy {
+            CpuExecutionStrategy::NativeX64WithCompatibility => self.native_x64_with_compatibility,
+            CpuExecutionStrategy::Interpreter => self.interpreter,
+            CpuExecutionStrategy::DynamicRecompiler => self.dynamic_recompiler,
+        }
+    }
+
+    /// Resolves a preferred strategy against the module's implemented engines.
+    ///
+    /// Returns `None` when the preferred strategy is unavailable. It does not
+    /// silently claim that a missing JIT or native compatibility layer exists.
+    pub const fn resolve(
+        self,
+        preferred: CpuExecutionStrategy,
+    ) -> Option<CpuExecutionStrategy> {
+        if self.supports(preferred) {
+            Some(preferred)
+        } else if self.interpreter {
+            Some(CpuExecutionStrategy::Interpreter)
+        } else {
+            None
+        }
+    }
+}
+
 /// Selects a preferred CPU strategy without claiming that the module implements it.
 ///
 /// Native execution is selected only for an x86-64 guest on an x86-64 host and
@@ -99,6 +138,31 @@ mod tests {
             allow_native_x64_compatibility: native,
             prefer_dynamic_recompiler: jit,
         }
+    }
+
+    #[test]
+    fn module_must_implement_the_selected_strategy_or_fall_back_explicitly() {
+        let interpreter_only = SupportedCpuStrategies {
+            native_x64_with_compatibility: false,
+            interpreter: true,
+            dynamic_recompiler: false,
+        };
+        assert_eq!(
+            interpreter_only.resolve(CpuExecutionStrategy::DynamicRecompiler),
+            Some(CpuExecutionStrategy::Interpreter)
+        );
+        assert_eq!(
+            interpreter_only.resolve(CpuExecutionStrategy::NativeX64WithCompatibility),
+            Some(CpuExecutionStrategy::Interpreter)
+        );
+
+        let native_only = SupportedCpuStrategies {
+            native_x64_with_compatibility: true,
+            interpreter: false,
+            dynamic_recompiler: false,
+        };
+        assert_eq!(native_only.resolve(CpuExecutionStrategy::Interpreter), None);
+        assert!(!native_only.supports(CpuExecutionStrategy::DynamicRecompiler));
     }
 
     #[test]
