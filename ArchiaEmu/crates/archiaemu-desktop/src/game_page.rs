@@ -35,24 +35,14 @@ impl DesktopApp {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if state == SessionState::Running && ui.button("Pause").clicked() {
                             self.session_action(id, SessionAction::Pause);
-                            self.frame_cadence.reset();
                         } else if state == SessionState::Paused && ui.button("Resume").clicked() {
                             self.session_action(id, SessionAction::Resume);
-                            self.last_tick = Instant::now();
                         }
                         if state != SessionState::Empty && ui.button("Stop").clicked() {
-                            self.release_game_inputs();
                             self.session_action(id, SessionAction::Stop);
-                            self.frame_cadence.reset();
-                            self.frame_texture = None;
-                            self.video_size = None;
                         }
                         if state != SessionState::Empty && ui.button("Reset").clicked() {
                             self.session_action(id, SessionAction::Reset);
-                            self.frame_cadence.reset();
-                            self.frame_texture = None;
-                            self.video_size = None;
-                            self.last_tick = Instant::now();
                         }
                     });
                 });
