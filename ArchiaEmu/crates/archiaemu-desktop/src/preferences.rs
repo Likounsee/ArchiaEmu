@@ -154,3 +154,54 @@ pub(crate) fn unescape_config_value(value: &str) -> Option<String> {
     }
     Some(decoded)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::{load_preferences, write_preferences};
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temporary_config(name: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after UNIX epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "archiaemu-preferences-{name}-{}-{nonce}.conf",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn saves_and_restores_accent_color() {
+        let path = temporary_config("accent-roundtrip");
+        let paths = vec![PathBuf::from("library/game.gb")];
+        write_preferences(&path, false, 1.1, [12, 144, 231], &paths)
+            .expect("preferences should be written");
+
+        let saved = load_preferences(&path)
+            .expect("preferences should load")
+            .expect("saved preferences should exist");
+        assert!(!saved.dark_mode);
+        assert!((saved.ui_scale - 1.1).abs() < f32::EPSILON);
+        assert_eq!(saved.accent_rgb, [12, 144, 231]);
+        assert_eq!(saved.paths, paths);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn version_one_preferences_keep_default_accent() {
+        let path = temporary_config("legacy-v1");
+        fs::write(&path, "version=1\ndark=false\nscale=1.0\n")
+            .expect("legacy preferences should be written");
+
+        let saved = load_preferences(&path)
+            .expect("legacy preferences should load")
+            .expect("legacy preferences should exist");
+        assert!(!saved.dark_mode);
+        assert_eq!(saved.accent_rgb, [75, 115, 210]);
+        let _ = fs::remove_file(path);
+    }
+}
