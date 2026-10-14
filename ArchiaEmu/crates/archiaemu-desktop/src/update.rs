@@ -222,7 +222,10 @@ pub(crate) fn is_newer_version(candidate: &str, current: &str) -> bool {
 fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
     let mut parts = version.split('.');
     let parse_component = |part: &str| {
-        if part.is_empty() || !part.bytes().all(|byte| byte.is_ascii_digit()) {
+        if part.is_empty()
+            || !part.bytes().all(|byte| byte.is_ascii_digit())
+            || (part.len() > 1 && part.starts_with('0'))
+        {
             return None;
         }
         part.parse().ok()
@@ -363,6 +366,12 @@ mod tests {
         )
         .expect("manifest JSON should parse");
         assert!(manifest.validate().is_err());
+        let leading_zero_version: UpdateManifest = serde_json::from_str(
+            r#"{"schema_version":1,"version":"01.2.3","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{}}"#,
+        )
+        .expect("manifest JSON should parse");
+        assert!(leading_zero_version.validate().is_err());
+
         for malformed in [
             "https://",
             "https:///example.com/notes",
@@ -434,6 +443,9 @@ mod tests {
             "invalid",
             "1..3",
             "1.2.3.4",
+            "01.2.3",
+            "1.02.3",
+            "1.2.03",
             "+1.2.3",
             "1.2.-3",
             "1.2.3-beta",
