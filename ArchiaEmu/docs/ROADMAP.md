@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 36 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
+| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 37 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
@@ -84,6 +84,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Relier les transitions de clavier aux commandes sémantiques partagées et libérer les contrôles lors de la perte de focus.
 - [ ] Tester explicitement création, changement de session, pause/reprise, arrêt, réinitialisation, fermeture d'une session et fermeture globale.
 - [x] Sur erreur d'exécution ou de conversion/récupération vidéo, afficher l'erreur de tick dans le gestionnaire de sessions et effacer la trame mise en cache pour ne pas laisser une image périmée à l'écran.
+- [x] Conserver les diagnostics de tick séparément par identifiant de session, puis les retirer à la fermeture de la session concernée ou de toutes les sessions.
 - [ ] Tester les erreurs de tick, les transitions après arrêt/suppression de la session active et le nettoyage des ressources sur ces chemins.
 - [ ] Vérifier que les entrées sont relâchées dans tous les chemins de perte de focus, de fermeture et d'erreur.
 - [ ] Afficher les capacités réellement disponibles et désactiver ou expliquer les commandes non prises en charge.
