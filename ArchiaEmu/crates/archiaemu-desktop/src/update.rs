@@ -185,17 +185,19 @@ pub(crate) fn download_and_verify(
 
 fn validate_download_url(url: &str) -> Result<(), String> {
     validate_https_url(url, "download")?;
+    // Do not normalize user-info or ports away before checking the host: doing so
+    // can make a URL whose actual destination is untrusted appear to be GitHub-hosted.
     let authority = url
         .strip_prefix("https://")
         .and_then(|rest| rest.split('/').next())
-        .unwrap_or_default()
-        .split('@')
-        .last()
-        .unwrap_or_default()
-        .split(':')
-        .next()
-        .unwrap_or_default()
-        .to_ascii_lowercase();
+        .unwrap_or_default();
+    if authority.contains('@') || authority.contains(':') {
+        return Err(
+            "Update artifact URLs must use an official GitHub host without credentials or custom ports."
+                .to_owned(),
+        );
+    }
+    let authority = authority.to_ascii_lowercase();
     if !matches!(
         authority.as_str(),
         "github.com" | "objects.githubusercontent.com" | "release-assets.githubusercontent.com"
@@ -343,6 +345,10 @@ mod tests {
         .is_ok());
         assert!(validate_download_url("https://example.com/app.exe").is_err());
         assert!(validate_download_url("http://github.com/app.exe").is_err());
+        // User-info must not be stripped before checking the actual URL authority.
+        assert!(validate_download_url("https://attacker@github.com/app.exe").is_err());
+        assert!(validate_download_url("https://github.com:8443/app.exe").is_err());
+        assert!(validate_download_url("https://github.com.evil.example/app.exe").is_err());
     }
 
     #[test]
