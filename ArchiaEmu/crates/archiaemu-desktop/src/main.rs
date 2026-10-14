@@ -729,7 +729,7 @@ mod preference_tests {
     fn preference_scale_is_clamped_and_invalid_values_are_ignored() {
         let root = std::env::temp_dir().join(format!("archiaemu-prefs-{}", std::process::id()));
         let file = root.join("desktop.conf");
-        write_preferences(&file, false, 2.0, &[PathBuf::from("sample.gb")]).unwrap();
+        write_preferences(&file, false, 2.0, [75, 115, 210], &[PathBuf::from("sample.gb")]).unwrap();
         let loaded = load_preferences(&file).unwrap().unwrap();
         assert!(!loaded.dark_mode);
         assert_eq!(loaded.ui_scale, 1.4);
@@ -742,8 +742,8 @@ mod preference_tests {
         let root =
             std::env::temp_dir().join(format!("archiaemu-prefs-replace-{}", std::process::id()));
         let file = root.join("desktop.conf");
-        write_preferences(&file, true, 1.0, &[PathBuf::from("old.gb")]).unwrap();
-        write_preferences(&file, false, 1.2, &[PathBuf::from("new.gb")]).unwrap();
+        write_preferences(&file, true, 1.0, [75, 115, 210], &[PathBuf::from("old.gb")]).unwrap();
+        write_preferences(&file, false, 1.2, [75, 115, 210], &[PathBuf::from("new.gb")]).unwrap();
 
         let loaded = load_preferences(&file).unwrap().unwrap();
         assert!(!loaded.dark_mode);
