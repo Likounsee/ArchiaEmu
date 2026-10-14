@@ -78,6 +78,8 @@ pub struct SessionSummary {
     pub id: SessionId,
     /// Current lifecycle state.
     pub state: SessionState,
+    /// Whether content has been loaded into this session.
+    pub content_loaded: bool,
     /// Human-readable name of the registered core/system.
     pub system_name: String,
     /// Whether the core advertises video output.
@@ -187,6 +189,7 @@ impl ApplicationController {
         Ok(SessionSummary {
             id,
             state: session.state(),
+            content_loaded: session.state() != SessionState::Empty,
             system_name: session.descriptor().display_name.to_owned(),
             video_available: capabilities.video_output,
             audio_available: capabilities.audio_output,
@@ -463,11 +466,30 @@ mod tests {
         assert_eq!(summaries.len(), 1);
         assert_eq!(summaries[0].id, id);
         assert_eq!(summaries[0].state, SessionState::Empty);
+        assert!(!summaries[0].content_loaded);
         assert!(!summaries[0].system_name.is_empty());
         assert!(app.session_summary(id).is_ok());
         app.close_session(id).unwrap();
         assert!(app.session_summary(id).is_err());
         assert!(app.session_summaries().is_empty());
+    }
+
+    #[test]
+    fn session_summary_reports_loaded_content_from_lifecycle_state() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+
+        assert!(!app.session_summary(id).unwrap().content_loaded);
+        app.host_mut()
+            .session_mut(id)
+            .unwrap()
+            .load_content(&[0x00])
+            .unwrap();
+        assert!(app.session_summary(id).unwrap().content_loaded);
+        app.close_session(id).unwrap();
     }
 
     #[test]
