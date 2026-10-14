@@ -18,6 +18,7 @@ impl DesktopApp {
                     self.last_tick = Instant::now();
                     self.media_status = "No active session.".to_owned();
                     self.last_tick_errors.clear();
+                    self.session_content_paths.clear();
                     self.message = format!("Closed {count} session(s).");
                 }
             });
@@ -80,12 +81,23 @@ impl DesktopApp {
                                         self.media_status = "Active session closed.".to_owned();
                                     }
                                     self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+                                    self.session_content_paths
+                                        .retain(|(session_id, _)| *session_id != id);
                                 }
                                 Err(error) => self.message = error.to_string(),
                             }
                         }
                     });
                 });
+                if let Some((_, content_path)) = self
+                    .session_content_paths
+                    .iter()
+                    .find(|(session_id, _)| *session_id == id)
+                {
+                    ui.label(format!("Source: {}", content_path.display()));
+                } else if content_loaded {
+                    ui.label("Source: path unavailable for this session");
+                }
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.label(format!("State: {state:?}"));
