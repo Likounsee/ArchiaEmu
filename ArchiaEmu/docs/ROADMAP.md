@@ -77,7 +77,8 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Tester le refus d'un format inconnu sans créer de session fantôme ni modifier la session active.
 - [x] Tester le refus d'un format inconnu sans créer de session fantôme ni modifier la session active.
 - [x] Tester le refus par le cœur d'une ROM détectée mais invalide, sans modifier les sessions existantes.
-- [ ] Tester contenu ambigu et fichier inaccessible.
+- [x] Tester le rejet d'un contenu reconnu par plusieurs sondes, sans créer de session fantôme ni changer la sélection active.
+- [ ] Tester un fichier inaccessible sans créer de session fantôme ni changer la sélection active.
 - [x] Tester le refus d'un contenu vide ou dépassant la limite de taille sans modifier la session active ni son état.
 - [x] Tester qu'un échec de lancement sur un chemin absent ne crée pas de session fantôme et préserve la session active ainsi que les entrées de bibliothèque existantes.
 
