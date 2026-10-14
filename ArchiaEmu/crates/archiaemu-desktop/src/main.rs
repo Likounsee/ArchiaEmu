@@ -355,13 +355,19 @@ impl DesktopApp {
         {
             Ok(entry) => {
                 self.selected_content = Some(entry.path().to_path_buf());
-                self.message = format!(
+                let import_message = format!(
                     "Imported '{}' ({}).",
                     entry.title(),
                     format_size(entry.size_bytes())
                 );
-                self.save_preferences();
+                self.message = import_message.clone();
                 self.active_page = DesktopPage::Library;
+                if !self.save_preferences() {
+                    let save_error = std::mem::replace(&mut self.message, String::new());
+                    self.message = format!(
+                        "{import_message} The import is active for this session, but preferences were not saved. {save_error}"
+                    );
+                }
             }
             Err(error) => self.message = format!("Import failed: {error}"),
         }
