@@ -62,20 +62,18 @@ jobs:
             set +e
             "$BIN" >preview/application.log 2>&1 &
             app_pid=$!
-            for i in $(seq 1 20); do
-              sleep 1
-              if ! kill -0 "$app_pid" 2>/dev/null; then
-                echo "Desktop application exited before the screenshot."
-                cat preview/application.log
-                exit 1
-              fi
-              if import -window root preview/archiaemu-desktop.png 2>/dev/null; then
-                identify preview/archiaemu-desktop.png
-                kill "$app_pid" 2>/dev/null
-                wait "$app_pid" 2>/dev/null
-                exit 0
-              fi
-            done
+            sleep 8
+            if ! kill -0 "$app_pid" 2>/dev/null; then
+              echo "Desktop application exited before the screenshot."
+              cat preview/application.log
+              exit 1
+            fi
+            if import -window root preview/archiaemu-desktop.png 2>/dev/null; then
+              identify preview/archiaemu-desktop.png
+              kill "$app_pid" 2>/dev/null
+              wait "$app_pid" 2>/dev/null
+              exit 0
+            fi
             cat preview/application.log
             kill "$app_pid" 2>/dev/null
             wait "$app_pid" 2>/dev/null
