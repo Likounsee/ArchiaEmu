@@ -71,7 +71,7 @@ impl DesktopApp {
             ui.heading("Recently imported");
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.link("View library →").clicked() {
-                    self.active_page = DesktopPage::Library;
+                    self.navigate_to(DesktopPage::Library);
                 }
             });
         });
