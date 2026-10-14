@@ -188,8 +188,9 @@ pub(crate) fn download_and_verify(
         // a hard link is atomic and fails if the verified path already exists.
         create_verified_link(&partial_path, &verified_path)?;
         verified_created = true;
-        fs::remove_file(&partial_path)
-            .map_err(|error| format!("Could not remove temporary update file after verification: {error}"))?;
+        fs::remove_file(&partial_path).map_err(|error| {
+            format!("Could not remove temporary update file after verification: {error}")
+        })?;
         partial_created = false;
         Ok(verified_path.clone())
     })();
@@ -287,9 +288,7 @@ fn validate_download_url(url: &str) -> Result<(), String> {
             .and_then(|rest| rest.split_once('/').map(|(_, path)| format!("/{path}")))
             .unwrap_or_default();
         if !path.starts_with("/Likounsee/ArchiaEmu/releases/download/") {
-            return Err(
-                "Update artifacts must come from an ArchiaEmu GitHub release.".to_owned(),
-            );
+            return Err("Update artifacts must come from an ArchiaEmu GitHub release.".to_owned());
         }
     }
     Ok(())
@@ -515,7 +514,9 @@ mod tests {
                 }
             }))
             .expect("manifest JSON should parse");
-            manifest.validate().expect("supported platform key should be accepted");
+            manifest
+                .validate()
+                .expect("supported platform key should be accepted");
         }
     }
 
@@ -635,8 +636,14 @@ mod tests {
         )
         .is_ok());
         assert!(validate_download_url("https://example.com/app.exe").is_err());
-        assert!(validate_download_url("https://github.com/other/project/releases/download/v0.2.0/app.exe").is_err());
-        assert!(validate_download_url("https://github.com/Likounsee/ArchiaEmu/releases/tag/v0.2.0").is_err());
+        assert!(validate_download_url(
+            "https://github.com/other/project/releases/download/v0.2.0/app.exe"
+        )
+        .is_err());
+        assert!(validate_download_url(
+            "https://github.com/Likounsee/ArchiaEmu/releases/tag/v0.2.0"
+        )
+        .is_err());
         assert!(validate_download_url("http://github.com/app.exe").is_err());
         // User-info must not be stripped before checking the actual URL authority.
         assert!(validate_download_url("https://attacker@github.com/app.exe").is_err());
