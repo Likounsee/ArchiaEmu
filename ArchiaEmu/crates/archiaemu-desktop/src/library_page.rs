@@ -1,6 +1,7 @@
 //! library page for the ArchiaEmu desktop frontend.
 
 use super::*;
+use archiaemu_app::library::{ContentAvailability, ContentValidation};
 
 fn content_path_status(path: &Path) -> &'static str {
     match std::fs::metadata(path) {
@@ -168,15 +169,40 @@ impl DesktopApp {
                                         format_size(size),
                                         path.display()
                                     ));
-                                    let path_status = content_path_status(&path);
-                                    ui.colored_label(
-                                        if path_status.starts_with("File exists") {
-                                            ui.visuals().weak_text_color()
-                                        } else {
-                                            egui::Color32::from_rgb(210, 115, 45)
-                                        },
-                                        path_status,
-                                    );
+                                    let metadata = self.controller.library().entries().find(|entry| entry.path() == path);
+                                    if let Some(entry) = metadata {
+                                        ui.small(format!(
+                                            "Format hint: {} · compatibility hint: {}",
+                                            entry.format_hint().unwrap_or("unknown extension"),
+                                            entry.compatible_system_hint().unwrap_or("undetermined")
+                                        ));
+                                        let validation = match entry.validation() {
+                                            ContentValidation::Pending => "Validation: pending until launch",
+                                            ContentValidation::Accepted => "Validation: last launch accepted",
+                                            ContentValidation::Rejected(_) => "Validation: last launch rejected",
+                                        };
+                                        ui.small(validation);
+                                        if let ContentValidation::Rejected(detail) = entry.validation() {
+                                            ui.colored_label(egui::Color32::LIGHT_RED, detail);
+                                        }
+                                        let availability = match entry.availability() {
+                                            ContentAvailability::Available => "Available · ready for launch validation",
+                                            ContentAvailability::Missing => "Missing · re-import required",
+                                            ContentAvailability::NotRegularFile => "Unavailable · not a regular file",
+                                            ContentAvailability::Unavailable => "Unavailable · cannot inspect file",
+                                        };
+                                        ui.colored_label(
+                                            if entry.availability() == ContentAvailability::Available {
+                                                ui.visuals().weak_text_color()
+                                            } else {
+                                                egui::Color32::from_rgb(210, 115, 45)
+                                            },
+                                            availability,
+                                        );
+                                    } else {
+                                        let path_status = content_path_status(&path);
+                                        ui.colored_label(egui::Color32::from_rgb(210, 115, 45), path_status);
+                                    }
                                 });
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
