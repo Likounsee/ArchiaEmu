@@ -153,15 +153,31 @@ impl DesktopApp {
                     ui_scale = saved.ui_scale.clamp(0.8, 1.4);
                     accent_color = egui::Color32::from_rgb(saved.accent_rgb[0], saved.accent_rgb[1], saved.accent_rgb[2]);
                     let mut restored = 0usize;
+                    let mut skipped = 0usize;
+                    let mut skipped_details = Vec::new();
                     for content_path in saved.paths {
-                        if controller
-                            .import_content(&content_path, MAX_CONTENT_BYTES as u64)
-                            .is_ok()
-                        {
-                            restored += 1;
+                        match controller.import_content(&content_path, MAX_CONTENT_BYTES as u64) {
+                            Ok(_) => restored += 1,
+                            Err(error) => {
+                                skipped += 1;
+                                if skipped_details.len() < 3 {
+                                    skipped_details.push(format!("{}: {error}", content_path.display()));
+                                }
+                            }
                         }
                     }
-                    message = format!("Restored preferences and {restored} library item(s).");
+                    message = if skipped == 0 {
+                        format!("Restored preferences and {restored} library item(s).")
+                    } else {
+                        let details = if skipped_details.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" Details: {}", skipped_details.join("; "))
+                        };
+                        format!(
+                            "Restored {restored} library item(s); skipped {skipped} unavailable or invalid path(s). Re-import those files if needed.{details}"
+                        )
+                    };
                 }
                 Ok(None) => {}
                 Err(error) => message = format!("Could not load preferences: {error}"),
