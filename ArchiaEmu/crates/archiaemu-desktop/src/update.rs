@@ -228,8 +228,13 @@ fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
 }
 
 fn validate_https_url(url: &str, label: &str) -> Result<(), String> {
-    if url.chars().any(|character| character.is_control() || character == char::from(92)) {
-        return Err(format!("The {label} URL contains a forbidden control character or backslash."));
+    if url
+        .chars()
+        .any(|character| character.is_control() || character == char::from(92))
+    {
+        return Err(format!(
+            "The {label} URL contains a forbidden control character or backslash."
+        ));
     }
     let authority = url
         .strip_prefix("https://")
@@ -241,7 +246,9 @@ fn validate_https_url(url: &str, label: &str) -> Result<(), String> {
         || authority.contains('@')
         || authority.chars().any(char::is_whitespace)
     {
-        return Err(format!("The {label} URL must use HTTPS and contain a valid host."));
+        return Err(format!(
+            "The {label} URL must use HTTPS and contain a valid host."
+        ));
     }
     Ok(())
 }
