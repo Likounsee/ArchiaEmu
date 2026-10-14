@@ -31,10 +31,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }${{
     steps:
-      - name: Check out ArchiaEmu branch
+      - name: Check out tested revision
         uses: actions/checkout@v4
-        with:
-          ref: ArchiaEmu
 
       - name: Install Linux desktop libraries
         if: runner.os == 'Linux'
