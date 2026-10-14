@@ -104,6 +104,6 @@ impl DesktopApp {
             ui.label("Media status:");
             ui.label(&self.media_status);
         });
-        ui.small("Keyboard controls are forwarded as semantic input transitions only when the core declares input support. Audio playback is not implemented in this lot.");
+        ui.small("Keyboard controls are forwarded as semantic input transitions only when the core declares input support. Audio plays when the core emits PCM and a host output device is available.");
     }
 }
