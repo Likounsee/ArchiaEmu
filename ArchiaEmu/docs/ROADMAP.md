@@ -114,7 +114,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Tester lecture/écriture, version inconnue, données malformées, valeurs hors limites et paramètres absents, y compris l’aller-retour des chemins contenant des échappements et le rejet des séquences d’échappement invalides.
 - [x] Couvrir en tests le premier démarrage sans fichier de préférences, les versions inconnues, le repli sûr pour des valeurs malformées (échelle, accent, chemin) et le bornage de l'échelle UI; l'écriture normalise aussi les échelles non finies vers 1,0 et borne les valeurs hors plage avant persistance. Les tests sont ajoutés, leur exécution reste à confirmer en CI.
 - [x] Inclure l'état du vérificateur de mises à jour et le chemin du paquet vérifié dans le panneau et le rapport de diagnostic copiable.
-- [ ] Fournir un panneau de diagnostic par session : état, système, capacités, contenu chargé et dernière erreur exploitable.
+- [x] Fournir un panneau de diagnostic par session : état, système, capacités, contenu chargé et dernière erreur exploitable, avec rapport copiable pour faciliter le support.
 - [x] Exposer l'indicateur « contenu chargé » dans le résumé contrôleur et l'afficher dans le gestionnaire de sessions.
 - [x] Conserver le chemin source associé à chaque session lancée depuis le bureau, l'afficher dans le gestionnaire et le nettoyer à la fermeture de la session ou de toutes les sessions.
 - [ ] Distinguer les réglages hôte (interface, audio, vidéo, raccourcis, dossiers) des réglages spécifiques à un cœur, qui attendront l'arrivée des modules.
