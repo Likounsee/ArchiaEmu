@@ -161,7 +161,7 @@ impl DesktopApp {
                         "Audio core output: unavailable"
                     });
                 });
-                if let Some(error) = tick_error {
+                if let Some(error) = &tick_error {
                     ui.colored_label(
                         egui::Color32::LIGHT_RED,
                         format!("Last execution/media tick error: {error}"),
