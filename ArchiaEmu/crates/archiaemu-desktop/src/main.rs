@@ -441,7 +441,7 @@ impl eframe::App for DesktopApp {
                     let current = option_env!("CARGO_PKG_VERSION").unwrap_or("0.0.0");
                     self.update_status = if update::is_newer_version(&manifest.version, current) {
                         if manifest.download_for_current_platform().is_some() {
-                            format!("Version {} is available. Download and safe installation are not implemented yet.", manifest.version)
+                            format!("Version {} is available for download and integrity verification; installation is not automatic yet.", manifest.version)
                         } else {
                             format!("Version {} is published, but no download is available for this platform yet.", manifest.version)
                         }
