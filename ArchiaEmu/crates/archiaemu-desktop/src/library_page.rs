@@ -317,4 +317,3 @@ mod tests {
         std::fs::remove_file(&path).expect("remove temporary test file");
     }
 }
-
