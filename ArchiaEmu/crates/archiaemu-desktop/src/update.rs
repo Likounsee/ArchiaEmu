@@ -124,6 +124,10 @@ pub(crate) fn download_and_verify(
     let partial_path = directory.join(format!("archiaemu-{safe_version}-{nonce}.part"));
     let verified_path = directory.join(format!("archiaemu-{safe_version}-{nonce}.verified"));
 
+    // Only clean up paths that this invocation successfully created. A collision on
+    // either create_new() or rename() must never cause us to delete a pre-existing file.
+    let mut partial_created = false;
+    let mut verified_created = false;
     let result = (|| {
         let agent = ureq::AgentBuilder::new()
             .timeout_connect(Duration::from_secs(10))
@@ -142,6 +146,7 @@ pub(crate) fn download_and_verify(
             .create_new(true)
             .open(&partial_path)
             .map_err(|error| format!("Could not create staged update file: {error}"))?;
+        partial_created = true;
         let mut hasher = Sha256::new();
         let mut total = 0_u64;
         let mut buffer = [0_u8; 64 * 1024];
@@ -176,12 +181,18 @@ pub(crate) fn download_and_verify(
         }
         fs::rename(&partial_path, &verified_path)
             .map_err(|error| format!("Could not finalize verified update file: {error}"))?;
+        partial_created = false;
+        verified_created = true;
         Ok(verified_path.clone())
     })();
 
     if result.is_err() {
-        let _ = fs::remove_file(&partial_path);
-        let _ = fs::remove_file(&verified_path);
+        if partial_created {
+            let _ = fs::remove_file(&partial_path);
+        }
+        if verified_created {
+            let _ = fs::remove_file(&verified_path);
+        }
     }
     result
 }
