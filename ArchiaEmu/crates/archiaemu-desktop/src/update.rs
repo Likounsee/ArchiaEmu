@@ -133,6 +133,9 @@ pub(crate) fn download_and_verify(
             .get(&download.url)
             .call()
             .map_err(|error| format!("Could not download the update artifact: {error}"))?;
+        // GitHub release URLs commonly redirect to release-assets.githubusercontent.com.
+        // Validate the final destination too, rather than trusting only the manifest URL.
+        validate_download_url(response.get_url())?;
         let mut reader = response.into_reader();
         let mut file = OpenOptions::new()
             .write(true)
