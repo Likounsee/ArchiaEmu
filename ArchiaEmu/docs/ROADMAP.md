@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 52 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
+| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 55 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
@@ -164,13 +164,13 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale de livraison est Windows, cohérente avec le besoin d'un installateur .exe; les autres plateformes doivent continuer à passer leurs quality gates sans être considérées comme livrées si aucun paquet n'est produit.
 
-- [ ] Choisir et documenter une technologie d'installateur Windows maintenue et reproductible.
-- [ ] Construire l'application desktop en mode release depuis un environnement propre, avec versions verrouillées.
-- [ ] Recenser et embarquer tous les fichiers, bibliothèques natives, ressources et runtimes réellement requis; ne pas supposer que le seul binaire suffit.
-- [ ] Générer un installateur .exe versionné depuis la CI ou un processus reproductible documenté.
+- [x] Choisir et documenter Inno Setup 6 comme technologie de l'installateur Windows; script versionné dans `packaging/windows/ArchiaEmu.iss`.
+- [ ] Construire l'application desktop en mode release depuis un environnement propre, avec versions verrouillées. Le workflow release existe, mais le crate desktop n'a pas encore de lockfile dédié validé.
+- [ ] Recenser et embarquer tous les fichiers, bibliothèques natives, ressources et runtimes réellement requis; le workflow stage actuellement le binaire seul, à confirmer sur une VM Windows propre.
+- [x] Ajouter un workflow Windows x64 qui construit l'application, génère l'installateur versionné et son checksum SHA-256, publie un artefact de workflow et joint l'installateur aux releases créées depuis un tag `v*`; le premier run et ses résultats restent à vérifier.
 - [ ] Installer dans un répertoire local choisi (par défaut sous Program Files), avec données/configuration utilisateur dans les répertoires Windows adaptés; ne pas écrire les préférences à côté de l'exécutable installé si cela exige des droits administrateur.
 - [ ] Proposer les options de raccourci au cours de l'installation : menu Démarrer activé par défaut et raccourci bureau activable/désactivable.
-- [ ] Fournir un désinstallateur accessible depuis les paramètres Windows et le menu Démarrer, qui supprime les fichiers installés, raccourcis, composants de mise à jour et caches propres au programme. À la désinstallation, proposer clairement de conserver ou supprimer les préférences, journaux et données utilisateur; ne jamais supprimer silencieusement les ROM/fichiers personnels.
+- [x] Fournir le désinstallateur Inno Setup via Windows et le menu Démarrer, avec une question explicite sur la suppression des préférences/journaux/cache connus; les ROM et fichiers arbitraires ne sont pas ciblés. Vérification réelle en VM toujours requise.
 - [ ] Vérifier le premier démarrage depuis le menu Démarrer et depuis le raccourci bureau, sans Rust, dépôt source ni dossier de build présents.
 - [ ] Vérifier bibliothèque, préférences, journaux/diagnostics et chemins de contenus après fermeture puis redémarrage.
 - [x] Héberger un manifeste stable initial et ajouter depuis les paramètres une vérification manuelle asynchrone distincte des modules; valider le schéma, les versions, les URL HTTPS et les limites de taille/SHA-256, sans annoncer de binaire tant qu'aucun artefact n'est publié.
@@ -179,7 +179,7 @@ Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale d
 - [ ] Pour l'updater de l'application, télécharger vers une zone temporaire, vérifier version, intégrité et provenance, préparer l'installation puis appliquer la mise à jour uniquement lorsque l'application est fermée et qu'aucune écriture n'est en cours; relancer l'application après succès et conserver une récupération/rollback en cas d'échec.
 - [ ] Permettre à l'utilisateur de choisir la fréquence de vérification, d'être informé de la version et des notes de version, et de différer une mise à jour; ne jamais remplacer les fichiers exécutables en cours d'utilisation.
 - [ ] Vérifier mise à niveau depuis une version précédente, échec/annulation d'installation et désinstallation sans supprimer les contenus personnels sans consentement explicite.
-- [ ] Documenter les prérequis, les plateformes Windows prises en charge, l'installation, la désinstallation, la politique de mise à jour et les limitations connues.
+- [x] Documenter la procédure de packaging, les limites de reproductibilité et la checklist d'acceptation Windows dans `docs/WINDOWS_INSTALLER.md`; le comportement réel doit encore être validé.
 - [ ] Tester installateur, désinstallateur et mise à jour sur une machine/VM Windows propre et conserver une preuve de résultat; ne pas cocher le critère sur la seule présence d'un fichier .exe.
 
 **Critère de sortie P1.7 :** un utilisateur peut télécharger l'installateur, installer ArchiaEmu, obtenir ses raccourcis, utiliser les fonctions génériques prises en charge entièrement en local, recevoir les vérifications de mises à jour du programme et mettre à jour de manière sûre sans environnement de développement ni fichiers manquants.
