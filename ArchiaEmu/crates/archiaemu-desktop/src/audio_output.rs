@@ -1,7 +1,7 @@
 //! Best-effort native audio playback for core-provided signed 16-bit PCM.
 
 use archiaemu_core::core_io::AudioBuffer;
-use rodio::{buffer::SamplesBuffer, OutputStream, OutputStreamHandle, Sink};
+use rodio::{buffer::SamplesBuffer, OutputStream, Sink};
 
 const MAX_QUEUED_BUFFERS: usize = 8;
 
@@ -17,7 +17,7 @@ impl AudioOutput {
     /// Opens the default host device when available; failure leaves video/emulation usable.
     pub(super) fn new() -> Self {
         match OutputStream::try_default() {
-            Ok((stream, handle)) => match Self::create_sink(&handle) {
+            Ok((stream, handle)) => match Sink::try_new(&handle) {
                 Ok(sink) => Self {
                     _stream: Some(stream),
                     sink: Some(sink),
@@ -38,10 +38,6 @@ impl AudioOutput {
                 dropped_buffers: 0,
             },
         }
-    }
-
-    fn create_sink(handle: &OutputStreamHandle) -> Result<Sink, rodio::PlayError> {
-        Sink::try_new(handle)
     }
 
     /// Returns the latest host audio-device status for the UI.
