@@ -166,7 +166,6 @@ pub(crate) fn unescape_config_value(value: &str) -> Option<String> {
     Some(decoded)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::{load_preferences, write_preferences};

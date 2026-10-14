@@ -11,7 +11,6 @@ use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent};
 use game_view::{map_key_to_control, video_frame_to_image};
 use preferences::{config_file_path, load_preferences, write_preferences, SavedPreferences};
 
-
 mod game_page;
 mod game_view;
 mod home_page;
@@ -576,7 +575,7 @@ impl DesktopApp {
             Err(error) => {
                 self.media_status = format!("Could not advance selected session: {error}");
                 self.last_tick_errors
-                .retain(|(error_id, _)| *error_id != id);
+                    .retain(|(error_id, _)| *error_id != id);
                 self.last_tick_errors.push((id, self.media_status.clone()));
                 self.frame_texture = None;
                 self.video_size = None;
@@ -615,7 +614,8 @@ impl DesktopApp {
             self.frame_texture = None;
             self.video_size = None;
         } else {
-            self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+            self.last_tick_errors
+                .retain(|(error_id, _)| *error_id != id);
         }
 
         self.media_status = if let Some(error) = error {
@@ -664,8 +664,6 @@ impl DesktopApp {
             self.message = format!("Could not release held inputs: {error}");
         }
     }
-
-
 }
 
 fn format_size(bytes: u64) -> String {
