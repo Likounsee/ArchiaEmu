@@ -44,7 +44,11 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
                 ));
             }
         } else if let Some(value) = line.strip_prefix("dark=") {
-            dark_mode = value == "true";
+            match value {
+                "true" => dark_mode = true,
+                "false" => dark_mode = false,
+                _ => {}
+            }
         } else if let Some(value) = line.strip_prefix("scale=") {
             if let Ok(parsed) = value.parse::<f32>() {
                 if parsed.is_finite() {
@@ -202,6 +206,22 @@ mod tests {
             .expect("legacy preferences should exist");
         assert!(!saved.dark_mode);
         assert_eq!(saved.accent_rgb, [75, 115, 210]);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn malformed_dark_mode_value_does_not_override_a_valid_setting() {
+        let path = temporary_config("malformed-dark");
+        fs::write(
+            &path,
+            "version=2\ndark=false\ndark=not-a-boolean\nscale=1.0\n",
+        )
+        .expect("preferences should be written");
+
+        let saved = load_preferences(&path)
+            .expect("malformed optional value should not invalidate the whole file")
+            .expect("preferences should exist");
+        assert!(!saved.dark_mode, "invalid value must preserve the last valid value");
         let _ = fs::remove_file(path);
     }
 
