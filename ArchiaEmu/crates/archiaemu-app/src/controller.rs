@@ -495,6 +495,26 @@ mod tests {
     }
 
     #[test]
+    fn lifecycle_commands_reject_invalid_or_closed_sessions_without_changing_selection() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(id).unwrap();
+
+        // An empty session cannot be paused; the rejection must not corrupt its state.
+        assert!(app.command_session(id, SessionCommand::Pause).is_err());
+        assert_eq!(app.active_session(), Some(id));
+        assert_eq!(app.session_summary(id).unwrap().state, SessionState::Empty);
+
+        app.close_session(id).unwrap();
+        assert!(app.command_session(id, SessionCommand::Stop).is_err());
+        assert_eq!(app.active_session(), None);
+        assert!(app.session_summaries().is_empty());
+    }
+
+    #[test]
     fn session_summaries_expose_view_state_without_runtime_access() {
         let mut app = controller();
         let id = app
