@@ -20,14 +20,14 @@ The library accepts files through the shared library validator (regular file, no
 
 ## Architecture boundaries
 
-- `main.rs` composes the application and renders egui navigation; keyboard translation and video-frame adaptation live in the separate `game_view.rs` module.
+- `main.rs` composes the application and renders egui navigation; keyboard translation and video-frame adaptation live in `game_view.rs`, while platform preference persistence lives in `preferences.rs`.
 - Desktop lifecycle and input commands go through typed `ApplicationController` methods rather than directly mutating session internals. The controller remains frontend-independent.
-- The core runtime owns session lifecycle rules, semantic input state and bounded execution contracts. The desktop owns host scheduling and rendering.
+- The core runtime owns session lifecycle rules, semantic input state and execution contracts. `ApplicationController::advance_session` owns bounded execution ticks and media-queue draining; the desktop converts the returned latest frame into a texture and renders it.
 - New frontend features should extend the shared application/controller boundary before reaching into the host runtime. Keep console-specific behavior out of shared UI and controller modules.
 
 ## Validation status
 
-The new game-loop integration and video conversion tests are committed, but they must not be considered validated until the current Linux, Windows and macOS CI run completes successfully. The desktop checks include formatting, compilation and unit tests.
+The backend-tick, preference-persistence and video-conversion tests are committed, but they must not be considered validated until `cargo fmt`, workspace tests and the Linux, Windows and macOS desktop CI complete successfully. The desktop checks include formatting, compilation and unit tests.
 
 ## Run
 
