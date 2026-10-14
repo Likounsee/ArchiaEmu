@@ -14,25 +14,25 @@ impl DesktopApp {
                     ui.heading(descriptor.display_name);
                     ui.small(id.as_str());
                     ui.separator();
-                    ui.columns(3, |columns| {
-                        columns[0].label(format!(
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(format!(
                             "Content loading: {}",
                             capability_label(caps.content_loading)
                         ));
-                        columns[0].label(format!("Input: {}", capability_label(caps.input)));
-                        columns[1].label(format!(
+                        ui.label(format!("Input: {}", capability_label(caps.input)));
+                        ui.label(format!(
                             "Video output: {}",
                             capability_label(caps.video_output)
                         ));
-                        columns[1].label(format!(
+                        ui.label(format!(
                             "Audio output: {}",
                             capability_label(caps.audio_output)
                         ));
-                        columns[2].label(format!(
+                        ui.label(format!(
                             "Save states: {}",
                             capability_label(caps.save_states)
                         ));
-                        columns[2].label(format!(
+                        ui.label(format!(
                             "Persistent saves: {}",
                             capability_label(caps.persistent_saves)
                         ));
