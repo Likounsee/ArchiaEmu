@@ -139,13 +139,19 @@ pub(crate) fn write_preferences(
         contents.push_str(&escape_config_value(&path.to_string_lossy()));
         contents.push('\n');
     }
-    let temporary = path.with_extension("conf.tmp");
+    // Use a unique, create-new temporary file. A fixed .tmp path could be
+    // left behind after a crash or redirected through a pre-existing symlink;
+    // never truncate a file we did not create in this save operation.
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?
+        .as_nanos();
+    let temporary = path.with_extension(format!("conf.tmp-{}-{nonce}", std::process::id()));
     let backup = path.with_extension("conf.bak");
     let write_result = (|| {
         let mut file = OpenOptions::new()
             .write(true)
-            .create(true)
-            .truncate(true)
+            .create_new(true)
             .open(&temporary)?;
         file.write_all(contents.as_bytes())?;
         // Flush the new configuration to the filesystem before promoting it.
