@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 44 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
+| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 45 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
@@ -45,7 +45,7 @@ Le runtime commun, le cycle de vie des sessions, les capacités, le registre, le
 
 ### P1.1 — architecture de l'application et séparation frontend/backend
 
-**État estimé : en cours — environ 44 % pour l'objectif global P1, estimation qualitative.**
+**État estimé : en cours — environ 45 % pour l'objectif global P1, estimation qualitative.**
 
 Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'application partagé. Les adaptateurs de vue, les commandes typées du contrôleur, l'avancement des sessions via `ApplicationController::advance_session` et les préférences dans `preferences.rs` ont commencé à séparer l'interface de l'exécution.
 
@@ -60,7 +60,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [ ] Vérifier visuellement les pages à plusieurs tailles de fenêtre et corriger les éventuels débordements restants.
 - [x] Retirer les accès directs au runtime depuis les vues pour les lectures de sessions; exposer au contrôleur le nombre de sessions et des résumés de session stables. Les commandes de cycle de vie restent aussi derrière le contrôleur.
 - [ ] Définir des états de vue explicites pour chargement, succès, absence de contenu, capacité indisponible et erreur.
-- [ ] Ajouter des tests du contrôleur et du frontend pour les transitions et les erreurs, sans nécessiter de cœur réel.
+- [x] Ajouter une première série de tests ciblés du contrôleur pour les transitions invalides, les identifiants fermés, les lancements rejetés et la cohérence de la sélection; les tests de frontend et les autres états de vue restent à faire.
 - [ ] Valider les changements avec `cargo fmt --all -- --check`, `cargo test --workspace --locked`, `cargo clippy --workspace --all-targets --locked -- -D warnings` et la CI multiplateforme.
 
 **Critère de sortie :** l'interface orchestre l'application par des API explicites; le code UI ne pilote pas directement l'exécution du cœur et les comportements essentiels sont testables séparément.
