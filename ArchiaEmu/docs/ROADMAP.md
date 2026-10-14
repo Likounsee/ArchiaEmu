@@ -105,6 +105,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 ### P1.4 — préférences, diagnostics et ergonomie
 
 - [x] Séparer les préférences de présentation du matériel émulé et extraire leur persistance.
+- [x] Signaler correctement l'échec de sauvegarde dans l'interface au lieu d'afficher un succès trompeur; tester l'échec d'écriture et la préservation de l'ancien fichier de préférences.
 - [x] Prévoir thème clair/sombre, échelle UI et dimensions initiales de fenêtre.
 - [x] Ajouter une couleur d'accent personnalisable pour boutons/états sélectionnés/surlignages, sans recolorer les fonds du thème.
 - [x] Persister la couleur d'accent dans la configuration versionnée tout en acceptant les préférences de version 1.
