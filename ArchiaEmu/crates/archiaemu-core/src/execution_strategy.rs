@@ -91,10 +91,7 @@ impl SupportedCpuStrategies {
     ///
     /// Returns `None` when the preferred strategy is unavailable. It does not
     /// silently claim that a missing JIT or native compatibility layer exists.
-    pub const fn resolve(
-        self,
-        preferred: CpuExecutionStrategy,
-    ) -> Option<CpuExecutionStrategy> {
+    pub const fn resolve(self, preferred: CpuExecutionStrategy) -> Option<CpuExecutionStrategy> {
         if self.supports(preferred) {
             Some(preferred)
         } else if self.interpreter {
