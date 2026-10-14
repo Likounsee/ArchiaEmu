@@ -74,7 +74,8 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Prévoir des états vides utiles et des actions claires lorsque la bibliothèque ne contient aucun fichier.
 - [x] Détecter à l'affichage les chemins de bibliothèque devenus indisponibles, expliquer qu'une réimportation est nécessaire et désactiver le lancement direct quand le chemin ne désigne plus un fichier.
 - [x] Ajouter des tests unitaires des états de chemin : fichier absent, répertoire au lieu d'un fichier et fichier existant en attente de validation du lancement.
-- [ ] Tester formats inconnus, contenu ambigu, contenu refusé par le cœur et fichier inaccessible.
+- [x] Tester le refus d'un format inconnu sans créer de session fantôme ni modifier la session active.
+- [ ] Tester contenu ambigu, contenu refusé par le cœur et fichier inaccessible.
 - [x] Tester le refus d'un contenu vide ou dépassant la limite de taille sans modifier la session active ni son état.
 - [x] Tester qu'un échec de lancement sur un chemin absent ne crée pas de session fantôme et préserve la session active ainsi que les entrées de bibliothèque existantes.
 
