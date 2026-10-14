@@ -86,10 +86,18 @@ jobs:
             throw "Installed desktop executable is missing at expected path: $installedExe"
           }
           # Launch from the isolated install directory, not the repository or Cargo target tree.
-          $app = Start-Process -FilePath $installedExe -PassThru
+          # Capture startup output so failures on clean runners are diagnosable.
+          $stdout = Join-Path $env:RUNNER_TEMP "archiaemu-installed-stdout.log"
+          $stderr = Join-Path $env:RUNNER_TEMP "archiaemu-installed-stderr.log"
+          Remove-Item $stdout, $stderr -Force -ErrorAction SilentlyContinue
+          $app = Start-Process -FilePath $installedExe -WorkingDirectory $installDir -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
           Start-Sleep -Seconds 5
           $app.Refresh()
           if ($app.HasExited) {
+            Write-Host "Installed application stdout:"
+            if (Test-Path $stdout) { Get-Content $stdout }
+            Write-Host "Installed application stderr:"
+            if (Test-Path $stderr) { Get-Content $stderr }
             throw "Installed desktop executable exited during its startup smoke test (exit code $($app.ExitCode))."
           }
           Stop-Process -Id $app.Id -Force
