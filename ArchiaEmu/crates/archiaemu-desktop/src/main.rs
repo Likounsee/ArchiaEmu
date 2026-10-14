@@ -477,7 +477,7 @@ impl eframe::App for DesktopApp {
             style.visuals.widgets.hovered.bg_fill = accent.gamma_multiply(0.22);
             style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0_f32, accent);
             style.visuals.widgets.active.bg_fill = accent.gamma_multiply(0.38);
-            style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent);
+            style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0_f32, accent);
             style.visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
             style.visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
             style.visuals.widgets.active.rounding = egui::Rounding::same(6.0);
