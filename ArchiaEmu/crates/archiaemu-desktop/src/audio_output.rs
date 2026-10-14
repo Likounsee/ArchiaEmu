@@ -111,6 +111,8 @@ impl AudioOutput {
 
 #[cfg(test)]
 mod tests {
+    use super::{normalize_pcm, should_clear_backlog, MAX_QUEUED_BUFFERS};
+
     #[test]
     fn signed_pcm_normalization_maps_extremes_and_zero() {
         let normalized = normalize_pcm(&[i16::MIN, 0, i16::MAX]);
