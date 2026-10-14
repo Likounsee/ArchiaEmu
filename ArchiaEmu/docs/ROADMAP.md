@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 31 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
+| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 32 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
@@ -69,7 +69,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Importer plusieurs fichiers, afficher les imports rejetés, rechercher titre/chemin, filtrer et trier les entrées.
 - [x] Sélectionner un contenu, lancer via le pipeline commun et afficher les erreurs de validation/lancement.
 - [x] Supprimer une entrée avec désélection cohérente.
-- [ ] Rendre la bibliothèque persistante entre les redémarrages, avec validation de ses entrées et récupération des chemins devenus invalides.
+- [x] Persister la bibliothèque entre les redémarrages via les préférences, revalider chaque chemin au chargement et signaler les fichiers absents/invalides avec quelques détails pour permettre leur réimport.
 - [ ] Clarifier le modèle de contenu : chemin source, nom affiché, format détecté, système compatible, dernier résultat de validation et état de disponibilité.
 - [ ] Prévoir des états vides utiles et des actions claires lorsque la bibliothèque ne contient aucun fichier.
 - [ ] Tester fichiers absents, fichiers vides, formats inconnus, contenu ambigu, contenu trop grand, contenu refusé par le cœur et fichier inaccessible.
