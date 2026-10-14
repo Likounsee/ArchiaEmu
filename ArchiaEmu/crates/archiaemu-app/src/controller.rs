@@ -244,13 +244,11 @@ impl ApplicationController {
         registry: &CoreRegistry,
     ) -> Result<SessionId, HostRuntimeError> {
         let canonical_path = std::fs::canonicalize(path.as_ref()).ok();
-        let detection = std::fs::File::open(path.as_ref())
-            .ok()
-            .and_then(|file| {
-                let mut prefix = Vec::with_capacity(4096);
-                file.take(4096).read_to_end(&mut prefix).ok()?;
-                Some(detect_content_formats(&prefix, probes))
-            });
+        let detection = std::fs::File::open(path.as_ref()).ok().and_then(|file| {
+            let mut prefix = Vec::with_capacity(4096);
+            file.take(4096).read_to_end(&mut prefix).ok()?;
+            Some(detect_content_formats(&prefix, probes))
+        });
         if let (Some(canonical_path), Some(detection)) = (canonical_path.as_ref(), detection) {
             let detection = if detection.matches.len() > 1 {
                 ContentFormatDetection::Ambiguous(
@@ -666,7 +664,9 @@ mod tests {
 
         fn load_content(&mut self, content: &[u8]) -> Result<(), archiaemu_core::CoreError> {
             if content.is_empty() {
-                return Err(archiaemu_core::CoreError::InvalidContent("empty test content"));
+                return Err(archiaemu_core::CoreError::InvalidContent(
+                    "empty test content",
+                ));
             }
             self.loaded = true;
             Ok(())
@@ -687,9 +687,7 @@ mod tests {
             Ok(archiaemu_core::CoreEvent::Yielded)
         }
 
-        fn take_audio_buffer(
-            &mut self,
-        ) -> Result<Option<AudioBuffer>, archiaemu_core::CoreError> {
+        fn take_audio_buffer(&mut self) -> Result<Option<AudioBuffer>, archiaemu_core::CoreError> {
             Ok(self.pending_audio.pop_front())
         }
     }
@@ -1224,7 +1222,10 @@ mod tests {
         app.command_session(id, SessionCommand::Pause).unwrap();
         assert_eq!(app.session_summary(id).unwrap().state, SessionState::Paused);
         app.command_session(id, SessionCommand::Resume).unwrap();
-        assert_eq!(app.session_summary(id).unwrap().state, SessionState::Running);
+        assert_eq!(
+            app.session_summary(id).unwrap().state,
+            SessionState::Running
+        );
         app.command_session(id, SessionCommand::Stop).unwrap();
         app.close_session(id).unwrap();
         assert_eq!(app.session_count(), 0);
