@@ -2,7 +2,8 @@
 
 //! Desktop preference persistence, isolated from UI composition and emulation.
 
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -121,7 +122,20 @@ pub(crate) fn write_preferences(
     }
     let temporary = path.with_extension("conf.tmp");
     let backup = path.with_extension("conf.bak");
-    fs::write(&temporary, contents)?;
+    let write_result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&temporary)?;
+        file.write_all(contents.as_bytes())?;
+        // Flush the new configuration to the filesystem before promoting it.
+        file.sync_all()
+    })();
+    if let Err(error) = write_result {
+        let _ = fs::remove_file(&temporary);
+        return Err(error);
+    }
 
     // Windows cannot rename over an existing destination. Move the current file
     // aside first, but restore it if promoting the new file fails.
