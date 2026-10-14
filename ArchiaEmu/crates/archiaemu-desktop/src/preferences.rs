@@ -144,7 +144,7 @@ pub(crate) fn write_preferences(
     // never truncate a file we did not create in this save operation.
     let nonce = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|error| std::io::Error::other(error))?
+        .map_err(std::io::Error::other)?
         .as_nanos();
     let temporary = path.with_extension(format!("conf.tmp-{}-{nonce}", std::process::id()));
     let backup = path.with_extension("conf.bak");
