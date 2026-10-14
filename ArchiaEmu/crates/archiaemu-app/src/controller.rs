@@ -1207,6 +1207,12 @@ mod tests {
         assert_eq!(app.active_session(), Some(id));
         assert_eq!(app.session_count(), 1);
         assert!(app.session_summary(id).unwrap().content_loaded);
+        let library_entry = app.library().entries().next().unwrap();
+        assert_eq!(
+            library_entry.format_detection(),
+            &ContentFormatDetection::Detected("game-boy".to_owned())
+        );
+        assert_eq!(library_entry.validation(), &ContentValidation::Accepted);
 
         app.command_session(id, SessionCommand::Pause).unwrap();
         assert_eq!(app.session_summary(id).unwrap().state, SessionState::Paused);
