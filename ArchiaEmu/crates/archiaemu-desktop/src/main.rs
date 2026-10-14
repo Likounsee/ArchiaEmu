@@ -52,6 +52,22 @@ fn clear_tick_error_for_session(errors: &mut Vec<(SessionId, String)>, id: Sessi
     errors.retain(|(error_id, _)| *error_id != id);
 }
 
+fn message_indicates_error(message: &str) -> bool {
+    let message = message.to_ascii_lowercase();
+    [
+        "import failed:",
+        "launch failed:",
+        "launch cancelled:",
+        "could not ",
+        "preferences unavailable:",
+        "input error:",
+    ]
+    .iter()
+    .any(|prefix| message.starts_with(prefix))
+        || (message.starts_with("session ") && message.contains(" failed:"))
+}
+
+
 /// Polls a background task and drops its receiver on success or disconnection.
 /// A disconnected worker must not leave the UI repainting forever as if it were still running.
 fn poll_background_result<T>(receiver: &mut Option<Receiver<T>>) -> Result<Option<T>, ()> {
@@ -441,19 +457,7 @@ impl DesktopApp {
             return UiStatus::Loading;
         }
 
-        let message = self.message.to_ascii_lowercase();
-        if [
-            "import failed:",
-            "launch failed:",
-            "launch cancelled:",
-            "could not ",
-            "preferences unavailable:",
-            "input error:",
-        ]
-        .iter()
-        .any(|prefix| message.starts_with(prefix))
-            || (message.starts_with("session ") && message.contains(" failed:"))
-        {
+        if message_indicates_error(&self.message) {
             return UiStatus::Error;
         }
 
@@ -999,6 +1003,14 @@ mod preference_tests {
         escape_config_value, load_preferences, unescape_config_value, write_preferences,
     };
     use std::fs;
+
+    #[test]
+    fn launch_cancellation_is_classified_as_an_error() {
+        assert!(message_indicates_error(
+            "Launch cancelled: could not release inputs from session 3"
+        ));
+        assert!(!message_indicates_error("Launched session 3."));
+    }
 
     #[test]
     fn background_task_receiver_is_cleared_after_worker_disconnects() {
