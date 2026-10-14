@@ -204,6 +204,34 @@ Les contrats de base existent; on reprend leur approfondissement après validati
 
 **Critère de sortie :** la page Modules actualise le catalogue et télécharge uniquement l'artefact choisi, avec validation d'intégrité, erreurs récupérables et limites de confiance documentées. Seules les versions explicitement stables et validées apparaissent dans le catalogue stable; les versions en développement restent séparées. Le téléchargement n'installe ni n'active rien. Un manifeste valide ne prouve pas l'innocuité du code natif; aucun sandboxing ne doit être revendiqué sans mécanisme réel.
 
+## Architecture transversale — stratégies d'exécution CPU (préparation de P3/P4)
+
+**État de cette sous-phase : environ 20 %** — les couches sont documentées et un sélecteur de stratégie CPU explicite avec tests unitaires existe; les moteurs CPU, le pont ABI, les services système, le JIT et la traduction GPU ne sont pas implémentés par ce jalon. Cette piste architecturale ne remplace pas la priorité P1 et ne doit pas gonfler artificiellement son pourcentage.
+
+### Contrat et politique CPU
+
+- [x] Analyser les fondations existantes : `EmulationCore`, `CoreRegistry`, `CoreDescriptor`, capacités explicites, `ApplicationController`, sessions, événements, entrées, vidéo/audio, sauvegardes et contrats de modules versionnés.
+- [x] Documenter l'exécution native x86-64 avec couche de compatibilité et distinguer CPU, services système/ABI, modèle matériel et traduction GPU.
+- [x] Ajouter un contrat commun de planification `execution_strategy` avec architectures invité/hôte, politique explicite et trois résultats : natif x86-64 avec compatibilité, interpréteur, JIT.
+- [x] Ajouter des tests unitaires pour la sélection native, l'interpréteur, la préférence JIT et les architectures ARM, PowerPC, MIPS et propriétaires.
+- [ ] Exécuter les tests et quality gates du commit exact dans la CI.
+- [ ] Ajouter les stratégies réellement implémentées et exigences hôte dans un descripteur versionné, sans casser silencieusement les descripteurs publics existants.
+- [ ] Définir un contrat de capacités pour le moteur CPU, le niveau de compatibilité système et le backend graphique; refuser explicitement une stratégie non implémentée.
+- [ ] Définir des interfaces indépendantes pour le chargeur/exécutable et l'ABI, les services système, la mémoire virtuelle, les exceptions et les interruptions.
+- [ ] Définir un contrat de traduction graphique indépendant du CPU, couvrant commandes, ressources, shaders, synchronisation et backend hôte.
+- [ ] Créer une suite de conformité réutilisable : capacités cohérentes, erreurs non prises en charge, cycle de vie, entrées, média, sauvegardes et nettoyage.
+- [ ] Tester les moteurs interpréteur comme référence avant de comparer un JIT; ne pas activer le JIT sans validation, et garder un chemin de débogage.
+- [ ] Définir des tests d'intégration reproductibles pour ABI/services, mémoire, GPU, audio, entrées et exécution de logiciels de test légaux.
+- [ ] Documenter les exigences de sécurité JIT, les contraintes de protection mémoire, les firmwares fournis par l'utilisateur et les limites de compatibilité.
+
+**Critère de sortie :** la sélection de stratégie est intégrée à un descripteur versionné et vérifiée au lancement; chaque module indique précisément ce qu'il implémente; les contrats communs ont des tests de conformité; un programme de test reproductible démontre le comportement annoncé. Un enum, une CI verte ou un cœur factice ne prouve pas la compatibilité d'une console.
+
+**Règles de sélection :**
+- x86-64 invité + hôte x86-64 : stratégie native avec couche de compatibilité possible uniquement si elle est explicitement autorisée et implémentée; ce n'est jamais une promesse d'exécution directe universelle.
+- Autres architectures : interpréteur de référence; JIT optionnel selon les performances, l'architecture hôte, la sécurité et les capacités du module.
+- CPU, compatibilité système et traduction GPU restent trois couches distinctes.
+- Une stratégie choisie par la politique est une préférence; le module doit confirmer qu'il la prend en charge.
+
 ## P3 — premier module de console réellement fonctionnel (après P1)
 
 Le module Game Boy existant peut servir de première cible, mais son existence ne signifie pas que les jeux sont jouables. Cette phase ne commence qu'une fois P1 validé, sauf corrections minimales requises pour garder l'application testable.
