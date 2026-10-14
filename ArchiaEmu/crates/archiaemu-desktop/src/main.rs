@@ -398,7 +398,7 @@ impl DesktopApp {
             .controller
             .command_session(id, command)
             .map_err(|error| error.to_string());
-        if result.is_ok() {
+        if result.is_ok() && self.controller.active_session() == Some(id) {
             match action {
                 SessionAction::Pause => self.audio_output.pause(),
                 SessionAction::Resume => self.audio_output.resume(),
