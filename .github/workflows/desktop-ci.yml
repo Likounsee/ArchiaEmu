@@ -10,6 +10,8 @@ on:
       - "ArchiaEmu/crates/archiaemu-game-boy/**"
       - "ArchiaEmu/Cargo.toml"
       - "ArchiaEmu/Cargo.lock"
+      - "ArchiaEmu/docs/**"
+      - "README.md"
       - ".github/workflows/desktop-ci.yml"
   pull_request:
     branches: [ArchiaEmu]
@@ -20,11 +22,17 @@ on:
       - "ArchiaEmu/crates/archiaemu-game-boy/**"
       - "ArchiaEmu/Cargo.toml"
       - "ArchiaEmu/Cargo.lock"
+      - "ArchiaEmu/docs/**"
+      - "README.md"
       - ".github/workflows/desktop-ci.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: desktop-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   desktop:
@@ -34,6 +42,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     steps:
       - name: Check out tested revision
         uses: actions/checkout@v4
@@ -66,3 +75,8 @@ jobs:
 
       - name: Lint desktop and its dependencies
         run: cargo clippy --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate warning-free workspace documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --manifest-path ArchiaEmu/Cargo.toml --workspace --no-deps --locked
