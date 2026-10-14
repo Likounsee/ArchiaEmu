@@ -9,7 +9,7 @@ use archiaemu_app::controller::{ApplicationController, SessionCommand};
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent};
 use game_view::{map_key_to_control, video_frame_to_image};
-use preferences::{config_file_path, load_preferences, write_preferences, SavedPreferences};
+use preferences::{config_file_path, load_preferences, write_preferences};
 
 mod game_page;
 mod game_view;
@@ -418,9 +418,9 @@ impl eframe::App for DesktopApp {
             style.visuals.selection.bg_fill = accent.gamma_multiply(0.45);
             style.visuals.selection.stroke = egui::Stroke::new(1.0_f32, accent);
             style.visuals.widgets.inactive.bg_stroke =
-                egui::Stroke::new(1.0, accent.gamma_multiply(0.45));
+                egui::Stroke::new(1.0_f32, accent.gamma_multiply(0.45));
             style.visuals.widgets.hovered.bg_fill = accent.gamma_multiply(0.22);
-            style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, accent);
+            style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0_f32, accent);
             style.visuals.widgets.active.bg_fill = accent.gamma_multiply(0.38);
             style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent);
             style.visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);

@@ -5,6 +5,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug)]
 pub(crate) struct SavedPreferences {
     pub(crate) dark_mode: bool,
     pub(crate) ui_scale: f32,
