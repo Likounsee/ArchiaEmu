@@ -20,10 +20,14 @@ The library accepts files through the shared library validator (regular file, no
 
 ## Architecture boundaries
 
-- `main.rs` composes the application and renders egui navigation; keyboard translation and video-frame adaptation live in `game_view.rs`, while platform preference persistence lives in `preferences.rs`.
+- `main.rs` composes the application, renders egui navigation and owns the top-level app/controller lifecycle. Page rendering is split into `home_page.rs`, `library_page.rs`, `game_page.rs`, `sessions_page.rs`, `systems_page.rs` and `settings_page.rs`; keyboard/video adapters live in `game_view.rs`, and preference persistence lives in `preferences.rs`.
 - Desktop lifecycle and input commands go through typed `ApplicationController` methods rather than directly mutating session internals. The controller remains frontend-independent.
 - The core runtime owns session lifecycle rules, semantic input state and execution contracts. `ApplicationController::advance_session` owns bounded execution ticks and media-queue draining; the desktop converts the returned latest frame into a texture and renders it.
 - New frontend features should extend the shared application/controller boundary before reaching into the host runtime. Keep console-specific behavior out of shared UI and controller modules.
+
+## UI direction
+
+The intended desktop experience is a focused emulation library, not a console-specific dashboard: a persistent left navigation rail, a compact top header with current page/session count, a searchable and sortable library, a dedicated session manager, a game surface with honest media-capability states, a systems/capabilities page, and simple host preferences. Keep actions close to the selected content, make empty/error states actionable, and avoid presenting unsupported cores or media as functional. See [`docs/DESKTOP_UI_PLAN.md`](../../docs/DESKTOP_UI_PLAN.md) for the written layout and implementation order.
 
 ## Validation status
 
