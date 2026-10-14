@@ -324,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn compares_numeric_versions_without_lexicographic_errors() {
+    fn rejects_untrusted_update_download_hosts() {\n        assert!(validate_download_url("https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe").is_ok());\n        assert!(validate_download_url("https://example.com/app.exe").is_err());\n        assert!(validate_download_url("http://github.com/app.exe").is_err());\n    }\n\n    #[test]\n    fn compares_numeric_versions_without_lexicographic_errors() {
         assert!(is_newer_version("0.10.0", "0.9.9"));
         assert!(is_newer_version("1.0.0", "0.99.99"));
         assert!(!is_newer_version("0.1.0", "0.1.0"));
