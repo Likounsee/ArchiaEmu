@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use archiaemu_app::controller::{ApplicationController, SessionCommand};
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
-use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent, VideoFrame};
+use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent};
 use game_view::{map_key_to_control, video_frame_to_image};
 
 mod game_view;
