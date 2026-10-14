@@ -14,7 +14,7 @@ use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeError, SessionId};
 use archiaemu_core::runtime::{SessionError, SessionState};
 use archiaemu_core::CoreRegistry;
 
-use crate::library::{ContentEntry, ContentLibrary, ContentLibraryError};
+use crate::library::{ContentEntry, ContentLibrary, ContentLibraryError, ContentValidation};
 
 /// Lifecycle command accepted by the shared application controller.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -240,9 +240,18 @@ impl ApplicationController {
         probes: &[&dyn ContentFormatProbe],
         registry: &CoreRegistry,
     ) -> Result<SessionId, HostRuntimeError> {
-        let id = self
+        let canonical_path = std::fs::canonicalize(path.as_ref()).ok();
+        let result = self
             .host
-            .launch_content_path(path, limits, probes, registry)?;
+            .launch_content_path(path, limits, probes, registry);
+        if let Some(canonical_path) = canonical_path {
+            let validation = match &result {
+                Ok(_) => ContentValidation::Accepted,
+                Err(error) => ContentValidation::Rejected(error.to_string()),
+            };
+            self.library.record_validation(canonical_path, validation);
+        }
+        let id = result?;
         self.active_session = Some(id);
         Ok(id)
     }
