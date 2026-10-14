@@ -13,7 +13,7 @@ impl DesktopApp {
                 if ui.button("Close all").clicked() {
                     // Keyboard input is routed only to the active session. Release it before
                     // closing sessions so a held control cannot survive the lifecycle transition.
-                    self.release_game_inputs();
+                    let release_error = self.release_game_inputs().err();
                     let count = self.controller.close_all_sessions();
                     self.frame_cadence.reset();
                     self.frame_texture = None;
@@ -22,7 +22,10 @@ impl DesktopApp {
                     self.media_status = "No active session.".to_owned();
                     self.last_tick_errors.clear();
                     self.session_content_paths.clear();
-                    self.message = format!("Closed {count} session(s).");
+                    self.message = match release_error {
+                        Some(error) => format!("Closed {count} session(s), but {error}"),
+                        None => format!("Closed {count} session(s)."),
+                    };
                 }
             });
         });
@@ -77,12 +80,17 @@ impl DesktopApp {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("Close").clicked() {
                             let was_active = self.controller.active_session() == Some(id);
-                            if was_active {
-                                self.release_game_inputs();
-                            }
+                            let release_error = if was_active {
+                                self.release_game_inputs().err()
+                            } else {
+                                None
+                            };
                             match self.controller.close_session(id) {
                                 Ok(()) => {
-                                    self.message = format!("Closed session {}.", id.get());
+                                    self.message = match release_error {
+                                        Some(error) => format!("Closed session {}, but {error}", id.get()),
+                                        None => format!("Closed session {}.", id.get()),
+                                    };
                                     if was_active {
                                         self.frame_cadence.reset();
                                         self.frame_texture = None;
