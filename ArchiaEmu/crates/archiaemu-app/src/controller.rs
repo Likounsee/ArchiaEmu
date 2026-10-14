@@ -561,6 +561,28 @@ mod tests {
     }
 
     #[test]
+    fn releasing_inputs_on_empty_session_is_safe_and_closed_session_is_reported() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+
+        // An empty session cannot have held controls, so release is a safe no-op.
+        app.release_inputs(id)
+            .expect("releasing inputs from an empty session should be harmless");
+        assert_eq!(app.session_summary(id).unwrap().state, SessionState::Empty);
+
+        app.close_session(id).unwrap();
+        assert!(
+            app.release_inputs(id).is_err(),
+            "a stale session ID must not be silently accepted"
+        );
+        assert_eq!(app.session_count(), 0);
+        assert_eq!(app.active_session(), None);
+    }
+
+    #[test]
     fn backend_tick_keeps_empty_session_state_and_returns_no_frame() {
         let mut app = controller();
         let id = app
