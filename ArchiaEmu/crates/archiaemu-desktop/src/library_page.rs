@@ -169,16 +169,27 @@ impl DesktopApp {
                                         format_size(size),
                                         path.display()
                                     ));
-                                    let entry_metadata = self.controller.library().entries()
+                                    let entry_metadata = self
+                                        .controller
+                                        .library()
+                                        .entries()
                                         .find(|entry| entry.path() == path)
-                                        .map(|entry| (
-                                            entry.format_hint().map(str::to_owned),
-                                            entry.compatible_system_hint().map(str::to_owned),
-                                            entry.format_detection().clone(),
-                                            entry.validation().clone(),
-                                            entry.availability(),
-                                        ));
-                                    if let Some((format_hint, system_hint, detection_state, validation_state, availability_state)) = entry_metadata {
+                                        .map(|entry| {
+                                            (
+                                                entry.format_hint().map(str::to_owned),
+                                                entry.compatible_system_hint().map(str::to_owned),
+                                                entry.format_detection().clone(),
+                                                entry.validation().clone(),
+                                                entry.availability(),
+                                            )
+                                        });
+                                    if let Some((
+                                        format_hint,
+                                        system_hint,
+                                        detection_state,
+                                        validation_state,
+                                        availability_state,
+                                    )) = entry_metadata {
                                         ui.small(format!(
                                             "Extension hint: {} · compatibility hint: {}",
                                             format_hint.as_deref().unwrap_or("unknown extension"),
@@ -192,7 +203,13 @@ impl DesktopApp {
                                                 ""
                                             }
                                             ContentFormatDetection::Ambiguous(formats) => {
-                                                ui.colored_label(egui::Color32::from_rgb(210, 115, 45), format!("Ambiguous format probes: {}", formats.join(", ")));
+                                                ui.colored_label(
+                                                    egui::Color32::from_rgb(210, 115, 45),
+                                                    format!(
+                                                        "Ambiguous format probes: {}",
+                                                        formats.join(", ")
+                                                    ),
+                                                );
                                                 ""
                                             }
                                             ContentFormatDetection::NeedsMoreData => "Detected format: probe needs more data",
@@ -210,10 +227,16 @@ impl DesktopApp {
                                             ui.colored_label(egui::Color32::LIGHT_RED, detail);
                                         }
                                         let availability = match availability_state {
-                                            ContentAvailability::Available => "Available · ready for launch validation",
+                                            ContentAvailability::Available => {
+                                                "Available · ready for launch validation"
+                                            }
                                             ContentAvailability::Missing => "Missing · re-import required",
-                                            ContentAvailability::NotRegularFile => "Unavailable · not a regular file",
-                                            ContentAvailability::Unavailable => "Unavailable · cannot inspect file",
+                                            ContentAvailability::NotRegularFile => {
+                                                "Unavailable · not a regular file"
+                                            }
+                                            ContentAvailability::Unavailable => {
+                                                "Unavailable · cannot inspect file"
+                                            }
                                         };
                                         ui.colored_label(
                                             if availability_state == ContentAvailability::Available {
