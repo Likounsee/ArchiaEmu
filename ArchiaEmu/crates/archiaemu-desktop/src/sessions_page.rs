@@ -90,9 +90,23 @@ impl DesktopApp {
                         self.session_action(id, SessionAction::Resume);
                     }
                     if state != SessionState::Empty && ui.button("Stop").clicked() {
+                        if self.controller.active_session() == Some(id) {
+                            self.release_game_inputs();
+                            self.frame_cadence.reset();
+                            self.frame_texture = None;
+                            self.video_size = None;
+                            self.media_status = "Active session stopped.".to_owned();
+                        }
                         self.session_action(id, SessionAction::Stop);
                     }
                     if state != SessionState::Empty && ui.button("Reset").clicked() {
+                        if self.controller.active_session() == Some(id) {
+                            self.frame_cadence.reset();
+                            self.frame_texture = None;
+                            self.video_size = None;
+                            self.last_tick = Instant::now();
+                            self.media_status = "Active session reset; waiting for a new frame.".to_owned();
+                        }
                         self.session_action(id, SessionAction::Reset);
                     }
                 });
