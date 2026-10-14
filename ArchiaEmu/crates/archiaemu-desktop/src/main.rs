@@ -543,8 +543,14 @@ impl DesktopApp {
             .map_err(|error| error.to_string());
         if result.is_ok() && is_active {
             match action {
-                SessionAction::Pause => self.audio_output.pause(),
-                SessionAction::Resume => self.audio_output.resume(),
+                SessionAction::Pause => {
+                    self.audio_output.pause();
+                    self.frame_cadence.reset();
+                }
+                SessionAction::Resume => {
+                    self.audio_output.resume();
+                    self.last_tick = Instant::now();
+                }
                 SessionAction::Stop => {
                     self.audio_output.clear();
                     self.frame_cadence.reset();
