@@ -151,7 +151,8 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 - [x] Ajouter `.github/workflows/desktop-ci.yml` pour lancer formatage, tests et Clippy du desktop sur Linux, Windows et macOS (le workflow est créé, ses résultats restent à vérifier).
 - [x] Étendre le workflow aux tests et à Clippy du workspace partagé, en plus du crate desktop exclu du workspace (exécution CI toujours en attente de résultats vérifiables).
 - [x] Ajouter à la CI la génération de la documentation du workspace avec `RUSTDOCFLAGS=-D warnings`, un délai maximal de job et une concurrence contrôlée; l'état des runs reste à vérifier.
-- [x] Corriger le parcours « Save settings now » : un échec d'écriture ou l'absence de répertoire de configuration ne peut plus être affiché comme une sauvegarde réussie; ajouter un test de défaillance du système de fichiers.\n- [ ] Faire passer la CI desktop sur Linux, Windows et macOS; traiter toute régression avant de continuer.
+- [x] Corriger le parcours « Save settings now » : un échec d'écriture ou l'absence de répertoire de configuration ne peut plus être affiché comme une sauvegarde réussie; ajouter un test de défaillance du système de fichiers.
+- [ ] Faire passer la CI desktop sur Linux, Windows et macOS; traiter toute régression avant de continuer.
 - [ ] Vérifier démarrage et fermeture propres, absence de panique sur erreurs utilisateur et absence de session/ressource orpheline.
 - [x] Actualiser le README pour décrire honnêtement les fonctions/limites du projet et les quality gates configurés.
 - [x] Ajouter `docs/MANUAL_TEST_CHECKLIST.md` pour les parcours principaux; la checklist reste à exécuter et à documenter sur chaque plateforme.
