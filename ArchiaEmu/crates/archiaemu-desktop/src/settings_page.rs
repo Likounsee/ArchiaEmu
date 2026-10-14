@@ -43,5 +43,51 @@ impl DesktopApp {
                 self.message = "Settings saved.".to_owned();
             }
         });
+
+        ui.add_space(12.0);
+        ui.heading("Diagnostics");
+        ui.label("Local runtime information to help troubleshoot startup and session issues.");
+        egui::Frame::group(ui.style()).show(ui, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.label("Application version:");
+                ui.monospace(option_env!("CARGO_PKG_VERSION").unwrap_or("unknown"));
+                ui.separator();
+                ui.label("Platform:");
+                ui.monospace(format!("{} / {}", std::env::consts::OS, std::env::consts::ARCH));
+            });
+            ui.horizontal_wrapped(|ui| {
+                ui.label(format!("Library items: {}", self.controller.library().len()));
+                ui.separator();
+                ui.label(format!("Open sessions: {}", self.controller.session_summaries().len()));
+                ui.separator();
+                ui.label(format!("Execution errors: {}", self.last_tick_errors.len()));
+            });
+            ui.horizontal_wrapped(|ui| {
+                ui.label("Active session:");
+                ui.monospace(
+                    self.controller
+                        .active_session()
+                        .map(|id| id.get().to_string())
+                        .unwrap_or_else(|| "none".to_owned()),
+                );
+            });
+            ui.label("Configuration file:");
+            ui.monospace(
+                self.config_path
+                    .as_deref()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|| "unavailable".to_owned()),
+            );
+            ui.label("Media status:");
+            ui.label(&self.media_status);
+            ui.label("Latest application message:");
+            ui.label(&self.message);
+            if !self.last_tick_errors.is_empty() {
+                ui.colored_label(egui::Color32::LIGHT_RED, "Recent session errors");
+                for (session_id, error) in self.last_tick_errors.iter().take(5) {
+                    ui.label(format!("Session {}: {error}", session_id.get()));
+                }
+            }
+        });
     }
 }
