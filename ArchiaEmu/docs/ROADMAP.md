@@ -181,6 +181,7 @@ Les contrats de base existent; on reprend leur approfondissement après validati
 - [x] Staging borné des artefacts et validation SHA-256 fournie par l'hôte.
 - [x] Validation portable des chemins d'archives avant extraction.
 - [ ] Maintenir un manifeste de versions de modules séparé du manifeste de l'application, hébergé dans une source officielle vérifiable (par exemple le dépôt GitHub du projet), avec identifiant du module, version, version minimale compatible, URL d'artefact, taille, SHA-256, notes de version et métadonnées de signature.
+- [ ] N'inclure dans le manifeste public de distribution que les versions de modules explicitement déclarées stables et publiables après validation des tests, de la compatibilité et des artefacts; garder les versions de développement/préversions dans un canal séparé (ou hors manifeste stable), clairement marquées et désactivées par défaut.
 - [ ] Vérifier automatiquement les mises à jour des modules installés en comparant leur version locale à celle du manifeste distant; afficher les mises à jour disponibles et permettre une vérification manuelle.
 - [ ] Ne jamais installer un module simplement parce que la version distante est plus élevée : vérifier signature/provenance, intégrité, compatibilité et anti-downgrade avant activation.
 - [ ] Appliquer les mises à jour de modules seulement dans un état stable : aucun cœur/module concerné chargé, aucune session active qui l'utilise, aucun installateur concurrent, et aucune opération d'écriture en cours; sinon mettre la mise à jour en attente et la proposer/appliquer au prochain état sûr.
@@ -196,7 +197,7 @@ Les contrats de base existent; on reprend leur approfondissement après validati
 - [ ] Vérifier dépendances, licences, provenance et contenu des paquets dans la CI.
 - [ ] Afficher dans l'application les modules disponibles, installés, incompatibles et leurs capacités, sans annoncer une compatibilité non démontrée.
 
-**Critère de sortie :** les modules peuvent être découverts et gérés avec une provenance vérifiable, des opérations récupérables et des limites de confiance documentées. Un manifeste valide ne prouve pas l'innocuité du code natif; aucun sandboxing ne doit être revendiqué sans mécanisme réel.
+**Critère de sortie :** les modules peuvent être découverts et gérés avec une provenance vérifiable, des opérations récupérables et des limites de confiance documentées. Seules les versions explicitement stables et validées apparaissent dans le canal stable; les versions en développement restent séparées. Un manifeste valide ne prouve pas l'innocuité du code natif; aucun sandboxing ne doit être revendiqué sans mécanisme réel.
 
 ## P3 — premier module de console réellement fonctionnel (après P1)
 
