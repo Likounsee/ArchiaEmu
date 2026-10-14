@@ -270,7 +270,10 @@ impl ApplicationController {
     /// Closes a session and selects the oldest remaining session when necessary.
     pub fn close_session(&mut self, id: SessionId) -> Result<(), HostRuntimeError> {
         self.host.close_session(id)?;
-        if self.active_session == Some(id) {
+        let active_selection_is_stale = self
+            .active_session
+            .is_some_and(|active_id| self.host.session(active_id).is_err());
+        if self.active_session == Some(id) || active_selection_is_stale {
             self.active_session = self.host.session_ids().into_iter().next();
         }
         Ok(())
@@ -460,6 +463,27 @@ mod tests {
         assert_eq!(app.active_session(), Some(third));
         app.close_session(third).unwrap();
         assert_eq!(app.active_session(), None);
+    }
+
+    #[test]
+    fn closing_a_session_repairs_selection_if_an_escape_hatch_left_it_stale() {
+        let mut app = controller();
+        let first = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        let second = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(first).unwrap();
+
+        // A capability-specific host operation can bypass controller bookkeeping.
+        app.host_mut().close_session(first).unwrap();
+        app.close_session(second).unwrap();
+
+        assert_eq!(app.active_session(), None);
+        assert!(app.session_summaries().is_empty());
     }
 
     #[test]
