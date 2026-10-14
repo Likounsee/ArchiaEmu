@@ -17,7 +17,7 @@ impl DesktopApp {
                     self.video_size = None;
                     self.last_tick = Instant::now();
                     self.media_status = "No active session.".to_owned();
-                    self.last_tick_error = None;
+                    self.last_tick_errors.clear();
                     self.message = format!("Closed {count} session(s).");
                 }
             });
@@ -41,12 +41,8 @@ impl DesktopApp {
             let video_available = summary.video_available;
             let audio_available = summary.audio_available;
             let active_error = summary.last_error;
-            let tick_error = self.last_tick_error.as_ref().and_then(|(error_id, error)| {
-                if *error_id == id {
-                    Some(error.clone())
-                } else {
-                    None
-                }
+            let tick_error = self.last_tick_errors.iter().find_map(|(error_id, error)| {
+                if *error_id == id { Some(error.clone()) } else { None }
             });
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal(|ui| {
@@ -83,6 +79,7 @@ impl DesktopApp {
                                         self.last_tick = Instant::now();
                                         self.media_status = "Active session closed.".to_owned();
                                     }
+                                    self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
                                 }
                                 Err(error) => self.message = error.to_string(),
                             }
