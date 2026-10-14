@@ -222,6 +222,38 @@ impl DesktopApp {
                         } else {
                             ui.label("Core diagnostic: none recorded");
                         }
+                        let source_path = self
+                            .session_content_paths
+                            .iter()
+                            .find(|(session_id, _)| *session_id == id)
+                            .map(|(_, path)| path.display().to_string())
+                            .unwrap_or_else(|| "unavailable".to_owned());
+                        let tick_diagnostic = tick_error
+                            .as_deref()
+                            .unwrap_or("none recorded");
+                        let core_diagnostic_text = core_diagnostic
+                            .as_deref()
+                            .unwrap_or("none recorded");
+                        let report = format!(
+                            "ArchiaEmu session diagnostics\\nSession ID: {}\\nActive: {}\\nState: {:?}\\nSystem: {}\\nContent loaded: {}\\nSource path: {}\\nVideo capability: {}\\nAudio capability: {}\\nLast tick/media error: {}\\nLast core error: {}",
+                            id.get(),
+                            self.controller.active_session() == Some(id),
+                            state,
+                            system_name,
+                            content_loaded,
+                            source_path,
+                            if video_available { "available" } else { "unavailable" },
+                            if audio_available { "available" } else { "unavailable" },
+                            tick_diagnostic,
+                            core_diagnostic_text,
+                        );
+                        if ui.button("Copy session diagnostics").clicked() {
+                            ui.output_mut(|output| output.copied_text = report);
+                            self.message = format!(
+                                "Copied diagnostics for session {} to the clipboard.",
+                                id.get()
+                            );
+                        }
                     });
             });
         }
