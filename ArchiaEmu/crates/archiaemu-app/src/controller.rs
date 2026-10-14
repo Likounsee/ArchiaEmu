@@ -402,6 +402,24 @@ mod tests {
     }
 
     #[test]
+    fn backend_tick_keeps_empty_session_state_and_returns_no_frame() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        let mut cadence = FrameCadence::new(60, 3).unwrap();
+
+        let update = app
+            .advance_session(id, Duration::from_millis(16), &mut cadence)
+            .unwrap();
+
+        assert_eq!(update.state, SessionState::Empty);
+        assert!(update.newest_frame.is_none());
+        assert!(update.error.is_none());
+    }
+
+    #[test]
     fn typed_session_commands_report_invalid_transitions_without_panicking() {
         let mut app = controller();
         let id = app
