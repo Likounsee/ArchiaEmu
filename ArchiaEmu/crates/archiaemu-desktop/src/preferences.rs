@@ -42,16 +42,16 @@ pub(crate) fn config_file_path() -> Option<PathBuf> {
 
 fn read_preferences_file(path: &Path) -> std::io::Result<String> {
     let file = fs::File::open(path)?;
-    let mut contents = String::new();
+    let mut bytes = Vec::new();
     file.take(MAX_PREFERENCES_BYTES as u64 + 1)
-        .read_to_string(&mut contents)?;
-    if contents.len() > MAX_PREFERENCES_BYTES {
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > MAX_PREFERENCES_BYTES {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             format!("preferences file exceeds the {MAX_PREFERENCES_BYTES}-byte limit"),
         ));
     }
-    Ok(contents)
+    String::from_utf8(bytes).map_err(std::io::Error::from)
 }
 
 pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
