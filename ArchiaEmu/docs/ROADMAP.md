@@ -131,8 +131,8 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 - [x] Ajouter un adaptateur de rendu vidéo RGBA via texture egui, avec prise en compte du stride et allocations bornées.
 - [x] Ajouter une cadence hôte à 60 Hz avec accumulation du temps fractionnaire et rattrapage borné.
-- [ ] Valider en CI les tests de conversion RGBA, de stride et de limite mémoire.
-- [ ] Vérifier pause/reprise, arrêt et absence de progression pendant la pause avec un cœur de test dont le compteur est observable.
+- [x] Ajouter des tests de conversion RGBA, de stride et de limite mémoire (validation CI encore à confirmer).
+- [x] Tester la pause/reprise et l'absence de progression pendant la pause avec un compteur observable dans un cœur de test.
 - [x] Ajouter un adaptateur audio hôte natif via rodio, indépendant du cœur, avec ouverture facultative du périphérique par défaut et repli propre si aucun périphérique n'est disponible.
 - [x] Acheminer les buffers PCM signés 16 bits depuis le contrôleur jusqu'au périphérique hôte; la collecte par tick est bornée à 16 buffers et la file de lecture à 8 blocs, avec purge du retard excessif.
 - [x] Synchroniser pause/reprise et purger l'audio lors de l'arrêt, de la réinitialisation, du changement ou de la fermeture des sessions.
