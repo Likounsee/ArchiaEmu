@@ -545,7 +545,22 @@ impl DesktopApp {
             match action {
                 SessionAction::Pause => self.audio_output.pause(),
                 SessionAction::Resume => self.audio_output.resume(),
-                SessionAction::Stop | SessionAction::Reset => self.audio_output.clear(),
+                SessionAction::Stop => {
+                    self.audio_output.clear();
+                    self.frame_cadence.reset();
+                    self.frame_texture = None;
+                    self.video_size = None;
+                    self.media_status = "Active session stopped.".to_owned();
+                }
+                SessionAction::Reset => {
+                    self.audio_output.clear();
+                    self.frame_cadence.reset();
+                    self.frame_texture = None;
+                    self.video_size = None;
+                    self.last_tick = Instant::now();
+                    self.media_status =
+                        "Active session reset; waiting for a new frame.".to_owned();
+                }
             }
         }
         if result.is_ok() && matches!(action, SessionAction::Stop | SessionAction::Reset) {
