@@ -11,6 +11,9 @@ impl DesktopApp {
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("Close all").clicked() {
+                    // Keyboard input is routed only to the active session. Release it before
+                    // closing sessions so a held control cannot survive the lifecycle transition.
+                    self.release_game_inputs();
                     let count = self.controller.close_all_sessions();
                     self.frame_cadence.reset();
                     self.frame_texture = None;
@@ -74,6 +77,9 @@ impl DesktopApp {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("Close").clicked() {
                             let was_active = self.controller.active_session() == Some(id);
+                            if was_active {
+                                self.release_game_inputs();
+                            }
                             match self.controller.close_session(id) {
                                 Ok(()) => {
                                     self.message = format!("Closed session {}.", id.get());
