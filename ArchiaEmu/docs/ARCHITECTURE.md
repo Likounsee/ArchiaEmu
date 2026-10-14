@@ -48,3 +48,34 @@ Every console implementation must be an independently testable workspace crate t
 The first target follows this rule: `archiaemu-game-boy` is one crate and registers one stable `game-boy` system ID through `register_game_boy`. The user-facing label is `Game Boy / Game Boy Color`; it must not be split into separate DMG and CGB emulator entries. Cartridge metadata classifies flag values `0x00` (DMG-only), `0x80` (DMG and CGB compatible), and `0xC0` (CGB-only), with reserved values kept explicit. This chooses the intended hardware mode inside the same emulator; it is not a claim that either mode can already execute games. The module now has an initial LR35902 interpreter subset and a limited bus for cartridge ROM, work RAM/echo RAM, and high RAM. The reset path initializes a documented post-boot-like register state for the selected mode and currently permits execution only for ROM-only mapper 0 cartridges. This is not a complete machine: video, audio, I/O devices, timers, interrupts, controller input, mapper banking, and most opcodes remain unimplemented, so no playable compatibility is claimed.
 
 Future consoles should use the same integration shape without forcing their hardware into Game Boy-specific abstractions. Optional console-specific system interfaces and graphics enhancements should be exposed through host presentation contracts or explicit module capabilities, not hardwired into the shared core.
+
+
+## CPU execution and graphics translation strategies
+
+ArchiaEmu uses one application, one session lifecycle and one host/core integration contract. CPU execution strategy is selected inside the console-module boundary; it must not create a separate frontend or a second host runtime.
+
+### CPU strategy is explicit, not inferred from a console label
+
+The shared planning contract lives in `archiaemu-core::execution_strategy`. It describes CPU architectures and can prefer one of three strategies:
+
+- **Native x86-64 with compatibility layer**: permitted only when both guest and host are x86-64 and host policy explicitly allows it. Native instructions are only one part of the work; a console module still needs ABI/calling-convention handling, virtual-memory mapping, executable/module loading, syscall/kernel and system-service compatibility, privilege boundaries and exception handling. A matching ISA does not mean an unmodified game can run.
+- **Interpreter**: portable reference path for guest instruction semantics. It is the baseline for architectures such as ARM, PowerPC, MIPS or a proprietary CPU and is valuable for debugging and differential tests.
+- **Dynamic recompiler (JIT)**: optional optimization that translates guest instructions to host code. It is selected only as a preference; a module must actually implement it, validate generated-code boundaries and retain a safe interpreter fallback where feasible.
+
+The planner returns a *preferred strategy*, not proof of support. Modules must declare/validate their implemented strategies and reject unsupported choices rather than silently pretending to run. The current core capability structure does not yet advertise a CPU strategy; wiring strategy support into a versioned module/core descriptor is a follow-up contract task, because adding required fields to public descriptors is a compatibility-sensitive change.
+
+### Keep CPU, system compatibility and GPU translation independent
+
+Each future console module should separate these concerns behind internal interfaces:
+
+1. **CPU execution** — native-compatible execution, interpreter or JIT; CPU state and instruction semantics.
+2. **System compatibility** — executable format, ABI, system calls, kernel-facing behavior, libraries/services, virtual address space and synchronization.
+3. **Machine model** — bus/memory map, interrupts, exceptions, timers, DMA and required peripherals. Cycle accuracy is required only when tests and software behavior demonstrate it is necessary.
+4. **Graphics translation** — guest command processor, resource/state model and shader translation, independently mapped to a host backend such as Vulkan, Direct3D or Metal. Do not equate guest GPU commands with host API calls or claim universal shader compatibility.
+5. **Host I/O adapters** — shared input, audio, video, storage, save-state and diagnostics contracts.
+
+These interfaces belong to independently testable console crates and reusable shared services where semantics genuinely match. Console-specific behavior must not leak into egui or the application controller. Existing `EmulationCore`, `CoreRegistry`, `ApplicationController`, `CoreEvent`, input/media payloads and session lifecycle remain the integration seam; they are useful foundations, but do not yet constitute a complete native-x64 compatibility environment or a complete JIT/GPU translation framework.
+
+### Host compatibility and honest support claims
+
+A module must consider host ISA, operating-system APIs, memory-protection/JIT permissions, graphics backend, required firmware, legal user-provided assets and hardware features. Strategy planning cannot bypass any of those checks. Capability declarations must represent tested behavior, not desired future work. Test interpreter correctness first; compare JIT output against it; test native compatibility separately from system services and graphics translation. A console is not supported until reproducible software tests and end-to-end results justify the claim.
