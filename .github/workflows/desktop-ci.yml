@@ -24,12 +24,12 @@ permissions:
 
 jobs:
   desktop:
-    name: Desktop checks (${{ matrix.os }${{)
+    name: Desktop checks (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }${{
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Check out tested revision
         uses: actions/checkout@v4
