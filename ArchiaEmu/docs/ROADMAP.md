@@ -184,6 +184,8 @@ Construire l'application utilisateur au-dessus du runtime et des contrats commun
 - [x] Ajouter des tests unitaires au frontend pour les filtres d'extension et le formatage des tailles de fichiers.
 - [x] Isoler les adaptateurs de présentation (mapping clavier sémantique et conversion des trames) dans un module desktop dédié, sans dépendance à un cœur particulier.
 - [x] Ajouter au `ApplicationController` des commandes typées pour les transitions de session et les entrées, afin que le frontend n'appelle plus directement les méthodes mutables d'une session pour ces opérations.
+- [x] Déplacer l'avancement des sessions et la collecte bornée des médias derrière `ApplicationController::advance_session`; le frontend reçoit l'état, les capacités, la dernière trame et une erreur exploitable sans piloter directement l'exécution du cœur.
+- [x] Isoler la persistance des préférences de l'assemblage UI dans `preferences.rs`, en conservant les tests de lecture, d'écriture, de version et d'échappement.
 - [ ] Valider les nouveaux modules et contrats par `cargo fmt`, les tests du workspace et la CI desktop Linux/Windows/macOS avant de considérer cette séparation comme validée.
 - [ ] Tester systématiquement les états vides, les contenus invalides, les erreurs de lancement, les changements de session et la fermeture globale avec des tests frontend dédiés; la CI compile désormais le frontend natif sur Linux, Windows et macOS.
 - [x] Ajouter une vue de jeu dédiée qui avance la session avec une cadence hôte bornée, récupère les dernières trames RGBA annoncées par le cœur et les affiche dans une texture egui avec mise à l'échelle nearest-neighbour.
