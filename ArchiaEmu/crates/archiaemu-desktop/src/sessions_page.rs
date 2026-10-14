@@ -17,6 +17,7 @@ impl DesktopApp {
                     self.video_size = None;
                     self.last_tick = Instant::now();
                     self.media_status = "No active session.".to_owned();
+                    self.last_tick_error = None;
                     self.message = format!("Closed {count} session(s).");
                 }
             });
@@ -40,6 +41,9 @@ impl DesktopApp {
             let video_available = summary.video_available;
             let audio_available = summary.audio_available;
             let active_error = summary.last_error;
+            let tick_error = self.last_tick_error.as_ref()
+                .filter(|(error_id, _)| *error_id == id)
+                .map(|(_, error)| error.clone());
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal(|ui| {
                     let selected = self.controller.active_session() == Some(id);
@@ -130,6 +134,12 @@ impl DesktopApp {
                         "Audio: unavailable"
                     });
                 });
+                if let Some(error) = tick_error {
+                    ui.colored_label(
+                        egui::Color32::LIGHT_RED,
+                        format!("Last execution/media tick error: {error}"),
+                    );
+                }
                 if let Some(error) = active_error {
                     ui.colored_label(
                         egui::Color32::LIGHT_RED,
