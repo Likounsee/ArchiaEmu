@@ -2,6 +2,15 @@
 
 use super::*;
 
+fn content_path_status(path: &Path) -> &'static str {
+    match std::fs::metadata(path) {
+        Ok(metadata) if metadata.is_file() => "Available",
+        Ok(_) => "Unavailable · not a regular file",
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => "Missing · re-import required",
+        Err(_) => "Unavailable · cannot read file metadata",
+    }
+}
+
 impl DesktopApp {
     pub(super) fn show_library(&mut self, ui: &mut egui::Ui) {
         let total = self.controller.library().len();
@@ -157,6 +166,15 @@ impl DesktopApp {
                                         format_size(size),
                                         path.display()
                                     ));
+                                    let path_status = content_path_status(&path);
+                                    ui.colored_label(
+                                        if path_status == "Available" {
+                                            ui.visuals().weak_text_color()
+                                        } else {
+                                            egui::Color32::from_rgb(210, 115, 45)
+                                        },
+                                        path_status,
+                                    );
                                 });
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
@@ -180,7 +198,13 @@ impl DesktopApp {
                                                 }
                                             }
                                         }
-                                        if ui.button("▶ Launch").clicked() {
+                                        if ui
+                                            .add_enabled(
+                                                path.is_file(),
+                                                egui::Button::new("▶ Launch"),
+                                            )
+                                            .clicked()
+                                        {
                                             self.selected_content = Some(path.clone());
                                             self.content_path = path.display().to_string();
                                             self.launch_content();
@@ -222,8 +246,9 @@ impl DesktopApp {
                         ui.label(&title);
                         ui.small(path.display().to_string());
                         ui.small(format!(
-                            "{} · ready for the shared launch pipeline",
-                            format_size(size)
+                            "{} · {}",
+                            format_size(size),
+                            content_path_status(&path)
                         ));
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
