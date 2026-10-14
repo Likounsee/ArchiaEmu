@@ -44,6 +44,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn clear_tick_error_for_session(errors: &mut Vec<(SessionId, String)>, id: SessionId) {
+    errors.retain(|(error_id, _)| *error_id != id);
+}
+
 struct DesktopApp {
     controller: ApplicationController,
     registry: CoreRegistry,
@@ -344,7 +348,7 @@ impl DesktopApp {
             .map_err(|error| error.to_string());
         if result.is_ok() && matches!(action, SessionAction::Stop | SessionAction::Reset) {
             // A deliberate lifecycle transition supersedes an earlier execution/media tick error.
-            self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+            clear_tick_error_for_session(&mut self.last_tick_errors, id);
         }
         self.message = match result {
             Ok(()) => format!("Session {}: {} succeeded.", id.get(), action.label()),
@@ -662,6 +666,28 @@ mod preference_tests {
     use super::*;
     use crate::preferences::{escape_config_value, load_preferences, unescape_config_value, write_preferences};
     use std::fs;
+
+    #[test]
+    fn clearing_one_session_tick_error_preserves_other_sessions() {
+        let mut controller =
+            ApplicationController::new(HostRuntime::new(HostRuntimeConfig::default()).unwrap());
+        let first = controller
+            .host_mut()
+            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .unwrap();
+        let second = controller
+            .host_mut()
+            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .unwrap();
+        let mut errors = vec![
+            (first, "first session failed".to_owned()),
+            (second, "second session failed".to_owned()),
+        ];
+
+        clear_tick_error_for_session(&mut errors, first);
+
+        assert_eq!(errors, vec![(second, "second session failed".to_owned())]);
+    }
 
     #[test]
     fn library_format_filter_is_case_insensitive() {
