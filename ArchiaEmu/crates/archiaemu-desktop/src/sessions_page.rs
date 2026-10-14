@@ -143,7 +143,6 @@ impl DesktopApp {
                     }
                     if state != SessionState::Empty && ui.button("Stop").clicked() {
                         if self.controller.active_session() == Some(id) {
-                            self.release_game_inputs();
                             self.frame_cadence.reset();
                             self.frame_texture = None;
                             self.video_size = None;
