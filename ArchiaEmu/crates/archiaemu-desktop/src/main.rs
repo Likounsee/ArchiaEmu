@@ -494,50 +494,20 @@ impl DesktopApp {
             return;
         };
 
-        let mut newest_frame: Option<VideoFrame> = None;
-        let mut error = None;
-        let video_available;
-        let audio_available;
-        let state;
-        {
-            let session_result = self.controller.host_mut().session_mut(id);
-            let Ok(session) = session_result else {
+        let update = match self.controller.advance_session(id, elapsed, &mut self.frame_cadence) {
+            Ok(update) => update,
+            Err(_) => {
                 self.media_status = "The selected session no longer exists.".to_owned();
                 self.frame_texture = None;
                 self.video_size = None;
                 return;
-            };
-            state = session.state();
-            let capabilities = session.descriptor().capabilities;
-            video_available = capabilities.video_output;
-            audio_available = capabilities.audio_output;
-            let due = session.advance_frame_cadence(&mut self.frame_cadence, elapsed);
-            if state == SessionState::Running {
-                for _ in 0..due.due_frames {
-                    if let Err(run_error) = session.run_for_events(1024) {
-                        error = Some(format!("Execution error: {run_error}"));
-                        break;
-                    }
-                    if session.state() != SessionState::Running {
-                        break;
-                    }
-                }
             }
-            if video_available && state != SessionState::Empty {
-                // Drain a bounded batch and retain only the newest frame; never let stale
-                // frames accumulate in the UI texture pipeline.
-                for _ in 0..64 {
-                    match session.take_video_frame() {
-                        Ok(Some(frame)) => newest_frame = Some(frame),
-                        Ok(None) => break,
-                        Err(frame_error) => {
-                            error = Some(format!("Video output error: {frame_error}"));
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+        };
+        let state = update.state;
+        let video_available = update.video_available;
+        let audio_available = update.audio_available;
+        let mut error = update.error;
+        let newest_frame = update.newest_frame;
 
         if let Some(frame) = newest_frame {
             match video_frame_to_image(&frame) {
