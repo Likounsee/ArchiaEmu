@@ -17,7 +17,7 @@ impl DesktopApp {
                 ),
                 (
                     "SESSIONS",
-                    self.controller.host().session_count().to_string(),
+                    self.controller.session_count().to_string(),
                     "Open sessions",
                 ),
                 (
