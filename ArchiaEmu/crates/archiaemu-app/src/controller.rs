@@ -608,7 +608,7 @@ mod tests {
         pending_audio: VecDeque<AudioBuffer>,
     }
 
-    impl archiaemu_core::EmulationCore for AudioOnceCore {
+    impl archiaemu_core::EmulationCore for AudioQueueCore {
         fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
             archiaemu_core::CoreDescriptor {
                 api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
@@ -658,7 +658,7 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(AudioOnceCore {
+            .create_session(Box::new(AudioQueueCore {
                 loaded: false,
                 pending_audio: std::iter::once(expected.clone()).collect(),
             }))
@@ -687,7 +687,7 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(AudioOnceCore {
+            .create_session(Box::new(AudioQueueCore {
                 loaded: false,
                 pending_audio: buffers.clone().into_iter().collect(),
             }))
