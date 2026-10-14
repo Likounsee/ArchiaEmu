@@ -1,0 +1,77 @@
+name: Windows installer
+
+on:
+  push:
+    branches: [ArchiaEmu]
+    paths:
+      - "ArchiaEmu/crates/**"
+      - "ArchiaEmu/Cargo.toml"
+      - "ArchiaEmu/Cargo.lock"
+      - "ArchiaEmu/packaging/windows/**"
+      - ".github/workflows/windows-installer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Check out ArchiaEmu branch
+        uses: actions/checkout@v4
+        with:
+          ref: ArchiaEmu
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Build desktop executable
+        run: cargo build --release --locked --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+
+      - name: Stage application
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $exe = "ArchiaEmu/target/release/archiaemu-desktop.exe"
+          if (!(Test-Path $exe)) {
+            throw "Expected desktop executable was not produced: $exe"
+          }
+          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE/stage" | Out-Null
+          Copy-Item $exe "$env:GITHUB_WORKSPACE/stage/archiaemu-desktop.exe"
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes --no-progress
+
+      - name: Compile Windows installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            $iscc = "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+          }
+          if (!(Test-Path $iscc)) {
+            throw "Inno Setup compiler (ISCC.exe) was not found."
+          }
+          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE/dist" | Out-Null
+          & $iscc "/DStageDir=$env:GITHUB_WORKSPACE/stage" "/O$env:GITHUB_WORKSPACE/dist" "ArchiaEmu/packaging/windows/ArchiaEmu.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
+
+      - name: Verify installer output
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installer = Get-ChildItem "$env:GITHUB_WORKSPACE/dist" -Filter "ArchiaEmu-Setup-*.exe" | Select-Object -First 1
+          if (!$installer) { throw "Installer output is missing." }
+          if ($installer.Length -lt 1MB) { throw "Installer is unexpectedly small ($($installer.Length) bytes)." }
+          Write-Host "Verified installer: $($installer.FullName) ($($installer.Length) bytes)"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArchiaEmu-Windows-Installer
+          path: dist/ArchiaEmu-Setup-*.exe
+          if-no-files-found: error
