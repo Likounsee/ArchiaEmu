@@ -450,6 +450,27 @@ mod tests {
     }
 
     #[test]
+    fn session_summaries_expose_view_state_without_runtime_access() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(id).unwrap();
+
+        let summaries = app.session_summaries();
+        assert_eq!(app.session_count(), 1);
+        assert_eq!(summaries.len(), 1);
+        assert_eq!(summaries[0].id, id);
+        assert_eq!(summaries[0].state, SessionState::Empty);
+        assert!(!summaries[0].system_name.is_empty());
+        assert!(app.session_summary(id).is_ok());
+        app.close_session(id).unwrap();
+        assert!(app.session_summary(id).is_err());
+        assert!(app.session_summaries().is_empty());
+    }
+
+    #[test]
     fn backend_tick_keeps_empty_session_state_and_returns_no_frame() {
         let mut app = controller();
         let id = app
