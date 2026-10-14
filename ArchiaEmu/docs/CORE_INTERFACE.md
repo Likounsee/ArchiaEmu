@@ -90,3 +90,12 @@ This API is an initial internal contract and may evolve before the first core is
 ## Compatibilité de l'API hôte/cœur
 
 La compatibilité hôte/cœur est versionnée séparément de `core_version` via `CoreApiVersion`. La règle actuelle exige une version majeure identique et une version mineure requise inférieure ou égale à celle de l'hôte (`CURRENT_CORE_API_VERSION`). `EmulationRuntime::create_session` refuse un cœur incompatible avant de créer sa session.
+
+
+## CPU execution strategy planning
+
+The shared policy type `execution_strategy` separates a guest CPU architecture, host CPU architecture, and the host's preferences. It can select native x86-64-with-compatibility only when guest and host are both x86-64 and policy permits it; otherwise it chooses a preferred JIT or an interpreter fallback.
+
+This is only a planning primitive. It does not execute native guest code, translate instructions, implement a JIT, bridge an ABI, emulate devices, or translate graphics. Before using the selection for launch, a future versioned core/module descriptor must state which strategies the module actually implements and validate host requirements. Do not infer support from the selected console name or from this function's result.
+
+Keep three independently testable interfaces inside or alongside a console module: CPU execution, console OS/ABI/system-service compatibility, and guest-GPU command/shader translation. The existing `EmulationCore` lifecycle and common input/audio/video contracts remain the shared host boundary. Avoid adding console-specific CPU or graphics types to the desktop frontend.
