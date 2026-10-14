@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 pub(crate) struct SavedPreferences {
     pub(crate) dark_mode: bool,
     pub(crate) ui_scale: f32,
+    pub(crate) accent_rgb: [u8; 3],
     pub(crate) paths: Vec<PathBuf>,
 }
 
@@ -32,10 +33,11 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
     };
     let mut dark_mode = true;
     let mut ui_scale = 1.0f32;
+    let mut accent_rgb = [75, 115, 210];
     let mut paths = Vec::new();
     for line in contents.lines() {
         if let Some(value) = line.strip_prefix("version=") {
-            if value != "1" {
+            if value != "1" && value != "2" {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     format!("unsupported preferences version: {value}"),
@@ -49,6 +51,12 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
                     ui_scale = parsed.clamp(0.8, 1.4);
                 }
             }
+        } else if let Some(value) = line.strip_prefix("accent=") {
+            if value.len() == 6 {
+                if let (Ok(r), Ok(g), Ok(b)) = (u8::from_str_radix(&value[0..2], 16), u8::from_str_radix(&value[2..4], 16), u8::from_str_radix(&value[4..6], 16)) {
+                    accent_rgb = [r, g, b];
+                }
+            }
         } else if let Some(value) = line.strip_prefix("path=") {
             if let Some(decoded) = unescape_config_value(value) {
                 paths.push(PathBuf::from(decoded));
@@ -58,6 +66,7 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
     Ok(Some(SavedPreferences {
         dark_mode,
         ui_scale,
+        accent_rgb,
         paths,
     }))
 }
@@ -66,6 +75,7 @@ pub(crate) fn write_preferences(
     path: &Path,
     dark_mode: bool,
     ui_scale: f32,
+    accent_rgb: [u8; 3],
     paths: &[PathBuf],
 ) -> std::io::Result<()> {
     let parent = path.parent().ok_or_else(|| {
@@ -75,7 +85,7 @@ pub(crate) fn write_preferences(
         )
     })?;
     fs::create_dir_all(parent)?;
-    let mut contents = format!("version=1\ndark={dark_mode}\nscale={ui_scale:.3}\n");
+    let mut contents = format!("version=2\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\n", accent_rgb[0], accent_rgb[1], accent_rgb[2]);
     for path in paths {
         contents.push_str("path=");
         contents.push_str(&escape_config_value(&path.to_string_lossy()));
