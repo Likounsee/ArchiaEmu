@@ -41,9 +41,13 @@ impl DesktopApp {
             let video_available = summary.video_available;
             let audio_available = summary.audio_available;
             let active_error = summary.last_error;
-            let tick_error = self.last_tick_error.as_ref()
-                .filter(|(error_id, _)| *error_id == id)
-                .map(|(_, error)| error.clone());
+            let tick_error = self.last_tick_error.as_ref().and_then(|(error_id, error)| {
+                if *error_id == id {
+                    Some(error.clone())
+                } else {
+                    None
+                }
+            });
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal(|ui| {
                     let selected = self.controller.active_session() == Some(id);
