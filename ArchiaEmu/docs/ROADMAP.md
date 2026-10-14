@@ -138,7 +138,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 - [x] Synchroniser pause/reprise et purger l'audio lors de l'arrêt, de la réinitialisation, du changement ou de la fermeture des sessions.
 - [x] Tester la collecte du signal PCM déterministe depuis un cœur de test, la normalisation i16 vers f32 et la limite de file audio.
 - [ ] Valider en CI le rendu audio sur les trois plateformes; l'accès à un vrai périphérique audio n'est pas garanti dans les runners headless.
-- [ ] Documenter formats de pixels, formats audio, limites de mémoire et comportement en cas de capacité absente.
+- [x] Documenter formats audio, limites de buffers, repli sans périphérique et comportement en cas de capacité absente dans `docs/AUDIO_OUTPUT.md`.
 - [x] Nettoyer la file audio lors du changement/arrêt d'une session; les textures vidéo continuent d'être libérées par les chemins existants.
 
 **Critère de sortie :** les sorties annoncées sont présentées par des adaptateurs testés; aucune fonctionnalité média inexistante n'est présentée comme opérationnelle.
