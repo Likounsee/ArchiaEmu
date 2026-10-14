@@ -161,7 +161,10 @@ pub(crate) fn write_preferences(
     let had_previous = path.exists();
     if had_previous {
         if backup.exists() {
-            fs::remove_file(&backup)?;
+            if let Err(error) = fs::remove_file(&backup) {
+                let _ = fs::remove_file(&temporary);
+                return Err(error);
+            }
         }
         if let Err(error) = fs::rename(path, &backup) {
             let _ = fs::remove_file(&temporary);
