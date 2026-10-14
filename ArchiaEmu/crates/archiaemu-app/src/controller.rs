@@ -6,9 +6,10 @@
 use std::error::Error;
 use std::fmt;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
-use archiaemu_core::core_io::InputEvent;
+use archiaemu_core::core_io::{FrameCadence, InputEvent, VideoFrame};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeError, SessionId};
 use archiaemu_core::runtime::{SessionError, SessionState};
 use archiaemu_core::CoreRegistry;
@@ -53,6 +54,21 @@ impl Error for SessionCommandError {
             Self::Session(error) => Some(error),
         }
     }
+}
+
+/// A bounded update produced by the application backend for a desktop frame tick.
+#[derive(Debug)]
+pub struct SessionAdvance {
+    /// Session state after execution and media collection.
+    pub state: SessionState,
+    /// Whether the active core advertises video output.
+    pub video_available: bool,
+    /// Whether the active core advertises audio output.
+    pub audio_available: bool,
+    /// Newest video frame collected during this tick, if any.
+    pub newest_frame: Option<VideoFrame>,
+    /// First execution or media error observed during this tick.
+    pub error: Option<String>,
 }
 
 /// Owns the state that every ArchiaEmu frontend must share.
@@ -213,6 +229,58 @@ impl ApplicationController {
     pub fn close_all_sessions(&mut self) -> usize {
         self.active_session = None;
         self.host.close_all_sessions()
+    }
+
+    /// Advances one session tick and drains a bounded amount of media output.
+    ///
+    /// Scheduling, core execution, and queue draining stay behind the backend boundary;
+    /// frontends receive only the latest frame and status needed to render the result.
+    pub fn advance_session(
+        &mut self,
+        id: SessionId,
+        elapsed: Duration,
+        cadence: &mut FrameCadence,
+    ) -> Result<SessionAdvance, HostRuntimeError> {
+        let session = self.host.session_mut(id)?;
+        let initial_state = session.state();
+        let capabilities = session.descriptor().capabilities;
+        let due = session.advance_frame_cadence(cadence, elapsed);
+        let mut error = None;
+
+        if initial_state == SessionState::Running {
+            for _ in 0..due.due_frames {
+                if let Err(run_error) = session.run_for_events(1024) {
+                    error = Some(format!("Execution error: {run_error}"));
+                    break;
+                }
+                if session.state() != SessionState::Running {
+                    break;
+                }
+            }
+        }
+
+        let mut newest_frame = None;
+        if capabilities.video_output && session.state() != SessionState::Empty {
+            // Bound queue draining and retain only the newest frame for presentation.
+            for _ in 0..64 {
+                match session.take_video_frame() {
+                    Ok(Some(frame)) => newest_frame = Some(frame),
+                    Ok(None) => break,
+                    Err(frame_error) => {
+                        error = Some(format!("Video output error: {frame_error}"));
+                        break;
+                    }
+                }
+            }
+        }
+
+        Ok(SessionAdvance {
+            state: session.state(),
+            video_available: capabilities.video_output,
+            audio_available: capabilities.audio_output,
+            newest_frame,
+            error,
+        })
     }
 
     /// Sends a semantic input transition to a session through the shared controller.
