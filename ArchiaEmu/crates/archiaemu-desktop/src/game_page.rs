@@ -21,17 +21,11 @@ impl DesktopApp {
         ui.add_space(8.0);
 
         let active = self.controller.active_session();
-        let session_summary = active.and_then(|id| {
-            self.controller.host().session(id).ok().map(|session| {
-                (
-                    id,
-                    session.state(),
-                    session.descriptor().display_name.to_owned(),
-                    session.descriptor().capabilities,
-                )
-            })
-        });
-        if let Some((id, state, system, capabilities)) = session_summary {
+        let session_summary = active.and_then(|id| self.controller.session_summary(id).ok());
+        if let Some(summary) = session_summary {
+            let id = summary.id;
+            let state = summary.state;
+            let system = summary.system_name;
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
@@ -64,13 +58,13 @@ impl DesktopApp {
                 });
                 ui.separator();
                 ui.horizontal(|ui| {
-                    ui.label(if capabilities.video_output {
+                    ui.label(if summary.video_available {
                         "Video: available"
                     } else {
                         "Video: not implemented by this core"
                     });
                     ui.separator();
-                    ui.label(if capabilities.audio_output {
+                    ui.label(if summary.audio_available {
                         "Audio: core capability declared"
                     } else {
                         "Audio: unavailable"
