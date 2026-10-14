@@ -165,9 +165,9 @@ impl DesktopApp {
                     });
                     ui.separator();
                     ui.label(if audio_available {
-                        "Audio: available"
+                        "Audio core output: declared"
                     } else {
-                        "Audio: unavailable"
+                        "Audio core output: unavailable"
                     });
                 });
                 if let Some(error) = tick_error {
