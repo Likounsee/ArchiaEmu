@@ -228,7 +228,7 @@ fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
 }
 
 fn validate_https_url(url: &str, label: &str) -> Result<(), String> {
-    if url.chars().any(|character| character.is_control() || character == '\\\\') {
+    if url.chars().any(|character| character.is_control() || character == char::from(92)) {
         return Err(format!("The {label} URL contains a forbidden control character or backslash."));
     }
     let authority = url
