@@ -204,4 +204,43 @@ mod tests {
         assert_eq!(saved.accent_rgb, [75, 115, 210]);
         let _ = fs::remove_file(path);
     }
-}
+
+    #[test]
+    fn unknown_preferences_version_is_rejected() {
+        let path = temporary_config("unknown-version");
+        fs::write(&path, "version=99\ndark=false\n")
+            .expect("preferences should be written");
+
+        let error = load_preferences(&path).expect_err("unknown version must be rejected");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("unsupported preferences version"));
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn malformed_values_fall_back_to_safe_defaults() {
+        let path = temporary_config("malformed-values");
+        fs::write(
+            &path,
+            "version=2\ndark=not-a-bool\nscale=NaN\naccent=GG11ZZ\npath=bad\\qpath\n",
+        )
+        .expect("malformed preferences should be written");
+
+        let saved = load_preferences(&path)
+            .expect("malformed values should not crash loading")
+            .expect("preferences file should exist");
+        assert!(saved.dark_mode);
+        assert!((saved.ui_scale - 1.0).abs() < f32::EPSILON);
+        assert_eq!(saved.accent_rgb, [75, 115, 210]);
+        assert!(saved.paths.is_empty());
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn missing_preferences_file_is_a_normal_first_run() {
+        let path = temporary_config("missing-file");
+        let _ = fs::remove_file(&path);
+        assert!(load_preferences(&path)
+            .expect("missing preferences should not be an I/O failure")
+            .is_none());
+    }
