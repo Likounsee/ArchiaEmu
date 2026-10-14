@@ -4,7 +4,7 @@ use super::*;
 
 impl DesktopApp {
     pub(super) fn show_settings(&mut self, ui: &mut egui::Ui, context: &egui::Context) {
-        ui.heading("Appearance");
+        ui.heading("Host settings · appearance");
         ui.label(
             "These options change the host interface only; they never change emulated hardware.",
         );
@@ -33,7 +33,7 @@ impl DesktopApp {
             );
         });
         ui.add_space(12.0);
-        ui.heading("Application");
+        ui.heading("Host settings · application");
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.label("ArchiaEmu is under active development.");
             ui.label("The Game Boy Color core is experimental; launching a ROM does not imply compatibility.");
@@ -41,6 +41,14 @@ impl DesktopApp {
             if ui.button("Save settings now").clicked() && self.save_preferences() {
                 self.message = "Settings saved.".to_owned();
             }
+        });
+
+        ui.add_space(12.0);
+        ui.heading("Core settings · not available yet");
+        egui::Frame::group(ui.style()).show(ui, |ui| {
+            ui.label("These settings belong to a future emulation core and are deliberately separate from host appearance preferences.");
+            ui.label("No core-specific hardware settings are currently exposed by this application.");
+            ui.add_enabled(false, egui::Button::new("Core settings will appear when a core supports them"));
         });
 
         ui.add_space(12.0);
