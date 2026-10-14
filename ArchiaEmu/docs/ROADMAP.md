@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 34 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
+| **P1** | **Application desktop utilisable — priorité actuelle** | **≈ 35 %** | Une application cohérente permettant de gérer une bibliothèque et des sessions, avec parcours fiables, paramètres, diagnostics et architecture maintenable |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
