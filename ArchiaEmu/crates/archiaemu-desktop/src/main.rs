@@ -235,7 +235,9 @@ impl DesktopApp {
 
     fn navigate_to(&mut self, page: DesktopPage) {
         if self.active_page == DesktopPage::Game && page != DesktopPage::Game {
-            self.release_game_inputs();
+            if let Err(error) = self.release_game_inputs() {
+                self.message = error;
+            }
         }
         self.active_page = page;
     }
@@ -647,7 +649,11 @@ impl DesktopApp {
                             self.send_game_input(control, pressed);
                         }
                     }
-                    egui::Event::WindowFocused(false) => self.release_game_inputs(),
+                    egui::Event::WindowFocused(false) => {
+                        if let Err(error) = self.release_game_inputs() {
+                            self.message = error;
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -747,17 +753,13 @@ impl DesktopApp {
         }
     }
 
-    fn release_game_inputs(&mut self) {
+    fn release_game_inputs(&mut self) -> Result<(), String> {
         let Some(id) = self.controller.active_session() else {
-            return;
+            return Ok(());
         };
-        let result = self
-            .controller
+        self.controller
             .release_inputs(id)
-            .map_err(|error| error.to_string());
-        if let Err(error) = result {
-            self.message = format!("Could not release held inputs: {error}");
-        }
+            .map_err(|error| format!("Could not release held inputs: {error}"))
     }
 }
 
