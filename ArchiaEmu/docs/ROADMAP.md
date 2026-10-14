@@ -77,7 +77,6 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Détecter à l'affichage les chemins de bibliothèque devenus indisponibles, expliquer qu'une réimportation est nécessaire et désactiver le lancement direct quand le chemin ne désigne plus un fichier.
 - [x] Ajouter des tests unitaires des états de chemin : fichier absent, répertoire au lieu d'un fichier et fichier existant en attente de validation du lancement.
 - [x] Tester le refus d'un format inconnu sans créer de session fantôme ni modifier la session active.
-- [x] Tester le refus d'un format inconnu sans créer de session fantôme ni modifier la session active.
 - [x] Tester le refus par le cœur d'une ROM détectée mais invalide, sans modifier les sessions existantes.
 - [x] Tester le rejet d'un contenu reconnu par plusieurs sondes, sans créer de session fantôme ni changer la sélection active.
 - [x] Tester la disparition d'un fichier déjà importé et vérifier que sa disponibilité passe à « manquant »; les erreurs d'ouverture sont propagées par le pipeline de chargement. Le test de permissions OS strictement inaccessibles reste dépendant de la plateforme.
@@ -168,7 +167,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale de livraison est Windows, cohérente avec le besoin d'un installateur .exe; les autres plateformes doivent continuer à passer leurs quality gates sans être considérées comme livrées si aucun paquet n'est produit.
 
 - [x] Choisir et documenter Inno Setup 6 comme technologie de l'installateur Windows; script versionné dans `packaging/windows/ArchiaEmu.iss`.
-- [ ] Construire l'application desktop en mode release depuis un environnement propre, avec versions verrouillées. Le workflow release existe, mais le crate desktop n'a pas encore de lockfile dédié validé.
+- [ ] Construire l'application desktop en mode release depuis un environnement propre, avec versions verrouillées. Le workflow release existe, mais le crate desktop n'a pas encore de lockfile dédié validé; le build du workflow n'utilise donc pas encore `--locked` et ne garantit pas une résolution identique des dépendances d'un run à l'autre.
 - [ ] Recenser et embarquer tous les fichiers, bibliothèques natives, ressources et runtimes réellement requis; le workflow stage actuellement le binaire seul, à confirmer sur une VM Windows propre.
 - [x] Ajouter un workflow Windows x64 qui construit l'application, génère l'installateur versionné et son checksum SHA-256, publie un artefact de workflow et joint l'installateur aux releases créées depuis un tag `v*`; le premier run et ses résultats restent à vérifier.
 - [x] Installer dans un répertoire local choisi, avec mode utilisateur par défaut et possibilité d'élévation; les préférences restent dans `%APPDATA%\\ArchiaEmu\\desktop.conf`, pas à côté de l'exécutable. Vérification réelle des chemins en VM toujours requise.
