@@ -293,6 +293,18 @@ mod tests {
     }
 
     #[test]
+    fn refuses_to_write_preferences_that_loader_would_reject() {
+        let path = temporary_config("oversized-write");
+        let oversized_path = PathBuf::from("x".repeat(MAX_PREFERENCES_BYTES + 1));
+
+        let error = write_preferences(&path, true, 1.0, [75, 115, 210], &[oversized_path])
+            .expect_err("oversized serialized preferences must be rejected");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+        assert!(error.to_string().contains("serialized preferences exceed"));
+        assert!(!path.exists(), "rejected preferences must not create a config file");
+    }
+
+    #[test]
     fn saves_and_restores_accent_color() {
         let path = temporary_config("accent-roundtrip");
         let paths = vec![PathBuf::from("library/game.gb")];
