@@ -128,6 +128,40 @@ impl LibrarySort {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum UiStatus {
+    Loading,
+    Success,
+    Error,
+    ContentAbsent,
+    CapabilityUnavailable,
+    Information,
+}
+
+impl UiStatus {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Loading => "Loading",
+            Self::Success => "Success",
+            Self::Error => "Error",
+            Self::ContentAbsent => "No content",
+            Self::CapabilityUnavailable => "Capability unavailable",
+            Self::Information => "Ready",
+        }
+    }
+
+    fn color(self) -> egui::Color32 {
+        match self {
+            Self::Loading => egui::Color32::LIGHT_BLUE,
+            Self::Success => egui::Color32::from_rgb(95, 190, 140),
+            Self::Error => egui::Color32::LIGHT_RED,
+            Self::ContentAbsent => egui::Color32::GRAY,
+            Self::CapabilityUnavailable => egui::Color32::from_rgb(220, 160, 70),
+            Self::Information => egui::Color32::from_rgb(130, 160, 190),
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum DesktopPage {
     Home,
@@ -355,6 +389,53 @@ impl DesktopApp {
             }
             Err(error) => self.message = format!("Launch failed: {error}"),
         }
+    }
+
+    fn ui_status(&self) -> UiStatus {
+        if self.update_check_receiver.is_some() || self.update_download_receiver.is_some() {
+            return UiStatus::Loading;
+        }
+
+        let message = self.message.to_ascii_lowercase();
+        if [
+            "import failed:",
+            "launch failed:",
+            "could not ",
+            "preferences unavailable:",
+            "input error:",
+        ]
+        .iter()
+        .any(|prefix| message.starts_with(prefix))
+            || (message.starts_with("session ") && message.contains(" failed:"))
+        {
+            return UiStatus::Error;
+        }
+
+        if (self.active_page == DesktopPage::Library && self.controller.library().is_empty())
+            || (self.active_page == DesktopPage::Sessions && self.controller.session_count() == 0)
+            || (self.active_page == DesktopPage::Game && self.controller.active_session().is_none())
+        {
+            return UiStatus::ContentAbsent;
+        }
+
+        if self.active_page == DesktopPage::Game
+            && (self.media_status.contains("does not currently advertise")
+                || self.media_status.contains("unavailable"))
+        {
+            return UiStatus::CapabilityUnavailable;
+        }
+
+        if message.starts_with("imported ")
+            || message.starts_with("launched ")
+            || message.starts_with("closed ")
+            || message.starts_with("removed ")
+            || message.contains(" succeeded.")
+            || message.starts_with("settings saved")
+        {
+            return UiStatus::Success;
+        }
+
+        UiStatus::Information
     }
 
     fn save_preferences(&mut self) -> bool {
@@ -613,22 +694,8 @@ impl eframe::App for DesktopApp {
             ui.add_space(12.0);
             ui.separator();
             ui.horizontal_wrapped(|ui| {
-                let is_error = [
-                    "Import failed:",
-                    "Launch failed:",
-                    "Could not ",
-                    "Preferences unavailable:",
-                    "Session ",
-                ]
-                .iter()
-                .any(|prefix| self.message.starts_with(prefix))
-                    && !self.message.ends_with(" succeeded.");
-                let (symbol, color) = if is_error {
-                    ("●", egui::Color32::LIGHT_RED)
-                } else {
-                    ("●", egui::Color32::from_rgb(95, 190, 140))
-                };
-                ui.colored_label(color, symbol);
+                let status = self.ui_status();
+                ui.colored_label(status.color(), format!("● {}", status.label()));
                 ui.label(&self.message);
             });
         });
