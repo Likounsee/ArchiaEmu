@@ -69,6 +69,24 @@ jobs:
           if ($installer.Length -lt 1MB) { throw "Installer is unexpectedly small ($($installer.Length) bytes)." }
           Write-Host "Verified installer: $($installer.FullName) ($($installer.Length) bytes)"
 
+      - name: Smoke-test install and uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installer = Get-ChildItem "$env:GITHUB_WORKSPACE/dist" -Filter "ArchiaEmu-Setup-*.exe" | Select-Object -First 1
+          if (!$installer) { throw "Installer output is missing for smoke test." }
+          $installDir = Join-Path $env:RUNNER_TEMP "ArchiaEmu Installer Smoke"
+          $install = Start-Process -FilePath $installer.FullName -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/DIR=$installDir") -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Silent install failed with exit code $($install.ExitCode)." }
+          $installedExe = Join-Path $installDir "archiaemu-desktop.exe"
+          if (!(Test-Path $installedExe)) { throw "Installed desktop executable is missing." }
+          $uninstaller = Join-Path $installDir "unins000.exe"
+          if (!(Test-Path $uninstaller)) { throw "Uninstaller executable is missing." }
+          $uninstall = Start-Process -FilePath $uninstaller -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES") -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) { throw "Silent uninstall failed with exit code $($uninstall.ExitCode)." }
+          if (Test-Path $installedExe) { throw "Installed executable remains after uninstall." }
+          Write-Host "Silent install and uninstall smoke test passed."
+
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
