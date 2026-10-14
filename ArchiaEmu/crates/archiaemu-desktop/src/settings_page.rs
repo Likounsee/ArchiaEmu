@@ -64,16 +64,45 @@ impl DesktopApp {
                 }
                 ui.label(&self.update_status);
             });
-            if let Some(manifest) = self.update_manifest.as_ref() {
+            let update_info = self.update_manifest.as_ref().map(|manifest| {
+                (
+                    manifest.version.clone(),
+                    manifest.release_notes_url.clone(),
+                    manifest.download_for_current_platform().cloned(),
+                )
+            });
+            if let Some((version, release_notes_url, download)) = update_info {
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(format!("Manifest version: {}", manifest.version));
-                    ui.hyperlink_to("Release notes", &manifest.release_notes_url);
+                    ui.label(format!("Manifest version: {version}"));
+                    ui.hyperlink_to("Release notes", &release_notes_url);
                 });
-                if manifest.download_for_current_platform().is_none() {
-                    ui.small("No installable update artifact is currently published for this platform.");
+                let current = option_env!("CARGO_PKG_VERSION").unwrap_or("0.0.0");
+                if update::is_newer_version(&version, current) {
+                    if let Some(download) = download {
+                        let downloading = self.update_download_receiver.is_some();
+                        if ui
+                            .add_enabled(!downloading, egui::Button::new("Download and verify update"))
+                            .clicked()
+                        {
+                            let (sender, receiver) = mpsc::channel();
+                            self.update_download_receiver = Some(receiver);
+                            self.update_status = format!("Downloading version {version} to a temporary staging area…");
+                            std::thread::spawn(move || {
+                                let result = update::download_and_verify(&download, &version);
+                                let _ = sender.send(result);
+                            });
+                            context.request_repaint_after(Duration::from_millis(250));
+                        }
+                    } else {
+                        ui.small("No installable update artifact is currently published for this platform.");
+                    }
                 }
             }
-            ui.small("Automatic download, installation and rollback are not enabled yet.");
+            if let Some(path) = self.staged_update_path.as_ref() {
+                ui.label(format!("Verified staged file: {}", path.display()));
+                ui.small("The file is verified but has not been installed or executed.");
+            }
+            ui.small("Automatic installation and rollback are not enabled yet.");
         });
 
         ui.add_space(12.0);
