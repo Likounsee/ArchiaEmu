@@ -127,4 +127,25 @@ mod tests {
         assert!(should_clear_backlog(MAX_QUEUED_BUFFERS));
         assert!(should_clear_backlog(MAX_QUEUED_BUFFERS + 1));
     }
+
+    #[test]
+    fn missing_audio_device_does_not_panic_or_consume_core_samples() {
+        let mut output = super::AudioOutput {
+            _stream: None,
+            sink: None,
+            status: "No audio output device".to_owned(),
+            dropped_buffers: 0,
+        };
+        let buffer = archiaemu_core::core_io::AudioBuffer::new(
+            48_000,
+            2,
+            vec![100, -100],
+        )
+        .unwrap();
+
+        output.submit(&buffer);
+
+        assert_eq!(output.status(), "No audio output device");
+        assert_eq!(output.dropped_buffers, 0);
+    }
 }
