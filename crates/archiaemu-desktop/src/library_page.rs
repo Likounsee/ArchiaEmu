@@ -1,0 +1,320 @@
+//! library page for the ArchiaEmu desktop frontend.
+
+use super::*;
+
+fn content_path_status(path: &Path) -> &'static str {
+    match std::fs::metadata(path) {
+        Ok(metadata) if metadata.is_file() => "File exists · launch validation pending",
+        Ok(_) => "Unavailable · not a regular file",
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            "Missing · re-import required"
+        }
+        Err(_) => "Unavailable · cannot read file metadata",
+    }
+}
+
+impl DesktopApp {
+    pub(super) fn show_library(&mut self, ui: &mut egui::Ui) {
+        let total = self.controller.library().len();
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.heading("Your games");
+                ui.label(format!("{total} imported item(s)"));
+            });
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("＋ Import ROMs…").clicked() {
+                    self.choose_content_file();
+                }
+            });
+        });
+
+        ui.add_space(8.0);
+        egui::Frame::group(ui.style()).show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("⌕ Search");
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.library_filter)
+                        .hint_text("Search titles and file paths…")
+                        .desired_width(260.0),
+                );
+                egui::ComboBox::from_id_source("library_format_filter")
+                    .selected_text(self.library_format.label())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(
+                            &mut self.library_format,
+                            LibraryFormat::All,
+                            "All formats",
+                        );
+                        ui.selectable_value(
+                            &mut self.library_format,
+                            LibraryFormat::GameBoy,
+                            "Game Boy (.gb)",
+                        );
+                        ui.selectable_value(
+                            &mut self.library_format,
+                            LibraryFormat::GameBoyColor,
+                            "Game Boy Color (.gbc)",
+                        );
+                    });
+                egui::ComboBox::from_id_source("library_sort")
+                    .selected_text(self.library_sort.label())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(
+                            &mut self.library_sort,
+                            LibrarySort::Name,
+                            "Title (A–Z)",
+                        );
+                        ui.selectable_value(
+                            &mut self.library_sort,
+                            LibrarySort::Largest,
+                            "Largest first",
+                        );
+                        ui.selectable_value(&mut self.library_sort, LibrarySort::Path, "File path");
+                    });
+                if ui.button("Clear").clicked() {
+                    self.library_filter.clear();
+                    self.library_format = LibraryFormat::All;
+                }
+            });
+        });
+
+        let query = self.library_filter.trim().to_lowercase();
+        let mut entries: Vec<_> = self
+            .controller
+            .library()
+            .entries()
+            .map(|entry| {
+                (
+                    entry.title().to_owned(),
+                    entry.path().to_path_buf(),
+                    entry.size_bytes(),
+                )
+            })
+            .filter(|(title, path, _)| {
+                (query.is_empty()
+                    || title.to_lowercase().contains(&query)
+                    || path.to_string_lossy().to_lowercase().contains(&query))
+                    && self.library_format.matches(path)
+            })
+            .collect();
+        match self.library_sort {
+            LibrarySort::Name => entries.sort_by(|a, b| {
+                a.0.to_lowercase()
+                    .cmp(&b.0.to_lowercase())
+                    .then_with(|| a.1.cmp(&b.1))
+            }),
+            LibrarySort::Largest => entries.sort_by(|a, b| {
+                b.2.cmp(&a.2)
+                    .then_with(|| a.0.to_lowercase().cmp(&b.0.to_lowercase()))
+            }),
+            LibrarySort::Path => entries.sort_by(|a, b| a.1.cmp(&b.1)),
+        }
+
+        ui.add_space(6.0);
+        ui.horizontal(|ui| {
+            ui.label(format!("Showing {} of {total}", entries.len()));
+            ui.separator();
+            let total_size: u64 = self
+                .controller
+                .library()
+                .entries()
+                .map(|entry| entry.size_bytes())
+                .sum();
+            ui.label(format!("{} total size", format_size(total_size)));
+        });
+        ui.add_space(6.0);
+
+        if entries.is_empty() {
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                ui.add_space(8.0);
+                ui.heading(if total == 0 {
+                    "Your library is empty"
+                } else if query.is_empty() && self.library_format != LibraryFormat::All {
+                    "No games in this format"
+                } else {
+                    "No matching games"
+                });
+                ui.label(if total == 0 {
+                    "Import one or more .gb or .gbc files to build your collection."
+                } else {
+                    "Try another search, change the format filter, or clear the search."
+                });
+                if total == 0 && ui.button("Browse for ROMs…").clicked() {
+                    self.choose_content_file();
+                }
+            });
+        } else {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    for (title, path, size) in entries {
+                        let selected = self.selected_content.as_ref() == Some(&path);
+                        egui::Frame::group(ui.style()).show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.vertical(|ui| {
+                                    ui.label(if selected {
+                                        "▶ SELECTED"
+                                    } else {
+                                        "GAME BOY ROM"
+                                    });
+                                    ui.heading(&title);
+                                    let extension = path
+                                        .extension()
+                                        .and_then(|value| value.to_str())
+                                        .unwrap_or("unknown")
+                                        .to_ascii_uppercase();
+                                    ui.small(format!(
+                                        "{extension} · {} · {}",
+                                        format_size(size),
+                                        path.display()
+                                    ));
+                                    let path_status = content_path_status(&path);
+                                    ui.colored_label(
+                                        if path_status.starts_with("File exists") {
+                                            ui.visuals().weak_text_color()
+                                        } else {
+                                            egui::Color32::from_rgb(210, 115, 45)
+                                        },
+                                        path_status,
+                                    );
+                                });
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        if ui.button("Forget").clicked() {
+                                            match self.controller.forget_content(&path) {
+                                                Ok(_) => {
+                                                    if self.selected_content.as_ref() == Some(&path)
+                                                    {
+                                                        self.selected_content = None;
+                                                    }
+                                                    self.message = format!(
+                                                        "Removed '{}' from the library.",
+                                                        title
+                                                    );
+                                                    self.save_preferences();
+                                                }
+                                                Err(error) => {
+                                                    self.message =
+                                                        format!("Could not forget content: {error}")
+                                                }
+                                            }
+                                        }
+                                        if ui
+                                            .add_enabled(
+                                                path.is_file(),
+                                                egui::Button::new("▶ Launch"),
+                                            )
+                                            .clicked()
+                                        {
+                                            self.selected_content = Some(path.clone());
+                                            self.content_path = path.display().to_string();
+                                            self.launch_content();
+                                        }
+                                        if ui.button("Use path").clicked() {
+                                            self.selected_content = Some(path.clone());
+                                            self.content_path = path.display().to_string();
+                                            self.message =
+                                                format!("Selected '{}' for launch.", title);
+                                        }
+                                        if ui
+                                            .button(if selected { "Selected" } else { "Select" })
+                                            .clicked()
+                                        {
+                                            self.selected_content = Some(path.clone());
+                                            self.content_path = path.display().to_string();
+                                        }
+                                    },
+                                );
+                            });
+                        });
+                    }
+                });
+        }
+
+        let selected_details = self.selected_content.clone().and_then(|path| {
+            self.controller
+                .library()
+                .entries()
+                .find(|entry| entry.path() == path)
+                .map(|entry| (path, entry.title().to_owned(), entry.size_bytes()))
+        });
+        if let Some((path, title, size)) = selected_details {
+            ui.add_space(8.0);
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        ui.heading("Selected content");
+                        ui.label(&title);
+                        ui.small(path.display().to_string());
+                        ui.small(format!(
+                            "{} · {}",
+                            format_size(size),
+                            content_path_status(&path)
+                        ));
+                    });
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui
+                            .add_enabled(path.is_file(), egui::Button::new("Launch selected"))
+                            .clicked()
+                        {
+                            self.content_path = path.display().to_string();
+                            self.launch_content();
+                        }
+                    });
+                });
+            });
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::content_path_status;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn unique_temp_path(label: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "archiaemu-library-{label}-{}-{nonce}",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn missing_library_path_requests_reimport() {
+        let path = unique_temp_path("missing");
+        assert_eq!(content_path_status(&path), "Missing · re-import required");
+    }
+
+    #[test]
+    fn directory_is_not_reported_as_launchable_content() {
+        let path = unique_temp_path("directory");
+        std::fs::create_dir(&path).expect("create temporary test directory");
+
+        assert_eq!(
+            content_path_status(&path),
+            "Unavailable · not a regular file"
+        );
+
+        std::fs::remove_dir(&path).expect("remove temporary test directory");
+    }
+
+    #[test]
+    fn existing_regular_file_requires_launch_validation() {
+        let path = unique_temp_path("file");
+        std::fs::write(&path, b"test").expect("create temporary test file");
+
+        assert_eq!(
+            content_path_status(&path),
+            "File exists · launch validation pending"
+        );
+
+        std::fs::remove_file(&path).expect("remove temporary test file");
+    }
+}
+
