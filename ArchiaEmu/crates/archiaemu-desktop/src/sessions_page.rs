@@ -84,7 +84,7 @@ impl DesktopApp {
                             }
                         }
                     }
-                    ui.label(system_name);
+                    ui.label(&system_name);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("Close").clicked() {
                             let was_active = self.controller.active_session() == Some(id);
@@ -235,7 +235,7 @@ impl DesktopApp {
                             .as_deref()
                             .unwrap_or("none recorded");
                         let report = format!(
-                            "ArchiaEmu session diagnostics\\nSession ID: {}\\nActive: {}\\nState: {:?}\\nSystem: {}\\nContent loaded: {}\\nSource path: {}\\nVideo capability: {}\\nAudio capability: {}\\nLast tick/media error: {}\\nLast core error: {}",
+                            "ArchiaEmu session diagnostics\nSession ID: {}\nActive: {}\nState: {:?}\nSystem: {}\nContent loaded: {}\nSource path: {}\nVideo capability: {}\nAudio capability: {}\nLast tick/media error: {}\nLast core error: {}",
                             id.get(),
                             self.controller.active_session() == Some(id),
                             state,
