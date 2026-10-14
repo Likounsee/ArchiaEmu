@@ -606,6 +606,7 @@ mod tests {
     struct AudioQueueCore {
         loaded: bool,
         pending_audio: VecDeque<AudioBuffer>,
+        run_count: usize,
     }
 
     impl archiaemu_core::EmulationCore for AudioQueueCore {
@@ -642,6 +643,7 @@ mod tests {
             if !self.loaded {
                 return Err(archiaemu_core::CoreError::NotInitialized);
             }
+            self.run_count += 1;
             Ok(archiaemu_core::CoreEvent::Yielded)
         }
 
@@ -661,6 +663,7 @@ mod tests {
             .create_session(Box::new(AudioQueueCore {
                 loaded: false,
                 pending_audio: std::iter::once(expected.clone()).collect(),
+                run_count: 0,
             }))
             .unwrap();
         app.host_mut()
@@ -690,6 +693,7 @@ mod tests {
             .create_session(Box::new(AudioQueueCore {
                 loaded: false,
                 pending_audio: buffers.clone().into_iter().collect(),
+                run_count: 0,
             }))
             .unwrap();
         app.host_mut()
@@ -708,6 +712,38 @@ mod tests {
             .advance_session(id, Duration::ZERO, &mut cadence)
             .unwrap();
         assert_eq!(second.audio_buffers, buffers[16..].to_vec());
+    }
+
+    #[test]
+    fn media_session_does_not_advance_while_paused_and_resumes_cleanly() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(AudioQueueCore {
+                loaded: false,
+                pending_audio: VecDeque::new(),
+                run_count: 0,
+            }))
+            .unwrap();
+        app.host_mut()
+            .session_mut(id)
+            .unwrap()
+            .load_content(&[1])
+            .unwrap();
+        let mut cadence = FrameCadence::new(60, 3).unwrap();
+
+        app.advance_session(id, Duration::from_millis(17), &mut cadence)
+            .unwrap();
+        assert_eq!(app.host().session(id).unwrap().core_run_count_for_test(), 1);
+        app.command_session(id, SessionCommand::Pause).unwrap();
+        app.advance_session(id, Duration::from_secs(10), &mut cadence)
+            .unwrap();
+        assert_eq!(app.host().session(id).unwrap().core_run_count_for_test(), 1);
+
+        app.command_session(id, SessionCommand::Resume).unwrap();
+        app.advance_session(id, Duration::from_millis(17), &mut cadence)
+            .unwrap();
+        assert_eq!(app.host().session(id).unwrap().core_run_count_for_test(), 2);
     }
 
     #[test]
