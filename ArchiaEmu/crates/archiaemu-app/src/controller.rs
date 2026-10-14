@@ -695,7 +695,7 @@ mod tests {
             .create_session(Box::new(AudioQueueCore {
                 loaded: false,
                 pending_audio: buffers.clone().into_iter().collect(),
-                run_count: 0,
+                run_count: Arc::new(AtomicUsize::new(0)),
             }))
             .unwrap();
         app.host_mut()
@@ -746,7 +746,7 @@ mod tests {
         app.command_session(id, SessionCommand::Resume).unwrap();
         app.advance_session(id, Duration::from_millis(17), &mut cadence)
             .unwrap();
-        assert_eq!(app.host().session(id).unwrap().core_run_count_for_test(), 2);
+        assert_eq!(run_count.load(Ordering::SeqCst), 2);
     }
 
     #[test]
