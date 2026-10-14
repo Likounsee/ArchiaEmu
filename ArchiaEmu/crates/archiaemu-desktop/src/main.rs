@@ -318,11 +318,7 @@ impl DesktopApp {
                 self.content_path = path.display().to_string();
                 self.selected_content = Some(path);
             }
-            if imported > 0 {
-                self.save_preferences();
-                self.active_page = DesktopPage::Library;
-            }
-            self.message = if rejected == 0 {
+            let import_message = if rejected == 0 {
                 format!("Imported {imported} ROM(s) into your library.")
             } else {
                 let detail = if failures.is_empty() {
@@ -334,6 +330,16 @@ impl DesktopApp {
                     "Imported {imported} ROM(s); {rejected} file(s) skipped or rejected.{detail}"
                 )
             };
+            self.message = import_message.clone();
+            if imported > 0 {
+                self.active_page = DesktopPage::Library;
+                if !self.save_preferences() {
+                    let save_error = std::mem::replace(&mut self.message, String::new());
+                    self.message = format!(
+                        "{import_message} Library changes are active for this session, but preferences were not saved. {save_error}"
+                    );
+                }
+            }
         }
     }
 
