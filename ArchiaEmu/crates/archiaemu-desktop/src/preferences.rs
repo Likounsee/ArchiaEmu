@@ -264,8 +264,11 @@ mod tests {
     #[test]
     fn oversized_preferences_and_recovery_backup_are_rejected() {
         let path = temporary_config("oversized-config");
-        fs::write(&path, vec![b'x'; MAX_PREFERENCES_BYTES + 1])
-            .expect("oversized preferences fixture should be written");
+        let mut oversized = vec![b'x'; MAX_PREFERENCES_BYTES + 1];
+        // The first byte beyond the limit is invalid UTF-8. The size limit
+        // must take precedence over text decoding for oversized input.
+        oversized[MAX_PREFERENCES_BYTES] = 0xFF;
+        fs::write(&path, oversized).expect("oversized preferences fixture should be written");
 
         let error = load_preferences(&path).expect_err("oversized config must be rejected");
         assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
