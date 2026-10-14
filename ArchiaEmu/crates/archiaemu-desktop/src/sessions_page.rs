@@ -37,7 +37,7 @@ impl DesktopApp {
                 ui.heading("No open sessions");
                 ui.label("Launch a game from your library to create a session.");
                 if ui.button("Browse library").clicked() {
-                    self.active_page = DesktopPage::Library;
+                    self.navigate_to(DesktopPage::Library);
                 }
             });
         }
