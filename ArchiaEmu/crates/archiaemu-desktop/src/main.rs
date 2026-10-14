@@ -351,7 +351,7 @@ impl DesktopApp {
             };
             self.message = import_message.clone();
             if imported > 0 {
-                self.active_page = DesktopPage::Library;
+                self.navigate_to(DesktopPage::Library);
                 if !self.save_preferences() {
                     let save_error = std::mem::replace(&mut self.message, String::new());
                     self.message = format!(
@@ -380,7 +380,7 @@ impl DesktopApp {
                     format_size(entry.size_bytes())
                 );
                 self.message = import_message.clone();
-                self.active_page = DesktopPage::Library;
+                self.navigate_to(DesktopPage::Library);
                 if !self.save_preferences() {
                     let save_error = std::mem::replace(&mut self.message, String::new());
                     self.message = format!(
