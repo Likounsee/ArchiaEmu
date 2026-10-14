@@ -635,7 +635,9 @@ mod tests {
             Ok(())
         }
 
-        fn run_until_event(&mut self) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
+        fn run_until_event(
+            &mut self,
+        ) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
             if !self.loaded {
                 return Err(archiaemu_core::CoreError::NotInitialized);
             }
@@ -660,7 +662,11 @@ mod tests {
                 pending_audio: Some(expected.clone()),
             }))
             .unwrap();
-        app.host_mut().session_mut(id).unwrap().load_content(&[1]).unwrap();
+        app.host_mut()
+            .session_mut(id)
+            .unwrap()
+            .load_content(&[1])
+            .unwrap();
         let mut cadence = FrameCadence::new(60, 3).unwrap();
 
         let update = app
