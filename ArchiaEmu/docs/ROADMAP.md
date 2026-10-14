@@ -13,7 +13,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | Majoritairement terminé | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 50 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
+| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 52 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | En cours | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | En cours | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | En cours | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
@@ -59,7 +59,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Première adaptation responsive du desktop : navigation latérale remplacée par une barre horizontale défilante sous 980 px, cartes d'accueil adaptées à la largeur, barres d'actions repliables et taille minimale de fenêtre abaissée à 640 × 480.
 - [ ] Vérifier visuellement les pages à plusieurs tailles de fenêtre et corriger les éventuels débordements restants; les dispositions adaptatives et la navigation clavier existent, mais la vérification visuelle manuelle n'a pas été exécutée.
 - [x] Retirer les accès directs au runtime depuis les vues pour les lectures de sessions; exposer au contrôleur le nombre de sessions et des résumés de session stables. Les commandes de cycle de vie restent aussi derrière le contrôleur.
-- [ ] Unifier les états de vue chargement/succès/absence/capacité indisponible/erreur dans un modèle typé commun. Les pages affichent déjà des états vides, indisponibilités, validations en attente et erreurs, mais la migration complète du système de messages reste à faire.
+- [ ] Unifier les états de vue chargement/succès/absence/capacité indisponible/erreur dans un modèle typé commun. Les pages affichent déjà des états vides, indisponibilités, validations en attente et erreurs; la migration complète du système de messages reste à faire.
 - [x] Ajouter une première série de tests ciblés du contrôleur pour les transitions invalides, les identifiants fermés, les lancements rejetés et la cohérence de la sélection; les tests de frontend et les autres états de vue restent à faire.
 - [ ] Valider les changements avec `cargo fmt --all -- --check`, `cargo test --workspace --locked`, `cargo clippy --workspace --all-targets --locked -- -D warnings` et la CI multiplateforme.
 
@@ -72,7 +72,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Sélectionner un contenu, lancer via le pipeline commun et afficher les erreurs de validation/lancement.
 - [x] Supprimer une entrée avec désélection cohérente.
 - [x] Persister la bibliothèque entre les redémarrages via les préférences, revalider chaque chemin au chargement et signaler les fichiers absents/invalides avec quelques détails pour permettre leur réimport.
-- [x] Enrichir le modèle de bibliothèque avec le chemin source, le nom affiché, un indice de format issu de l'extension, un indice de système compatible, le dernier résultat de lancement et une disponibilité vérifiée en direct. L'extension reste un indice et ne remplace pas la détection par sonde ni la validation du cœur.
+- [x] Enrichir le modèle de bibliothèque avec le chemin source, le nom affiché, la détection réelle par sondes sur les octets (distincte de l'indice d'extension), un indice de système compatible, le dernier résultat de lancement et une disponibilité vérifiée en direct. Les détections ambiguës/incomplètes restent explicites et la validation du cœur reste une étape distincte.
 - [x] Prévoir des états vides utiles et des actions claires lorsque la bibliothèque ne contient aucun fichier.
 - [x] Détecter à l'affichage les chemins de bibliothèque devenus indisponibles, expliquer qu'une réimportation est nécessaire et désactiver le lancement direct quand le chemin ne désigne plus un fichier.
 - [x] Ajouter des tests unitaires des états de chemin : fichier absent, répertoire au lieu d'un fichier et fichier existant en attente de validation du lancement.
