@@ -22,7 +22,7 @@ impl DesktopApp {
             });
         });
         ui.add_space(8.0);
-        let sessions = self.controller.host().session_ids();
+        let sessions = self.controller.session_summaries();
         if sessions.is_empty() {
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.heading("No open sessions");
@@ -32,18 +32,11 @@ impl DesktopApp {
                 }
             });
         }
-        for id in sessions {
-            let (state, system_name, active_error) = match self.controller.host().session(id) {
-                Ok(session) => (
-                    session.state(),
-                    session.descriptor().display_name.to_owned(),
-                    session.last_core_error().map(|error| error.to_string()),
-                ),
-                Err(error) => {
-                    self.message = error.to_string();
-                    continue;
-                }
-            };
+        for summary in sessions {
+            let id = summary.id;
+            let state = summary.state;
+            let system_name = summary.system_name;
+            let active_error = summary.last_error;
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal(|ui| {
                     let selected = self.controller.active_session() == Some(id);
