@@ -51,9 +51,8 @@ fn read_preferences_file(path: &Path) -> std::io::Result<String> {
             format!("preferences file exceeds the {MAX_PREFERENCES_BYTES}-byte limit"),
         ));
     }
-    String::from_utf8(bytes).map_err(|error| {
-        std::io::Error::new(std::io::ErrorKind::InvalidData, error)
-    })
+    String::from_utf8(bytes)
+        .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))
 }
 
 pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
@@ -71,9 +70,7 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
                     let _ = fs::rename(&backup, path);
                     contents
                 }
-                Err(backup_error)
-                    if backup_error.kind() == std::io::ErrorKind::NotFound =>
-                {
+                Err(backup_error) if backup_error.kind() == std::io::ErrorKind::NotFound => {
                     return Ok(None);
                 }
                 Err(backup_error) => return Err(backup_error),
@@ -253,7 +250,9 @@ pub(crate) fn unescape_config_value(value: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_preferences, unescape_config_value, write_preferences, MAX_PREFERENCES_BYTES};
+    use super::{
+        load_preferences, unescape_config_value, write_preferences, MAX_PREFERENCES_BYTES,
+    };
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -303,7 +302,10 @@ mod tests {
             .expect_err("oversized serialized preferences must be rejected");
         assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
         assert!(error.to_string().contains("serialized preferences exceed"));
-        assert!(!path.exists(), "rejected preferences must not create a config file");
+        assert!(
+            !path.exists(),
+            "rejected preferences must not create a config file"
+        );
     }
 
     #[test]
@@ -440,8 +442,14 @@ mod tests {
             .expect("backup should provide preferences");
         assert!(!saved.dark_mode);
         assert!((saved.ui_scale - 1.2).abs() < f32::EPSILON);
-        assert!(path.exists(), "recovery should restore the active config path");
-        assert!(!backup.exists(), "successful rename should consume the backup");
+        assert!(
+            path.exists(),
+            "recovery should restore the active config path"
+        );
+        assert!(
+            !backup.exists(),
+            "successful rename should consume the backup"
+        );
 
         let _ = fs::remove_file(path);
         let _ = fs::remove_file(backup);
@@ -482,8 +490,7 @@ mod tests {
         let stale_temporary = path.with_extension("conf.tmp");
         fs::write(&path, "version=2\ndark=false\n")
             .expect("previous preferences should be written");
-        fs::create_dir(&stale_temporary)
-            .expect("stale temporary path should be created");
+        fs::create_dir(&stale_temporary).expect("stale temporary path should be created");
 
         write_preferences(&path, true, 1.0, [75, 115, 210], &[])
             .expect("unique temporary file should allow save despite stale path");
