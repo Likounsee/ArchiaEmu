@@ -12,6 +12,9 @@ pub mod content;
 /// Platform-neutral input and owned audio/video payload contracts.
 pub mod core_io;
 
+/// Explicit CPU execution strategy planning for heterogeneous console modules.
+pub mod execution_strategy;
+
 /// Bounded, versioned save-state envelopes and compatibility checks.
 pub mod save_state;
 
