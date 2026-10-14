@@ -7,7 +7,9 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
+#[cfg(test)]
+use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
 
@@ -155,6 +157,7 @@ pub(crate) fn verify_staged_file(
     Ok(())
 }
 
+#[cfg(test)]
 pub(crate) fn write_test_file(path: &Path, contents: &[u8]) {
     let mut file = File::create(path).expect("test file should be created");
     file.write_all(contents).expect("test file should be written");
@@ -177,6 +180,7 @@ fn current_platform_key() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{is_newer_version, verify_staged_file, write_test_file, UpdateManifest};
+    use sha2::{Digest, Sha256};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
