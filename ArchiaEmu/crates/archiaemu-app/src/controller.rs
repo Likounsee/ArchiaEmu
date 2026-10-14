@@ -429,6 +429,7 @@ impl ApplicationController {
 mod tests {
     use super::*;
     use archiaemu_game_boy::GameBoyCore;
+    use std::collections::VecDeque;
 
     fn controller() -> ApplicationController {
         ApplicationController::new(HostRuntime::new(Default::default()).unwrap())
@@ -604,7 +605,7 @@ mod tests {
 
     struct AudioOnceCore {
         loaded: bool,
-        pending_audio: Option<AudioBuffer>,
+        pending_audio: VecDeque<AudioBuffer>,
     }
 
     impl archiaemu_core::EmulationCore for AudioOnceCore {
@@ -647,7 +648,7 @@ mod tests {
         fn take_audio_buffer(
             &mut self,
         ) -> Result<Option<AudioBuffer>, archiaemu_core::CoreError> {
-            Ok(self.pending_audio.take())
+            Ok(self.pending_audio.pop_front())
         }
     }
 
@@ -659,7 +660,7 @@ mod tests {
             .host_mut()
             .create_session(Box::new(AudioOnceCore {
                 loaded: false,
-                pending_audio: Some(expected.clone()),
+                pending_audio: VecDeque::from([expected.clone()]),
             }))
             .unwrap();
         app.host_mut()
@@ -676,6 +677,37 @@ mod tests {
         assert!(update.audio_available);
         assert_eq!(update.audio_buffers, vec![expected]);
         assert!(update.error.is_none());
+    }
+
+    #[test]
+    fn backend_tick_bounds_audio_drain_and_preserves_remaining_buffer_order() {
+        let buffers: Vec<_> = (0..20)
+            .map(|sample| AudioBuffer::new(48_000, 1, vec![sample]).unwrap())
+            .collect();
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(AudioOnceCore {
+                loaded: false,
+                pending_audio: buffers.clone().into_iter().collect(),
+            }))
+            .unwrap();
+        app.host_mut()
+            .session_mut(id)
+            .unwrap()
+            .load_content(&[1])
+            .unwrap();
+        let mut cadence = FrameCadence::new(60, 3).unwrap();
+
+        let first = app
+            .advance_session(id, Duration::ZERO, &mut cadence)
+            .unwrap();
+        assert_eq!(first.audio_buffers, buffers[..16]);
+
+        let second = app
+            .advance_session(id, Duration::ZERO, &mut cadence)
+            .unwrap();
+        assert_eq!(second.audio_buffers, buffers[16..]);
     }
 
     #[test]
