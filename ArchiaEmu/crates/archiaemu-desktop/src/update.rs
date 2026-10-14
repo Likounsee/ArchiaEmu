@@ -181,11 +181,7 @@ pub(crate) fn download_and_verify(
         }
         // A rename may replace an existing destination on some platforms. Creating
         // a hard link is atomic and fails if the verified path already exists.
-        fs::hard_link(&partial_path, &verified_path).map_err(|error| {
-            format!(
-                "Could not finalize verified update file without overwriting an existing file: {error}"
-            )
-        })?;
+        create_verified_link(&partial_path, &verified_path)?;
         verified_created = true;
         fs::remove_file(&partial_path)
             .map_err(|error| format!("Could not remove temporary update file after verification: {error}"))?;
@@ -202,6 +198,14 @@ pub(crate) fn download_and_verify(
         }
     }
     result
+}
+
+fn create_verified_link(partial_path: &Path, verified_path: &Path) -> Result<(), String> {
+    fs::hard_link(partial_path, verified_path).map_err(|error| {
+        format!(
+            "Could not finalize verified update file without overwriting an existing file: {error}"
+        )
+    })
 }
 
 fn validate_download_url(url: &str) -> Result<(), String> {
@@ -365,6 +369,29 @@ mod tests {
             "archiaemu-update-{}-{nonce}.bin",
             std::process::id()
         ))
+    }
+
+    #[test]
+    fn finalizing_verified_update_never_overwrites_an_existing_destination() {
+        let source = temporary_file();
+        let mut destination = temporary_file();
+        destination.set_extension("existing");
+        write_test_file(&source, b"verified update");
+        write_test_file(&destination, b"keep this file");
+
+        let result = super::create_verified_link(&source, &destination);
+
+        assert!(result.is_err());
+        assert_eq!(
+            std::fs::read(&destination).expect("existing destination should remain"),
+            b"keep this file"
+        );
+        assert_eq!(
+            std::fs::read(&source).expect("source should remain after collision"),
+            b"verified update"
+        );
+        let _ = std::fs::remove_file(source);
+        let _ = std::fs::remove_file(destination);
     }
 
     #[test]
