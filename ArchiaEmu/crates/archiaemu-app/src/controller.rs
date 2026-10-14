@@ -603,7 +603,7 @@ mod tests {
         assert_eq!(app.active_session(), None);
     }
 
-    struct AudioOnceCore {
+    struct AudioQueueCore {
         loaded: bool,
         pending_audio: VecDeque<AudioBuffer>,
     }
@@ -660,7 +660,7 @@ mod tests {
             .host_mut()
             .create_session(Box::new(AudioOnceCore {
                 loaded: false,
-                pending_audio: VecDeque::from([expected.clone()]),
+                pending_audio: std::iter::once(expected.clone()).collect(),
             }))
             .unwrap();
         app.host_mut()
@@ -702,12 +702,12 @@ mod tests {
         let first = app
             .advance_session(id, Duration::ZERO, &mut cadence)
             .unwrap();
-        assert_eq!(first.audio_buffers, buffers[..16]);
+        assert_eq!(first.audio_buffers, buffers[..16].to_vec());
 
         let second = app
             .advance_session(id, Duration::ZERO, &mut cadence)
             .unwrap();
-        assert_eq!(second.audio_buffers, buffers[16..]);
+        assert_eq!(second.audio_buffers, buffers[16..].to_vec());
     }
 
     #[test]
