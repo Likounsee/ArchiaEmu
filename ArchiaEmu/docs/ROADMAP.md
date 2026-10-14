@@ -100,6 +100,10 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [ ] Tester lecture/écriture, version inconnue, données malformées, valeurs hors limites et paramètres absents.
 - [ ] Fournir un panneau de diagnostic par session : état, système, capacités, contenu chargé et dernière erreur exploitable.
 - [ ] Distinguer les réglages hôte (interface, audio, vidéo, raccourcis, dossiers) des réglages spécifiques à un cœur, qui attendront l'arrivée des modules.
+- [ ] Mettre en place l'internationalisation avant la finition UX : catalogue de langues séparé du code Rust (par exemple `locales/en.json` et `locales/fr.json`), clés stables (`settings.title`, `common.save`), langue sélectionnable dans les paramètres et choix persistant.
+- [ ] Remplacer progressivement les chaînes visibles codées en dur par des clés traduites via un module central `i18n.rs`; couvrir navigation, bibliothèque, sessions, jeu, systèmes, paramètres, erreurs et dialogues.
+- [ ] Définir une langue de repli si la traduction ou une clé manque, et gérer proprement les textes dynamiques, pluriels et variables; garder les logs techniques et identifiants internes indépendants de la langue.
+- [ ] Tester chargement des catalogues, clés absentes, langue inconnue, changement de langue à chaud et restauration après redémarrage; commencer avec français et anglais.
 - [ ] Améliorer les messages d'erreur pour indiquer ce qui a échoué et quelle action l'utilisateur peut tenter.
 - [ ] Vérifier navigation clavier, focus, redimensionnement, écrans vides et fenêtres de taille minimale.
 
