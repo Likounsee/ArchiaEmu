@@ -15,7 +15,9 @@ use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeError, SessionId};
 use archiaemu_core::runtime::{SessionError, SessionState};
 use archiaemu_core::CoreRegistry;
 
-use crate::library::{ContentEntry, ContentFormatDetection, ContentLibrary, ContentLibraryError, ContentValidation};
+use crate::library::{
+    ContentEntry, ContentFormatDetection, ContentLibrary, ContentLibraryError, ContentValidation,
+};
 
 /// Lifecycle command accepted by the shared application controller.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -252,7 +254,11 @@ impl ApplicationController {
         if let (Some(canonical_path), Some(detection)) = (canonical_path.as_ref(), detection) {
             let detection = if detection.matches.len() > 1 {
                 ContentFormatDetection::Ambiguous(
-                    detection.matches.iter().map(|format| (*format).to_owned()).collect()
+                    detection
+                        .matches
+                        .iter()
+                        .map(|format| (*format).to_owned())
+                        .collect(),
                 )
             } else if let Some(format) = detection.matches.first() {
                 ContentFormatDetection::Detected((*format).to_owned())
@@ -261,7 +267,8 @@ impl ApplicationController {
             } else {
                 ContentFormatDetection::NoMatch
             };
-            self.library.record_format_detection(canonical_path, detection);
+            self.library
+                .record_format_detection(canonical_path, detection);
         }
         let result = self
             .host
