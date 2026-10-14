@@ -934,6 +934,27 @@ mod preference_tests {
     use std::fs;
 
     #[test]
+    fn background_task_receiver_is_cleared_after_worker_disconnects() {
+        let (sender, receiver) = mpsc::channel::<u8>();
+        drop(sender);
+        let mut receiver = Some(receiver);
+
+        assert!(poll_background_result(&mut receiver).is_err());
+        assert!(receiver.is_none());
+    }
+
+    #[test]
+    fn background_task_receiver_returns_results_and_waits_while_empty() {
+        let (sender, receiver) = mpsc::channel::<u8>();
+        let mut receiver = Some(receiver);
+
+        assert_eq!(poll_background_result(&mut receiver), Ok(None));
+        sender.send(42).unwrap();
+        assert_eq!(poll_background_result(&mut receiver), Ok(Some(42)));
+        assert!(receiver.is_none());
+    }
+
+    #[test]
     fn clearing_one_session_tick_error_preserves_other_sessions() {
         let mut controller =
             ApplicationController::new(HostRuntime::new(HostRuntimeConfig::default()).unwrap());
