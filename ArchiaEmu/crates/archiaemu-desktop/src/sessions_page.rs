@@ -15,6 +15,7 @@ impl DesktopApp {
                     // closing sessions so a held control cannot survive the lifecycle transition.
                     let release_error = self.release_game_inputs().err();
                     let count = self.controller.close_all_sessions();
+                    self.audio_output.clear();
                     self.frame_cadence.reset();
                     self.frame_texture = None;
                     self.video_size = None;
@@ -64,6 +65,7 @@ impl DesktopApp {
                     {
                         if self.controller.active_session() != Some(id) {
                             self.release_game_inputs();
+                            self.audio_output.clear();
                             match self.controller.select_session(id) {
                                 Ok(()) => {
                                     self.frame_cadence.reset();
@@ -92,6 +94,7 @@ impl DesktopApp {
                                         None => format!("Closed session {}.", id.get()),
                                     };
                                     if was_active {
+                                        self.audio_output.clear();
                                         self.frame_cadence.reset();
                                         self.frame_texture = None;
                                         self.video_size = None;
