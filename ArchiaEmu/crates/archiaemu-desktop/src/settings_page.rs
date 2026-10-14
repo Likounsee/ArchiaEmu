@@ -3,7 +3,7 @@
 use super::*;
 
 impl DesktopApp {
-    pub(super) fn show_settings(&mut self, ui: &mut egui::Ui) {
+    pub(super) fn show_settings(&mut self, ui: &mut egui::Ui, context: &egui::Context) {
         ui.heading("Appearance");
         ui.label(
             "These options change the host interface only; they never change emulated hardware.",
@@ -42,6 +42,38 @@ impl DesktopApp {
                 self.save_preferences();
                 self.message = "Settings saved.".to_owned();
             }
+        });
+
+        ui.add_space(12.0);
+        ui.heading("Application updates");
+        egui::Frame::group(ui.style()).show(ui, |ui| {
+            ui.label("Checks the official stable application manifest. Module downloads are independent.");
+            ui.horizontal_wrapped(|ui| {
+                let checking = self.update_check_receiver.is_some();
+                if ui
+                    .add_enabled(!checking, egui::Button::new("Check for updates"))
+                    .clicked()
+                {
+                    let (sender, receiver) = mpsc::channel();
+                    self.update_check_receiver = Some(receiver);
+                    self.update_status = "Checking the official stable manifest…".to_owned();
+                    std::thread::spawn(move || {
+                        let _ = sender.send(update::fetch_manifest());
+                    });
+                    context.request_repaint_after(Duration::from_millis(250));
+                }
+                ui.label(&self.update_status);
+            });
+            if let Some(manifest) = self.update_manifest.as_ref() {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(format!("Manifest version: {}", manifest.version));
+                    ui.hyperlink_to("Release notes", &manifest.release_notes_url);
+                });
+                if manifest.download_for_current_platform().is_none() {
+                    ui.small("No installable update artifact is currently published for this platform.");
+                }
+            }
+            ui.small("Automatic download, installation and rollback are not enabled yet.");
         });
 
         ui.add_space(12.0);
