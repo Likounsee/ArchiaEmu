@@ -36,7 +36,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
-GitHub Actions runs formatting, locked tests and warning-free API documentation generation on pushes to the `ArchiaEmu` branch and on pull requests targeting it; Clippy runs on Linux.
+GitHub Actions runs formatting, locked workspace tests, Clippy with warnings denied, desktop-crate tests and Clippy, and warning-free workspace documentation generation on Linux, macOS and Windows. It runs on relevant source/documentation changes pushed to `ArchiaEmu`, pull requests targeting that branch, or manual dispatch. The workflow configuration is checked in; the latest run must still be verified in GitHub Actions before these checks can be called green.
 
 ## Roadmap
 
