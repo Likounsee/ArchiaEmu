@@ -144,7 +144,8 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 **Critère de sortie :** les sorties annoncées sont présentées par des adaptateurs testés; aucune fonctionnalité média inexistante n'est présentée comme opérationnelle.
 
 ### P1.6 — tests de parcours, CI et finition de l'application
-- [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante; le résultat du nouveau commit doit encore être observé en CI.
+- [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante.
+- [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; les résultats de cette nouvelle matrice restent à confirmer en CI.
 
 - [ ] Ajouter des tests de parcours couvrant démarrage, bibliothèque vide, import, lancement réussi, lancement refusé, changement de session, paramètres, arrêt et fermeture globale.
 - [x] Ajouter un test d'intégration du lancement réussi depuis la bibliothèque avec une ROM de test construite en mémoire sur disque temporaire, puis pause/reprise/arrêt/fermeture; son exécution reste à confirmer en CI.
