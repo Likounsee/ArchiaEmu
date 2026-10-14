@@ -15,14 +15,23 @@ pub(crate) struct SavedPreferences {
 
 pub(crate) fn config_file_path() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
-    let base = std::env::var_os("APPDATA").map(PathBuf::from);
+    let base = std::env::var_os("APPDATA")
+        .filter(|value| !value.is_empty())
+        .or_else(|| std::env::var_os("LOCALAPPDATA").filter(|value| !value.is_empty()))
+        .map(PathBuf::from);
     #[cfg(target_os = "macos")]
     let base = std::env::var_os("HOME")
+        .filter(|value| !value.is_empty())
         .map(|home| PathBuf::from(home).join("Library/Application Support"));
     #[cfg(all(unix, not(target_os = "macos")))]
     let base = std::env::var_os("XDG_CONFIG_HOME")
+        .filter(|value| !value.is_empty())
         .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")));
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .filter(|value| !value.is_empty())
+                .map(|home| PathBuf::from(home).join(".config"))
+        });
     base.map(|directory| directory.join("ArchiaEmu").join("desktop.conf"))
 }
 
