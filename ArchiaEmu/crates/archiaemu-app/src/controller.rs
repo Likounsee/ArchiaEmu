@@ -647,6 +647,49 @@ mod tests {
     }
 
     #[test]
+    fn unknown_format_rejection_preserves_existing_session_selection() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-unknown-format-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let unknown_file = root.join("unknown.bin");
+        std::fs::write(&unknown_file, b"not a recognized content format").unwrap();
+
+        let mut app = controller();
+        let existing_session = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(existing_session).unwrap();
+
+        let result = app.launch_content_path(
+            &unknown_file,
+            ContentLimits::new(1024),
+            &[],
+            &CoreRegistry::new(),
+        );
+
+        assert!(result.is_err());
+        assert_eq!(app.session_count(), 1);
+        assert_eq!(app.active_session(), Some(existing_session));
+        assert_eq!(
+            app.session_summary(existing_session).unwrap().state,
+            SessionState::Empty
+        );
+
+        app.close_all_sessions();
+        std::fs::remove_file(unknown_file).unwrap();
+        std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
     fn library_index_errors_are_explicit_and_do_not_create_sessions() {
         let mut app = controller();
         let error = app
