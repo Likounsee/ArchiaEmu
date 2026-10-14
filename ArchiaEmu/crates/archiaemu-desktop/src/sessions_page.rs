@@ -36,6 +36,8 @@ impl DesktopApp {
             let id = summary.id;
             let state = summary.state;
             let system_name = summary.system_name;
+            let video_available = summary.video_available;
+            let audio_available = summary.audio_available;
             let active_error = summary.last_error;
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal(|ui| {
@@ -93,6 +95,19 @@ impl DesktopApp {
                     if state != SessionState::Empty && ui.button("Reset").clicked() {
                         self.session_action(id, SessionAction::Reset);
                     }
+                });
+                ui.horizontal(|ui| {
+                    ui.label(if video_available {
+                        "Video: available"
+                    } else {
+                        "Video: unavailable"
+                    });
+                    ui.separator();
+                    ui.label(if audio_available {
+                        "Audio: available"
+                    } else {
+                        "Audio: unavailable"
+                    });
                 });
                 if let Some(error) = active_error {
                     ui.colored_label(
