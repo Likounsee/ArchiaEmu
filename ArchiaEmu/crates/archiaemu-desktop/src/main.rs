@@ -428,7 +428,7 @@ impl eframe::App for DesktopApp {
                     });
                     ui.label(format!(
                         "{} session(s)",
-                        self.controller.host().session_count()
+                        self.controller.session_count()
                     ));
                 });
             });
