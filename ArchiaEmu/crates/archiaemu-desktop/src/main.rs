@@ -445,6 +445,7 @@ impl DesktopApp {
         if [
             "import failed:",
             "launch failed:",
+            "launch cancelled:",
             "could not ",
             "preferences unavailable:",
             "input error:",
