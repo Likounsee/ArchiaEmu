@@ -3,7 +3,7 @@
 
 use std::error::Error;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::{Duration, Instant};
 
 use archiaemu_app::controller::{ApplicationController, SessionCommand};
@@ -50,6 +50,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 fn clear_tick_error_for_session(errors: &mut Vec<(SessionId, String)>, id: SessionId) {
     errors.retain(|(error_id, _)| *error_id != id);
+}
+
+/// Polls a background task and drops its receiver on success or disconnection.
+/// A disconnected worker must not leave the UI repainting forever as if it were still running.
+fn poll_background_result<T>(receiver: &mut Option<Receiver<T>>) -> Result<Option<T>, ()> {
+    match receiver.as_ref().map(Receiver::try_recv) {
+        None | Some(Err(TryRecvError::Empty)) => Ok(None),
+        Some(Ok(result)) => {
+            *receiver = None;
+            Ok(Some(result))
+        }
+        Some(Err(TryRecvError::Disconnected)) => {
+            *receiver = None;
+            Err(())
+        }
+    }
 }
 
 struct DesktopApp {
@@ -541,12 +557,15 @@ fn navigation_items() -> [(DesktopPage, &'static str, &'static str); 6] {
 
 impl eframe::App for DesktopApp {
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
-        let update_result = self
-            .update_check_receiver
-            .as_ref()
-            .and_then(|receiver| receiver.try_recv().ok());
+        let update_result = match poll_background_result(&mut self.update_check_receiver) {
+            Ok(result) => result,
+            Err(()) => {
+                self.update_status = "Update check failed: background worker disconnected before returning a result.".to_owned();
+                self.update_manifest = None;
+                None
+            }
+        };
         if let Some(result) = update_result {
-            self.update_check_receiver = None;
             match result {
                 Ok(manifest) => {
                     let current = option_env!("CARGO_PKG_VERSION").unwrap_or("0.0.0");
@@ -567,12 +586,15 @@ impl eframe::App for DesktopApp {
                 }
             }
         }
-        let download_result = self
-            .update_download_receiver
-            .as_ref()
-            .and_then(|receiver| receiver.try_recv().ok());
+        let download_result = match poll_background_result(&mut self.update_download_receiver) {
+            Ok(result) => result,
+            Err(()) => {
+                self.update_status = "Update download failed: background worker disconnected before returning a result.".to_owned();
+                self.staged_update_path = None;
+                None
+            }
+        };
         if let Some(result) = download_result {
-            self.update_download_receiver = None;
             match result {
                 Ok(path) => {
                     self.update_status = format!(
