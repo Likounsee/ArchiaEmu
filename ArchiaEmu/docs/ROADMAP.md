@@ -146,6 +146,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 ### P1.6 — tests de parcours, CI et finition de l'application
 - [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante.
 - [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; les résultats de cette nouvelle matrice restent à confirmer en CI.
+- [x] Installer explicitement les dépendances système X11/Wayland/OpenGL/audio requises avant les contrôles du desktop sur les runners Linux du workflow CI principal; la réussite effective des jobs doit encore être vérifiée.
 
 - [ ] Ajouter des tests de parcours couvrant démarrage, bibliothèque vide, import, lancement réussi, lancement refusé, changement de session, paramètres, arrêt et fermeture globale.
 - [x] Ajouter un test d'intégration du lancement réussi depuis la bibliothèque avec une ROM de test construite en mémoire sur disque temporaire, puis pause/reprise/arrêt/fermeture; son exécution reste à confirmer en CI.
