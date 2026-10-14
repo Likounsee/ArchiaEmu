@@ -79,7 +79,10 @@ jobs:
           $install = Start-Process -FilePath $installer.FullName -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/DIR=`"$installDir`"") -Wait -PassThru
           if ($install.ExitCode -ne 0) { throw "Silent install failed with exit code $($install.ExitCode)." }
           $installedExe = Join-Path $installDir "archiaemu-desktop.exe"
-          if (!(Test-Path $installedExe)) {\n            Get-ChildItem -Force $installDir -ErrorAction SilentlyContinue | Format-List FullName, Length\n            throw "Installed desktop executable is missing at expected path: $installedExe"\n          }
+          if (!(Test-Path $installedExe)) {
+            Get-ChildItem -Force $installDir -ErrorAction SilentlyContinue | Format-List FullName, Length
+            throw "Installed desktop executable is missing at expected path: $installedExe"
+          }
           $uninstaller = Join-Path $installDir "unins000.exe"
           if (!(Test-Path $uninstaller)) { throw "Uninstaller executable is missing." }
           $uninstall = Start-Process -FilePath $uninstaller -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES") -Wait -PassThru
