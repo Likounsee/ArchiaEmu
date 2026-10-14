@@ -71,7 +71,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Importer plusieurs fichiers, afficher les imports rejetés, rechercher titre/chemin, filtrer et trier les entrées.
 - [x] Sélectionner un contenu, lancer via le pipeline commun et afficher les erreurs de validation/lancement.
 - [x] Supprimer une entrée avec désélection cohérente.
-- [x] Persister la bibliothèque entre les redémarrages via les préférences, revalider chaque chemin au chargement et signaler les fichiers absents/invalides avec quelques détails pour permettre leur réimport.
+- [x] Persister la bibliothèque entre les redémarrages via les préférences, revalider chaque chemin au chargement et signaler les fichiers absents/invalides avec quelques détails pour permettre leur réimport. Lors d'un import multiple via la boîte de dialogue, ne pas masquer un échec de sauvegarde : indiquer que les imports restent actifs pour la session mais ne seront pas persistés.
 - [x] Enrichir le modèle de bibliothèque avec le chemin source, le nom affiché, la détection réelle par sondes sur les octets (distincte de l'indice d'extension), un indice de système compatible, le dernier résultat de lancement et une disponibilité vérifiée en direct. Les détections ambiguës/incomplètes restent explicites et la validation du cœur reste une étape distincte.
 - [x] Prévoir des états vides utiles et des actions claires lorsque la bibliothèque ne contient aucun fichier.
 - [x] Détecter à l'affichage les chemins de bibliothèque devenus indisponibles, expliquer qu'une réimportation est nécessaire et désactiver le lancement direct quand le chemin ne désigne plus un fichier.
