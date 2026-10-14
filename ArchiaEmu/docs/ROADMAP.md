@@ -158,13 +158,18 @@ Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale d
 - [ ] Recenser et embarquer tous les fichiers, bibliothèques natives, ressources et runtimes réellement requis; ne pas supposer que le seul binaire suffit.
 - [ ] Générer un installateur .exe versionné depuis la CI ou un processus reproductible documenté.
 - [ ] Installer dans un répertoire local choisi (par défaut sous Program Files), avec données/configuration utilisateur dans les répertoires Windows adaptés; ne pas écrire les préférences à côté de l'exécutable installé si cela exige des droits administrateur.
-- [ ] Vérifier le premier démarrage depuis le menu Démarrer et depuis le raccourci installé, sans Rust, dépôt source ni dossier de build présents.
+- [ ] Proposer les options de raccourci au cours de l'installation : menu Démarrer activé par défaut et raccourci bureau activable/désactivable.
+- [ ] Fournir un désinstallateur accessible depuis les paramètres Windows et le menu Démarrer, qui supprime les fichiers installés, raccourcis, composants de mise à jour et caches propres au programme. À la désinstallation, proposer clairement de conserver ou supprimer les préférences, journaux et données utilisateur; ne jamais supprimer silencieusement les ROM/fichiers personnels.
+- [ ] Vérifier le premier démarrage depuis le menu Démarrer et depuis le raccourci bureau, sans Rust, dépôt source ni dossier de build présents.
 - [ ] Vérifier bibliothèque, préférences, journaux/diagnostics et chemins de contenus après fermeture puis redémarrage.
+- [ ] Mettre en place une vérification automatique des mises à jour d'ArchiaEmu, séparée de celle des modules, à partir d'un manifeste de versions hébergé sur le dépôt GitHub officiel (version locale comparée à la version publiée).
+- [ ] Pour l'updater de l'application, télécharger vers une zone temporaire, vérifier version, intégrité et provenance, préparer l'installation puis appliquer la mise à jour uniquement lorsque l'application est fermée et qu'aucune écriture n'est en cours; relancer l'application après succès et conserver une récupération/rollback en cas d'échec.
+- [ ] Permettre à l'utilisateur de choisir la fréquence de vérification, d'être informé de la version et des notes de version, et de différer une mise à jour; ne jamais remplacer les fichiers exécutables en cours d'utilisation.
 - [ ] Vérifier mise à niveau depuis une version précédente, échec/annulation d'installation et désinstallation sans supprimer les contenus personnels sans consentement explicite.
-- [ ] Documenter les prérequis, les plateformes Windows prises en charge, l'installation, la désinstallation et les limitations connues.
-- [ ] Tester l'installateur sur une machine/VM Windows propre et conserver une preuve de résultat; ne pas cocher le critère sur la seule présence d'un fichier .exe.
+- [ ] Documenter les prérequis, les plateformes Windows prises en charge, l'installation, la désinstallation, la politique de mise à jour et les limitations connues.
+- [ ] Tester installateur, désinstallateur et mise à jour sur une machine/VM Windows propre et conserver une preuve de résultat; ne pas cocher le critère sur la seule présence d'un fichier .exe.
 
-**Critère de sortie P1.7 :** un utilisateur peut télécharger l'installateur, installer ArchiaEmu, lancer l'application et utiliser les fonctions génériques prises en charge entièrement en local, sans environnement de développement ni fichiers manquants.
+**Critère de sortie P1.7 :** un utilisateur peut télécharger l'installateur, installer ArchiaEmu, obtenir ses raccourcis, utiliser les fonctions génériques prises en charge entièrement en local, recevoir les vérifications de mises à jour du programme et mettre à jour de manière sûre sans environnement de développement ni fichiers manquants.
 
 ## P2 — modules : installation, confiance et maintenance (après P1)
 
@@ -175,6 +180,11 @@ Les contrats de base existent; on reprend leur approfondissement après validati
 - [x] Plan d'installation/désinstallation, contrôle de budget, journal d'installation borné et récupération par jalons.
 - [x] Staging borné des artefacts et validation SHA-256 fournie par l'hôte.
 - [x] Validation portable des chemins d'archives avant extraction.
+- [ ] Maintenir un manifeste de versions de modules séparé du manifeste de l'application, hébergé dans une source officielle vérifiable (par exemple le dépôt GitHub du projet), avec identifiant du module, version, version minimale compatible, URL d'artefact, taille, SHA-256, notes de version et métadonnées de signature.
+- [ ] Vérifier automatiquement les mises à jour des modules installés en comparant leur version locale à celle du manifeste distant; afficher les mises à jour disponibles et permettre une vérification manuelle.
+- [ ] Ne jamais installer un module simplement parce que la version distante est plus élevée : vérifier signature/provenance, intégrité, compatibilité et anti-downgrade avant activation.
+- [ ] Appliquer les mises à jour de modules seulement dans un état stable : aucun cœur/module concerné chargé, aucune session active qui l'utilise, aucun installateur concurrent, et aucune opération d'écriture en cours; sinon mettre la mise à jour en attente et la proposer/appliquer au prochain état sûr.
+- [ ] Préparer chaque mise à jour dans une zone de staging, activer atomiquement, conserver la version précédente jusqu'à validation et effectuer un rollback si l'installation, le démarrage ou la vérification échoue.
 - [ ] Intégrer un téléchargeur réseau robuste avec limites, délais et annulation.
 - [ ] Utiliser une implémentation cryptographique maintenue et auditée pour vérifier les signatures; ne pas inventer de cryptographie.
 - [ ] Vérifier la signature et la provenance avant de faire confiance à un catalogue ou à un paquet.
