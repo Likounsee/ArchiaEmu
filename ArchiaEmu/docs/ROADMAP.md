@@ -154,6 +154,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 - [x] Ajouter un test d'intégration du lancement réussi depuis la bibliothèque avec une ROM de test construite en mémoire sur disque temporaire, puis pause/reprise/arrêt/fermeture; son exécution reste à confirmer en CI.
 - [ ] Exécuter les quality gates Rust sur le dernier commit, pas seulement s'appuyer sur des résultats CI historiques.
 - [x] Ajouter `.github/workflows/desktop-ci.yml` pour lancer formatage, tests et Clippy du desktop sur Linux, Windows et macOS (le workflow est créé, ses résultats restent à vérifier).
+- [x] Déclencher aussi les quality gates desktop quand le manifeste de mise à jour (`ArchiaEmu/update/**`) change, afin que les changements de canal de publication ne passent pas silencieusement hors de la CI.
 - [x] Étendre le workflow aux tests et à Clippy du workspace partagé, en plus du crate desktop exclu du workspace (exécution CI toujours en attente de résultats vérifiables).
 - [x] Ajouter à la CI la génération de la documentation du workspace avec `RUSTDOCFLAGS=-D warnings`, un délai maximal de job et une concurrence contrôlée; l'état des runs reste à vérifier.
 - [x] Corriger le parcours « Save settings now » : un échec d'écriture ou l'absence de répertoire de configuration ne peut plus être affiché comme une sauvegarde réussie; ajouter un test de défaillance du système de fichiers.
