@@ -435,6 +435,34 @@ mod tests {
     }
 
     #[test]
+    fn closing_a_non_active_session_preserves_selection_and_closed_ids_are_not_reused() {
+        let mut app = controller();
+        let first = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        let second = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+
+        app.select_session(second).unwrap();
+        app.close_session(first).unwrap();
+        assert_eq!(app.active_session(), Some(second));
+
+        let third = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        assert_ne!(third, first);
+
+        app.close_session(second).unwrap();
+        assert_eq!(app.active_session(), Some(third));
+        app.close_session(third).unwrap();
+        assert_eq!(app.active_session(), None);
+    }
+
+    #[test]
     fn closing_all_sessions_clears_selection_and_is_idempotent() {
         let mut app = controller();
         let id = app
@@ -711,6 +739,51 @@ mod tests {
 
         std::fs::remove_file(ambiguous_file).unwrap();
         std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
+    fn content_read_failure_does_not_create_a_session_or_change_selection() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-content-read-failure-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        // A directory with a content-like extension reliably exercises the host read failure
+        // across Windows, macOS, and Linux without relying on platform-specific permissions.
+        let unreadable_path = root.join("unreadable.gb");
+        std::fs::create_dir(&unreadable_path).unwrap();
+
+        let mut app = controller();
+        let existing_session = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(existing_session).unwrap();
+
+        let result = app.launch_content_path(
+            &unreadable_path,
+            ContentLimits::new(1024),
+            &[],
+            &CoreRegistry::new(),
+        );
+
+        assert!(result.is_err(), "a directory must not be loaded as content");
+        assert_eq!(app.session_count(), 1);
+        assert_eq!(app.active_session(), Some(existing_session));
+        assert_eq!(
+            app.session_summary(existing_session).unwrap().state,
+            SessionState::Empty
+        );
+
+        app.close_all_sessions();
+        std::fs::remove_dir(&unreadable_path).unwrap();
+        std::fs::remove_dir(&root).unwrap();
     }
 
     #[test]
