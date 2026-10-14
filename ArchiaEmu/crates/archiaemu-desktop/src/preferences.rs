@@ -103,6 +103,13 @@ pub(crate) fn write_preferences(
         )
     })?;
     fs::create_dir_all(parent)?;
+    // Keep the on-disk value inside the same range enforced by the loader.
+    // A non-finite value must not silently reset the user's scale on next launch.
+    let ui_scale = if ui_scale.is_finite() {
+        ui_scale.clamp(0.8, 1.4)
+    } else {
+        1.0
+    };
     let mut contents = format!(
         "version=2\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\n",
         accent_rgb[0], accent_rgb[1], accent_rgb[2]
@@ -273,6 +280,28 @@ mod tests {
         assert!((saved.ui_scale - 1.0).abs() < f32::EPSILON);
         assert_eq!(saved.accent_rgb, [75, 115, 210]);
         assert!(saved.paths.is_empty());
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn saving_preferences_normalizes_non_finite_and_out_of_range_scale() {
+        let path = temporary_config("normalized-scale");
+        for (input, expected) in [
+            (f32::NAN, 1.0),
+            (f32::INFINITY, 1.0),
+            (0.1, 0.8),
+            (2.0, 1.4),
+        ] {
+            write_preferences(&path, true, input, [75, 115, 210], &[])
+                .expect("preferences should save with a normalized scale");
+            let saved = load_preferences(&path)
+                .expect("normalized preferences should load")
+                .expect("saved preferences should exist");
+            assert!(
+                (saved.ui_scale - expected).abs() < f32::EPSILON,
+                "input scale {input:?} should normalize to {expected}"
+            );
+        }
         let _ = fs::remove_file(path);
     }
 
