@@ -72,9 +72,15 @@ impl AudioOutput {
                 "Audio active; cleared playback backlog ({} time(s))",
                 self.dropped_buffers
             );
-        } else if self.dropped_buffers == 0 {
-            self.status = "Audio playback active".to_owned();
         }
+        self.status = if self.dropped_buffers == 0 {
+            "Audio playback active".to_owned()
+        } else {
+            format!(
+                "Audio playback active; cleared backlog {} time(s)",
+                self.dropped_buffers
+            )
+        };
 
         let samples = normalize_pcm(buffer.samples());
         if let Some(sink) = self.sink.as_ref() {
@@ -101,10 +107,11 @@ impl AudioOutput {
     }
 
     /// Drops queued samples on stop/reset so stale audio cannot leak into a new run.
-    pub(super) fn clear(&self) {
+    pub(super) fn clear(&mut self) {
         if let Some(sink) = &self.sink {
             sink.clear();
             sink.play();
+            self.status = "Audio device ready".to_owned();
         }
     }
 }
