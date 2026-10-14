@@ -466,7 +466,13 @@ impl eframe::App for DesktopApp {
                     ui.label("WORKSPACE");
                     ui.add_space(4.0);
                     for (page, glyph, label) in navigation_items() {
-                        if ui.selectable_label(self.active_page == page, format!("{glyph}   {label}")).clicked() {
+                        if ui
+                            .selectable_label(
+                                self.active_page == page,
+                                format!("{glyph}   {label}"),
+                            )
+                            .clicked()
+                        {
                             self.navigate_to(page);
                         }
                     }
@@ -478,14 +484,19 @@ impl eframe::App for DesktopApp {
                     });
                 });
         } else {
-            egui::TopBottomPanel::top("compact_navigation")
-                .show(context, |ui| {
+            egui::TopBottomPanel::top("compact_navigation").show(context, |ui| {
                     egui::ScrollArea::horizontal().show(ui, |ui| {
                         ui.horizontal(|ui| {
                             ui.strong("◈ ArchiaEmu");
                             ui.separator();
                             for (page, glyph, label) in navigation_items() {
-                                if ui.selectable_label(self.active_page == page, format!("{glyph} {label}")).clicked() {
+                                if ui
+                                    .selectable_label(
+                                        self.active_page == page,
+                                        format!("{glyph} {label}"),
+                                    )
+                                    .clicked()
+                                {
                                     self.navigate_to(page);
                                 }
                             }
