@@ -203,8 +203,14 @@ impl WorkerProcess {
                     io::ErrorKind::UnexpectedEof,
                     "worker IPC reader stopped",
                 ))
-            })?
-            .map_err(WorkerProcessError::Protocol)?;
+            })?;
+        let message = match message {
+            Ok(message) => message,
+            Err(error) => {
+                let _ = self.terminate();
+                return Err(WorkerProcessError::Protocol(error));
+            }
+        };
         if let Err(error) = validate_worker_message(&message) {
             let _ = self.terminate();
             return Err(WorkerProcessError::Payload(error));
