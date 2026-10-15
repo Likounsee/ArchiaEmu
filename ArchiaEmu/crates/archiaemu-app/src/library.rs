@@ -193,7 +193,7 @@ impl ContentLibrary {
 
     /// Looks up an entry by its canonical filesystem path.
     ///
-    /// The path must use the canonical form exposed by ContentEntry::path.
+    /// The path must use the canonical form exposed by [`ContentEntry::path`].
     /// This avoids a filesystem lookup and is suitable for repeated UI lookups.
     pub fn get(&self, canonical_path: impl AsRef<Path>) -> Option<&ContentEntry> {
         self.entries.get(canonical_path.as_ref())
@@ -433,6 +433,40 @@ mod tests {
         ));
         assert!(library.is_empty());
         assert_eq!(library.len(), 0);
+    }
+
+    #[test]
+    fn validation_updates_only_existing_canonical_entries() {
+        let file = TempFile::new("validation.gb", b"rom-data");
+        let mut library = ContentLibrary::new();
+        let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
+
+        assert!(library.record_validation(&canonical, ContentValidation::Accepted));
+        assert_eq!(
+            library.get(&canonical).unwrap().validation(),
+            &ContentValidation::Accepted
+        );
+
+        let missing = canonical.with_file_name("not-imported.gb");
+        assert!(!library.record_validation(
+            &missing,
+            ContentValidation::Rejected("invalid".to_owned())
+        ));
+        assert_eq!(library.len(), 1);
+        assert_eq!(
+            library.get(&canonical).unwrap().validation(),
+            &ContentValidation::Accepted
+        );
+    }
+
+    #[test]
+    fn import_accepts_a_file_exactly_at_the_size_limit() {
+        let file = TempFile::new("limit.gb", b"12345678");
+        let mut library = ContentLibrary::new();
+
+        let entry = library.import(&file.0, 8).unwrap();
+        assert_eq!(entry.size_bytes(), 8);
+        assert_eq!(library.len(), 1);
     }
 
     #[test]
