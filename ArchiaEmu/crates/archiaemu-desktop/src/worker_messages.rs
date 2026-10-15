@@ -7,10 +7,10 @@
 //! Frame output uses a compact binary RGBA8 envelope. This validates shape and
 //! size only; it does not make an untrusted worker safe to execute.
 
+use archiaemu_core::module_manifest::ReleaseVersion;
 use archiaemu_core::module_worker_protocol::{
     WorkerMessage, WorkerMessageKind, MAX_WORKER_MESSAGE_BYTES,
 };
-use archiaemu_core::module_manifest::ReleaseVersion;
 use serde::Deserialize;
 use std::fmt;
 
@@ -42,7 +42,9 @@ impl fmt::Display for WorkerPayloadError {
             Self::InvalidJson => f.write_str("worker control payload is not valid schema JSON"),
             Self::InvalidFields => f.write_str("worker control payload contains invalid fields"),
             Self::ExpectedEmptyPayload => f.write_str("worker message requires an empty payload"),
-            Self::InvalidFrameOutput => f.write_str("worker frame output has an invalid binary envelope"),
+            Self::InvalidFrameOutput => {
+                f.write_str("worker frame output has an invalid binary envelope")
+            }
         }
     }
 }
@@ -98,18 +100,25 @@ pub fn validate_worker_message(message: &WorkerMessage) -> Result<(), WorkerPayl
             let payload: InitializePayload = parse_control(&message.payload)?;
             let valid_id = !payload.module_id.is_empty()
                 && payload.module_id.len() <= 128
-                && payload.module_id
+                && payload
+                    .module_id
                     .bytes()
                     .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
                 && !payload.module_id.starts_with('-')
                 && !payload.module_id.ends_with('-')
                 && !payload.module_id.contains("--");
             let valid_digest = payload.content_sha256.len() == 64
-                && payload.content_sha256.bytes().all(|b| {
-                    b.is_ascii_digit() || (b'a'..=b'f').contains(&b)
-                });
+                && payload
+                    .content_sha256
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
             let valid_version = ReleaseVersion::parse(&payload.app_version).is_ok();
-            if !valid_id || !valid_digest || !valid_version || payload.content_size_bytes == 0 || payload.content_size_bytes > 32 * 1024 * 1024 {
+            if !valid_id
+                || !valid_digest
+                || !valid_version
+                || payload.content_size_bytes == 0
+                || payload.content_size_bytes > 32 * 1024 * 1024
+            {
                 return Err(WorkerPayloadError::InvalidFields);
             }
         }
@@ -120,9 +129,10 @@ pub fn validate_worker_message(message: &WorkerMessage) -> Result<(), WorkerPayl
                     let _pressed = event.pressed;
                     event.control.is_empty()
                         || event.control.len() > 64
-                        || !event.control.bytes().all(|b| {
-                            b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'
-                        })
+                        || !event
+                            .control
+                            .bytes()
+                            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
                 })
             {
                 return Err(WorkerPayloadError::InvalidFields);
@@ -144,9 +154,10 @@ pub fn validate_worker_message(message: &WorkerMessage) -> Result<(), WorkerPayl
             let payload: ErrorPayload = parse_control(&message.payload)?;
             if payload.code.is_empty()
                 || payload.code.len() > 64
-                || !payload.code.bytes().all(|b| {
-                    b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_'
-                })
+                || !payload
+                    .code
+                    .bytes()
+                    .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
                 || payload.message.len() > 2048
                 || payload.message.chars().any(char::is_control)
             {
@@ -158,9 +169,7 @@ pub fn validate_worker_message(message: &WorkerMessage) -> Result<(), WorkerPayl
     Ok(())
 }
 
-fn parse_control<T: for<'de> Deserialize<'de>>(
-    bytes: &[u8],
-) -> Result<T, WorkerPayloadError> {
+fn parse_control<T: for<'de> Deserialize<'de>>(bytes: &[u8]) -> Result<T, WorkerPayloadError> {
     if bytes.len() > MAX_CONTROL_PAYLOAD_BYTES {
         return Err(WorkerPayloadError::ControlPayloadTooLarge);
     }
@@ -217,12 +226,18 @@ mod tests {
             WorkerMessageKind::RunFrame,
             br#"{"frame_number":42,"instruction_budget":1000,"execute_shell":true}"#,
         );
-        assert_eq!(validate_worker_message(&unknown), Err(WorkerPayloadError::InvalidJson));
+        assert_eq!(
+            validate_worker_message(&unknown),
+            Err(WorkerPayloadError::InvalidJson)
+        );
         let invalid = message(
             WorkerMessageKind::RunFrame,
             br#"{"frame_number":42,"instruction_budget":0}"#,
         );
-        assert_eq!(validate_worker_message(&invalid), Err(WorkerPayloadError::InvalidFields));
+        assert_eq!(
+            validate_worker_message(&invalid),
+            Err(WorkerPayloadError::InvalidFields)
+        );
         let large = WorkerMessage::new(
             WorkerMessageKind::Input,
             vec![b' '; MAX_CONTROL_PAYLOAD_BYTES + 1],
@@ -240,7 +255,10 @@ mod tests {
             WorkerMessageKind::Error,
             br#"{"code":"bad-code","message":"failed"}"#,
         );
-        assert_eq!(validate_worker_message(&bad_error), Err(WorkerPayloadError::InvalidFields));
+        assert_eq!(
+            validate_worker_message(&bad_error),
+            Err(WorkerPayloadError::InvalidFields)
+        );
     }
 
     #[test]
@@ -254,7 +272,10 @@ mod tests {
             Err(WorkerPayloadError::InvalidFrameOutput)
         );
         assert_eq!(
-            validate_worker_message(&message(WorkerMessageKind::FrameOutput, &[1, 0, 0, 0, 0, 0, 0, 0, 1])),
+            validate_worker_message(&message(
+                WorkerMessageKind::FrameOutput,
+                &[1, 0, 0, 0, 0, 0, 0, 0, 1]
+            )),
             Err(WorkerPayloadError::InvalidFrameOutput)
         );
     }
