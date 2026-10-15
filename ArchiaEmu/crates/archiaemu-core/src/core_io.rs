@@ -782,6 +782,20 @@ mod tests {
     }
 
     #[test]
+    fn video_frame_rejects_stride_height_byte_size_overflow() {
+        assert_eq!(
+            VideoFrame::with_stride(
+                1,
+                2,
+                PixelFormat::Rgba8888,
+                usize::MAX,
+                Vec::new(),
+            ),
+            Err(MediaDataError::FrameSizeOverflow)
+        );
+    }
+
+    #[test]
     fn video_frame_rejects_dimensions_whose_byte_size_overflows() {
         assert_eq!(
             VideoFrame::new(u32::MAX, u32::MAX, PixelFormat::Rgba8888, Vec::new(),),
