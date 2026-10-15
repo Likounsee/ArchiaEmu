@@ -86,6 +86,20 @@ jobs:
           $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $($installer.Name)" | Set-Content "$($installer.FullName).sha256" -Encoding ascii
 
+          # Ship provenance beside the executable so a teacher/reviewer can identify
+          # the exact source commit and CI run that produced this installer.
+          $buildInfo = @(
+            "Application: ArchiaEmu"
+            "Version: $version"
+            "Source branch/ref: $env:GITHUB_REF_NAME"
+            "Source commit: $env:GITHUB_SHA"
+            "Workflow run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+            "Run attempt: $env:GITHUB_RUN_ATTEMPT"
+            "Built (UTC): $([DateTime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss'))"
+            "Installer SHA-256: $hash"
+          )
+          $buildInfo | Set-Content "$env:GITHUB_WORKSPACE/dist/ArchiaEmu-Build-Info.txt" -Encoding utf8
+
           # Keep the exact dependency graph used by this build available for auditing.
           $lockfile = "ArchiaEmu/crates/archiaemu-desktop/Cargo.lock"
           if (!(Test-Path $lockfile)) { throw "Resolved desktop Cargo.lock is missing." }
@@ -199,6 +213,7 @@ jobs:
             dist/ArchiaEmu-Setup-*.exe
             dist/ArchiaEmu-Setup-*.exe.sha256
             dist/ArchiaEmu-Setup-*.exe.Cargo.lock
+            dist/ArchiaEmu-Build-Info.txt
           if-no-files-found: error
           retention-days: 30
 
