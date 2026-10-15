@@ -58,6 +58,40 @@ impl DesktopApp {
                 }
             });
             egui::Frame::group(ui.style()).show(ui, |ui| {
+                if state == SessionState::Paused {
+                    ui.set_min_width(170.0);
+                    ui.set_max_width(220.0);
+                    ui.vertical(|ui| {
+                        ui.strong(format!("Ⅱ Session {}", id.get()));
+                        ui.label(&system_name);
+                        ui.small("Paused");
+                        if ui.button("▶ Resume").clicked() {
+                            self.session_action(id, SessionAction::Resume);
+                        }
+                        if ui.button("× Close").clicked() {
+                            let was_active = self.controller.active_session() == Some(id);
+                            if was_active {
+                                let _ = self.release_game_inputs();
+                            }
+                            match self.controller.close_session(id) {
+                                Ok(()) => {
+                                    self.message = format!("Closed session {}.", id.get());
+                                    if was_active {
+                                        self.audio_output.clear();
+                                        self.frame_cadence.reset();
+                                        self.frame_texture = None;
+                                        self.video_size = None;
+                                        self.last_tick = Instant::now();
+                                    }
+                                    self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+                                    self.session_content_paths.retain(|(session_id, _)| *session_id != id);
+                                }
+                                Err(error) => self.message = error.to_string(),
+                            }
+                        }
+                    });
+                    return;
+                }
                 ui.horizontal_wrapped(|ui| {
                     let selected = self.controller.active_session() == Some(id);
                     if ui
