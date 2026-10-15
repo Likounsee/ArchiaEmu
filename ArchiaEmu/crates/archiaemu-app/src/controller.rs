@@ -863,7 +863,7 @@ mod tests {
         assert_eq!(update.state, SessionState::Running);
         assert_eq!(
             app.session_summary(id).unwrap().last_error.as_deref(),
-            Some("emulation execution failed: primary execution failure")
+            Some("emulation execution failed: secondary audio failure")
         );
         assert_eq!(
             update.error.as_deref(),
