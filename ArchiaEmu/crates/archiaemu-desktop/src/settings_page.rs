@@ -81,7 +81,7 @@ impl DesktopApp {
                                         ui.add_space(7.0);
                                         ui.horizontal(|ui| {
                                             ui.label(egui::RichText::new(if french { "Clair" } else { "Light" }).strong());
-                                            if light_selected { ui.label(egui::RichText::new("✓").color(self.accent_color).strong()); }
+                                            if light_selected { ui.label(egui::RichText::new("*").color(self.accent_color).strong()); }
                                         });
                                     });
                                 });
