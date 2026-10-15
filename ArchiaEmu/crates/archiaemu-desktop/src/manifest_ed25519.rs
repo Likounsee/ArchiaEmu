@@ -117,8 +117,16 @@ mod tests {
             ManifestTrustPolicy, SignedManifestEnvelope, TrustedManifestKey,
         };
 
-        let key = decode_hex::<32>(PUBLIC_KEY);
-        let signature = decode_hex::<64>(SIGNATURE);
+        use ed25519_dalek::{Signer, SigningKey};
+
+        // This seed is test-only; never use it for a production catalogue.
+        let test_seed = decode_hex::<32>(
+            "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+        );
+        let signing_key = SigningKey::from_bytes(&test_seed);
+        let key = signing_key.verifying_key().to_bytes();
+        let payload = b"manifest-test-payload".to_vec();
+        let signature = signing_key.sign(&payload).to_bytes();
         let mut policy = ManifestTrustPolicy::new(
             vec![TrustedManifestKey {
                 key_id: "test-rfc8032-key".to_owned(),
@@ -129,10 +137,13 @@ mod tests {
         .unwrap();
         let envelope = SignedManifestEnvelope {
             key_id: "test-rfc8032-key".to_owned(),
-            payload: Vec::new(),
+            payload,
             signature: signature.to_vec(),
         };
-        let parsed = verify_signed_manifest(&mut policy, &envelope, |_| {
+        let parsed = verify_signed_manifest(&mut policy, &envelope, |payload| {
+            if payload != b"manifest-test-payload" {
+                return Err(());
+            }
             Ok(ModuleManifest {
                 schema_version: 1,
                 revision: 1,
