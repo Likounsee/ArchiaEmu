@@ -253,15 +253,17 @@ impl DesktopApp {
                     .iter()
                     .find(|(session_id, _)| *session_id == id)
                 {
-                    ui.label(format!("Source: {}", content_path.display()));
+                    ui.label(format!("{}: {}", if french { "Source" } else { "Source" }, content_path.display()));
                 } else if content_loaded {
-                    ui.label("Source: path unavailable for this session");
+                    ui.label(if french { "Source : chemin indisponible pour cette session" } else { "Source: path unavailable for this session" });
                 }
                 ui.separator();
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(format!("State: {state:?}"));
+                    ui.label(format!("{}: {state:?}", if french { "État" } else { "State" }));
                     ui.separator();
-                    ui.label(if content_loaded {
+                    ui.label(if french {
+                        if content_loaded { "Contenu : chargé" } else { "Contenu : non chargé" }
+                    } else if content_loaded {
                         "Content: loaded"
                     } else {
                         "Content: not loaded"
@@ -280,13 +282,17 @@ impl DesktopApp {
                     }
                 });
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(if video_available {
+                    ui.label(if french {
+                        if video_available { "Vidéo : disponible" } else { "Vidéo : indisponible" }
+                    } else if video_available {
                         "Video: available"
                     } else {
                         "Video: unavailable"
                     });
                     ui.separator();
-                    ui.label(if audio_available {
+                    ui.label(if french {
+                        if audio_available { "Sortie audio du cœur : déclarée" } else { "Sortie audio du cœur : indisponible" }
+                    } else if audio_available {
                         "Audio core output: declared"
                     } else {
                         "Audio core output: unavailable"
@@ -295,13 +301,13 @@ impl DesktopApp {
                 if let Some(error) = &tick_error {
                     ui.colored_label(
                         egui::Color32::LIGHT_RED,
-                        format!("Last execution/media tick error: {error}"),
+                        format!("{}: {error}", if french { "Dernière erreur d’exécution/média" } else { "Last execution/media tick error" }),
                     );
                 }
                 if let Some(error) = active_error {
                     ui.colored_label(
                         egui::Color32::LIGHT_RED,
-                        format!("Last core error: {error}"),
+                        format!("{}: {error}", if french { "Dernière erreur du cœur" } else { "Last core error" }),
                     );
                 }
                 egui::CollapsingHeader::new(if french { "Diagnostics de session" } else { "Session diagnostics" })
@@ -393,7 +399,7 @@ impl DesktopApp {
                         if let Some(error) = &core_diagnostic {
                             ui.colored_label(
                                 egui::Color32::LIGHT_RED,
-                                format!("Core diagnostic: {error}"),
+                                format!("{}: {error}", if french { "Diagnostic du cœur" } else { "Core diagnostic" }),
                             );
                         } else {
                             ui.label(if self.language == "fr" { "Diagnostic du cœur : aucun" } else { "Core diagnostic: none recorded" });
@@ -403,10 +409,10 @@ impl DesktopApp {
                             .iter()
                             .find(|(session_id, _)| *session_id == id)
                             .map(|(_, path)| path.display().to_string())
-                            .unwrap_or_else(|| "unavailable".to_owned());
+                            .unwrap_or_else(|| if french { "indisponible".to_owned() } else { "unavailable".to_owned() });
                         let tick_diagnostic = tick_error
                             .as_deref()
-                            .unwrap_or("none recorded");
+                            .unwrap_or(if french { "aucune enregistrée" } else { "none recorded" });
                         let core_diagnostic_text = core_diagnostic
                             .as_deref()
                             .unwrap_or("none recorded");
