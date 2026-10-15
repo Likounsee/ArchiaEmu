@@ -56,12 +56,14 @@ fn read_preferences_file(path: &Path) -> std::io::Result<String> {
         .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))
 }
 
-fn system_language() -> String {
-    let locale = ["LC_ALL", "LC_MESSAGES", "LANG"]
-        .iter()
-        .filter_map(|key| std::env::var(key).ok())
-        .find(|value| !value.is_empty())
-        .unwrap_or_default();
+pub(crate) fn system_language() -> String {
+    let locale = sys_locale::get_locale().unwrap_or_else(|| {
+        ["LC_ALL", "LC_MESSAGES", "LANG"]
+            .iter()
+            .filter_map(|key| std::env::var(key).ok())
+            .find(|value| !value.is_empty())
+            .unwrap_or_default()
+    });
     if locale.to_ascii_lowercase().starts_with("fr") { "fr".to_owned() } else { "en".to_owned() }
 }
 
