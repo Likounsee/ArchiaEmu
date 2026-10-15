@@ -16,10 +16,10 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 60 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | **≈ 65 %** | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | **≈ 85 %** | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
-| **P1.3** | Sessions et commandes génériques | **≈ 60 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
+| **P1.3** | Sessions et commandes génériques | **≈ 61 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
 | **P1.4** | Paramètres, diagnostics et ergonomie | **≈ 55 %** | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
 | **P1.5** | Sorties média hôte et validation multiplateforme | **≈ 80 %** | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
-| **P1.6** | Tests de parcours, CI et finition | **≈ 50 %** | Tests exécutés et validation multiplateforme de l'application |
+| **P1.6** | Tests de parcours, CI et finition | **≈ 51 %** | Tests exécutés et validation multiplateforme de l'application |
 | **P1.7** | Livraison locale et installateur Windows | **≈ 40 %** | Installateur testé en environnement propre et mise à jour sûre |
 | **P2** | Intégration et fiabilité des modules logiciels | **≈ 24 %** — après P1 | Découverte, téléchargement de modules logiciels autorisés, provenance et frontières de confiance; aucun catalogue de ROM |
 | **CPU** | Architecture transversale des stratégies d'exécution | **≈ 20 %** | Contrats CPU/ABI/GPU et stratégies réellement implémentées |
@@ -96,13 +96,14 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 
 ### P1.3 — gestion des sessions et commandes génériques
 
-**Avancement estimé : ≈ 60 %.** Les commandes essentielles et plusieurs protections sont implémentées; la matrice complète de parcours et la validation manuelle restent ouvertes.
+**Avancement estimé : ≈ 61 %.** Les commandes essentielles, la cohérence de sélection et les erreurs de tick sont couvertes par des tests ciblés; la matrice complète de parcours et la validation manuelle restent ouvertes.
 
 - [x] Gérer plusieurs sessions, la sélection de la session active, pause/reprise, arrêt/réinitialisation et fermeture depuis l'interface.
 - [x] Avancer les sessions via le contrôleur avec budget borné et remonter état, capacités, trame la plus récente et erreur.
 - [x] Relier les transitions de clavier aux commandes sémantiques partagées et libérer les contrôles lors de la perte de focus.
 - [ ] Exécuter et compléter la matrice de tests de création, changement de session, pause/reprise, arrêt, réinitialisation, fermeture d'une session et fermeture globale; plusieurs tests unitaires de contrôleur existent, mais la validation complète du parcours desktop reste en attente.
 - [x] Sur erreur d'exécution ou de conversion/récupération vidéo, afficher l'erreur de tick dans le gestionnaire de sessions et effacer la trame mise en cache pour ne pas laisser une image périmée à l'écran.
+- [x] Préserver la première erreur observée pendant un tick : une erreur vidéo secondaire ne masque plus une erreur d'exécution; test de régression combinant échec d'exécution, vidéo et audio ajouté. Un autre test vérifie qu'un tick sur un identifiant de session fermé échoue sans recréer de session ni altérer la sélection.
 - [x] Conserver les diagnostics de tick séparément par identifiant de session, puis les retirer à la fermeture de la session concernée ou de toutes les sessions.
 - [x] Effacer le diagnostic de tick obsolète après un arrêt ou une réinitialisation réussis, sans toucher aux diagnostics des autres sessions; ajouter un test ciblé de ce nettoyage.
 - [ ] Tester les erreurs de tick, les transitions après arrêt/suppression de la session active et le nettoyage des ressources sur ces chemins.
