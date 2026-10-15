@@ -831,12 +831,14 @@ impl eframe::App for DesktopApp {
             } else {
                 egui::Color32::from_rgb(246, 247, 250)
             };
-            style.visuals.widgets.inactive.bg_stroke =
-                egui::Stroke::new(1.0_f32, if self.dark_mode {
+            style.visuals.widgets.inactive.bg_stroke = egui::Stroke::new(
+                1.0_f32,
+                if self.dark_mode {
                     egui::Color32::from_rgb(52, 59, 75)
                 } else {
                     egui::Color32::from_rgb(222, 226, 235)
-                });
+                },
+            );
             style.visuals.widgets.hovered.bg_fill = accent.gamma_multiply(0.18);
             style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0_f32, accent);
             style.visuals.widgets.active.bg_fill = accent.gamma_multiply(0.32);
