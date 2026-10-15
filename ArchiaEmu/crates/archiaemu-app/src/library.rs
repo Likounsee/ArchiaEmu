@@ -346,6 +346,29 @@ mod tests {
     }
 
     #[test]
+    fn entries_iterate_in_stable_canonical_path_order() {
+        let first = TempFile::new("zeta.gb", b"z");
+        let second = TempFile::new("alpha.gb", b"a");
+        let third = TempFile::new("middle.gb", b"m");
+        let mut library = ContentLibrary::new();
+
+        library.import(&first.0, 64).unwrap();
+        library.import(&second.0, 64).unwrap();
+        library.import(&third.0, 64).unwrap();
+
+        let actual: Vec<_> = library.entries().map(|entry| entry.path().to_path_buf()).collect();
+        let mut expected = vec![
+            fs::canonicalize(&first.0).unwrap(),
+            fs::canonicalize(&second.0).unwrap(),
+            fs::canonicalize(&third.0).unwrap(),
+        ];
+        expected.sort();
+
+        assert_eq!(actual, expected);
+        assert_eq!(library.len(), 3);
+    }
+
+    #[test]
     fn import_rejects_duplicates_empty_files_and_oversized_files() {
         let file = TempFile::new("game.gb", b"1234");
         let empty = TempFile::new("empty.gb", b"");
