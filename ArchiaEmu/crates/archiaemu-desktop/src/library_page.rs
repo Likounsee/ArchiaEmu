@@ -46,9 +46,9 @@ impl DesktopApp {
                     .add(
                         egui::Button::new(
                             egui::RichText::new(if self.language == "fr" {
-                                "+  Importer des ROM"
+                                "Importer des ROM"
                             } else {
-                                "+  Import ROMs…"
+                                "Import ROMs…"
                             })
                             .strong(),
                         )
@@ -71,7 +71,7 @@ impl DesktopApp {
                 ui.label(if self.language == "fr" { "Rechercher :" } else { "Search:" });
                 ui.add(
                     egui::TextEdit::singleline(&mut self.library_filter)
-                        .hint_text(if self.language == "fr" { "Rechercher un titre ou un chemin…" } else { "Search titles and file paths…" })
+                        .hint_text(if self.language == "fr" { "Rechercher un titre ou un chemin..." } else { "Search titles and file paths..." })
                         .desired_width(ui.available_width().min(260.0)),
                 );
                 egui::ComboBox::from_id_source("library_format_filter")
@@ -234,9 +234,9 @@ impl DesktopApp {
                             ui.horizontal(|ui| {
                                 ui.vertical(|ui| {
                                     ui.label(if selected {
-                                        "SELECTED"
+                                        "Selected"
                                     } else {
-                                        "GAME BOY ROM"
+                                        "Game Boy ROM"
                                     });
                                     ui.heading(&title);
                                     let extension = path
