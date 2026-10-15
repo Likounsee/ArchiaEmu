@@ -38,7 +38,7 @@ pub enum WorkerMessageKind {
 impl TryFrom<u8> for WorkerMessageKind {
     type Error = WorkerProtocolError;
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: u8) -> Result<Self, WorkerProtocolError> {
         match value {
             1 => Ok(Self::Initialize),
             2 => Ok(Self::Input),
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn rejects_bad_magic() {
-        let mut bytes = [0_u8; HEADER_BYTES];
+        let bytes = [0_u8; HEADER_BYTES];
         assert!(matches!(
             read_message(&mut bytes.as_slice()),
             Err(WorkerProtocolError::InvalidMagic)
