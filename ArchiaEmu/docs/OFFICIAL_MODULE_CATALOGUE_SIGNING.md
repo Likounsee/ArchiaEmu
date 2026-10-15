@@ -44,3 +44,7 @@ Do not publish a production module catalogue or advertise dynamic module install
 - A worker-process launcher with complete message schemas, hard timeouts/resource limits, OS-level isolation, and executable isolation tests for external cores.
 
 The built-in Game Boy core remains optional through the `game-boy-core` Cargo feature. A build without that feature must report that no Game Boy core is bundled rather than implying that an external core can already be installed.
+
+## Worker IPC payload schemas
+
+The desktop host validates each framed worker message against a per-operation schema before sending it and after receiving it. JSON control payloads are capped at 64 KiB and reject unknown fields. Initialization validates the module identifier, canonical app version, content digest, and a 32 MiB content-size ceiling; input batches are capped at 256 events; frame execution requires a non-zero instruction budget capped at one billion; shutdown requires an empty payload; and error reports have bounded fields. Video output uses a fixed RGBA8 binary envelope with exact dimensions and byte-count checks. These checks validate protocol shape only: they do not authenticate a worker, provide OS isolation, or make external module installation safe.
