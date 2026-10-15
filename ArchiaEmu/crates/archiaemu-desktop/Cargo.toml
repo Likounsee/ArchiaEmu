@@ -7,10 +7,15 @@ license = "MIT OR Apache-2.0"
 rust-version = "1.78"
 repository = "https://github.com/Likounsee/ArchiaEmu"
 
+[features]
+default = ["game-boy-core"]
+# Allows packaging a host without statically linking the Game Boy implementation.
+game-boy-core = ["dep:archiaemu-game-boy"]
+
 [dependencies]
 archiaemu-app = { version = "0.1.0", path = "../archiaemu-app" }
 archiaemu-core = { version = "0.1.0", path = "../archiaemu-core" }
-archiaemu-game-boy = { version = "0.1.0", path = "../archiaemu-game-boy" }
+archiaemu-game-boy = { version = "0.1.0", path = "../archiaemu-game-boy", optional = true }
 eframe = { version = "=0.27.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 rfd = "=0.14.1"
 rodio = { version = "=0.17.3", default-features = false }
