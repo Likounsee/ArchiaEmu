@@ -94,6 +94,10 @@ begin
     DeleteFile(RoamingDir + '\desktop.conf');
     DeleteFile(RoamingDir + '\desktop.conf.bak');
     DeleteTemporaryPreferenceFiles(RoamingDir);
+    { The app falls back to LocalAppData if AppData is unavailable. }
+    DeleteFile(LocalDir + '\desktop.conf');
+    DeleteFile(LocalDir + '\desktop.conf.bak');
+    DeleteTemporaryPreferenceFiles(LocalDir);
     DelTree(RoamingDir + '\logs', True, True, True);
     DelTree(RoamingDir + '\cache', True, True, True);
     DelTree(LocalDir + '\logs', True, True, True);
