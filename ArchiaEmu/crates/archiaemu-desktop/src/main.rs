@@ -800,6 +800,20 @@ impl eframe::App for DesktopApp {
             style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(6.0);
         });
 
+        // Keep the toggle synchronized with native window-manager changes and support F11.
+        let native_fullscreen = context.input(|input| input.viewport().fullscreen.unwrap_or(self.fullscreen));
+        if native_fullscreen != self.fullscreen {
+            self.fullscreen = native_fullscreen;
+        }
+        let toggle_fullscreen = context.input(|input| {
+            input.key_pressed(egui::Key::F11)
+                || (input.modifiers.alt && input.key_pressed(egui::Key::Enter))
+        });
+        if toggle_fullscreen {
+            self.fullscreen = !self.fullscreen;
+            context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
+        }
+
         let compact_navigation = context.input(|input| input.screen_rect().width() < 980.0);
 
         if !compact_navigation {
@@ -867,15 +881,21 @@ impl eframe::App for DesktopApp {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
                         .button(if self.fullscreen {
-                            "⛶ Windowed"
+                            if self.language == "fr" { "⛶ Quitter le plein écran" } else { "⛶ Exit fullscreen" }
+                        } else if self.language == "fr" {
+                            "⛶ Plein écran"
                         } else {
                             "⛶ Fullscreen"
+                        })
+                        .on_hover_text(if self.language == "fr" {
+                            "Raccourci : F11 ou Alt+Entrée"
+                        } else {
+                            "Shortcut: F11 or Alt+Enter"
                         })
                         .clicked()
                     {
                         self.fullscreen = !self.fullscreen;
-                        context
-                            .send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
+                        context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
                     }
                     ui.label(if self.dark_mode {
                         if self.language == "fr" { "◐ Sombre" } else { "◐ Dark" }
