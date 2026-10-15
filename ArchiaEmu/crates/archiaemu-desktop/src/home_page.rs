@@ -23,8 +23,9 @@ impl DesktopApp {
             .stroke(egui::Stroke::new(1.0, accent.gamma_multiply(0.45)))
             .show(ui, |ui| {
                 ui.set_min_height(172.0);
-                ui.horizontal_wrapped(|ui| {
-                    ui.vertical(|ui| {
+                ui.columns(2, |columns| {
+                    columns[0].vertical(|ui| {
+                        ui.add_space(3.0);
                         ui.label(
                             egui::RichText::new(if french {
                                 "VOTRE ESPACE D’ÉMULATION"
@@ -84,6 +85,93 @@ impl DesktopApp {
                                 self.navigate_to(DesktopPage::Library);
                             }
                         });
+                    });
+                    columns[1].vertical(|ui| {
+                        ui.add_space(5.0);
+                        egui::Frame::none()
+                            .fill(if self.dark_mode {
+                                egui::Color32::from_rgb(31, 39, 60)
+                            } else {
+                                egui::Color32::from_rgb(224, 232, 250)
+                            })
+                            .rounding(egui::Rounding::same(13.0))
+                            .inner_margin(egui::Margin::same(14.0))
+                            .show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label(egui::RichText::new("◈").size(18.0).color(accent));
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new(if french {
+                                            "PRÊT À JOUER"
+                                        } else {
+                                            "READY TO PLAY"
+                                        }).size(10.0).strong().color(accent));
+                                        ui.label(egui::RichText::new(if french {
+                                            "Votre collection"
+                                        } else {
+                                            "Your collection"
+                                        }).size(15.0).strong());
+                                    });
+                                });
+                                ui.add_space(12.0);
+                                let console_width = ui.available_width().min(220.0);
+                                let (rect, _) = ui.allocate_exact_size(
+                                    egui::vec2(console_width, 66.0),
+                                    egui::Sense::hover(),
+                                );
+                                let body = egui::Rect::from_min_size(
+                                    rect.min + egui::vec2(console_width * 0.17, 2.0),
+                                    egui::vec2(console_width * 0.66, 62.0),
+                                );
+                                ui.painter().rect_filled(
+                                    body,
+                                    egui::Rounding::same(12.0),
+                                    if self.dark_mode {
+                                        egui::Color32::from_rgb(66, 79, 108)
+                                    } else {
+                                        egui::Color32::from_rgb(197, 208, 235)
+                                    },
+                                );
+                                let screen = egui::Rect::from_min_size(
+                                    body.min + egui::vec2(10.0, 9.0),
+                                    egui::vec2(body.width() - 20.0, 29.0),
+                                );
+                                ui.painter().rect_filled(
+                                    screen,
+                                    egui::Rounding::same(5.0),
+                                    if self.dark_mode {
+                                        egui::Color32::from_rgb(17, 24, 38)
+                                    } else {
+                                        egui::Color32::from_rgb(240, 245, 255)
+                                    },
+                                );
+                                ui.painter().circle_filled(
+                                    egui::pos2(body.center().x - 13.0, body.max.y - 8.0),
+                                    3.0,
+                                    accent,
+                                );
+                                ui.painter().circle_filled(
+                                    egui::pos2(body.center().x + 13.0, body.max.y - 8.0),
+                                    3.0,
+                                    accent,
+                                );
+                                ui.add_space(8.0);
+                                ui.horizontal(|ui| {
+                                    ui.label(egui::RichText::new("●").color(
+                                        if self.controller.session_count() > 0 {
+                                            egui::Color32::from_rgb(46, 176, 120)
+                                        } else {
+                                            muted
+                                        },
+                                    ));
+                                    ui.label(egui::RichText::new(if self.controller.session_count() > 0 {
+                                        if french { "Session active" } else { "Session active" }
+                                    } else if french {
+                                        "Aucune session en cours"
+                                    } else {
+                                        "No active session"
+                                    }).size(11.0).color(muted));
+                                });
+                            });
                     });
                 });
             });
