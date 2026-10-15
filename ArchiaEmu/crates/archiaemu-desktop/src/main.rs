@@ -34,11 +34,8 @@ const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
-    if arguments.len() > 1 {
-        return Err("expected at most one command-line argument; try --help".into());
-    }
-    if let Some(argument) = arguments.first() {
-        println!("{}", cli_message(argument)?);
+    if let Some(message) = parse_cli_arguments(&arguments)? {
+        println!("{message}");
         return Ok(());
     }
 
@@ -55,6 +52,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         Box::new(move |_creation_context| Box::new(app)),
     )?;
     Ok(())
+}
+
+fn parse_cli_arguments(arguments: &[String]) -> Result<Option<&'static str>, String> {
+    if arguments.len() > 1 {
+        return Err("expected at most one command-line argument; try --help".to_owned());
+    }
+    arguments.first().map(|argument| cli_message(argument)).transpose()
 }
 
 fn cli_message(argument: &str) -> Result<&'static str, String> {
@@ -1049,6 +1053,24 @@ mod preference_tests {
             cli_message("--unknown").unwrap_err(),
             "unknown argument: --unknown; try --help"
         );
+    }
+
+    #[test]
+    fn cli_argument_parser_rejects_multiple_arguments_before_gui_startup() {
+        let arguments = vec!["--help".to_owned(), "--version".to_owned()];
+        assert_eq!(
+            parse_cli_arguments(&arguments).unwrap_err(),
+            "expected at most one command-line argument; try --help"
+        );
+    }
+
+    #[test]
+    fn cli_argument_parser_leaves_gui_startup_to_the_caller_without_options() {
+        assert_eq!(parse_cli_arguments(&[]).unwrap(), None);
+        assert!(parse_cli_arguments(&["--version".to_owned()])
+            .unwrap()
+            .unwrap()
+            .starts_with("ArchiaEmu "));
     }
 
     #[test]
