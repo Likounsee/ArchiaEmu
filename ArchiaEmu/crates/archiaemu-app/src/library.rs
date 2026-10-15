@@ -545,7 +545,6 @@ mod tests {
             library.entries().next().unwrap().availability(),
             ContentAvailability::NotRegularFile
         );
- 
     }
 
     #[test]
