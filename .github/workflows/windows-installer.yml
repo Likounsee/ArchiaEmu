@@ -130,7 +130,10 @@ jobs:
             throw "Installed executable reported unexpected version: $versionOutput"
           }
           $helpOutput = & $installedExe --help
-          if ($LASTEXITCODE -ne 0 -or $helpOutput -notmatch "Usage: archiaemu-desktop") {
+          $helpText = $helpOutput -join "`n"
+          if ($LASTEXITCODE -ne 0 -or $helpText -notmatch "Usage: archiaemu-desktop") {
+            Write-Host "Installed executable --help output:"
+            Write-Host $helpText
             throw "Installed executable --help smoke test failed."
           }
           # Hosted Windows runners may not expose an OpenGL 2.0+ context.
