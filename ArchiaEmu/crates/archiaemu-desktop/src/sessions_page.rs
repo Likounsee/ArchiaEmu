@@ -6,11 +6,11 @@ impl DesktopApp {
     pub(super) fn show_sessions(&mut self, ui: &mut egui::Ui) {
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
-                ui.heading("Session manager");
-                ui.label("Manage prototype session lifecycle; a session does not imply playable emulation.");
+                ui.heading(if self.language == "fr" { "Gestionnaire de sessions" } else { "Session manager" });
+                ui.label(if self.language == "fr" { "Gérez le cycle de vie des sessions du prototype ; cela ne signifie pas que l’émulation est jouable." } else { "Manage prototype session lifecycle; a session does not imply playable emulation." });
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("Close all").clicked() {
+                if ui.button(if self.language == "fr" { "Tout fermer" } else { "Close all" }).clicked() {
                     // Keyboard input is routed only to the active session. Release it before
                     // closing sessions so a held control cannot survive the lifecycle transition.
                     let release_error = self.release_game_inputs().err();
@@ -34,9 +34,9 @@ impl DesktopApp {
         let sessions = self.controller.session_summaries();
         if sessions.is_empty() {
             egui::Frame::group(ui.style()).show(ui, |ui| {
-                ui.heading("No open sessions");
-                ui.label("Open a session from an imported local file to inspect lifecycle and capability reporting.");
-                if ui.button("Browse library").clicked() {
+                ui.heading(if self.language == "fr" { "Aucune session ouverte" } else { "No open sessions" });
+                ui.label(if self.language == "fr" { "Ouvrez une session à partir d’un fichier importé pour consulter son état et ses capacités." } else { "Open a session from an imported local file to inspect lifecycle and capability reporting." });
+                if ui.button(if self.language == "fr" { "Ouvrir la bibliothèque" } else { "Browse library" }).clicked() {
                     self.navigate_to(DesktopPage::Library);
                 }
             });
@@ -64,11 +64,11 @@ impl DesktopApp {
                     ui.vertical(|ui| {
                         ui.strong(format!("Ⅱ Session {}", id.get()));
                         ui.label(&system_name);
-                        ui.small("Paused");
-                        if ui.button("▶ Resume").clicked() {
+                        ui.small(if self.language == "fr" { "En pause" } else { "Paused" });
+                        if ui.button(if self.language == "fr" { "▶ Reprendre" } else { "▶ Resume" }).clicked() {
                             self.session_action(id, SessionAction::Resume);
                         }
-                        if ui.button("× Close").clicked() {
+                        if ui.button(if self.language == "fr" { "× Fermer" } else { "× Close" }).clicked() {
                             let was_active = self.controller.active_session() == Some(id);
                             if was_active {
                                 let _ = self.release_game_inputs();
@@ -119,7 +119,7 @@ impl DesktopApp {
                     }
                     ui.label(&system_name);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("Close").clicked() {
+                        if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
                             let was_active = self.controller.active_session() == Some(id);
                             let release_error = if was_active {
                                 self.release_game_inputs().err()
@@ -168,16 +168,16 @@ impl DesktopApp {
                     } else {
                         "Content: not loaded"
                     });
-                    if state == SessionState::Running && ui.button("Pause").clicked() {
+                    if state == SessionState::Running && ui.button(if self.language == "fr" { "Mettre en pause" } else { "Pause" }).clicked() {
                         self.session_action(id, SessionAction::Pause);
                     }
-                    if state == SessionState::Paused && ui.button("Resume").clicked() {
+                    if state == SessionState::Paused && ui.button(if self.language == "fr" { "Reprendre" } else { "Resume" }).clicked() {
                         self.session_action(id, SessionAction::Resume);
                     }
-                    if state != SessionState::Empty && ui.button("Stop").clicked() {
+                    if state != SessionState::Empty && ui.button(if self.language == "fr" { "Arrêter" } else { "Stop" }).clicked() {
                         self.session_action(id, SessionAction::Stop);
                     }
-                    if state != SessionState::Empty && ui.button("Reset").clicked() {
+                    if state != SessionState::Empty && ui.button(if self.language == "fr" { "Réinitialiser" } else { "Reset" }).clicked() {
                         self.session_action(id, SessionAction::Reset);
                     }
                 });
@@ -234,10 +234,10 @@ impl DesktopApp {
                             }
                         ));
                         if !video_available {
-                            ui.label("Video output is unavailable because this core does not declare the capability.");
+                            ui.label(if self.language == "fr" { "La sortie vidéo est indisponible : ce cœur ne déclare pas cette capacité." } else { "Video output is unavailable because this core does not declare the capability." });
                         }
                         if !audio_available {
-                            ui.label("Audio output is unavailable because this core does not declare the capability.");
+                            ui.label(if self.language == "fr" { "La sortie audio est indisponible : ce cœur ne déclare pas cette capacité." } else { "Audio output is unavailable because this core does not declare the capability." });
                         }
                         if let Some(error) = &tick_error {
                             ui.colored_label(
@@ -245,7 +245,7 @@ impl DesktopApp {
                                 format!("Most recent tick/media failure: {error}"),
                             );
                         } else {
-                            ui.label("Most recent tick/media failure: none recorded");
+                            ui.label(if self.language == "fr" { "Dernière erreur d’exécution/média : aucune" } else { "Most recent tick/media failure: none recorded" });
                         }
                         if let Some(error) = &core_diagnostic {
                             ui.colored_label(
@@ -253,7 +253,7 @@ impl DesktopApp {
                                 format!("Core diagnostic: {error}"),
                             );
                         } else {
-                            ui.label("Core diagnostic: none recorded");
+                            ui.label(if self.language == "fr" { "Diagnostic du cœur : aucun" } else { "Core diagnostic: none recorded" });
                         }
                         let source_path = self
                             .session_content_paths
@@ -280,7 +280,7 @@ impl DesktopApp {
                             tick_diagnostic,
                             core_diagnostic_text,
                         );
-                        if ui.button("Copy session diagnostics").clicked() {
+                        if ui.button(if self.language == "fr" { "Copier le diagnostic de session" } else { "Copy session diagnostics" }).clicked() {
                             ui.output_mut(|output| output.copied_text = report);
                             self.message = format!(
                                 "Copied diagnostics for session {} to the clipboard.",
