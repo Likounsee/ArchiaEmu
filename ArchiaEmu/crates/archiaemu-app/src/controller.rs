@@ -1244,6 +1244,38 @@ mod tests {
     }
 
     #[test]
+    fn forgetting_a_missing_library_file_preserves_open_sessions() {
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-forget-controller-{}-{}",
+            std::process::id(),
+            NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let file = root.join("game.gb");
+        std::fs::write(&file, b"test-content").unwrap();
+
+        let mut app = controller();
+        let canonical = app.import_content(&file, 1024).unwrap().path().to_path_buf();
+        let session = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(session).unwrap();
+
+        std::fs::remove_file(&canonical).unwrap();
+        let removed = app.forget_content(&canonical).unwrap();
+
+        assert_eq!(removed.path(), canonical);
+        assert!(app.library().is_empty());
+        assert_eq!(app.session_count(), 1);
+        assert_eq!(app.active_session(), Some(session));
+        assert!(app.host().session(session).is_ok());
+
+        app.close_all_sessions();
+        std::fs::remove_dir(&root).unwrap();
+    }
+
+    #[test]
     fn library_index_errors_are_explicit_and_do_not_create_sessions() {
         let mut app = controller();
         let error = app
