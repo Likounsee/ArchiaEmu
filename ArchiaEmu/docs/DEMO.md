@@ -58,3 +58,14 @@ La CI doit être vérifiée sur le commit exact présenté. Une compilation réu
 - Le cœur Game Boy / Game Boy Color reste incomplet : sous-ensemble d'instructions LR35902 seulement, sans PPU, audio, timer/interruptions, joypad matériel ni banques de cartouche. Ne pas promettre que des jeux commerciaux fonctionnent.
 - Le téléchargement de mise à jour prépare un fichier vérifié; l'installation automatique et le rollback ne sont pas activés.
 - La reproductibilité de la compilation desktop et la validation de l'installation dans une VM propre restent des points à finaliser.
+
+
+## Remise au professeur : checklist rapide
+
+1. Ouvrir l'onglet [Actions](https://github.com/Likounsee/ArchiaEmu/actions/workflows/windows-installer.yml) du dépôt et sélectionner la dernière exécution **Windows installer** terminée avec succès sur la branche `ArchiaEmu`.
+2. Télécharger l'artefact `ArchiaEmu-Windows-x64-...` et extraire son ZIP. Le ZIP doit contenir l'installateur `.exe`, son fichier `.sha256`, le `Cargo.lock` résolu utilisé pour compiler et `ArchiaEmu-Build-Info.txt` (commit source et lien vers l'exécution CI).
+3. Vérifier le SHA-256 avec la commande ci-dessus avant de lancer l'installateur.
+4. Installer l'application, la lancer depuis le menu Démarrer et préparer une ROM Game Boy légale dont tu disposes pour montrer l'importation et l'interface. Ne promets pas qu'un jeu complet fonctionnera : le cœur Game Boy est encore expérimental et incomplet.
+5. Joindre le lien du dépôt et le commit correspondant à l'artefact au rendu. N'utilise pas un ancien artefact CI si son commit ne correspond pas au code que tu présentes.
+
+**À vérifier avant remise :** la compilation Windows et les tests d'installation doivent être terminés avec succès pour le commit le plus récent. Une exécution réussie d'une ancienne version ne valide pas automatiquement les modifications suivantes.
