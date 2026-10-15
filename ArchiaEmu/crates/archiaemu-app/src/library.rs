@@ -289,9 +289,18 @@ impl ContentLibrary {
         }
     }
 
-    /// Removes an imported file by path; the file must still be present.
+    /// Removes an imported entry by path, including when its file has disappeared.
+    ///
+    /// A canonical path returned by this library can be removed even after the
+    /// underlying file is deleted or becomes inaccessible. For other path forms,
+    /// canonicalization is attempted so relative paths and symlinks keep working.
     pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<ContentEntry, ContentLibraryError> {
-        let canonical = fs::canonicalize(path.as_ref()).map_err(ContentLibraryError::Io)?;
+        let path = path.as_ref();
+        if let Some(entry) = self.entries.remove(path) {
+            return Ok(entry);
+        }
+
+        let canonical = fs::canonicalize(path).map_err(ContentLibraryError::Io)?;
         self.entries
             .remove(&canonical)
             .ok_or(ContentLibraryError::NotImported(canonical))
@@ -481,6 +490,38 @@ mod tests {
             PathBuf::from("not-in-library.gb"),
             ContentValidation::Accepted
         ));
+    }
+
+    #[test]
+    fn stale_entry_can_be_removed_after_its_file_disappears() {
+        let file = TempFile::new("stale.gb", b"rom-data");
+        let mut library = ContentLibrary::new();
+        let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
+
+        fs::remove_file(&canonical).unwrap();
+        assert_eq!(
+            library.entries().next().unwrap().availability(),
+            ContentAvailability::Missing
+        );
+
+        let removed = library.remove(&canonical).unwrap();
+        assert_eq!(removed.path(), canonical);
+        assert!(library.is_empty());
+    }
+
+    #[test]
+    fn failed_removal_does_not_mutate_other_entries() {
+        let file = TempFile::new("kept.gb", b"rom-data");
+        let mut library = ContentLibrary::new();
+        let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
+        let missing = canonical.with_file_name("missing.gb");
+
+        assert!(matches!(
+            library.remove(&missing),
+            Err(ContentLibraryError::Io(_))
+        ));
+        assert_eq!(library.len(), 1);
+        assert_eq!(library.entries().next().unwrap().path(), canonical);
     }
 
     #[test]
