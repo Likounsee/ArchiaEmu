@@ -102,6 +102,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Avancer les sessions via le contrôleur avec budget borné et remonter état, capacités, trame la plus récente et erreur.
 - [x] Relier les transitions de clavier aux commandes sémantiques partagées et libérer les contrôles lors de la perte de focus.
 - [ ] Exécuter et compléter la matrice de tests de création, changement de session, pause/reprise, arrêt, réinitialisation, fermeture d'une session et fermeture globale; plusieurs tests unitaires de contrôleur existent, mais la validation complète du parcours desktop reste en attente.
+- [x] Ajouter un test runtime vérifiant qu'une pause remet à zéro le temps fractionnaire accumulé et que le temps passé en pause n'est pas rejoué après reprise; l'exécution du nouveau test attend les quality gates du commit courant.
 - [x] Sur erreur d'exécution ou de conversion/récupération vidéo, afficher l'erreur de tick dans le gestionnaire de sessions et effacer la trame mise en cache pour ne pas laisser une image périmée à l'écran.
 - [x] Préserver la première erreur observée pendant un tick : une erreur vidéo secondaire ne masque plus une erreur d'exécution; test de régression combinant échec d'exécution, vidéo et audio ajouté. Un autre test vérifie qu'un tick sur un identifiant de session fermé échoue sans recréer de session ni altérer la sélection.
 - [x] Conserver les diagnostics de tick séparément par identifiant de session, puis les retirer à la fermeture de la session concernée ou de toutes les sessions.
@@ -164,7 +165,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 ### P1.6 — tests de parcours, CI et finition de l'application
 
-**Avancement estimé : ≈ 50 %.** Sur le commit `aba4fa51`, les quality gates desktop et les quality gates Rust du workspace ont réussi sur Linux, Windows et macOS. Les tests manuels du parcours desktop et la validation visuelle restent à exécuter.
+**Avancement estimé : ≈ 51 %.** Sur le commit `aba4fa51`, les quality gates desktop et les quality gates Rust du workspace ont réussi sur Linux, Windows et macOS; les modifications plus récentes doivent repasser ces contrôles. Les tests manuels du parcours desktop et la validation visuelle restent à exécuter.
 - [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante.
 - [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; la matrice a réussi sur le commit `234de9a4`.
 - [x] Étendre également Clippy du workspace partagé aux runners Linux, Windows et macOS (au lieu de Linux seulement); la matrice a réussi sur le commit `234de9a4`.
