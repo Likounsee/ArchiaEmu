@@ -308,14 +308,36 @@ impl DesktopApp {
                     .id_source(("session_diagnostics", id))
                     .default_open(false)
                     .show(ui, |ui| {
-                        ui.label(format!("{}: {}", if french { "Identifiant de session" } else { "Session identifier" }, id.get()));
+                        ui.label(format!(
+                            "{}: {}",
+                            if french {
+                                "Identifiant de session"
+                            } else {
+                                "Session identifier"
+                            },
+                            id.get()
+                        ));
                         ui.label(format!(
                             "{}: {}",
                             if french { "Sélectionnée par l’hôte" } else { "Selected by host" },
                             self.controller.active_session() == Some(id)
                         ));
-                        ui.label(format!("{}: {state:?}", if french { "État du cycle de vie" } else { "Lifecycle state" }));
-                        ui.label(format!("{}: {content_loaded}", if french { "Contenu chargé" } else { "Content loaded" }));
+                        ui.label(format!(
+                            "{}: {state:?}",
+                            if french {
+                                "État du cycle de vie"
+                            } else {
+                                "Lifecycle state"
+                            }
+                        ));
+                        ui.label(format!(
+                            "{}: {content_loaded}",
+                            if french {
+                                "Contenu chargé"
+                            } else {
+                                "Content loaded"
+                            }
+                        ));
                         ui.label(format!(
                             "{}: {}",
                             if french {
