@@ -1999,6 +1999,45 @@ mod tests {
     }
 
     #[test]
+    fn paused_time_and_fractional_cadence_are_discarded_before_resume() {
+        let mut session = session();
+        session.load_content(&[1]).unwrap();
+        let mut cadence = FrameCadence::new(60, 4).unwrap();
+        let period = cadence.frame_period();
+
+        assert_eq!(
+            session
+                .advance_frame_cadence(&mut cadence, period / 2)
+                .due_frames,
+            0
+        );
+        session.pause().unwrap();
+        assert_eq!(
+            session
+                .advance_frame_cadence(&mut cadence, period * 4)
+                .due_frames,
+            0
+        );
+        session.resume().unwrap();
+
+        assert_eq!(
+            session
+                .advance_frame_cadence(
+                    &mut cadence,
+                    period - std::time::Duration::from_nanos(1),
+                )
+                .due_frames,
+            0
+        );
+        assert_eq!(
+            session
+                .advance_frame_cadence(&mut cadence, std::time::Duration::from_nanos(1))
+                .due_frames,
+            1
+        );
+    }
+
+    #[test]
     fn pause_resume_and_reset_follow_valid_transitions() {
         let mut session = session();
         session.load_content(&[1]).unwrap();
