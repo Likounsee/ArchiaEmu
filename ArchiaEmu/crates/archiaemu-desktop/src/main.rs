@@ -58,7 +58,10 @@ fn parse_cli_arguments(arguments: &[String]) -> Result<Option<&'static str>, Str
     if arguments.len() > 1 {
         return Err("expected at most one command-line argument; try --help".to_owned());
     }
-    arguments.first().map(|argument| cli_message(argument)).transpose()
+    arguments
+        .first()
+        .map(|argument| cli_message(argument))
+        .transpose()
 }
 
 fn cli_message(argument: &str) -> Result<&'static str, String> {
