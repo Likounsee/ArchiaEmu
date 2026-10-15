@@ -871,96 +871,248 @@ impl eframe::App for DesktopApp {
         if !compact_navigation {
             egui::SidePanel::left("navigation")
                 .resizable(false)
-                .exact_width(204.0)
+                .exact_width(232.0)
+                .frame(
+                    egui::Frame::none()
+                        .fill(if self.dark_mode {
+                            egui::Color32::from_rgb(19, 23, 33)
+                        } else {
+                            egui::Color32::from_rgb(255, 255, 255)
+                        })
+                        .inner_margin(egui::Margin {
+                            left: 16.0,
+                            right: 16.0,
+                            top: 18.0,
+                            bottom: 14.0,
+                        }),
+                )
                 .show(context, |ui| {
-                    ui.add_space(10.0);
+                    let accent = self.accent_color;
+                    let french = self.language == "fr";
                     ui.horizontal(|ui| {
-                        ui.heading("◈");
+                        let (logo_rect, _) =
+                            ui.allocate_exact_size(egui::vec2(38.0, 38.0), egui::Sense::hover());
+                        ui.painter().rect_filled(
+                            logo_rect,
+                            egui::Rounding::same(11.0),
+                            accent,
+                        );
+                        ui.painter().text(
+                            logo_rect.center(),
+                            egui::Align2::CENTER_CENTER,
+                            "A",
+                            egui::FontId::proportional(23.0),
+                            egui::Color32::WHITE,
+                        );
+                        ui.add_space(9.0);
                         ui.vertical(|ui| {
-                            ui.heading("ArchiaEmu");
-                            ui.small("EMULATION STUDIO");
+                            ui.label(egui::RichText::new("ArchiaEmu").size(18.0).strong());
+                            ui.label(
+                                egui::RichText::new(if french {
+                                    "STUDIO D’ÉMULATION"
+                                } else {
+                                    "EMULATION STUDIO"
+                                })
+                                .size(9.0)
+                                .strong()
+                                .color(ui.visuals().weak_text_color()),
+                            );
                         });
                     });
-                    ui.add_space(24.0);
-                    ui.label("WORKSPACE");
-                    ui.add_space(4.0);
-                    for (page, glyph, label) in navigation_items(self.language == "fr") {
-                        if ui
-                            .selectable_label(
-                                self.active_page == page,
-                                format!("{glyph}   {label}"),
-                            )
-                            .clicked()
-                        {
-                            self.navigate_to(page);
-                        }
+                    ui.add_space(28.0);
+                    ui.label(
+                        egui::RichText::new(if french { "ESPACE DE TRAVAIL" } else { "WORKSPACE" })
+                            .size(10.0)
+                            .strong()
+                            .color(ui.visuals().weak_text_color()),
+                    );
+                    ui.add_space(9.0);
+                    for (page, glyph, label) in navigation_items(french) {
+                        let selected = self.active_page == page;
+                        let fill = if selected {
+                            accent.gamma_multiply(if self.dark_mode { 0.22 } else { 0.13 })
+                        } else {
+                            egui::Color32::TRANSPARENT
+                        };
+                        egui::Frame::none()
+                            .fill(fill)
+                            .rounding(egui::Rounding::same(9.0))
+                            .inner_margin(egui::Margin::symmetric(10.0, 10.0))
+                            .show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    let marker = if selected { accent } else { ui.visuals().weak_text_color() };
+                                    ui.label(egui::RichText::new(glyph).size(17.0).color(marker));
+                                    let response = ui.selectable_label(
+                                        selected,
+                                        egui::RichText::new(label).size(13.0).color(if selected {
+                                            accent
+                                        } else {
+                                            ui.visuals().text_color()
+                                        }),
+                                    );
+                                    if response.clicked() {
+                                        self.navigate_to(page);
+                                    }
+                                });
+                            });
+                        ui.add_space(3.0);
                     }
                     ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
-                        ui.separator();
-                        ui.label("EARLY DEVELOPMENT");
-                        ui.small("Core support is experimental.");
-                        ui.small("No game compatibility is implied.");
+                        egui::Frame::group(ui.style())
+                            .fill(if self.dark_mode {
+                                egui::Color32::from_rgb(27, 32, 44)
+                            } else {
+                                egui::Color32::from_rgb(247, 248, 251)
+                            })
+                            .rounding(egui::Rounding::same(10.0))
+                            .inner_margin(egui::Margin::same(12.0))
+                            .show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label(egui::RichText::new("●").color(accent));
+                                    ui.label(egui::RichText::new(if french {
+                                        "Développement actif"
+                                    } else {
+                                        "Active development"
+                                    }).strong().size(12.0));
+                                });
+                                ui.add_space(4.0);
+                                ui.label(egui::RichText::new(if french {
+                                    "Les cœurs et la compatibilité restent expérimentaux."
+                                } else {
+                                    "Core support and compatibility are experimental."
+                                }).size(10.0).color(ui.visuals().weak_text_color()));
+                                ui.add_space(8.0);
+                                ui.separator();
+                                ui.horizontal(|ui| {
+                                    ui.label(egui::RichText::new("◐").color(accent));
+                                    ui.label(if self.dark_mode {
+                                        if french { "Thème sombre" } else { "Dark appearance" }
+                                    } else if french { "Thème clair" } else { "Light appearance" });
+                                });
+                            });
                     });
                 });
         } else {
-            egui::TopBottomPanel::top("compact_navigation").show(context, |ui| {
-                egui::ScrollArea::horizontal().show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.strong("◈ ArchiaEmu");
-                        ui.separator();
-                        for (page, glyph, label) in navigation_items(self.language == "fr") {
-                            if ui
-                                .selectable_label(
-                                    self.active_page == page,
-                                    format!("{glyph} {label}"),
-                                )
-                                .clicked()
-                            {
-                                self.navigate_to(page);
+            egui::TopBottomPanel::top("compact_navigation")
+                .frame(egui::Frame::none().inner_margin(egui::Margin::symmetric(12.0, 8.0)))
+                .show(context, |ui| {
+                    egui::ScrollArea::horizontal().show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.strong("◈ ArchiaEmu");
+                            ui.separator();
+                            for (page, glyph, label) in navigation_items(self.language == "fr") {
+                                if ui
+                                    .selectable_label(
+                                        self.active_page == page,
+                                        format!("{glyph}  {label}"),
+                                    )
+                                    .clicked()
+                                {
+                                    self.navigate_to(page);
+                                }
                             }
+                        });
+                    });
+                });
+        }
+
+        egui::TopBottomPanel::top("app_header")
+            .frame(
+                egui::Frame::none().inner_margin(egui::Margin {
+                    left: 24.0,
+                    right: 24.0,
+                    top: 17.0,
+                    bottom: 14.0,
+                }),
+            )
+            .show(context, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.vertical(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.label(
+                                egui::RichText::new(if self.language == "fr" {
+                                    "ESPACE DE TRAVAIL"
+                                } else {
+                                    "WORKSPACE"
+                                })
+                                .size(10.0)
+                                .strong()
+                                .color(self.accent_color),
+                            );
+                            ui.label(
+                                egui::RichText::new(" / ")
+                                    .size(10.0)
+                                    .color(ui.visuals().weak_text_color()),
+                            );
+                            ui.label(
+                                egui::RichText::new(self.active_page.title(self.language == "fr"))
+                                    .size(10.0)
+                                    .color(ui.visuals().weak_text_color()),
+                            );
+                        });
+                        ui.add_space(3.0);
+                        ui.heading(
+                            egui::RichText::new(self.active_page.title(self.language == "fr"))
+                                .size(25.0)
+                                .strong(),
+                        );
+                        ui.label(
+                            egui::RichText::new(if self.language == "fr" {
+                                "Votre bibliothèque, vos sessions et vos outils au même endroit."
+                            } else {
+                                "Your library, sessions and tools in one place."
+                            })
+                            .size(12.0)
+                            .color(ui.visuals().weak_text_color()),
+                        );
+                    });
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui
+                            .button(if self.fullscreen {
+                                if self.language == "fr" { "⛶ Quitter le plein écran" } else { "⛶ Exit fullscreen" }
+                            } else if self.language == "fr" {
+                                "⛶ Plein écran"
+                            } else {
+                                "⛶ Fullscreen"
+                            })
+                            .on_hover_text(if self.language == "fr" {
+                                "Raccourci : F11 ou Alt+Entrée"
+                            } else {
+                                "Shortcut: F11 or Alt+Enter"
+                            })
+                            .clicked()
+                        {
+                            self.fullscreen = !self.fullscreen;
+                            context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
                         }
+                        egui::Frame::group(ui.style())
+                            .fill(if self.dark_mode {
+                                egui::Color32::from_rgb(28, 34, 46)
+                            } else {
+                                egui::Color32::from_rgb(255, 255, 255)
+                            })
+                            .rounding(egui::Rounding::same(9.0))
+                            .inner_margin(egui::Margin::symmetric(10.0, 7.0))
+                            .show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label(egui::RichText::new("●").color(if self.controller.session_count() > 0 {
+                                        egui::Color32::from_rgb(46, 176, 120)
+                                    } else {
+                                        ui.visuals().weak_text_color()
+                                    }));
+                                    ui.label(format!(
+                                        "{} {}",
+                                        self.controller.session_count(),
+                                        if self.language == "fr" { "session(s)" } else { "session(s)" }
+                                    ));
+                                });
+                            });
+                        ui.label(if self.dark_mode {
+                            if self.language == "fr" { "◐ Sombre" } else { "◐ Dark" }
+                        } else if self.language == "fr" { "☼ Clair" } else { "☼ Light" });
                     });
                 });
             });
-        }
-
-        egui::TopBottomPanel::top("app_header").show(context, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.vertical(|ui| {
-                    ui.heading(self.active_page.title(self.language == "fr"));
-                    ui.label(if self.language == "fr" { "Votre bibliothèque, vos sessions et vos outils d’émulation au même endroit." } else { "Your library, sessions and emulator tools in one place." });
-                });
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui
-                        .button(if self.fullscreen {
-                            if self.language == "fr" {
-                                "⛶ Quitter le plein écran"
-                            } else {
-                                "⛶ Exit fullscreen"
-                            }
-                        } else if self.language == "fr" {
-                            "⛶ Plein écran"
-                        } else {
-                            "⛶ Fullscreen"
-                        })
-                        .on_hover_text(if self.language == "fr" {
-                            "Raccourci : F11 ou Alt+Entrée"
-                        } else {
-                            "Shortcut: F11 or Alt+Enter"
-                        })
-                        .clicked()
-                    {
-                        self.fullscreen = !self.fullscreen;
-                        context
-                            .send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
-                    }
-                    ui.label(if self.dark_mode {
-                        if self.language == "fr" { "◐ Sombre" } else { "◐ Dark" }
-                    } else if self.language == "fr" { "☼ Clair" } else { "☼ Light" });
-                    ui.label(format!("{} session(s)", self.controller.session_count()));
-                });
-            });
-        });
 
         egui::CentralPanel::default().show(context, |ui| {
             // Keep long pages usable on short displays and when the window is resized.
