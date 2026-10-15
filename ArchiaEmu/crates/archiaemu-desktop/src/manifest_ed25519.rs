@@ -30,8 +30,7 @@ impl ManifestSignatureVerifier for Ed25519ManifestVerifier {
             .try_into()
             .map_err(|_| SignatureVerificationError)?;
         let key = VerifyingKey::from_bytes(key_bytes).map_err(|_| SignatureVerificationError)?;
-        let signature =
-            Signature::from_slice(signature).map_err(|_| SignatureVerificationError)?;
+        let signature = Signature::from_slice(signature).map_err(|_| SignatureVerificationError)?;
         key.verify_strict(payload, &signature)
             .map_err(|_| SignatureVerificationError)
     }
@@ -196,8 +195,7 @@ mod tests {
     }
 
     // RFC 8032, section 7.1, test vector 1 (empty message).
-    const PUBLIC_KEY: &str =
-        "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
+    const PUBLIC_KEY: &str = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
     const SIGNATURE: &str = concat!(
         "e5564300c360ac729086e2cc806e828a",
         "84877f1eb8e5d974d873e06522490155",
@@ -276,9 +274,8 @@ mod tests {
         use ed25519_dalek::{Signer, SigningKey};
 
         // This seed is test-only; never use it for a production catalogue.
-        let test_seed = decode_hex::<32>(
-            "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
-        );
+        let test_seed =
+            decode_hex::<32>("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
         let signing_key = SigningKey::from_bytes(&test_seed);
         let key = signing_key.verifying_key().to_bytes();
         let payload = b"manifest-test-payload".to_vec();
