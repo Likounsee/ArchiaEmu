@@ -64,63 +64,75 @@ impl DesktopApp {
 
         ui.add_space(8.0);
         egui::Frame::group(ui.style())
-                .rounding(egui::Rounding::same(12.0))
-                .inner_margin(egui::Margin::same(14.0))
-                .show(ui, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.label(if self.language == "fr" { "Rechercher :" } else { "Search:" });
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.library_filter)
-                        .hint_text(if self.language == "fr" { "Rechercher un titre ou un chemin..." } else { "Search titles and file paths..." })
-                        .desired_width(ui.available_width().min(260.0)),
-                );
-                egui::ComboBox::from_id_source("library_format_filter")
-                    .selected_text(self.library_format.label())
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(
-                            &mut self.library_format,
-                            LibraryFormat::All,
-                            "All formats",
-                        );
-                        ui.selectable_value(
-                            &mut self.library_format,
-                            LibraryFormat::GameBoy,
-                            "Game Boy (.gb)",
-                        );
-                        ui.selectable_value(
-                            &mut self.library_format,
-                            LibraryFormat::GameBoyColor,
-                            "Game Boy Color (.gbc)",
-                        );
-                    });
-                egui::ComboBox::from_id_source("library_sort")
-                    .selected_text(self.library_sort.label())
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(
-                            &mut self.library_sort,
-                            LibrarySort::Name,
-                            "Title (A–Z)",
-                        );
-                        ui.selectable_value(
-                            &mut self.library_sort,
-                            LibrarySort::Largest,
-                            "Largest first",
-                        );
-                        ui.selectable_value(&mut self.library_sort, LibrarySort::Path, "File path");
-                    });
-                if ui
-                    .button(if self.language == "fr" {
-                        "Effacer"
+            .rounding(egui::Rounding::same(12.0))
+            .inner_margin(egui::Margin::same(14.0))
+            .show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(if self.language == "fr" {
+                        "Rechercher :"
                     } else {
-                        "Clear"
-                    })
-                    .clicked()
-                {
-                    self.library_filter.clear();
-                    self.library_format = LibraryFormat::All;
-                }
+                        "Search:"
+                    });
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.library_filter)
+                            .hint_text(if self.language == "fr" {
+                                "Rechercher un titre ou un chemin..."
+                            } else {
+                                "Search titles and file paths..."
+                            })
+                            .desired_width(ui.available_width().min(260.0)),
+                    );
+                    egui::ComboBox::from_id_source("library_format_filter")
+                        .selected_text(self.library_format.label())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut self.library_format,
+                                LibraryFormat::All,
+                                "All formats",
+                            );
+                            ui.selectable_value(
+                                &mut self.library_format,
+                                LibraryFormat::GameBoy,
+                                "Game Boy (.gb)",
+                            );
+                            ui.selectable_value(
+                                &mut self.library_format,
+                                LibraryFormat::GameBoyColor,
+                                "Game Boy Color (.gbc)",
+                            );
+                        });
+                    egui::ComboBox::from_id_source("library_sort")
+                        .selected_text(self.library_sort.label())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut self.library_sort,
+                                LibrarySort::Name,
+                                "Title (A–Z)",
+                            );
+                            ui.selectable_value(
+                                &mut self.library_sort,
+                                LibrarySort::Largest,
+                                "Largest first",
+                            );
+                            ui.selectable_value(
+                                &mut self.library_sort,
+                                LibrarySort::Path,
+                                "File path",
+                            );
+                        });
+                    if ui
+                        .button(if self.language == "fr" {
+                            "Effacer"
+                        } else {
+                            "Clear"
+                        })
+                        .clicked()
+                    {
+                        self.library_filter.clear();
+                        self.library_format = LibraryFormat::All;
+                    }
+                });
             });
-        });
 
         let query = self.library_filter.trim().to_lowercase();
         let mut entries: Vec<_> = self
@@ -166,15 +178,19 @@ impl DesktopApp {
             .inner_margin(egui::Margin::symmetric(12.0, 8.0))
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(egui::RichText::new(format!(
-                        "{} {}",
-                        entries.len(),
-                        if self.language == "fr" {
-                            "résultat(s)"
-                        } else {
-                            "result(s)"
-                        }
-                    )).strong().color(self.accent_color));
+                    ui.label(
+                        egui::RichText::new(format!(
+                            "{} {}",
+                            entries.len(),
+                            if self.language == "fr" {
+                                "résultat(s)"
+                            } else {
+                                "result(s)"
+                            }
+                        ))
+                        .strong()
+                        .color(self.accent_color),
+                    );
                     ui.separator();
                     ui.label(if self.language == "fr" {
                         format!("{total} élément(s) au total")
@@ -196,31 +212,31 @@ impl DesktopApp {
                 .rounding(egui::Rounding::same(12.0))
                 .inner_margin(egui::Margin::same(14.0))
                 .show(ui, |ui| {
-                ui.add_space(8.0);
-                ui.heading(if total == 0 {
-                    "Your library is empty"
-                } else if query.is_empty() && self.library_format != LibraryFormat::All {
-                    "No games in this format"
-                } else {
-                    "No matching games"
+                    ui.add_space(8.0);
+                    ui.heading(if total == 0 {
+                        "Your library is empty"
+                    } else if query.is_empty() && self.library_format != LibraryFormat::All {
+                        "No games in this format"
+                    } else {
+                        "No matching games"
+                    });
+                    ui.label(if total == 0 {
+                        "Import one or more .gb or .gbc files to build your collection."
+                    } else {
+                        "Try another search, change the format filter, or clear the search."
+                    });
+                    if total == 0
+                        && ui
+                            .button(if self.language == "fr" {
+                                "Parcourir les ROM"
+                            } else {
+                                "Browse for ROMs…"
+                            })
+                            .clicked()
+                    {
+                        self.choose_content_file();
+                    }
                 });
-                ui.label(if total == 0 {
-                    "Import one or more .gb or .gbc files to build your collection."
-                } else {
-                    "Try another search, change the format filter, or clear the search."
-                });
-                if total == 0
-                    && ui
-                        .button(if self.language == "fr" {
-                            "Parcourir les ROM"
-                        } else {
-                            "Browse for ROMs…"
-                        })
-                        .clicked()
-                {
-                    self.choose_content_file();
-                }
-            });
         } else {
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
@@ -424,39 +440,39 @@ impl DesktopApp {
                 .rounding(egui::Rounding::same(12.0))
                 .inner_margin(egui::Margin::same(14.0))
                 .show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.vertical(|ui| {
-                        ui.heading(if self.language == "fr" {
-                            "Contenu sélectionné"
-                        } else {
-                            "Selected content"
+                    ui.horizontal(|ui| {
+                        ui.vertical(|ui| {
+                            ui.heading(if self.language == "fr" {
+                                "Contenu sélectionné"
+                            } else {
+                                "Selected content"
+                            });
+                            ui.label(&title);
+                            ui.small(path.display().to_string());
+                            ui.small(format!(
+                                "{} · {}",
+                                format_size(size),
+                                content_path_status(&path)
+                            ));
                         });
-                        ui.label(&title);
-                        ui.small(path.display().to_string());
-                        ui.small(format!(
-                            "{} · {}",
-                            format_size(size),
-                            content_path_status(&path)
-                        ));
-                    });
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui
-                            .add_enabled(
-                                path.is_file(),
-                                egui::Button::new(if self.language == "fr" {
-                                    "Lancer la sélection"
-                                } else {
-                                    "Launch selected"
-                                }),
-                            )
-                            .clicked()
-                        {
-                            self.content_path = path.display().to_string();
-                            self.launch_content();
-                        }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui
+                                .add_enabled(
+                                    path.is_file(),
+                                    egui::Button::new(if self.language == "fr" {
+                                        "Lancer la sélection"
+                                    } else {
+                                        "Launch selected"
+                                    }),
+                                )
+                                .clicked()
+                            {
+                                self.content_path = path.display().to_string();
+                                self.launch_content();
+                            }
+                        });
                     });
                 });
-            });
         }
     }
 }
