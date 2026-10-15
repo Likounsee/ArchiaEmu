@@ -169,11 +169,15 @@ fn parse_manifest_json(payload: &[u8]) -> Result<ModuleManifest, ()> {
             })
         })
         .collect::<Result<Vec<_>, ()>>()?;
-    Ok(ModuleManifest {
+    let manifest = ModuleManifest {
         schema_version: source.schema_version,
         revision: source.revision,
         modules,
-    })
+    };
+    // Parsing authenticated JSON is not enough: apply the core's semantic checks
+    // before any caller can treat the catalogue as usable metadata.
+    manifest.validate().map_err(|_| ())?;
+    Ok(manifest)
 }
 
 #[cfg(test)]
@@ -259,6 +263,32 @@ mod tests {
         let unknown_field = br#"{"schema_version":1,"revision":1,"modules":[],"unexpected":true}"#;
         assert!(parse_manifest_json(unknown_field).is_err());
         assert!(parse_manifest_json(&vec![b' '; MAX_SIGNED_CATALOGUE_BYTES + 1]).is_err());
+
+        // The parser must also reject semantically invalid but syntactically valid
+        // manifests; downstream code must never need to remember this extra step.
+        let invalid_digest = br#"{
+            "schema_version": 1,
+            "revision": 1,
+            "modules": [{
+                "id": "sample-module",
+                "version": "1.0.0",
+                "min_app_version": "0.1.0",
+                "max_app_version_exclusive": "2.0.0",
+                "targets": [{"os": "windows", "arch": "x86_64"}],
+                "readiness": "installable",
+                "dependencies": [],
+                "artifact": {
+                    "url": "https://packages.example.invalid/module.zip",
+                    "size_bytes": 128,
+                    "sha256": "NOT-A-SHA256",
+                    "signing_key_id": "release"
+                }
+            }]
+        }"#;
+        assert!(parse_manifest_json(invalid_digest).is_err());
+
+        let invalid_revision = br#"{"schema_version":1,"revision":0,"modules":[]}"#;
+        assert!(parse_manifest_json(invalid_revision).is_err());
     }
 
     #[test]
