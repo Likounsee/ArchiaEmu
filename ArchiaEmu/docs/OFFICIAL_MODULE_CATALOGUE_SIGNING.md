@@ -30,7 +30,7 @@ A module package is accepted only when all checks pass:
 
 ## Runtime isolation
 
-Native Rust trait objects do not form a stable plugin ABI. ArchiaEmu must not load arbitrary third-party Rust DLLs directly into the desktop process. External cores should use a versioned, bounded IPC protocol in a worker process. A first framing layer now exists in `module_worker_protocol.rs` (fixed header, protocol version, message kinds, and a 16 MiB payload cap); it is not yet a process launcher or a complete message-schema implementation. The host must validate every message, cap payload sizes, enforce timeouts and lifecycle limits, and treat worker crashes as recoverable failures. Process separation alone is not a complete OS sandbox; stronger Windows isolation must be implemented and tested before being advertised as a security guarantee.
+Native Rust trait objects do not form a stable plugin ABI. ArchiaEmu must not load arbitrary third-party Rust DLLs directly into the desktop process. External cores should use a versioned, bounded IPC protocol in a worker process. A framing layer exists in `module_worker_protocol.rs` (fixed header, protocol version, message kinds, and a 16 MiB payload cap), and the desktop crate now has a process launcher with a bounded IPC reader queue, caller-specified receive timeouts, executable SHA-256 verification, and child cleanup. The host must still define and validate complete message payload schemas, connect the launcher to core lifecycle management, apply OS-level resource restrictions, and treat worker crashes as recoverable failures. Process separation alone is not a complete OS sandbox; stronger Windows isolation must be implemented and tested before being advertised as a security guarantee.
 
 ## Release gate
 
