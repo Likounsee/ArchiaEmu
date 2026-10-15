@@ -11,7 +11,9 @@ use archiaemu_core::module_worker_protocol::{
     read_message, write_message, WorkerMessage, WorkerMessageKind, WorkerProtocolError,
 };
 use std::ffi::OsStr;
-use std::io::{self, Write};
+use sha2::{Digest, Sha256};
+use std::fs::File;
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
@@ -24,6 +26,8 @@ pub enum WorkerProcessError {
     Process(io::Error),
     /// Worker standard input/output pipes were not available.
     MissingPipe,
+    /// The executable's SHA-256 did not match trusted installation metadata.
+    ExecutableHashMismatch,
     /// Framed IPC failed.
     Protocol(WorkerProtocolError),
 }
@@ -34,6 +38,9 @@ impl std::fmt::Display for WorkerProcessError {
             Self::InvalidExecutablePath => f.write_str("worker executable must be an absolute file path"),
             Self::Process(error) => write!(f, "worker process operation failed: {error}"),
             Self::MissingPipe => f.write_str("worker process did not expose required IPC pipes"),
+            Self::ExecutableHashMismatch => {
+                f.write_str("worker executable SHA-256 does not match trusted metadata")
+            }
             Self::Protocol(error) => write!(f, "worker IPC failed: {error}"),
         }
     }
@@ -62,6 +69,50 @@ pub struct WorkerProcess {
 }
 
 impl WorkerProcess {
+    /// Starts a worker only when its executable SHA-256 matches trusted metadata.
+    ///
+    /// The expected digest must be 64 lowercase hexadecimal characters. The
+    /// executable must still live in a directory protected from untrusted writes:
+    /// portable path-based process APIs cannot eliminate every hash-to-spawn race.
+    /// This verifies artifact identity, not publisher authenticity or OS sandboxing.
+    pub fn spawn_verified<I, S>(
+        executable: &Path,
+        expected_sha256: &str,
+        arguments: I,
+    ) -> Result<Self, WorkerProcessError>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        if expected_sha256.len() != 64
+            || !expected_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return Err(WorkerProcessError::ExecutableHashMismatch);
+        }
+        if !executable.is_absolute() || !executable.is_file() {
+            return Err(WorkerProcessError::InvalidExecutablePath);
+        }
+
+        let mut file = File::open(executable)?;
+        let mut hasher = Sha256::new();
+        let mut buffer = [0_u8; 64 * 1024];
+        loop {
+            let read = file.read(&mut buffer)?;
+            if read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..read]);
+        }
+        let actual = format!("{:x}", hasher.finalize());
+        if actual != expected_sha256 {
+            return Err(WorkerProcessError::ExecutableHashMismatch);
+        }
+
+        Self::spawn(executable, arguments)
+    }
+
     /// Starts a worker at an absolute path with a cleared inherited environment.
     ///
     /// The caller is responsible for validating the executable's signature/hash,
@@ -142,5 +193,41 @@ impl Drop for WorkerProcess {
             let _ = self.child.kill();
             let _ = self.child.wait();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{WorkerProcess, WorkerProcessError};
+    use std::path::Path;
+
+    #[test]
+    fn refuses_executable_with_wrong_digest_before_startup() {
+        let executable = std::env::current_exe().unwrap();
+        let error = match WorkerProcess::spawn_verified(
+            &executable,
+            &"0".repeat(64),
+            std::iter::empty::<&str>(),
+        ) {
+            Err(error) => error,
+            Ok(_) => panic!("digest mismatch must prevent process startup"),
+        };
+        assert!(matches!(error, WorkerProcessError::ExecutableHashMismatch));
+    }
+
+    #[test]
+    fn refuses_malformed_digest_and_relative_executable() {
+        assert!(matches!(
+            WorkerProcess::spawn_verified(
+                Path::new("worker.exe"),
+                "not-a-digest",
+                std::iter::empty::<&str>(),
+            ),
+            Err(WorkerProcessError::ExecutableHashMismatch)
+        ));
+        assert!(matches!(
+            WorkerProcess::spawn(Path::new("worker.exe"), std::iter::empty::<&str>()),
+            Err(WorkerProcessError::InvalidExecutablePath)
+        ));
     }
 }
