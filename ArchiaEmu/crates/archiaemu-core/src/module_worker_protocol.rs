@@ -137,7 +137,7 @@ pub fn write_message<W: Write>(
     }
     if message.payload.len() > MAX_WORKER_MESSAGE_BYTES {
         return Err(WorkerProtocolError::PayloadTooLarge(
-            message.payload.len() as u64,
+            message.payload.len() as u64
         ));
     }
 
@@ -186,11 +186,9 @@ mod tests {
 
     #[test]
     fn round_trip_preserves_message() {
-        let expected = WorkerMessage::new(
-            WorkerMessageKind::FrameOutput,
-            vec![0, 1, 2, 127, 128, 255],
-        )
-        .unwrap();
+        let expected =
+            WorkerMessage::new(WorkerMessageKind::FrameOutput, vec![0, 1, 2, 127, 128, 255])
+                .unwrap();
         let mut bytes = Vec::new();
         write_message(&mut bytes, &expected).unwrap();
         assert_eq!(read_message(&mut bytes.as_slice()).unwrap(), expected);
