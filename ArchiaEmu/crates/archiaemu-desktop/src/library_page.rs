@@ -24,7 +24,11 @@ impl DesktopApp {
                 } else {
                     "Your games"
                 });
-                ui.label(format!("{total} imported item(s)"));
+                ui.label(if self.language == "fr" {
+                    format!("{total} élément(s) importé(s)")
+                } else {
+                    format!("{total} imported item(s)")
+                });
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
@@ -41,12 +45,15 @@ impl DesktopApp {
         });
 
         ui.add_space(8.0);
-        egui::Frame::group(ui.style()).show(ui, |ui| {
+        egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.label("⌕ Search");
+                ui.label(if self.language == "fr" { "⌕ Rechercher" } else { "⌕ Search" });
                 ui.add(
                     egui::TextEdit::singleline(&mut self.library_filter)
-                        .hint_text("Search titles and file paths…")
+                        .hint_text(if self.language == "fr" { "Rechercher un titre ou un chemin…" } else { "Search titles and file paths…" })
                         .desired_width(ui.available_width().min(260.0)),
                 );
                 egui::ComboBox::from_id_source("library_format_filter")
@@ -144,7 +151,10 @@ impl DesktopApp {
         ui.add_space(6.0);
 
         if entries.is_empty() {
-            egui::Frame::group(ui.style()).show(ui, |ui| {
+            egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
                 ui.add_space(8.0);
                 ui.heading(if total == 0 {
                     "Your library is empty"
@@ -176,7 +186,10 @@ impl DesktopApp {
                 .show(ui, |ui| {
                     for (title, path, size) in entries {
                         let selected = self.selected_content.as_ref() == Some(&path);
-                        egui::Frame::group(ui.style()).show(ui, |ui| {
+                        egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
                             ui.horizontal(|ui| {
                                 ui.vertical(|ui| {
                                     ui.label(if selected {
@@ -366,7 +379,10 @@ impl DesktopApp {
         });
         if let Some((path, title, size)) = selected_details {
             ui.add_space(8.0);
-            egui::Frame::group(ui.style()).show(ui, |ui| {
+            egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
                         ui.heading(if self.language == "fr" {
