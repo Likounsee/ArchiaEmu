@@ -61,6 +61,25 @@ begin
         mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
 end;
 
+procedure DeleteTemporaryPreferenceFiles(RoamingDir: String);
+var
+  FindRec: TFindRec;
+begin
+  { Preference writes use unique names to avoid truncating an existing temp
+    file. Remove only files matching that exact app-owned naming convention. }
+  if FindFirst(RoamingDir + '\desktop.conf.tmp-*', FindRec) then
+  begin
+    try
+      repeat
+        if (FindRec.Name <> '.') and (FindRec.Name <> '..') then
+          DeleteFile(RoamingDir + '\' + FindRec.Name);
+      until not FindNext(FindRec);
+    finally
+      FindClose(FindRec);
+    end;
+  end;
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   RoamingDir, LocalDir: String;
@@ -74,7 +93,7 @@ begin
       Never recursively remove the user's entire application-data directory. }
     DeleteFile(RoamingDir + '\desktop.conf');
     DeleteFile(RoamingDir + '\desktop.conf.bak');
-    DeleteFile(RoamingDir + '\desktop.conf.tmp');
+    DeleteTemporaryPreferenceFiles(RoamingDir);
     DelTree(RoamingDir + '\logs', True, True, True);
     DelTree(RoamingDir + '\cache', True, True, True);
     DelTree(LocalDir + '\logs', True, True, True);
