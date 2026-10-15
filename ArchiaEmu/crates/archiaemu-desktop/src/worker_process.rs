@@ -41,7 +41,7 @@ impl std::fmt::Display for WorkerProcessError {
         match self {
             Self::InvalidExecutablePath => {
                 f.write_str("worker executable must be an absolute file path")
-            },
+            }
             Self::Process(error) => write!(f, "worker process operation failed: {error}"),
             Self::MissingPipe => f.write_str("worker process did not expose required IPC pipes"),
             Self::ExecutableHashMismatch => {
