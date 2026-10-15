@@ -6,8 +6,8 @@ impl DesktopApp {
     pub(super) fn show_game(&mut self, ui: &mut egui::Ui) {
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
-                ui.heading("Game view");
-                ui.label("The host runs the selected session and displays its latest video frame.");
+                ui.heading("Session monitor");
+                ui.label("Inspect session lifecycle and media capabilities. This build does not yet provide playable Game Boy emulation.");
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("Manage sessions").clicked() {
@@ -66,7 +66,7 @@ impl DesktopApp {
         } else {
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.heading("No active game session");
-                ui.label("Import a ROM in the library and launch it to create a session.");
+                ui.label("Import a local .gb or .gbc file and open a session to inspect the current prototype workflow.");
                 if ui.button("Browse library").clicked() {
                     self.navigate_to(DesktopPage::Library);
                 }
@@ -91,8 +91,8 @@ impl DesktopApp {
                 } else {
                     ui.add_space(24.0);
                     ui.heading("Video output");
-                    ui.label("The display surface is ready for core-provided RGBA frames.");
-                    ui.label("If the selected core has no video implementation, this area remains a truthful placeholder.");
+                    ui.label("Video output is waiting for a core that produces frames.");
+                    ui.label("The current Game Boy core does not implement the full CPU/video/audio path, so this placeholder is expected.");
                     ui.add_space(12.0);
                     ui.label("↑ ↓ ← →  Move    Z / X  Action    Enter  Start    Backspace  Select");
                     ui.add_space(24.0);
