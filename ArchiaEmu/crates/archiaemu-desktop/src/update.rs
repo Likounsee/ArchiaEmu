@@ -645,10 +645,31 @@ mod tests {
         )
         .is_err());
         assert!(validate_download_url("http://github.com/app.exe").is_err());
-        // User-info must not be stripped before checking the actual URL authority.
-        assert!(validate_download_url("https://attacker@github.com/app.exe").is_err());
-        assert!(validate_download_url("https://github.com:8443/app.exe").is_err());
-        assert!(validate_download_url("https://github.com.evil.example/app.exe").is_err());
+        // GitHub's release downloads can redirect to these dedicated asset hosts.
+        assert!(validate_download_url(
+            "https://release-assets.githubusercontent.com/github-production-release-asset/example"
+        )
+        .is_ok());
+        assert!(validate_download_url(
+            "https://objects.githubusercontent.com/github-production-release-asset/example"
+        )
+        .is_ok());
+        // User-info, custom ports, and lookalike domains must be rejected even
+        // when the URL claims to use a trusted redirect host.
+        for untrusted in [
+            "https://attacker@github.com/app.exe",
+            "https://github.com:8443/app.exe",
+            "https://github.com.evil.example/app.exe",
+            "https://attacker@release-assets.githubusercontent.com/file",
+            "https://release-assets.githubusercontent.com:8443/file",
+            "https://release-assets.githubusercontent.com.evil.example/file",
+            "https://objects.githubusercontent.com:443/file",
+        ] {
+            assert!(
+                validate_download_url(untrusted).is_err(),
+                "untrusted update destination should be rejected: {untrusted}"
+            );
+        }
     }
 
     #[test]
