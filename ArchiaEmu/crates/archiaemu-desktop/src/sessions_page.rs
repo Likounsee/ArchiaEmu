@@ -9,14 +9,10 @@ impl DesktopApp {
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.label(
-                    egui::RichText::new(if french {
-                        "ACTIVITÉ"
-                    } else {
-                        "ACTIVITY"
-                    })
-                    .size(10.0)
-                    .strong()
-                    .color(self.accent_color),
+                    egui::RichText::new(if french { "ACTIVITÉ" } else { "ACTIVITY" })
+                        .size(10.0)
+                        .strong()
+                        .color(self.accent_color),
                 );
                 ui.add_space(3.0);
                 ui.heading(if french {
@@ -45,7 +41,14 @@ impl DesktopApp {
                     });
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button(if self.language == "fr" { "Tout fermer" } else { "Close all" }).clicked() {
+                if ui
+                    .button(if self.language == "fr" {
+                        "Tout fermer"
+                    } else {
+                        "Close all"
+                    })
+                    .clicked()
+                {
                     // Keyboard input is routed only to the active session. Release it before
                     // closing sessions so a held control cannot survive the lifecycle transition.
                     let release_error = self.release_game_inputs().err();
