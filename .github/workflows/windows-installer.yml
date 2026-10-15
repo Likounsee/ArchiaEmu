@@ -33,10 +33,13 @@ jobs:
           workspaces: |
             ArchiaEmu/crates/archiaemu-desktop -> ArchiaEmu/crates/archiaemu-desktop/target
 
+      - name: Resolve and record desktop dependency graph
+        run: cargo generate-lockfile --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+
       - name: Build desktop executable with static MSVC runtime
         env:
           RUSTFLAGS: -C target-feature=+crt-static
-        run: cargo build --release --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+        run: cargo build --locked --release --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
 
       - name: Stage application and determine version
         id: stage
@@ -82,8 +85,15 @@ jobs:
           if ($installer.Length -lt 1MB) { throw "Installer is unexpectedly small ($($installer.Length) bytes)." }
           $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $($installer.Name)" | Set-Content "$($installer.FullName).sha256" -Encoding ascii
+
+          # Keep the exact dependency graph used by this build available for auditing.
+          $lockfile = "ArchiaEmu/crates/archiaemu-desktop/Cargo.lock"
+          if (!(Test-Path $lockfile)) { throw "Resolved desktop Cargo.lock is missing." }
+          Copy-Item $lockfile "$($installer.FullName).Cargo.lock"
+          $lockHash = (Get-FileHash $lockfile -Algorithm SHA256).Hash.ToLowerInvariant()
           Write-Host "Verified installer: $($installer.FullName) ($($installer.Length) bytes)"
           Write-Host "SHA-256: $hash"
+          Write-Host "Dependency lockfile SHA-256: $lockHash"
 
       - name: Smoke-test install and uninstall
         shell: pwsh
@@ -129,6 +139,7 @@ jobs:
           path: |
             dist/ArchiaEmu-Setup-*.exe
             dist/ArchiaEmu-Setup-*.exe.sha256
+            dist/ArchiaEmu-Setup-*.exe.Cargo.lock
           if-no-files-found: error
           retention-days: 30
 
