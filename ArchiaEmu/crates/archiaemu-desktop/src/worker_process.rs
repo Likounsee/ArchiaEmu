@@ -10,8 +10,8 @@
 use archiaemu_core::module_worker_protocol::{
     read_message, write_message, WorkerMessage, WorkerMessageKind, WorkerProtocolError,
 };
-use std::ffi::OsStr;
 use sha2::{Digest, Sha256};
+use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
