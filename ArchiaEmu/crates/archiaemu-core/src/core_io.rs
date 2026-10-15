@@ -731,6 +731,29 @@ mod tests {
     }
 
     #[test]
+    fn cadence_caps_reported_dropped_frames_for_extreme_elapsed_time() {
+        let mut cadence = FrameCadence::new(60, 2).unwrap();
+
+        let result = cadence.advance(std::time::Duration::MAX);
+        assert_eq!(result.due_frames, 2);
+        assert_eq!(result.dropped_frames, u64::MAX);
+        assert!(cadence.remainder < cadence.frame_period());
+    }
+
+    #[test]
+    fn cadence_accepts_exact_catch_up_limit_without_reporting_drops() {
+        let mut cadence = FrameCadence::new(10, 3).unwrap();
+
+        assert_eq!(
+            cadence.advance(std::time::Duration::from_millis(300)),
+            CadenceAdvance {
+                due_frames: 3,
+                dropped_frames: 0,
+            }
+        );
+    }
+
+    #[test]
     fn cadence_rejects_unrepresentable_rates_and_zero_catch_up_limit() {
         assert_eq!(
             FrameCadence::new(0, 1).unwrap_err(),
