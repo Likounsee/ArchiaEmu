@@ -98,17 +98,26 @@ impl DesktopApp {
                             .inner_margin(egui::Margin::same(14.0))
                             .show(ui, |ui| {
                                 ui.horizontal(|ui| {
-                                     ui.vertical(|ui| {
-                                        ui.label(egui::RichText::new(if french {
-                                            "PRÊT À JOUER"
-                                        } else {
-                                            "READY TO PLAY"
-                                        }).size(10.0).strong().color(accent));
-                                        ui.label(egui::RichText::new(if french {
-                                            "Votre collection"
-                                        } else {
-                                            "Your collection"
-                                        }).size(15.0).strong());
+                                    ui.vertical(|ui| {
+                                        ui.label(
+                                            egui::RichText::new(if french {
+                                                "PRÊT À JOUER"
+                                            } else {
+                                                "READY TO PLAY"
+                                            })
+                                            .size(10.0)
+                                            .strong()
+                                            .color(accent),
+                                        );
+                                        ui.label(
+                                            egui::RichText::new(if french {
+                                                "Votre collection"
+                                            } else {
+                                                "Your collection"
+                                            })
+                                            .size(15.0)
+                                            .strong(),
+                                        );
                                     });
                                 });
                                 ui.add_space(12.0);
@@ -154,13 +163,21 @@ impl DesktopApp {
                                     accent,
                                 );
                                 ui.add_space(8.0);
-                                ui.label(egui::RichText::new(if self.controller.session_count() > 0 {
-                                    if french { "Session active" } else { "Session active" }
-                                } else if french {
-                                    "Aucune session en cours"
-                                } else {
-                                    "No active session"
-                                }).size(11.0).color(muted));
+                                ui.label(
+                                    egui::RichText::new(if self.controller.session_count() > 0 {
+                                        if french {
+                                            "Session active"
+                                        } else {
+                                            "Session active"
+                                        }
+                                    } else if french {
+                                        "Aucune session en cours"
+                                    } else {
+                                        "No active session"
+                                    })
+                                    .size(11.0)
+                                    .color(muted),
+                                );
                             });
                     });
                 });
@@ -261,7 +278,7 @@ impl DesktopApp {
                 .stroke(border)
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                         ui.vertical(|ui| {
+                        ui.vertical(|ui| {
                             ui.label(
                                 egui::RichText::new(if french {
                                     "Votre bibliothèque commence ici"
