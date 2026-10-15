@@ -21,6 +21,18 @@ cargo package --workspace --locked --no-verify
 
 The CI runs formatting, locked tests, warning-free documentation generation and package-content checks on pushes and pull requests targeting `ArchiaEmu`. Dependency advisories, license policy and source provenance are checked with cargo-deny; Clippy runs on Linux.
 
+## Quick desktop demo
+
+From the repository root, launch the native application with:
+
+```sh
+cargo run --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+```
+
+On Linux, install the native desktop development libraries listed in `.github/workflows/ci.yml` first. On Windows, the **Windows installer** GitHub Actions workflow builds a standalone installer; use its artifact from a successful run rather than presenting a local debug build as a release.
+
+For a short demonstration, show the home page, import a local `.gb`/`.gbc` file, browse and filter the library, open session management, and change/save appearance preferences. Use your own legally obtained test file. **Important limitation:** this demonstrates the desktop application shell and cartridge metadata inspection, not playable emulation; the Game Boy CPU, graphics, and audio core are not implemented. Do not promise game compatibility.
+
 ## Current components
 
 - `crates/archiaemu-core`: shared metadata, capability declarations, core lifecycle contract, and error types.
