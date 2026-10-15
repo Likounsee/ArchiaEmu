@@ -176,7 +176,7 @@ pub(crate) fn write_preferences_with_language(
     };
     let mut contents = format!(
         "version=3\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\nlanguage={}\n",
-        accent_rgb[0], accent_rgb[1], accent_rgb[2]
+        accent_rgb[0], accent_rgb[1], accent_rgb[2], language
     );
     for path in paths {
         contents.push_str("path=");
