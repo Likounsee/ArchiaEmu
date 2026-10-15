@@ -5,7 +5,9 @@ use super::*;
 impl DesktopApp {
     pub(super) fn show_home(&mut self, ui: &mut egui::Ui) {
         ui.heading("Welcome back");
-        ui.label("Manage local content, inspect supported metadata, and monitor application sessions.");
+        ui.label(
+            "Manage local content, inspect supported metadata, and monitor application sessions.",
+        );
         ui.add_space(8.0);
 
         let card_columns = if ui.available_width() < 560.0 {
