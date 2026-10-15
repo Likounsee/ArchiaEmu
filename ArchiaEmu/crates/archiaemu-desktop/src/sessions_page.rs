@@ -35,7 +35,7 @@ impl DesktopApp {
                             ui.label(format!(
                                 "{} {}",
                                 session_count,
-                                if french { "session(s)" } else { "session(s)" }
+                                "session(s)"
                             ));
                         });
                     });
