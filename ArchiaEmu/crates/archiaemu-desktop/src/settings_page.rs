@@ -4,30 +4,58 @@ use super::*;
 
 impl DesktopApp {
     pub(super) fn show_settings(&mut self, ui: &mut egui::Ui, context: &egui::Context) {
-        ui.heading(if self.language == "fr" { "Paramètres · apparence" } else { "Host settings · appearance" });
+        ui.heading(if self.language == "fr" {
+            "Paramètres · apparence"
+        } else {
+            "Host settings · appearance"
+        });
         ui.label(if self.language == "fr" {
             "Ces options modifient uniquement l’interface, pas le matériel émulé."
         } else {
             "These options change the host interface only; they never change emulated hardware."
         });
         ui.horizontal(|ui| {
-            ui.label(if self.language == "fr" { "Langue de l’application" } else { "Application language" });
+            ui.label(if self.language == "fr" {
+                "Langue de l’application"
+            } else {
+                "Application language"
+            });
             let previous_language = self.language.clone();
             egui::ComboBox::from_id_source("application-language")
-                .selected_text(if self.language == "fr" { "Français" } else { "English" })
+                .selected_text(if self.language == "fr" {
+                    "Français"
+                } else {
+                    "English"
+                })
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.language, "fr".to_owned(), "Français");
                     ui.selectable_value(&mut self.language, "en".to_owned(), "English");
                 });
             if previous_language != self.language {
-                self.message = if self.language == "fr" { "Langue modifiée." } else { "Language changed." }.to_owned();
+                self.message = if self.language == "fr" {
+                    "Langue modifiée."
+                } else {
+                    "Language changed."
+                }
+                .to_owned();
                 self.save_preferences();
             }
         });
         egui::Frame::group(ui.style()).show(ui, |ui| {
-            ui.checkbox(&mut self.dark_mode, if self.language == "fr" { "Utiliser le thème sombre" } else { "Use dark theme" });
+            ui.checkbox(
+                &mut self.dark_mode,
+                if self.language == "fr" {
+                    "Utiliser le thème sombre"
+                } else {
+                    "Use dark theme"
+                },
+            );
             ui.horizontal_wrapped(|ui| {
-                ui.label(if self.language == "fr" { "Couleur d’accentuation" } else { "Accent color" });
+                ui.label(if self.language == "fr" {
+                    "Couleur d’accentuation"
+                } else {
+                    "Accent color"
+                });
                 ui.color_edit_button_srgba(&mut self.accent_color);
                 ui.monospace(format!(
                     "#{:02X}{:02X}{:02X}",
@@ -35,21 +63,38 @@ impl DesktopApp {
                     self.accent_color.g(),
                     self.accent_color.b()
                 ));
-                if ui.button(if self.language == "fr" { "Réinitialiser" } else { "Reset" }).clicked() {
+                if ui
+                    .button(if self.language == "fr" {
+                        "Réinitialiser"
+                    } else {
+                        "Reset"
+                    })
+                    .clicked()
+                {
                     self.accent_color = egui::Color32::from_rgb(75, 115, 210);
                 }
             });
-            ui.label(
-                if self.language == "fr" { "Modifie les boutons, la sélection et les surbrillances, pas l’arrière-plan." } else { "Changes the buttons, selection and highlights—not the light or dark backgrounds." },
-            );
+            ui.label(if self.language == "fr" {
+                "Modifie les boutons, la sélection et les surbrillances, pas l’arrière-plan."
+            } else {
+                "Changes the buttons, selection and highlights—not the light or dark backgrounds."
+            });
             ui.add(
                 egui::Slider::new(&mut self.ui_scale, 0.8..=1.4)
-                    .text(if self.language == "fr" { "Échelle de l’interface" } else { "Interface scale" })
+                    .text(if self.language == "fr" {
+                        "Échelle de l’interface"
+                    } else {
+                        "Interface scale"
+                    })
                     .suffix("×"),
             );
         });
         ui.add_space(12.0);
-        ui.heading(if self.language == "fr" { "Paramètres · application" } else { "Host settings · application" });
+        ui.heading(if self.language == "fr" {
+            "Paramètres · application"
+        } else {
+            "Host settings · application"
+        });
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.label(if self.language == "fr" { "ArchiaEmu est en cours de développement." } else { "ArchiaEmu is under active development." });
             ui.label(if self.language == "fr" { "Le cœur Game Boy Color est expérimental ; le lancement d’une ROM ne garantit pas sa compatibilité." } else { "The Game Boy Color core is experimental; launching a ROM does not imply compatibility." });
@@ -60,7 +105,11 @@ impl DesktopApp {
         });
 
         ui.add_space(12.0);
-        ui.heading(if self.language == "fr" { "Paramètres du cœur · indisponibles" } else { "Core settings · not available yet" });
+        ui.heading(if self.language == "fr" {
+            "Paramètres du cœur · indisponibles"
+        } else {
+            "Core settings · not available yet"
+        });
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.label(if self.language == "fr" { "Ces paramètres dépendront d’un futur cœur d’émulation et sont volontairement séparés de l’apparence de l’application." } else { "These settings belong to a future emulation core and are deliberately separate from host appearance preferences." });
             ui.label(if self.language == "fr" { "Aucun réglage matériel propre au cœur n’est actuellement proposé." } else { "No core-specific hardware settings are currently exposed by this application." });
@@ -68,7 +117,11 @@ impl DesktopApp {
         });
 
         ui.add_space(12.0);
-        ui.heading(if self.language == "fr" { "Mises à jour de l’application" } else { "Application updates" });
+        ui.heading(if self.language == "fr" {
+            "Mises à jour de l’application"
+        } else {
+            "Application updates"
+        });
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.label(if self.language == "fr" { "Vérifie le manifeste officiel de la version stable. Les modules sont téléchargés séparément." } else { "Checks the official stable application manifest. Module downloads are independent." });
             ui.horizontal_wrapped(|ui| {
@@ -142,8 +195,16 @@ impl DesktopApp {
         });
 
         ui.add_space(12.0);
-        ui.heading(if self.language == "fr" { "Diagnostic" } else { "Diagnostics" });
-        ui.label(if self.language == "fr" { "Informations locales pour diagnostiquer les problèmes de démarrage et de session." } else { "Local runtime information to help troubleshoot startup and session issues." });
+        ui.heading(if self.language == "fr" {
+            "Diagnostic"
+        } else {
+            "Diagnostics"
+        });
+        ui.label(if self.language == "fr" {
+            "Informations locales pour diagnostiquer les problèmes de démarrage et de session."
+        } else {
+            "Local runtime information to help troubleshoot startup and session issues."
+        });
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.label(if self.language == "fr" { "Version de l’application :" } else { "Application version:" });
