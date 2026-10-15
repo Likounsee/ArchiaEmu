@@ -178,7 +178,6 @@ impl DesktopApp {
                 } else {
                     "imported items"
                 },
-                egui::Color32::from_rgb(111, 155, 255),
             ),
             (
                 if french { "SESSIONS" } else { "SESSIONS" },
@@ -188,7 +187,6 @@ impl DesktopApp {
                 } else {
                     "open sessions"
                 },
-                egui::Color32::from_rgb(98, 205, 164),
             ),
             (
                 if french { "SYSTÈMES" } else { "SYSTEMS" },
@@ -198,12 +196,11 @@ impl DesktopApp {
                 } else {
                     "registered cores"
                 },
-                egui::Color32::from_rgb(190, 145, 255),
             ),
         ];
         let columns = if ui.available_width() < 620.0 { 1 } else { 3 };
         ui.columns(columns, |cols| {
-            for (index, (label, value, detail, tint)) in metrics.into_iter().enumerate() {
+            for (index, (label, value, detail)) in metrics.into_iter().enumerate() {
                 let card_ui = &mut cols[index % columns];
                 egui::Frame::none()
                     .fill(panel)
