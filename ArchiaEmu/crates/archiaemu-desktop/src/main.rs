@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
 //! Experimental desktop frontend for the shared ArchiaEmu application controller.
 
 use std::error::Error;
@@ -139,6 +140,7 @@ struct DesktopApp {
     update_manifest: Option<update::UpdateManifest>,
     staged_update_path: Option<PathBuf>,
     update_status: String,
+    fullscreen: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -327,6 +329,7 @@ impl DesktopApp {
             update_manifest: None,
             staged_update_path: None,
             update_status: "Not checked yet.".to_owned(),
+            fullscreen: false,
         })
     }
 
@@ -641,13 +644,15 @@ impl SessionAction {
 }
 
 fn navigation_items() -> [(DesktopPage, &'static str, &'static str); 6] {
+    // Use common glyphs supported by the bundled default font; avoid the
+    // uncommon filled-square symbols that appeared as missing-glyph boxes.
     [
         (DesktopPage::Home, "⌂", "Overview"),
-        (DesktopPage::Library, "▤", "Game library"),
-        (DesktopPage::Sessions, "▣", "Sessions"),
+        (DesktopPage::Library, "≡", "Game library"),
+        (DesktopPage::Sessions, "○", "Sessions"),
         (DesktopPage::Game, "▶", "Game"),
-        (DesktopPage::Systems, "◉", "Systems"),
-        (DesktopPage::Settings, "⚙", "Settings"),
+        (DesktopPage::Systems, "◎", "Systems"),
+        (DesktopPage::Settings, "*", "Settings"),
     ]
 }
 
@@ -802,6 +807,10 @@ impl eframe::App for DesktopApp {
                     ui.label("Your library, sessions and emulator tools in one place.");
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button(if self.fullscreen { "⛶ Windowed" } else { "⛶ Fullscreen" }).clicked() {
+                        self.fullscreen = !self.fullscreen;
+                        context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
+                    }
                     ui.label(if self.dark_mode {
                         "◐ Dark"
                     } else {
@@ -813,21 +822,26 @@ impl eframe::App for DesktopApp {
         });
 
         egui::CentralPanel::default().show(context, |ui| {
-            match self.active_page {
-                DesktopPage::Home => self.show_home(ui),
-                DesktopPage::Library => self.show_library(ui),
-                DesktopPage::Sessions => self.show_sessions(ui),
-                DesktopPage::Game => self.show_game(ui),
-                DesktopPage::Systems => self.show_systems(ui),
-                DesktopPage::Settings => self.show_settings(ui, context),
-            }
-            ui.add_space(12.0);
-            ui.separator();
-            ui.horizontal_wrapped(|ui| {
-                let status = self.ui_status();
-                ui.colored_label(status.color(), format!("● {}", status.label()));
-                ui.label(&self.message);
-            });
+            // Keep long pages usable on short displays and when the window is resized.
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    match self.active_page {
+                        DesktopPage::Home => self.show_home(ui),
+                        DesktopPage::Library => self.show_library(ui),
+                        DesktopPage::Sessions => self.show_sessions(ui),
+                        DesktopPage::Game => self.show_game(ui),
+                        DesktopPage::Systems => self.show_systems(ui),
+                        DesktopPage::Settings => self.show_settings(ui, context),
+                    }
+                    ui.add_space(12.0);
+                    ui.separator();
+                    ui.horizontal_wrapped(|ui| {
+                        let status = self.ui_status();
+                        ui.colored_label(status.color(), format!("● {}", status.label()));
+                        ui.label(&self.message);
+                    });
+                });
         });
 
         if self.dark_mode != previous_dark_mode
