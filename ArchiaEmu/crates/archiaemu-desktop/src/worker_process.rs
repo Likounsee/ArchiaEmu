@@ -7,6 +7,7 @@
 //! parent directories against trusted installation metadata before spawning it.
 //! Worker messages are bounded by the shared framing protocol.
 
+use crate::worker_messages::{validate_worker_message, WorkerPayloadError};
 use archiaemu_core::module_worker_protocol::{
     read_message, write_message, WorkerMessage, WorkerMessageKind, WorkerProtocolError,
 };
@@ -34,6 +35,8 @@ pub enum WorkerProcessError {
     ReceiveTimeout,
     /// Framed IPC failed.
     Protocol(WorkerProtocolError),
+    /// Message payload did not match the strict schema for its operation.
+    Payload(WorkerPayloadError),
 }
 
 impl std::fmt::Display for WorkerProcessError {
@@ -49,6 +52,7 @@ impl std::fmt::Display for WorkerProcessError {
             }
             Self::ReceiveTimeout => f.write_str("worker IPC receive timed out"),
             Self::Protocol(error) => write!(f, "worker IPC failed: {error}"),
+            Self::Payload(error) => write!(f, "worker IPC payload rejected: {error}"),
         }
     }
 }
@@ -58,6 +62,12 @@ impl std::error::Error for WorkerProcessError {}
 impl From<io::Error> for WorkerProcessError {
     fn from(error: io::Error) -> Self {
         Self::Process(error)
+    }
+}
+
+impl From<WorkerPayloadError> for WorkerProcessError {
+    fn from(error: WorkerPayloadError) -> Self {
+        Self::Payload(error)
     }
 }
 
@@ -174,6 +184,7 @@ impl WorkerProcess {
 
     /// Sends one size-limited protocol message to the worker.
     pub fn send(&mut self, message: &WorkerMessage) -> Result<(), WorkerProcessError> {
+        validate_worker_message(message)?;
         write_message(&mut self.stdin, message)?;
         Ok(())
     }
@@ -184,7 +195,7 @@ impl WorkerProcess {
     /// A supervising thread or platform-specific job object is still needed for hard
     /// timeouts and resource limits.
     pub fn receive(&mut self) -> Result<WorkerMessage, WorkerProcessError> {
-        self.messages
+        let message = self.messages
             .recv()
             .map_err(|_| {
                 WorkerProcessError::Process(io::Error::new(
@@ -192,7 +203,9 @@ impl WorkerProcess {
                     "worker IPC reader stopped",
                 ))
             })?
-            .map_err(WorkerProcessError::Protocol)
+            .map_err(WorkerProcessError::Protocol)?;
+        validate_worker_message(&message)?;
+        Ok(message)
     }
 
     /// Receives one message, terminating the wait if the timeout expires.
@@ -203,14 +216,16 @@ impl WorkerProcess {
         &mut self,
         timeout: Duration,
     ) -> Result<WorkerMessage, WorkerProcessError> {
-        match self.messages.recv_timeout(timeout) {
-            Ok(Ok(message)) => Ok(message),
-            Ok(Err(error)) => Err(WorkerProcessError::Protocol(error)),
-            Err(RecvTimeoutError::Timeout) => Err(WorkerProcessError::ReceiveTimeout),
-            Err(RecvTimeoutError::Disconnected) => Err(WorkerProcessError::Process(
+        let message = match self.messages.recv_timeout(timeout) {
+            Ok(Ok(message)) => message,
+            Ok(Err(error)) => return Err(WorkerProcessError::Protocol(error)),
+            Err(RecvTimeoutError::Timeout) => return Err(WorkerProcessError::ReceiveTimeout),
+            Err(RecvTimeoutError::Disconnected) => return Err(WorkerProcessError::Process(
                 io::Error::new(io::ErrorKind::UnexpectedEof, "worker IPC reader stopped"),
             )),
-        }
+        };
+        validate_worker_message(&message)?;
+        Ok(message)
     }
 
     /// Requests an orderly shutdown without waiting indefinitely for the child.
