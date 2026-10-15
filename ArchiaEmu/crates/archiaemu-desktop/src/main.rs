@@ -801,7 +801,9 @@ impl eframe::App for DesktopApp {
         });
 
         // Keep the toggle synchronized with native window-manager changes and support F11.
-        let native_fullscreen = context.input(|input| input.viewport().fullscreen.unwrap_or(self.fullscreen));
+        let native_fullscreen = context.input(|input| {
+            input.viewport().fullscreen.unwrap_or(self.fullscreen)
+        });
         if native_fullscreen != self.fullscreen {
             self.fullscreen = native_fullscreen;
         }
@@ -881,7 +883,11 @@ impl eframe::App for DesktopApp {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
                         .button(if self.fullscreen {
-                            if self.language == "fr" { "⛶ Quitter le plein écran" } else { "⛶ Exit fullscreen" }
+                            if self.language == "fr" {
+                                "⛶ Quitter le plein écran"
+                            } else {
+                                "⛶ Exit fullscreen"
+                            }
                         } else if self.language == "fr" {
                             "⛶ Plein écran"
                         } else {
@@ -895,7 +901,8 @@ impl eframe::App for DesktopApp {
                         .clicked()
                     {
                         self.fullscreen = !self.fullscreen;
-                        context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
+                        context
+                            .send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
                     }
                     ui.label(if self.dark_mode {
                         if self.language == "fr" { "◐ Sombre" } else { "◐ Dark" }
