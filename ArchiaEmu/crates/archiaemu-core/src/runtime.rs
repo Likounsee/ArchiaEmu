@@ -205,9 +205,9 @@ impl EmulationSession {
 
     /// Returns the most recent error reported by a mutable core operation.
     ///
-    /// Successful operations do not erase this diagnostic; a later core error
-    /// replaces it. Use `clear_last_core_error` after the host has recorded or
-    /// handled the failure.
+    /// Successful operations and subsequent core errors do not erase or replace
+    /// the first unhandled diagnostic. Use `clear_last_core_error` after the host
+    /// has recorded or handled the failure.
     pub fn last_core_error(&self) -> Option<CoreError> {
         self.last_core_error.clone()
     }
@@ -221,7 +221,9 @@ impl EmulationSession {
         match result {
             Ok(value) => Ok(value),
             Err(error) => {
-                self.last_core_error = Some(error.clone());
+                if self.last_core_error.is_none() {
+                    self.last_core_error = Some(error.clone());
+                }
                 Err(SessionError::Core(error))
             }
         }
