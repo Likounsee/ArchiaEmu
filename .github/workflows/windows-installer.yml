@@ -150,6 +150,23 @@ jobs:
             Write-Host $helpText
             throw "Installed executable --help smoke test failed."
           }
+
+          if ($helpText -notmatch "--version" -or $helpText -notmatch "--help") {
+            throw "Installed executable --help does not document both supported options."
+          }
+
+          # Invalid CLI arguments must fail clearly rather than opening the GUI or exiting successfully.
+          $unknownOutput = & $installedExe --archiaemu-smoke-invalid-option 2>&1
+          $unknownExitCode = $LASTEXITCODE
+          if ($unknownExitCode -eq 0) {
+            throw "Installed executable unexpectedly accepted an unknown command-line option."
+          }
+          $unknownText = $unknownOutput -join "`n"
+          if ($unknownText -notmatch "unknown argument" -or $unknownText -notmatch "--help") {
+            Write-Host "Unknown-option output:"
+            Write-Host $unknownText
+            throw "Unknown-option failure did not provide actionable CLI guidance."
+          }
           # Hosted Windows runners may not expose an OpenGL 2.0+ context.
           # Installation is validated here; GUI startup is covered by the desktop smoke workflow
           # on a runner with a usable display rather than treating headless graphics as app failure.
