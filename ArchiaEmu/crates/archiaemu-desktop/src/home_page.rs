@@ -4,7 +4,11 @@ use super::*;
 
 impl DesktopApp {
     pub(super) fn show_home(&mut self, ui: &mut egui::Ui) {
-        ui.heading(if self.language == "fr" { "Bienvenue" } else { "Welcome back" });
+        ui.heading(if self.language == "fr" {
+            "Bienvenue"
+        } else {
+            "Welcome back"
+        });
         ui.label(
             "Manage local content, inspect supported metadata, and monitor application sessions.",
         );
@@ -70,7 +74,11 @@ impl DesktopApp {
 
         ui.add_space(14.0);
         ui.horizontal_wrapped(|ui| {
-            ui.heading(if self.language == "fr" { "Imports récents" } else { "Recently imported" });
+            ui.heading(if self.language == "fr" {
+                "Imports récents"
+            } else {
+                "Recently imported"
+            });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.link("View library →").clicked() {
                     self.navigate_to(DesktopPage::Library);
@@ -91,8 +99,16 @@ impl DesktopApp {
             .collect();
         if entries.is_empty() {
             egui::Frame::group(ui.style()).show(ui, |ui| {
-                ui.label(if self.language == "fr" { "Votre bibliothèque est vide." } else { "Your library is empty." });
-                ui.label(if self.language == "fr" { "Utilisez Parcourir ou collez le chemin d’une ROM ci-dessus." } else { "Use Browse or paste a ROM path above to get started." });
+                ui.label(if self.language == "fr" {
+                    "Votre bibliothèque est vide."
+                } else {
+                    "Your library is empty."
+                });
+                ui.label(if self.language == "fr" {
+                    "Utilisez Parcourir ou collez le chemin d’une ROM ci-dessus."
+                } else {
+                    "Use Browse or paste a ROM path above to get started."
+                });
             });
         } else {
             egui::ScrollArea::vertical()
@@ -108,7 +124,14 @@ impl DesktopApp {
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    if ui.button(if self.language == "fr" { "Lancer" } else { "Launch" }).clicked() {
+                                    if ui
+                                        .button(if self.language == "fr" {
+                                            "Lancer"
+                                        } else {
+                                            "Launch"
+                                        })
+                                        .clicked()
+                                    {
                                         self.content_path = path.display().to_string();
                                         self.launch_content();
                                     }
