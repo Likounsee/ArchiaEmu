@@ -167,7 +167,7 @@ impl DesktopApp {
                             });
                             columns[1].vertical(|ui| {
                                 ui.label(if french { "Échelle de l’interface" } else { "Interface scale" });
-                                ui.add(egui::Slider::new(&mut self.ui_scale, 0.8..=1.4).suffix("×"));
+                                ui.add(egui::Slider::new(&mut self.ui_scale, 0.8..=1.4).suffix("x"));
                                 ui.label(egui::RichText::new(if french { "Ajustable de 80 % à 140 %" } else { "Adjustable from 80% to 140%" }).small().color(ui.visuals().weak_text_color()));
                             });
                         });
