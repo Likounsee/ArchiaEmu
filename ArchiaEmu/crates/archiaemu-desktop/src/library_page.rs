@@ -46,9 +46,9 @@ impl DesktopApp {
                     .add(
                         egui::Button::new(
                             egui::RichText::new(if self.language == "fr" {
-                                "＋  Importer des ROM"
+                                "+  Importer des ROM"
                             } else {
-                                "＋  Import ROMs…"
+                                "+  Import ROMs…"
                             })
                             .strong(),
                         )
@@ -68,7 +68,7 @@ impl DesktopApp {
                 .inner_margin(egui::Margin::same(14.0))
                 .show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.label(if self.language == "fr" { "⌕ Rechercher" } else { "⌕ Search" });
+                ui.label(if self.language == "fr" { "Rechercher :" } else { "Search:" });
                 ui.add(
                     egui::TextEdit::singleline(&mut self.library_filter)
                         .hint_text(if self.language == "fr" { "Rechercher un titre ou un chemin…" } else { "Search titles and file paths…" })
@@ -234,7 +234,7 @@ impl DesktopApp {
                             ui.horizontal(|ui| {
                                 ui.vertical(|ui| {
                                     ui.label(if selected {
-                                        "▶ SELECTED"
+                                        "SELECTED"
                                     } else {
                                         "GAME BOY ROM"
                                     });
@@ -382,7 +382,7 @@ impl DesktopApp {
                                         if ui
                                             .add_enabled(
                                                 path.is_file(),
-                                                egui::Button::new(if self.language == "fr" { "▶ Lancer" } else { "▶ Launch" }),
+                                                egui::Button::new(if self.language == "fr" { "Lancer" } else { "Launch" }),
                                             )
                                             .clicked()
                                         {
