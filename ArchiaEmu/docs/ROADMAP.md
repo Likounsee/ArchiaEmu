@@ -85,7 +85,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Ajouter un accès direct par chemin canonique au catalogue et l'utiliser dans les cartes UI, pour éviter un balayage linéaire de toute la bibliothèque pour chaque carte.
 - [x] Ajouter des tests unitaires des états de chemin : fichier absent, répertoire au lieu d'un fichier et fichier existant en attente de validation du lancement.
 - [x] Tester le refus d'un format inconnu sans créer de session fantôme ni modifier la session active.
-- [x] Tester le refus par le cœur d'une ROM détectée mais invalide, sans modifier les sessions existantes.
+- [x] Tester le refus par le cœur d'une ROM détectée mais invalide, sans modifier les sessions existantes. Le test vérifie aussi que la bibliothèque conserve le format détecté et le résultat de validation rejeté.
 - [x] Tester le rejet d'un contenu reconnu par plusieurs sondes, sans créer de session fantôme ni changer la sélection active.
 - [x] Tester la disparition d'un fichier déjà importé et vérifier que sa disponibilité passe à « manquant »; les erreurs d'ouverture sont propagées par le pipeline de chargement. Le test de permissions OS strictement inaccessibles reste dépendant de la plateforme.
 - [x] Tester le refus d'un contenu vide ou dépassant la limite de taille sans modifier la session active ni son état.
