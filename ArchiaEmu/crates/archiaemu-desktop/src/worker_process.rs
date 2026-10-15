@@ -18,7 +18,7 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Errors from worker executable validation, startup, or IPC.
 #[derive(Debug)]
@@ -195,7 +195,8 @@ impl WorkerProcess {
     /// A supervising thread or platform-specific job object is still needed for hard
     /// timeouts and resource limits.
     pub fn receive(&mut self) -> Result<WorkerMessage, WorkerProcessError> {
-        let message = self.messages
+        let message = self
+            .messages
             .recv()
             .map_err(|_| {
                 WorkerProcessError::Process(io::Error::new(
@@ -204,7 +205,10 @@ impl WorkerProcess {
                 ))
             })?
             .map_err(WorkerProcessError::Protocol)?;
-        validate_worker_message(&message)?;
+        if let Err(error) = validate_worker_message(&message) {
+            let _ = self.terminate();
+            return Err(WorkerProcessError::Payload(error));
+        }
         Ok(message)
     }
 
@@ -220,11 +224,17 @@ impl WorkerProcess {
             Ok(Ok(message)) => message,
             Ok(Err(error)) => return Err(WorkerProcessError::Protocol(error)),
             Err(RecvTimeoutError::Timeout) => return Err(WorkerProcessError::ReceiveTimeout),
-            Err(RecvTimeoutError::Disconnected) => return Err(WorkerProcessError::Process(
-                io::Error::new(io::ErrorKind::UnexpectedEof, "worker IPC reader stopped"),
-            )),
+            Err(RecvTimeoutError::Disconnected) => {
+                return Err(WorkerProcessError::Process(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "worker IPC reader stopped",
+                )))
+            }
         };
-        validate_worker_message(&message)?;
+        if let Err(error) = validate_worker_message(&message) {
+            let _ = self.terminate();
+            return Err(WorkerProcessError::Payload(error));
+        }
         Ok(message)
     }
 
@@ -234,6 +244,25 @@ impl WorkerProcess {
             WorkerMessageKind::Shutdown,
             Vec::new(),
         )?)
+    }
+
+    /// Requests shutdown, waits at most the given duration, and kills/reaps a stuck worker.
+    ///
+    /// A timeout is fail-closed. This bounds wall-clock shutdown time, not CPU or memory
+    /// consumption enforced by the operating system.
+    pub fn shutdown(&mut self, timeout: Duration) -> Result<std::process::ExitStatus, WorkerProcessError> {
+        self.request_shutdown()?;
+        let deadline = Instant::now() + timeout;
+        loop {
+            if let Some(status) = self.child.try_wait()? {
+                return Ok(status);
+            }
+            if Instant::now() >= deadline {
+                self.terminate()?;
+                return Err(WorkerProcessError::ReceiveTimeout);
+            }
+            std::thread::sleep(Duration::from_millis(10).min(timeout));
+        }
     }
 
     /// Returns the exit status if the worker has exited.
