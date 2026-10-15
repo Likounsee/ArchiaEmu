@@ -58,9 +58,9 @@ impl DesktopApp {
                                 .add(
                                     egui::Button::new(
                                         egui::RichText::new(if french {
-                                            "+  Importer des jeux"
+                                            "Importer des jeux"
                                         } else {
-                                            "+  Import games"
+                                            "Import games"
                                         })
                                         .strong(),
                                     )
@@ -74,9 +74,9 @@ impl DesktopApp {
                             if ui
                                 .add(
                                     egui::Button::new(if french {
-                                        "Ouvrir la bibliothèque  >"
+                                        "Ouvrir la bibliothèque"
                                     } else {
-                                        "Open library  >"
+                                        "Open library"
                                     })
                                     .min_size(egui::vec2(150.0, 38.0)),
                                 )
@@ -98,8 +98,7 @@ impl DesktopApp {
                             .inner_margin(egui::Margin::same(14.0))
                             .show(ui, |ui| {
                                 ui.horizontal(|ui| {
-                                    ui.label(egui::RichText::new("•").size(18.0).color(accent));
-                                    ui.vertical(|ui| {
+                                     ui.vertical(|ui| {
                                         ui.label(egui::RichText::new(if french {
                                             "PRÊT À JOUER"
                                         } else {
@@ -155,22 +154,13 @@ impl DesktopApp {
                                     accent,
                                 );
                                 ui.add_space(8.0);
-                                ui.horizontal(|ui| {
-                                    ui.label(egui::RichText::new("●").color(
-                                        if self.controller.session_count() > 0 {
-                                            egui::Color32::from_rgb(46, 176, 120)
-                                        } else {
-                                            muted
-                                        },
-                                    ));
-                                    ui.label(egui::RichText::new(if self.controller.session_count() > 0 {
-                                        if french { "Session active" } else { "Session active" }
-                                    } else if french {
-                                        "Aucune session en cours"
-                                    } else {
-                                        "No active session"
-                                    }).size(11.0).color(muted));
-                                });
+                                ui.label(egui::RichText::new(if self.controller.session_count() > 0 {
+                                    if french { "Session active" } else { "Session active" }
+                                } else if french {
+                                    "Aucune session en cours"
+                                } else {
+                                    "No active session"
+                                }).size(11.0).color(muted));
                             });
                     });
                 });
@@ -222,9 +212,6 @@ impl DesktopApp {
                     .stroke(border)
                     .show(card_ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.add(egui::Label::new(
-                                egui::RichText::new("●").size(12.0).color(tint),
-                            ));
                             ui.label(egui::RichText::new(label).size(10.0).strong().color(muted));
                         });
                         ui.add_space(6.0);
@@ -244,9 +231,9 @@ impl DesktopApp {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
                     .link(if french {
-                        "Toute la bibliothèque  >"
+                        "Toute la bibliothèque"
                     } else {
-                        "View library  >"
+                        "View library"
                     })
                     .clicked()
                 {
@@ -277,8 +264,7 @@ impl DesktopApp {
                 .stroke(border)
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new("+").size(28.0).color(accent));
-                        ui.vertical(|ui| {
+                         ui.vertical(|ui| {
                             ui.label(
                                 egui::RichText::new(if french {
                                     "Votre bibliothèque commence ici"
@@ -328,7 +314,7 @@ impl DesktopApp {
                                 ui.label(egui::RichText::new(title).strong());
                                 ui.label(
                                     egui::RichText::new(format!(
-                                        "{}  ·  {}",
+                                        "{}  -  {}",
                                         path.file_name()
                                             .and_then(|name| name.to_str())
                                             .unwrap_or("ROM"),
@@ -342,7 +328,7 @@ impl DesktopApp {
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
                                     if ui
-                                        .button(if french { "Lancer  >" } else { "Launch  >" })
+                                        .button(if french { "Lancer" } else { "Launch" })
                                         .clicked()
                                     {
                                         self.content_path = path.display().to_string();
