@@ -338,7 +338,11 @@ mod tests {
 
     impl Drop for TempFile {
         fn drop(&mut self) {
-            let _ = fs::remove_file(&self.0);
+            if self.0.is_dir() {
+                let _ = fs::remove_dir(&self.0);
+            } else {
+                let _ = fs::remove_file(&self.0);
+            }
             if let Some(parent) = self.0.parent() {
                 let _ = fs::remove_dir(parent);
             }
@@ -541,8 +545,7 @@ mod tests {
             library.entries().next().unwrap().availability(),
             ContentAvailability::NotRegularFile
         );
-
-        fs::remove_dir(&canonical).unwrap();
+ 
     }
 
     #[test]
