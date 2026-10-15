@@ -101,6 +101,20 @@ jobs:
           $ErrorActionPreference = "Stop"
           $installer = Get-ChildItem "$env:GITHUB_WORKSPACE/dist" -Filter "ArchiaEmu-Setup-*.exe" | Select-Object -First 1
           if (!$installer) { throw "Installer output is missing for smoke test." }
+
+          # Validate the published integrity metadata before executing the installer.
+          $checksumPath = "$($installer.FullName).sha256"
+          if (!(Test-Path $checksumPath)) { throw "Installer SHA-256 sidecar is missing." }
+          $checksumParts = (Get-Content $checksumPath -Raw).Trim() -split '\s+', 2
+          $actualHash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($checksumParts.Count -ne 2 -or $checksumParts[0] -ne $actualHash -or $checksumParts[1] -ne $installer.Name) {
+            throw "Installer SHA-256 sidecar does not match the generated installer."
+          }
+          $lockfileArtifact = "$($installer.FullName).Cargo.lock"
+          if (!(Test-Path $lockfileArtifact) -or (Get-Item $lockfileArtifact).Length -lt 1000) {
+            throw "Archived desktop dependency lockfile is missing or unexpectedly small."
+          }
+
           $installDir = Join-Path $env:RUNNER_TEMP "ArchiaEmu Installer Smoke"
           $install = Start-Process -FilePath $installer.FullName -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/DIR=`"$installDir`"") -Wait -PassThru
           if ($install.ExitCode -ne 0) { throw "Silent install failed with exit code $($install.ExitCode)." }
