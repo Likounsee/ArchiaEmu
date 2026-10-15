@@ -1015,6 +1015,37 @@ mod preference_tests {
     }
 
     #[test]
+    fn user_status_classifies_each_error_family_without_false_positives() {
+        for message in [
+            "Import failed: file is unreadable",
+            "Launch failed: format was rejected",
+            "Launch cancelled: inputs could not be released",
+            "Could not load preferences: invalid data",
+            "Preferences unavailable: no config directory",
+            "Input error: device disconnected",
+            "Session 7 failed: core stopped unexpectedly",
+        ] {
+            assert!(message_indicates_error(message), "not classified as error: {message}");
+        }
+        for message in [
+            "Ready. Select a content path to import or launch.",
+            "Restored preferences and 2 library item(s).",
+            "Launched session 7.",
+            "No active session.",
+        ] {
+            assert!(!message_indicates_error(message), "false error classification: {message}");
+        }
+    }
+
+    #[test]
+    fn file_size_formatting_changes_units_at_exact_boundaries() {
+        assert_eq!(format_size(1023), "1023 B");
+        assert_eq!(format_size(1024), "1.0 KiB");
+        assert_eq!(format_size(1024 * 1024 - 1), "1024.0 KiB");
+        assert_eq!(format_size(1024 * 1024), "1.00 MiB");
+    }
+
+    #[test]
     fn background_task_receiver_is_cleared_after_worker_disconnects() {
         let (sender, receiver) = mpsc::channel::<u8>();
         drop(sender);
