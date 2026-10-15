@@ -191,6 +191,14 @@ impl ContentLibrary {
         self.entries.values()
     }
 
+    /// Looks up an entry by its canonical filesystem path.
+    ///
+    /// The path must use the canonical form exposed by ContentEntry::path.
+    /// This avoids a filesystem lookup and is suitable for repeated UI lookups.
+    pub fn get(&self, canonical_path: impl AsRef<Path>) -> Option<&ContentEntry> {
+        self.entries.get(canonical_path.as_ref())
+    }
+
     /// Returns the number of imported entries.
     pub fn len(&self) -> usize {
         self.entries.len()
@@ -351,6 +359,17 @@ mod tests {
         assert_eq!(entry.format_detection(), &ContentFormatDetection::Pending);
         assert_eq!(entry.validation(), &ContentValidation::Pending);
         assert_eq!(entry.availability(), ContentAvailability::Available);
+        assert_eq!(library.len(), 1);
+    }
+
+    #[test]
+    fn lookup_uses_the_canonical_path_and_returns_none_for_unknown_paths() {
+        let file = TempFile::new("lookup.gb", b"rom-data");
+        let mut library = ContentLibrary::new();
+        let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
+
+        assert_eq!(library.get(&canonical).unwrap().title(), "lookup");
+        assert!(library.get(canonical.with_file_name("missing.gb")).is_none());
         assert_eq!(library.len(), 1);
     }
 
