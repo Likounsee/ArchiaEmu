@@ -77,13 +77,21 @@ impl DesktopApp {
                     self.session_content_paths.clear();
                     self.message = match (french, release_error) {
                         (true, Some(error)) => {
-                            format!("{error} ; {count} session(s) fermée(s).")
+                            let noun = if count == 1 { "session fermée" } else { "sessions fermées" };
+                            format!("{error} ; {count} {noun}.")
                         }
-                        (true, None) => format!("{count} session(s) fermée(s)."),
+                        (true, None) => {
+                            let noun = if count == 1 { "session fermée" } else { "sessions fermées" };
+                            format!("{count} {noun}.")
+                        }
                         (false, Some(error)) => {
-                            format!("{error}; closed {count} session(s).")
+                            let noun = if count == 1 { "session" } else { "sessions" };
+                            format!("{error}; closed {count} {noun}.")
                         }
-                        (false, None) => format!("Closed {count} session(s)."),
+                        (false, None) => {
+                            let noun = if count == 1 { "session" } else { "sessions" };
+                            format!("Closed {count} {noun}.")
+                        }
                     };
                 }
             });
@@ -139,7 +147,11 @@ impl DesktopApp {
                             }
                             match self.controller.close_session(id) {
                                 Ok(()) => {
-                                    self.message = format!("Closed session {}.", id.get());
+                                    self.message = if french {
+                                        format!("Session {} fermée.", id.get())
+                                    } else {
+                                        format!("Closed session {}.", id.get())
+                                    };
                                     if was_active {
                                         self.audio_output.clear();
                                         self.frame_cadence.reset();
@@ -192,9 +204,19 @@ impl DesktopApp {
                             };
                             match self.controller.close_session(id) {
                                 Ok(()) => {
-                                    self.message = match release_error {
-                                        Some(error) => format!("Session {} closed, but {error}", id.get()),
-                                        None => format!("Closed session {}.", id.get()),
+                                    self.message = match (french, release_error) {
+                                        (true, Some(error)) => {
+                                            format!("Session {} fermée, mais {error}", id.get())
+                                        }
+                                        (true, None) => {
+                                            format!("Session {} fermée.", id.get())
+                                        }
+                                        (false, Some(error)) => {
+                                            format!("Session {} closed, but {error}", id.get())
+                                        }
+                                        (false, None) => {
+                                            format!("Closed session {}.", id.get())
+                                        }
                                     };
                                     if was_active {
                                         self.audio_output.clear();
@@ -202,7 +224,11 @@ impl DesktopApp {
                                         self.frame_texture = None;
                                         self.video_size = None;
                                         self.last_tick = Instant::now();
-                                        self.media_status = "Active session closed.".to_owned();
+                                        self.media_status = if french {
+                                            "Session active fermée.".to_owned()
+                                        } else {
+                                            "Active session closed.".to_owned()
+                                        };
                                     }
                                     self.last_tick_errors
                                         .retain(|(error_id, _)| *error_id != id);
