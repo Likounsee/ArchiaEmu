@@ -106,4 +106,65 @@ mod tests {
             .verify(&[0; 32], b"", &[0; 63])
             .is_err());
     }
+
+    #[test]
+    fn production_adapter_uses_ed25519_before_accepting_manifest() {
+        use archiaemu_core::module_management::{ModuleId, ModuleReadiness};
+        use archiaemu_core::module_manifest::{
+            ManifestModule, ModuleTarget, PackageArtifact, ReleaseVersion, TargetArch, TargetOs,
+        };
+        use archiaemu_core::module_manifest_trust::{
+            ManifestTrustPolicy, SignedManifestEnvelope, TrustedManifestKey,
+        };
+
+        let key = decode_hex::<32>(PUBLIC_KEY);
+        let signature = decode_hex::<64>(SIGNATURE);
+        let mut policy = ManifestTrustPolicy::new(
+            vec![TrustedManifestKey {
+                key_id: "test-rfc8032-key".to_owned(),
+                public_key: key.to_vec(),
+            }],
+            0,
+        )
+        .unwrap();
+        let envelope = SignedManifestEnvelope {
+            key_id: "test-rfc8032-key".to_owned(),
+            payload: Vec::new(),
+            signature: signature.to_vec(),
+        };
+        let parsed = verify_signed_manifest(&mut policy, &envelope, |_| {
+            Ok(ModuleManifest {
+                schema_version: 1,
+                revision: 1,
+                modules: vec![ManifestModule {
+                    id: ModuleId::new("sample-module").unwrap(),
+                    version: ReleaseVersion::parse("1.0.0").unwrap(),
+                    min_app_version: ReleaseVersion::parse("0.1.0").unwrap(),
+                    max_app_version_exclusive: Some(ReleaseVersion::parse("2.0.0").unwrap()),
+                    targets: vec![ModuleTarget {
+                        os: TargetOs::Linux,
+                        arch: TargetArch::X86_64,
+                    }],
+                    readiness: ModuleReadiness::Installable,
+                    dependencies: vec![],
+                    artifact: Some(PackageArtifact {
+                        url: "https://packages.example.invalid/module.tar".into(),
+                        size_bytes: 1,
+                        sha256: "a".repeat(64),
+                        signing_key_id: "release".into(),
+                    }),
+                }],
+            })
+        })
+        .unwrap();
+
+        assert_eq!(parsed.revision, 1);
+        assert_eq!(policy.highest_accepted_revision(), 1);
+        let mut tampered = envelope;
+        tampered.payload = b"tampered".to_vec();
+        assert!(verify_signed_manifest(&mut policy, &tampered, |_| {
+            panic!("parser must not run after a signature failure")
+        })
+        .is_err());
+    }
 }
