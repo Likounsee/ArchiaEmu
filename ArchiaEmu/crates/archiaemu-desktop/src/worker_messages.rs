@@ -109,7 +109,7 @@ pub fn validate_worker_message(message: &WorkerMessage) -> Result<(), WorkerPayl
                     b.is_ascii_digit() || (b'a'..=b'f').contains(&b)
                 });
             let valid_version = ReleaseVersion::parse(&payload.app_version).is_ok();
-            if !valid_id || !valid_digest || !valid_version || payload.content_size_bytes == 0 {
+            if !valid_id || !valid_digest || !valid_version || payload.content_size_bytes == 0 || payload.content_size_bytes > 32 * 1024 * 1024 {
                 return Err(WorkerPayloadError::InvalidFields);
             }
         }
@@ -117,6 +117,7 @@ pub fn validate_worker_message(message: &WorkerMessage) -> Result<(), WorkerPayl
             let payload: InputPayload = parse_control(&message.payload)?;
             if payload.events.len() > 256
                 || payload.events.iter().any(|event| {
+                    let _pressed = event.pressed;
                     event.control.is_empty()
                         || event.control.len() > 64
                         || !event.control.bytes().all(|b| {
