@@ -67,8 +67,7 @@ impl DesktopApp {
                                         ui.add_space(7.0);
                                         ui.horizontal(|ui| {
                                             ui.label(egui::RichText::new(if french { "Sombre" } else { "Dark" }).strong());
-                                            if dark_selected { ui.label(egui::RichText::new("*").color(self.accent_color).strong()); }
-                                        });
+                                         });
                                     });
                                     ui.vertical(|ui| {
                                         let (rect, response) = ui.allocate_exact_size(egui::vec2(card_width, 76.0), egui::Sense::click());
@@ -81,8 +80,7 @@ impl DesktopApp {
                                         ui.add_space(7.0);
                                         ui.horizontal(|ui| {
                                             ui.label(egui::RichText::new(if french { "Clair" } else { "Light" }).strong());
-                                            if light_selected { ui.label(egui::RichText::new("*").color(self.accent_color).strong()); }
-                                        });
+                                         });
                                     });
                                 });
                                 ui.add_space(6.0);
@@ -112,8 +110,7 @@ impl DesktopApp {
                                         ui.painter().circle_filled(rect.center(), 13.0, color);
                                         if selected {
                                             ui.painter().circle_stroke(rect.center(), 16.0, egui::Stroke::new(2.0, color));
-                                            ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, "*", egui::FontId::proportional(15.0), egui::Color32::WHITE);
-                                        }
+                                         }
                                         if response.clicked() { self.accent_color = color; }
                                         response.on_hover_text(name);
                                     }
