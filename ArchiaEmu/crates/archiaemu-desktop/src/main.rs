@@ -485,6 +485,16 @@ impl DesktopApp {
             self.message = "Enter a content path first.".to_owned();
             return;
         }
+
+        #[cfg(not(feature = "game-boy-core"))]
+        {
+            self.message = if self.language == "fr" {
+                "Le cœur Game Boy n’est pas inclus dans cette compilation. Recompilez avec --features game-boy-core pour l’activer.".to_owned()
+            } else {
+                "The Game Boy core is not included in this build. Rebuild with --features game-boy-core to enable it.".to_owned()
+            };
+            return;
+        }
         // Release held controls before creating/switching to another session. If this
         // fails, abort the launch: reporting the failure after switching sessions could
         // leave the previous session with logically held input and no safe recovery path.
