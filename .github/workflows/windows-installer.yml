@@ -126,8 +126,8 @@ jobs:
 
           # Verify that the Start Menu shortcut points to the installed binary, not the build tree.
           $startMenuRoots = @(
-            (Join-Path $env:APPDATA "Microsoft\\Windows\\Start Menu\\Programs"),
-            (Join-Path $env:ProgramData "Microsoft\\Windows\\Start Menu\\Programs")
+            (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"),
+            (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs")
           )
           $startMenuShortcut = Get-ChildItem -Path $startMenuRoots -Filter "ArchiaEmu.lnk" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if (!$startMenuShortcut) { throw "Start Menu shortcut was not created." }
