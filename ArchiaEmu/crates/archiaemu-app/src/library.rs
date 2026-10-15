@@ -373,7 +373,9 @@ mod tests {
         let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
 
         assert_eq!(library.get(&canonical).unwrap().title(), "lookup");
-        assert!(library.get(canonical.with_file_name("missing.gb")).is_none());
+        assert!(library
+            .get(canonical.with_file_name("missing.gb"))
+            .is_none());
         assert_eq!(library.len(), 1);
     }
 
@@ -388,7 +390,10 @@ mod tests {
         library.import(&second.0, 64).unwrap();
         library.import(&third.0, 64).unwrap();
 
-        let actual: Vec<_> = library.entries().map(|entry| entry.path().to_path_buf()).collect();
+        let actual: Vec<_> = library
+            .entries()
+            .map(|entry| entry.path().to_path_buf())
+            .collect();
         let mut expected = vec![
             fs::canonicalize(&first.0).unwrap(),
             fs::canonicalize(&second.0).unwrap(),
@@ -452,10 +457,9 @@ mod tests {
         );
 
         let missing = canonical.with_file_name("not-imported.gb");
-        assert!(!library.record_validation(
-            &missing,
-            ContentValidation::Rejected("invalid".to_owned())
-        ));
+        assert!(
+            !library.record_validation(&missing, ContentValidation::Rejected("invalid".to_owned()))
+        );
         assert_eq!(library.len(), 1);
         assert_eq!(
             library.get(&canonical).unwrap().validation(),
