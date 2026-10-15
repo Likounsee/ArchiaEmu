@@ -1,5 +1,8 @@
 #![forbid(unsafe_code)]
-#![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
+)]
 //! Experimental desktop frontend for the shared ArchiaEmu application controller.
 
 use std::error::Error;
@@ -807,9 +810,17 @@ impl eframe::App for DesktopApp {
                     ui.label("Your library, sessions and emulator tools in one place.");
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(if self.fullscreen { "⛶ Windowed" } else { "⛶ Fullscreen" }).clicked() {
+                    if ui
+                        .button(if self.fullscreen {
+                            "⛶ Windowed"
+                        } else {
+                            "⛶ Fullscreen"
+                        })
+                        .clicked()
+                    {
                         self.fullscreen = !self.fullscreen;
-                        context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
+                        context
+                            .send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
                     }
                     ui.label(if self.dark_mode {
                         "◐ Dark"
