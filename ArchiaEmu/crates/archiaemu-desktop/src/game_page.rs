@@ -132,7 +132,7 @@ impl DesktopApp {
                     let scale = (max_width / width as f32).min(max_height / height as f32);
                     let size = egui::vec2(width as f32 * scale, height as f32 * scale);
                     ui.image((texture.id(), size));
-                    ui.small(format!("{width} × {height} · nearest-neighbour scaling"));
+                    ui.small(format!("{width} x {height} - nearest-neighbour scaling"));
                 } else {
                     ui.add_space(14.0);
                     ui.columns(2, |columns| {
