@@ -658,7 +658,9 @@ mod tests {
             0
         );
         assert_eq!(
-            cadence.advance(std::time::Duration::from_nanos(1)).due_frames,
+            cadence
+                .advance(std::time::Duration::from_nanos(1))
+                .due_frames,
             1
         );
         assert_eq!(cadence.advance(period * 2).due_frames, 2);
