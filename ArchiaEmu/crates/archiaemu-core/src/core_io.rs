@@ -266,7 +266,7 @@ impl AudioBuffer {
 /// Errors when constructing a host frame cadence.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CadenceError {
-    /// A zero target rate cannot define a frame interval.
+    /// A zero rate or a rate beyond nanosecond precision cannot define a frame interval.
     ZeroFrameRate,
     /// A zero catch-up limit would prevent all frames from being emitted.
     ZeroCatchUpLimit,
