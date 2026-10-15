@@ -74,9 +74,9 @@ impl DesktopApp {
                             if ui
                                 .add(
                                     egui::Button::new(if french {
-                                        "Ouvrir la bibliothèque  →"
+                                        "Ouvrir la bibliothèque  >"
                                     } else {
-                                        "Open library  →"
+                                        "Open library  >"
                                     })
                                     .min_size(egui::vec2(150.0, 38.0)),
                                 )
@@ -244,9 +244,9 @@ impl DesktopApp {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
                     .link(if french {
-                        "Toute la bibliothèque  →"
+                        "Toute la bibliothèque  >"
                     } else {
-                        "View library  →"
+                        "View library  >"
                     })
                     .clicked()
                 {
@@ -342,7 +342,7 @@ impl DesktopApp {
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
                                     if ui
-                                        .button(if french { "Lancer  →" } else { "Launch  →" })
+                                        .button(if french { "Lancer  >" } else { "Launch  >" })
                                         .clicked()
                                     {
                                         self.content_path = path.display().to_string();
