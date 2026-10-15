@@ -250,18 +250,23 @@ impl WorkerProcess {
     ///
     /// A timeout is fail-closed. This bounds wall-clock shutdown time, not CPU or memory
     /// consumption enforced by the operating system.
-    pub fn shutdown(&mut self, timeout: Duration) -> Result<std::process::ExitStatus, WorkerProcessError> {
+    pub fn shutdown(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<std::process::ExitStatus, WorkerProcessError> {
         self.request_shutdown()?;
-        let deadline = Instant::now() + timeout;
+        let started = Instant::now();
         loop {
             if let Some(status) = self.child.try_wait()? {
                 return Ok(status);
             }
-            if Instant::now() >= deadline {
+            let elapsed = started.elapsed();
+            if elapsed >= timeout {
                 self.terminate()?;
                 return Err(WorkerProcessError::ReceiveTimeout);
             }
-            std::thread::sleep(Duration::from_millis(10).min(timeout));
+            let remaining = timeout.saturating_sub(elapsed);
+            std::thread::sleep(remaining.min(Duration::from_millis(10)));
         }
     }
 
