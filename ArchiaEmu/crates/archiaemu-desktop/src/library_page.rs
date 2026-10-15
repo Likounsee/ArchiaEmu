@@ -19,11 +19,11 @@ impl DesktopApp {
         let total = self.controller.library().len();
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
-                ui.heading("Your games");
+                ui.heading(if self.language == "fr" { "Vos jeux" } else { "Your games" });
                 ui.label(format!("{total} imported item(s)"));
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("＋ Import ROMs…").clicked() {
+                if ui.button(if self.language == "fr" { "＋ Importer des ROM" } else { "＋ Import ROMs…" }).clicked() {
                     self.choose_content_file();
                 }
             });
@@ -72,7 +72,7 @@ impl DesktopApp {
                         );
                         ui.selectable_value(&mut self.library_sort, LibrarySort::Path, "File path");
                     });
-                if ui.button("Clear").clicked() {
+                if ui.button(if self.language == "fr" { "Effacer" } else { "Clear" }).clicked() {
                     self.library_filter.clear();
                     self.library_format = LibraryFormat::All;
                 }
@@ -140,7 +140,7 @@ impl DesktopApp {
                 } else {
                     "Try another search, change the format filter, or clear the search."
                 });
-                if total == 0 && ui.button("Browse for ROMs…").clicked() {
+                if total == 0 && ui.button(if self.language == "fr" { "Parcourir les ROM" } else { "Browse for ROMs…" }).clicked() {
                     self.choose_content_file();
                 }
             });
@@ -274,7 +274,7 @@ impl DesktopApp {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        if ui.button("Forget").clicked() {
+                                        if ui.button(if self.language == "fr" { "Retirer" } else { "Forget" }).clicked() {
                                             match self.controller.forget_content(&path) {
                                                 Ok(_) => {
                                                     if self.selected_content.as_ref() == Some(&path)
@@ -302,7 +302,7 @@ impl DesktopApp {
                                         if ui
                                             .add_enabled(
                                                 path.is_file(),
-                                                egui::Button::new("▶ Launch"),
+                                                egui::Button::new(if self.language == "fr" { "▶ Lancer" } else { "▶ Launch" }),
                                             )
                                             .clicked()
                                         {
@@ -310,7 +310,7 @@ impl DesktopApp {
                                             self.content_path = path.display().to_string();
                                             self.launch_content();
                                         }
-                                        if ui.button("Use path").clicked() {
+                                        if ui.button(if self.language == "fr" { "Utiliser ce chemin" } else { "Use path" }).clicked() {
                                             self.selected_content = Some(path.clone());
                                             self.content_path = path.display().to_string();
                                             self.message =
@@ -343,7 +343,7 @@ impl DesktopApp {
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
-                        ui.heading("Selected content");
+                        ui.heading(if self.language == "fr" { "Contenu sélectionné" } else { "Selected content" });
                         ui.label(&title);
                         ui.small(path.display().to_string());
                         ui.small(format!(
@@ -354,7 +354,7 @@ impl DesktopApp {
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui
-                            .add_enabled(path.is_file(), egui::Button::new("Launch selected"))
+                            .add_enabled(path.is_file(), egui::Button::new(if self.language == "fr" { "Lancer la sélection" } else { "Launch selected" }))
                             .clicked()
                         {
                             self.content_path = path.display().to_string();
