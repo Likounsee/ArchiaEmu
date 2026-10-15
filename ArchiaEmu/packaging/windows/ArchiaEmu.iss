@@ -10,6 +10,9 @@
 #endif
 
 [Setup]
+; Select the installer's UI language from Windows first, falling back to the
+; language selector only when the operating-system language is unavailable.
+LanguageDetectionMethod=uilanguage
 AppId={{D9DDF20D-9F91-4D31-A7C0-8E0F4C1E32D7}
 AppName={#AppName}
 AppVersion={#AppVersion}
