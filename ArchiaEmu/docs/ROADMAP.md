@@ -151,7 +151,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 - [x] Ajouter un adaptateur de rendu vidéo RGBA via texture egui, avec prise en compte du stride et allocations bornées.
 - [x] Ajouter une cadence hôte à 60 Hz avec accumulation du temps fractionnaire et rattrapage borné.
-- [x] Couvrir les frontières exactes de période, la remise à zéro du temps fractionnaire et l'ordre canonique de libération des dix contrôles d'entrée; ces régressions complètent les tests de conversion RGBA, de stride et de limite mémoire. Exécution CI toujours à confirmer.
+- [x] Couvrir les frontières exactes de période, la remise à zéro du temps fractionnaire, la conservation du reliquat après abandon des frames entières en retard et l'ordre canonique de libération des dix contrôles d'entrée; ces régressions complètent les tests de conversion RGBA, de stride et de limite mémoire. Exécution CI toujours à confirmer.
 - [x] Tester la pause/reprise et l'absence de progression pendant la pause avec un compteur observable dans un cœur de test.
 - [x] Ajouter un adaptateur audio hôte natif via rodio, indépendant du cœur, avec ouverture facultative du périphérique par défaut et repli propre si aucun périphérique n'est disponible.
 - [x] Acheminer les buffers PCM signés 16 bits depuis le contrôleur jusqu'au périphérique hôte; la collecte par tick est bornée à 16 buffers et la file de lecture à 8 blocs, avec purge du retard excessif.
@@ -165,7 +165,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 ### P1.6 — tests de parcours, CI et finition de l'application
 
-**Avancement estimé : ≈ 51 %.** Sur le commit `aba4fa51`, les quality gates desktop et les quality gates Rust du workspace ont réussi sur Linux, Windows et macOS; les modifications plus récentes doivent repasser ces contrôles. Les tests manuels du parcours desktop et la validation visuelle restent à exécuter.
+**Avancement estimé : ≈ 51 %.** Les quality gates ont réussi historiquement sur Linux, Windows et macOS, mais le run du commit `efaf33bb` a révélé deux écarts de formatage dans les nouveaux tests de cadence; ils ont été corrigés, puis un test complémentaire de conservation du reliquat a été ajouté. La CI du commit courant doit confirmer le formatage, les tests et Clippy. Les tests manuels du parcours desktop et la validation visuelle restent à exécuter.
 - [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante.
 - [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; la matrice a réussi sur le commit `234de9a4`.
 - [x] Étendre également Clippy du workspace partagé aux runners Linux, Windows et macOS (au lieu de Linux seulement); la matrice a réussi sur le commit `234de9a4`.
