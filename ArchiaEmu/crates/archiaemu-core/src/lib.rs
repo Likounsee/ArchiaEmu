@@ -63,6 +63,9 @@ pub mod module_install_journal;
 /// Host-driven orchestration for journaled module installation.
 pub mod module_install;
 
+/// Bounded, versioned IPC framing for isolated external core workers.
+pub mod module_worker_protocol;
+
 use core::fmt;
 
 /// Stable machine-readable identifier for an emulated system.
