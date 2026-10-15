@@ -13,14 +13,14 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | **100 %** | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 59 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
+| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 60 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | **≈ 65 %** | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | **≈ 85 %** | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | **≈ 60 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
 | **P1.4** | Paramètres, diagnostics et ergonomie | **≈ 55 %** | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
 | **P1.5** | Sorties média hôte et validation multiplateforme | **≈ 80 %** | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
-| **P1.6** | Tests de parcours, CI et finition | **≈ 45 %** | Tests exécutés et validation multiplateforme de l'application |
-| **P1.7** | Livraison locale et installateur Windows | **≈ 36 %** | Installateur testé en environnement propre et mise à jour sûre |
+| **P1.6** | Tests de parcours, CI et finition | **≈ 50 %** | Tests exécutés et validation multiplateforme de l'application |
+| **P1.7** | Livraison locale et installateur Windows | **≈ 40 %** | Installateur testé en environnement propre et mise à jour sûre |
 | **P2** | Intégration et fiabilité des modules logiciels | **≈ 24 %** — après P1 | Découverte, téléchargement de modules logiciels autorisés, provenance et frontières de confiance; aucun catalogue de ROM |
 | **CPU** | Architecture transversale des stratégies d'exécution | **≈ 20 %** | Contrats CPU/ABI/GPU et stratégies réellement implémentées |
 | **P3** | Premier module de console réellement fonctionnel | **0 %** — après P1 | Un système testé de bout en bout, avec limites de compatibilité honnêtes |
@@ -159,21 +159,21 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 ### P1.6 — tests de parcours, CI et finition de l'application
 
-**Avancement estimé : ≈ 45 %.** Les workflows sont présents. Sur le commit `36fe14ca`, les quality gates desktop macOS ont réussi; les vérifications Windows/Linux et les quality gates du workspace sont en cours ou à confirmer. Les tests manuels du parcours desktop restent à exécuter.
+**Avancement estimé : ≈ 50 %.** Sur le commit `aba4fa51`, les quality gates desktop et les quality gates Rust du workspace ont réussi sur Linux, Windows et macOS. Les tests manuels du parcours desktop et la validation visuelle restent à exécuter.
 - [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante.
-- [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; les résultats de cette nouvelle matrice restent à confirmer en CI.
-- [x] Étendre également Clippy du workspace partagé aux runners Linux, Windows et macOS (au lieu de Linux seulement); les résultats restent à confirmer sur les trois runners.
-- [x] Installer explicitement les dépendances système X11/Wayland/OpenGL/audio requises avant les contrôles du desktop sur les runners Linux du workflow CI principal; la réussite effective des jobs doit encore être vérifiée.
+- [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; la matrice a réussi sur le commit `aba4fa51`.
+- [x] Étendre également Clippy du workspace partagé aux runners Linux, Windows et macOS (au lieu de Linux seulement); la matrice a réussi sur le commit `aba4fa51`.
+- [x] Installer explicitement les dépendances système X11/Wayland/OpenGL/audio requises avant les contrôles du desktop sur les runners Linux du workflow CI principal; les quality gates desktop ont réussi sur Linux.
 
 - [ ] Ajouter des tests de parcours couvrant démarrage, bibliothèque vide, import, lancement réussi, lancement refusé, changement de session, paramètres, arrêt et fermeture globale.
 - [x] Ajouter un test d'intégration du lancement réussi depuis la bibliothèque avec une ROM de test construite en mémoire sur disque temporaire, puis pause/reprise/arrêt/fermeture; son exécution reste à confirmer en CI.
-- [x] Exécuter les quality gates Rust sur le dernier commit : Windows et macOS ont réussi sur `4b939fab`; Linux reste en cours, donc la matrice complète n'est pas encore validée.
-- [x] Ajouter `.github/workflows/desktop-ci.yml` pour lancer formatage, tests et Clippy du desktop sur Linux, Windows et macOS (le workflow est créé, ses résultats restent à vérifier).
+- [x] Exécuter les quality gates Rust du workspace et du desktop sur le commit `aba4fa51` : Linux, Windows et macOS ont tous réussi.
+- [x] Ajouter `.github/workflows/desktop-ci.yml` pour lancer formatage, tests et Clippy du desktop sur Linux, Windows et macOS; le workflow a réussi sur le commit `aba4fa51`.
 - [x] Déclencher aussi les quality gates desktop quand le manifeste de mise à jour (`ArchiaEmu/update/**`) change, afin que les changements de canal de publication ne passent pas silencieusement hors de la CI.
-- [x] Étendre le workflow aux tests et à Clippy du workspace partagé, en plus du crate desktop exclu du workspace (exécution CI toujours en attente de résultats vérifiables).
+- [x] Étendre le workflow aux tests et à Clippy du workspace partagé, en plus du crate desktop exclu du workspace; le workflow a réussi sur Linux, Windows et macOS.
 - [x] Ajouter à la CI la génération de la documentation du workspace avec `RUSTDOCFLAGS=-D warnings`, un délai maximal de job et une concurrence contrôlée; l'état des runs reste à vérifier.
 - [x] Corriger le parcours « Save settings now » : un échec d'écriture ou l'absence de répertoire de configuration ne peut plus être affiché comme une sauvegarde réussie; ajouter un test de défaillance du système de fichiers.
-- [ ] Faire passer la CI desktop sur Linux, Windows et macOS; Windows et macOS ont réussi sur le dernier commit vérifié, Linux est encore en cours; traiter toute régression avant de continuer.
+- [x] Faire passer la CI desktop sur Linux, Windows et macOS; les trois runners ont réussi sur le commit `aba4fa51`. Relancer ces contrôles à chaque changement de code.
 - [ ] Vérifier démarrage et fermeture propres, absence de panique sur erreurs utilisateur et absence de session/ressource orpheline.
 - [x] Actualiser le README pour décrire honnêtement les fonctions/limites du projet et les quality gates configurés.
 - [x] Ajouter `docs/MANUAL_TEST_CHECKLIST.md` pour les parcours principaux; la checklist reste à exécuter et à documenter sur chaque plateforme.
@@ -183,14 +183,14 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 ### P1.7 — livraison locale et installateur Windows
 
-**Avancement estimé : ≈ 36 %.** Le workflow génère désormais un `Cargo.lock` desktop par build, compile avec `--locked` et publie ce lockfile avec l'artefact pour audit. Le lockfile n'est toutefois pas encore versionné dans le dépôt : la résolution peut varier entre builds. Les dépendances embarquées, le fonctionnement réel en VM propre et la mise à jour/rollback sûre restent des bloqueurs majeurs.
+**Avancement estimé : ≈ 40 %.** Le build de l'installateur a réussi sur le commit `33574008`, avec compilation `--locked`, génération d'un checksum et archivage du `Cargo.lock` exact associé au binaire. Le lockfile n'est toutefois pas encore versionné dans le dépôt : la résolution peut varier entre builds. Les dépendances embarquées et le fonctionnement réel en VM propre ainsi que la mise à jour/rollback sûre restent des bloqueurs majeurs.
 
 Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale de livraison est Windows, cohérente avec le besoin d'un installateur .exe; les autres plateformes doivent continuer à passer leurs quality gates sans être considérées comme livrées si aucun paquet n'est produit.
 
 - [x] Choisir et documenter Inno Setup 6 comme technologie de l'installateur Windows; script versionné dans `packaging/windows/ArchiaEmu.iss`.
 - [ ] Versionner et valider un lockfile desktop dédié pour rendre la résolution reproductible entre builds. En attendant, le workflow génère le lockfile au début de chaque run, utilise `cargo build --locked` pour ce build et publie le lockfile associé à l'installateur comme preuve d'audit; cela ne garantit pas encore une résolution identique entre runs.
 - [ ] Recenser et embarquer tous les fichiers, bibliothèques natives, ressources et runtimes réellement requis; le workflow stage actuellement le binaire seul, à confirmer sur une VM Windows propre.
-- [x] Ajouter un workflow Windows x64 qui construit l'application, génère l'installateur versionné et son checksum SHA-256, publie un artefact de workflow et joint l'installateur aux releases créées depuis un tag `v*`; le premier run et ses résultats restent à vérifier.
+- [x] Ajouter un workflow Windows x64 qui construit l'application, génère l'installateur versionné et son checksum SHA-256, publie un artefact de workflow et joint l'installateur aux releases créées depuis un tag `v*`; le build et le smoke test d'installation/désinstallation ont réussi sur le commit `33574008`.
 - [x] Installer dans un répertoire local choisi, avec mode utilisateur par défaut et possibilité d'élévation; les préférences restent dans `%APPDATA%\\ArchiaEmu\\desktop.conf`, pas à côté de l'exécutable. Vérification réelle des chemins en VM toujours requise.
 - [x] Créer un raccourci Menu Démarrer et proposer le raccourci bureau comme option décochée par défaut dans l'assistant.
 - [x] Fournir le désinstallateur Inno Setup via Windows et le menu Démarrer, avec une question explicite sur la suppression des préférences/journaux/cache connus; les ROM et fichiers arbitraires ne sont pas ciblés. Vérification réelle en VM toujours requise.
