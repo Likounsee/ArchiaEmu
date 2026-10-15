@@ -64,7 +64,11 @@ pub(crate) fn system_language() -> String {
             .find(|value| !value.is_empty())
             .unwrap_or_default()
     });
-    if locale.to_ascii_lowercase().starts_with("fr") { "fr".to_owned() } else { "en".to_owned() }
+    if locale.to_ascii_lowercase().starts_with("fr") {
+        "fr".to_owned()
+    } else {
+        "en".to_owned()
+    }
 }
 
 pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
@@ -126,7 +130,12 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
                 }
             }
         } else if let Some(value) = line.strip_prefix("language=") {
-            language = if value.eq_ignore_ascii_case("fr") { "fr" } else { "en" }.to_owned();
+            language = if value.eq_ignore_ascii_case("fr") {
+                "fr"
+            } else {
+                "en"
+            }
+            .to_owned();
         } else if let Some(value) = line.strip_prefix("path=") {
             if let Some(decoded) = unescape_config_value(value) {
                 paths.push(PathBuf::from(decoded));
