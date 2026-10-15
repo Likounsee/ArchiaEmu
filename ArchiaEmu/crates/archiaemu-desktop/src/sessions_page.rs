@@ -319,7 +319,16 @@ impl DesktopApp {
                         ui.label(format!(
                             "{}: {}",
                             if french {
-                                if video_available { "déclarée disponible" } else { "indisponible dans ce cœur" }
+                                "Capacité de sortie vidéo"
+                            } else {
+                                "Video output capability"
+                            },
+                            if french {
+                                if video_available {
+                                    "déclarée disponible"
+                                } else {
+                                    "indisponible dans ce cœur"
+                                }
                             } else if video_available {
                                 "declared available"
                             } else {
@@ -329,7 +338,16 @@ impl DesktopApp {
                         ui.label(format!(
                             "{}: {}",
                             if french {
-                                if audio_available { "déclarée disponible" } else { "indisponible dans ce cœur" }
+                                "Capacité de sortie audio"
+                            } else {
+                                "Audio output capability"
+                            },
+                            if french {
+                                if audio_available {
+                                    "déclarée disponible"
+                                } else {
+                                    "indisponible dans ce cœur"
+                                }
                             } else if audio_available {
                                 "declared available"
                             } else {
