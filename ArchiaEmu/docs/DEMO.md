@@ -16,7 +16,7 @@ Sur Windows, récupère l'installateur depuis GitHub : dépôt → **Actions** �
 $installer = Get-ChildItem .\ArchiaEmu-Setup-*.exe | Select-Object -First 1
 if (-not $installer) { throw "Installateur introuvable" }
 $checksumFile = "$($installer.FullName).sha256"
-$expected = ((Get-Content $checksumFile -Raw).Trim() -split '\\s+')[0].ToLowerInvariant()
+$expected = ((Get-Content $checksumFile -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
 $actual = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($actual -ne $expected) { throw "ÉCHEC : le SHA-256 ne correspond pas" }
 "SHA-256 OK : $($installer.Name)"
