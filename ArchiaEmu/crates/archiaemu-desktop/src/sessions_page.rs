@@ -32,7 +32,13 @@ impl DesktopApp {
                     .inner_margin(egui::Margin::symmetric(12.0, 8.0))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            let session_label = if session_count == 1 {
+                            let session_label = if french {
+                                if session_count == 1 {
+                                    "session"
+                                } else {
+                                    "sessions"
+                                }
+                            } else if session_count == 1 {
                                 "session"
                             } else {
                                 "sessions"
@@ -62,12 +68,22 @@ impl DesktopApp {
                     self.frame_texture = None;
                     self.video_size = None;
                     self.last_tick = Instant::now();
-                    self.media_status = "No active session.".to_owned();
+                    self.media_status = if french {
+                        "Aucune session active.".to_owned()
+                    } else {
+                        "No active session.".to_owned()
+                    };
                     self.last_tick_errors.clear();
                     self.session_content_paths.clear();
-                    self.message = match release_error {
-                        Some(error) => format!("{error}; closed {count} session(s)."),
-                        None => format!("Closed {count} session(s)."),
+                    self.message = match (french, release_error) {
+                        (true, Some(error)) => {
+                            format!("{error} ; {count} session(s) fermée(s).")
+                        }
+                        (true, None) => format!("{count} session(s) fermée(s)."),
+                        (false, Some(error)) => {
+                            format!("{error}; closed {count} session(s).")
+                        }
+                        (false, None) => format!("Closed {count} session(s)."),
                     };
                 }
             });
