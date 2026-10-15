@@ -704,12 +704,28 @@ impl SessionAction {
 
 fn navigation_items(french: bool) -> [(DesktopPage, &'static str); 6] {
     [
-        (DesktopPage::Home, if french { "Accueil" } else { "Overview" }),
-        (DesktopPage::Library, if french { "Bibliothèque" } else { "Game library" }),
+        (
+            DesktopPage::Home,
+            if french { "Accueil" } else { "Overview" },
+        ),
+        (
+            DesktopPage::Library,
+            if french {
+                "Bibliothèque"
+            } else {
+                "Game library"
+            },
+        ),
         (DesktopPage::Sessions, "Sessions"),
         (DesktopPage::Game, if french { "Jeu" } else { "Game" }),
-        (DesktopPage::Systems, if french { "Systèmes" } else { "Systems" }),
-        (DesktopPage::Settings, if french { "Paramètres" } else { "Settings" }),
+        (
+            DesktopPage::Systems,
+            if french { "Systèmes" } else { "Systems" },
+        ),
+        (
+            DesktopPage::Settings,
+            if french { "Paramètres" } else { "Settings" },
+        ),
     ]
 }
 
@@ -870,11 +886,8 @@ impl eframe::App for DesktopApp {
                     ui.horizontal(|ui| {
                         let (logo_rect, _) =
                             ui.allocate_exact_size(egui::vec2(38.0, 38.0), egui::Sense::hover());
-                        ui.painter().rect_filled(
-                            logo_rect,
-                            egui::Rounding::same(11.0),
-                            accent,
-                        );
+                        ui.painter()
+                            .rect_filled(logo_rect, egui::Rounding::same(11.0), accent);
                         ui.painter().text(
                             logo_rect.center(),
                             egui::Align2::CENTER_CENTER,
@@ -899,10 +912,14 @@ impl eframe::App for DesktopApp {
                     });
                     ui.add_space(28.0);
                     ui.label(
-                        egui::RichText::new(if french { "ESPACE DE TRAVAIL" } else { "WORKSPACE" })
-                            .size(10.0)
-                            .strong()
-                            .color(ui.visuals().weak_text_color()),
+                        egui::RichText::new(if french {
+                            "ESPACE DE TRAVAIL"
+                        } else {
+                            "WORKSPACE"
+                        })
+                        .size(10.0)
+                        .strong()
+                        .color(ui.visuals().weak_text_color()),
                     );
                     ui.add_space(9.0);
                     for (page, label) in navigation_items(french) {
@@ -943,22 +960,38 @@ impl eframe::App for DesktopApp {
                             .rounding(egui::Rounding::same(10.0))
                             .inner_margin(egui::Margin::same(12.0))
                             .show(ui, |ui| {
-                                ui.label(egui::RichText::new(if french {
-                                    "Développement actif"
-                                } else {
-                                    "Active development"
-                                }).strong().size(12.0));
+                                ui.label(
+                                    egui::RichText::new(if french {
+                                        "Développement actif"
+                                    } else {
+                                        "Active development"
+                                    })
+                                    .strong()
+                                    .size(12.0),
+                                );
                                 ui.add_space(4.0);
-                                ui.label(egui::RichText::new(if french {
-                                    "Les cœurs et la compatibilité restent expérimentaux."
-                                } else {
-                                    "Core support and compatibility are experimental."
-                                }).size(10.0).color(ui.visuals().weak_text_color()));
+                                ui.label(
+                                    egui::RichText::new(if french {
+                                        "Les cœurs et la compatibilité restent expérimentaux."
+                                    } else {
+                                        "Core support and compatibility are experimental."
+                                    })
+                                    .size(10.0)
+                                    .color(ui.visuals().weak_text_color()),
+                                );
                                 ui.add_space(8.0);
                                 ui.separator();
                                 ui.label(if self.dark_mode {
-                                    if french { "Thème sombre" } else { "Dark appearance" }
-                                } else if french { "Thème clair" } else { "Light appearance" });
+                                    if french {
+                                        "Thème sombre"
+                                    } else {
+                                        "Dark appearance"
+                                    }
+                                } else if french {
+                                    "Thème clair"
+                                } else {
+                                    "Light appearance"
+                                });
                             });
                     });
                 });
@@ -971,7 +1004,10 @@ impl eframe::App for DesktopApp {
                             ui.strong("ArchiaEmu");
                             ui.separator();
                             for (page, label) in navigation_items(self.language == "fr") {
-                                if ui.selectable_label(self.active_page == page, label).clicked() {
+                                if ui
+                                    .selectable_label(self.active_page == page, label)
+                                    .clicked()
+                                {
                                     self.navigate_to(page);
                                 }
                             }
@@ -981,14 +1017,12 @@ impl eframe::App for DesktopApp {
         }
 
         egui::TopBottomPanel::top("app_header")
-            .frame(
-                egui::Frame::none().inner_margin(egui::Margin {
-                    left: 24.0,
-                    right: 24.0,
-                    top: 17.0,
-                    bottom: 14.0,
-                }),
-            )
+            .frame(egui::Frame::none().inner_margin(egui::Margin {
+                left: 24.0,
+                right: 24.0,
+                top: 17.0,
+                bottom: 14.0,
+            }))
             .show(context, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     ui.horizontal(|ui| {
@@ -1017,7 +1051,11 @@ impl eframe::App for DesktopApp {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui
                             .button(if self.fullscreen {
-                                if self.language == "fr" { "Quitter le plein écran" } else { "Exit fullscreen" }
+                                if self.language == "fr" {
+                                    "Quitter le plein écran"
+                                } else {
+                                    "Exit fullscreen"
+                                }
                             } else if self.language == "fr" {
                                 "Plein écran"
                             } else {
@@ -1031,7 +1069,9 @@ impl eframe::App for DesktopApp {
                             .clicked()
                         {
                             self.fullscreen = !self.fullscreen;
-                            context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
+                            context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(
+                                self.fullscreen,
+                            ));
                         }
                         egui::Frame::group(ui.style())
                             .fill(if self.dark_mode {
@@ -1045,12 +1085,24 @@ impl eframe::App for DesktopApp {
                                 ui.label(format!(
                                     "{} {}",
                                     self.controller.session_count(),
-                                    if self.language == "fr" { "session(s)" } else { "session(s)" }
+                                    if self.language == "fr" {
+                                        "session(s)"
+                                    } else {
+                                        "session(s)"
+                                    }
                                 ));
                             });
                         ui.label(if self.dark_mode {
-                            if self.language == "fr" { "Thème sombre" } else { "Dark theme" }
-                        } else if self.language == "fr" { "Thème clair" } else { "Light theme" });
+                            if self.language == "fr" {
+                                "Thème sombre"
+                            } else {
+                                "Dark theme"
+                            }
+                        } else if self.language == "fr" {
+                            "Thème clair"
+                        } else {
+                            "Light theme"
+                        });
                     });
                 });
             });
