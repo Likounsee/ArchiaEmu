@@ -708,23 +708,23 @@ fn navigation_items(french: bool) -> [(DesktopPage, &'static str, &'static str);
     [
         (
             DesktopPage::Home,
-            "⌂",
+            "H",
             if french { "Accueil" } else { "Overview" },
         ),
         (
             DesktopPage::Library,
-            "≡",
+            "L",
             if french {
                 "Bibliothèque"
             } else {
                 "Game library"
             },
         ),
-        (DesktopPage::Sessions, "○", "Sessions"),
-        (DesktopPage::Game, "▶", if french { "Jeu" } else { "Game" }),
+        (DesktopPage::Sessions, "S", "Sessions"),
+        (DesktopPage::Game, "G", if french { "Jeu" } else { "Game" }),
         (
             DesktopPage::Systems,
-            "◎",
+            "Y",
             if french { "Systèmes" } else { "Systems" },
         ),
         (
@@ -984,7 +984,7 @@ impl eframe::App for DesktopApp {
                                 ui.add_space(8.0);
                                 ui.separator();
                                 ui.horizontal(|ui| {
-                                    ui.label(egui::RichText::new("◐").color(accent));
+                                    ui.label(egui::RichText::new("*").color(accent));
                                     ui.label(if self.dark_mode {
                                         if french { "Thème sombre" } else { "Dark appearance" }
                                     } else if french { "Thème clair" } else { "Light appearance" });
@@ -998,7 +998,7 @@ impl eframe::App for DesktopApp {
                 .show(context, |ui| {
                     egui::ScrollArea::horizontal().show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.strong("◈ ArchiaEmu");
+                            ui.strong("ArchiaEmu");
                             ui.separator();
                             for (page, glyph, label) in navigation_items(self.language == "fr") {
                                 if ui
@@ -1053,11 +1053,11 @@ impl eframe::App for DesktopApp {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui
                             .button(if self.fullscreen {
-                                if self.language == "fr" { "⛶ Quitter le plein écran" } else { "⛶ Exit fullscreen" }
+                                if self.language == "fr" { "Quitter le plein écran" } else { "Exit fullscreen" }
                             } else if self.language == "fr" {
-                                "⛶ Plein écran"
+                                "Plein écran"
                             } else {
-                                "⛶ Fullscreen"
+                                "Fullscreen"
                             })
                             .on_hover_text(if self.language == "fr" {
                                 "Raccourci : F11 ou Alt+Entrée"
@@ -1092,8 +1092,8 @@ impl eframe::App for DesktopApp {
                                 });
                             });
                         ui.label(if self.dark_mode {
-                            if self.language == "fr" { "◐ Sombre" } else { "◐ Dark" }
-                        } else if self.language == "fr" { "☼ Clair" } else { "☼ Light" });
+                            if self.language == "fr" { "Sombre" } else { "Dark" }
+                        } else if self.language == "fr" { "Clair" } else { "Light" });
                     });
                 });
             });
