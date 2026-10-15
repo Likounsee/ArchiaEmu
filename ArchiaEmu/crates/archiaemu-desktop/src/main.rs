@@ -25,8 +25,8 @@ mod library_page;
 pub mod manifest_ed25519;
 mod preferences;
 mod sessions_page;
-pub mod worker_process;
 pub mod worker_messages;
+pub mod worker_process;
 
 mod settings_page;
 mod systems_page;
