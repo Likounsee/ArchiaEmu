@@ -152,7 +152,7 @@ impl WorkerProcess {
         let stdin = child.stdin.take().ok_or(WorkerProcessError::MissingPipe)?;
         let mut stdout = child.stdout.take().ok_or(WorkerProcessError::MissingPipe)?;
         let (sender, messages) = mpsc::sync_channel(1);
-        std::thread::spawn(move || loop {
+        let _reader = std::thread::spawn(move || loop {
             let message = read_message(&mut stdout);
             let finished = message.is_err();
             if sender.send(message).is_err() || finished {
