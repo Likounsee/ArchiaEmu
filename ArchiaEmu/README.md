@@ -31,7 +31,7 @@ cargo run --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
 
 On Linux, install the native desktop development libraries listed in `.github/workflows/ci.yml` first. On Windows, the **Windows installer** GitHub Actions workflow builds a standalone installer; use its artifact from a successful run rather than presenting a local debug build as a release.
 
-For a short demonstration, show the home page, import a local `.gb`/`.gbc` file, browse and filter the library, open session management, and change/save appearance preferences. Use your own legally obtained test file. **Important limitation:** this demonstrates the desktop application shell and cartridge metadata inspection, not playable emulation; the Game Boy CPU, graphics, and audio core are not implemented. Do not promise game compatibility.
+For a short demonstration, show the home page, import a local `.gb`/`.gbc` file, browse and filter the library, open session management, and change/save appearance preferences. Use your own legally obtained test file. **Important limitation:** this demonstrates the desktop application shell and cartridge metadata inspection, not playable emulation. An experimental LR35902 instruction subset exists, but the CPU, memory bus, graphics, timers/interrupts, input, audio, and mapper support are incomplete; no game compatibility is claimed.
 
 ## Current components
 
