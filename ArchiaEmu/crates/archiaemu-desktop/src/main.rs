@@ -240,12 +240,42 @@ enum DesktopPage {
 impl DesktopPage {
     fn title(self, french: bool) -> &'static str {
         match self {
-            Self::Home => if french { "Accueil" } else { "Overview" },
-            Self::Library => if french { "Bibliothèque" } else { "Game library" },
+            Self::Home => {
+                if french {
+                    "Accueil"
+                } else {
+                    "Overview"
+                }
+            }
+            Self::Library => {
+                if french {
+                    "Bibliothèque"
+                } else {
+                    "Game library"
+                }
+            }
             Self::Sessions => "Sessions",
-            Self::Game => if french { "Jeu" } else { "Game" },
-            Self::Systems => if french { "Systèmes" } else { "Systems" },
-            Self::Settings => if french { "Paramètres" } else { "Settings" },
+            Self::Game => {
+                if french {
+                    "Jeu"
+                } else {
+                    "Game"
+                }
+            }
+            Self::Systems => {
+                if french {
+                    "Systèmes"
+                } else {
+                    "Systems"
+                }
+            }
+            Self::Settings => {
+                if french {
+                    "Paramètres"
+                } else {
+                    "Settings"
+                }
+            }
         }
     }
 }
@@ -655,12 +685,32 @@ fn navigation_items(french: bool) -> [(DesktopPage, &'static str, &'static str);
     // Use common glyphs supported by the bundled default font; avoid the
     // uncommon filled-square symbols that appeared as missing-glyph boxes.
     [
-        (DesktopPage::Home, "⌂", if french { "Accueil" } else { "Overview" }),
-        (DesktopPage::Library, "≡", if french { "Bibliothèque" } else { "Game library" }),
+        (
+            DesktopPage::Home,
+            "⌂",
+            if french { "Accueil" } else { "Overview" },
+        ),
+        (
+            DesktopPage::Library,
+            "≡",
+            if french {
+                "Bibliothèque"
+            } else {
+                "Game library"
+            },
+        ),
         (DesktopPage::Sessions, "○", "Sessions"),
         (DesktopPage::Game, "▶", if french { "Jeu" } else { "Game" }),
-        (DesktopPage::Systems, "◎", if french { "Systèmes" } else { "Systems" }),
-        (DesktopPage::Settings, "*", if french { "Paramètres" } else { "Settings" }),
+        (
+            DesktopPage::Systems,
+            "◎",
+            if french { "Systèmes" } else { "Systems" },
+        ),
+        (
+            DesktopPage::Settings,
+            "*",
+            if french { "Paramètres" } else { "Settings" },
+        ),
     ]
 }
 
