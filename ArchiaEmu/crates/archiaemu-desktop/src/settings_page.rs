@@ -44,7 +44,7 @@ impl DesktopApp {
                             } else {
                                 egui::Color32::from_rgb(255, 255, 255)
                             })
-                            .stroke(egui::Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color))
+                            .stroke(egui::Stroke::new(1.0_f32, ui.visuals().widgets.noninteractive.bg_stroke.color))
                             .rounding(egui::Rounding::same(12.0))
                             .inner_margin(egui::Margin::same(16.0))
                             .show(ui, |ui| {
@@ -59,7 +59,7 @@ impl DesktopApp {
                                         let (rect, response) = ui.allocate_exact_size(egui::vec2(card_width, 76.0), egui::Sense::click());
                                         let fill = egui::Color32::from_rgb(24, 29, 40);
                                         ui.painter().rect_filled(rect, egui::Rounding::same(8.0), fill);
-                                        ui.painter().rect_stroke(rect, egui::Rounding::same(8.0), egui::Stroke::new(if dark_selected { 2.0 } else { 1.0 }, if dark_selected { self.accent_color } else { egui::Color32::from_rgb(65, 73, 91) }));
+                                        ui.painter().rect_stroke(rect, egui::Rounding::same(8.0), egui::Stroke::new(if dark_selected { 2.0_f32 } else { 1.0_f32 }, if dark_selected { self.accent_color } else { egui::Color32::from_rgb(65, 73, 91) }));
                                         ui.painter().rect_filled(egui::Rect::from_min_size(rect.min + egui::vec2(8.0, 8.0), egui::vec2(rect.width() * 0.34, 9.0)), egui::Rounding::same(3.0), egui::Color32::from_rgb(80, 91, 116));
                                         ui.painter().rect_filled(egui::Rect::from_min_size(rect.min + egui::vec2(8.0, 23.0), egui::vec2(rect.width() - 16.0, 5.0)), egui::Rounding::same(2.0), egui::Color32::from_rgb(55, 63, 80));
                                         ui.painter().rect_filled(egui::Rect::from_min_size(rect.min + egui::vec2(8.0, 34.0), egui::vec2(rect.width() * 0.56, 5.0)), egui::Rounding::same(2.0), self.accent_color);
@@ -72,7 +72,7 @@ impl DesktopApp {
                                     ui.vertical(|ui| {
                                         let (rect, response) = ui.allocate_exact_size(egui::vec2(card_width, 76.0), egui::Sense::click());
                                         ui.painter().rect_filled(rect, egui::Rounding::same(8.0), egui::Color32::from_rgb(249, 250, 252));
-                                        ui.painter().rect_stroke(rect, egui::Rounding::same(8.0), egui::Stroke::new(if light_selected { 2.0 } else { 1.0 }, if light_selected { self.accent_color } else { egui::Color32::from_rgb(220, 224, 232) }));
+                                        ui.painter().rect_stroke(rect, egui::Rounding::same(8.0), egui::Stroke::new(if light_selected { 2.0_f32 } else { 1.0_f32 }, if light_selected { self.accent_color } else { egui::Color32::from_rgb(220, 224, 232) }));
                                         ui.painter().rect_filled(egui::Rect::from_min_size(rect.min + egui::vec2(8.0, 8.0), egui::vec2(rect.width() * 0.34, 9.0)), egui::Rounding::same(3.0), egui::Color32::from_rgb(216, 221, 231));
                                         ui.painter().rect_filled(egui::Rect::from_min_size(rect.min + egui::vec2(8.0, 23.0), egui::vec2(rect.width() - 16.0, 5.0)), egui::Rounding::same(2.0), egui::Color32::from_rgb(226, 230, 237));
                                         ui.painter().rect_filled(egui::Rect::from_min_size(rect.min + egui::vec2(8.0, 34.0), egui::vec2(rect.width() * 0.56, 5.0)), egui::Rounding::same(2.0), self.accent_color);
@@ -109,7 +109,7 @@ impl DesktopApp {
                                         let (rect, response) = ui.allocate_exact_size(egui::vec2(34.0, 34.0), egui::Sense::click());
                                         ui.painter().circle_filled(rect.center(), 13.0, color);
                                         if selected {
-                                            ui.painter().circle_stroke(rect.center(), 16.0, egui::Stroke::new(2.0, color));
+                                            ui.painter().circle_stroke(rect.center(), 16.0, egui::Stroke::new(2.0_f32, color));
                                          }
                                         if response.clicked() { self.accent_color = color; }
                                         response.on_hover_text(name);
