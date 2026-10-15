@@ -1,6 +1,6 @@
 # ArchiaEmu — technical overview
 
-ArchiaEmu is currently a repository foundation, not a usable emulator. No console core is implemented yet, and no game compatibility is claimed.
+ArchiaEmu is currently a repository foundation and experimental desktop prototype, not a usable emulator. A small Game Boy CPU instruction subset exists, but no complete console core or playable-game compatibility is claimed.
 
 ## Repository and toolchain
 
@@ -36,7 +36,7 @@ For a short demonstration, show the home page, import a local `.gb`/`.gbc` file,
 ## Current components
 
 - `crates/archiaemu-core`: shared metadata, capability declarations, core lifecycle contract, and error types.
-- `crates/archiaemu-game-boy`: experimental Game Boy cartridge-header parser. CPU, bus, PPU, audio, and runnable-game support are not implemented.
+- `crates/archiaemu-game-boy`: experimental Game Boy cartridge-header parser plus a small LR35902 instruction subset connected to a limited ROM-only (mapper 0) bus. PPU/frame output, timers/interrupts, audio, joypad hardware, mapper banking, and broad opcode coverage remain incomplete; it is not a playable-game core.
 - `docs/`: architecture, language decisions, interface, roadmap, compatibility, media/input plans, testing, performance, security, and legal constraints.
 - `.github/workflows/ci.yml` at the repository root: Rust quality gates.
 
