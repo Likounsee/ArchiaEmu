@@ -664,6 +664,60 @@ mod tests {
     }
 
     #[test]
+    fn refuses_to_remove_a_dependency_used_by_an_installed_transitive_dependent() {
+        let descriptors = vec![
+            descriptor("runtime", "Runtime", ModuleReadiness::Installable, &[]),
+            descriptor("video", "Video", ModuleReadiness::Installable, &["runtime"]),
+            descriptor("player", "Player", ModuleReadiness::Installable, &["video"]),
+        ];
+        let catalog = ModuleCatalog::new(&descriptors);
+
+        assert_eq!(
+            catalog.plan_uninstall(&[id("runtime")], &[id("runtime"), id("video"), id("player")]),
+            Err(PlanError::RequiredBy {
+                module: id("runtime"),
+                dependent: id("video"),
+            })
+        );
+    }
+
+    #[test]
+    fn removes_selected_dependents_before_their_dependencies() {
+        let descriptors = vec![
+            descriptor("runtime", "Runtime", ModuleReadiness::Installable, &[]),
+            descriptor("video", "Video", ModuleReadiness::Installable, &["runtime"]),
+            descriptor("player", "Player", ModuleReadiness::Installable, &["video"]),
+        ];
+        let catalog = ModuleCatalog::new(&descriptors);
+        let plan = catalog
+            .plan_uninstall(
+                &[id("runtime"), id("player"), id("video")],
+                &[id("runtime"), id("video"), id("player")],
+            )
+            .unwrap();
+
+        assert_eq!(
+            plan.removal_order,
+            vec![id("player"), id("video"), id("runtime")]
+        );
+    }
+
+    #[test]
+    fn uninstall_rejects_unknown_and_uninstalled_modules() {
+        let descriptors = catalogue_descriptors();
+        let catalog = ModuleCatalog::new(&descriptors);
+
+        assert_eq!(
+            catalog.plan_uninstall(&[id("future-system")], &[]),
+            Err(PlanError::UnknownModule(id("future-system")))
+        );
+        assert_eq!(
+            catalog.plan_uninstall(&[id("game-boy")], &[]),
+            Err(PlanError::NotInstalled(id("game-boy")))
+        );
+    }
+
+    #[test]
     fn catalogue_validation_is_independent_of_selection() {
         let descriptors = catalogue_descriptors();
         assert!(ModuleCatalog::new(&descriptors).validate().is_ok());
