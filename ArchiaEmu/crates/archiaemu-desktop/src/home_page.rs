@@ -20,7 +20,7 @@ impl DesktopApp {
             })
             .rounding(egui::Rounding::same(16.0))
             .inner_margin(egui::Margin::same(24.0))
-            .stroke(egui::Stroke::new(1.0, accent.gamma_multiply(0.45)))
+            .stroke(egui::Stroke::new(1.0_f32, accent.gamma_multiply(0.45)))
             .show(ui, |ui| {
                 ui.set_min_height(172.0);
                 ui.columns(2, |columns| {
@@ -165,11 +165,7 @@ impl DesktopApp {
                                 ui.add_space(8.0);
                                 ui.label(
                                     egui::RichText::new(if self.controller.session_count() > 0 {
-                                        if french {
-                                            "Session active"
-                                        } else {
-                                            "Session active"
-                                        }
+                                        "Session active"
                                     } else if french {
                                         "Aucune session en cours"
                                     } else {
@@ -197,7 +193,7 @@ impl DesktopApp {
                 },
             ),
             (
-                if french { "SESSIONS" } else { "SESSIONS" },
+                "SESSIONS",
                 self.controller.session_count().to_string(),
                 if french {
                     "sessions ouvertes"
