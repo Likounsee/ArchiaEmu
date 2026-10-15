@@ -304,7 +304,10 @@ mod tests {
             .expect_err("oversized replacement must be rejected");
 
         assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
-        assert_eq!(fs::read(&path).expect("existing config should remain"), original);
+        assert_eq!(
+            fs::read(&path).expect("existing config should remain"),
+            original
+        );
         let _ = fs::remove_file(path);
     }
 
