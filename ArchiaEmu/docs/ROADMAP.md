@@ -96,7 +96,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 
 ### P1.3 — gestion des sessions et commandes génériques
 
-**Avancement estimé : ≈ 61 %.** Les commandes essentielles, la cohérence de sélection et les erreurs de tick sont couvertes par des tests ciblés; la matrice complète de parcours et la validation manuelle restent ouvertes.
+**Avancement estimé : ≈ 61 %.** Les commandes essentielles, la cohérence de sélection et les erreurs de tick sont couvertes par 26 tests unitaires de contrôleur; leur exécution sur le commit courant, la matrice complète de parcours et la validation manuelle restent ouvertes.
 
 - [x] Gérer plusieurs sessions, la sélection de la session active, pause/reprise, arrêt/réinitialisation et fermeture depuis l'interface.
 - [x] Avancer les sessions via le contrôleur avec budget borné et remonter état, capacités, trame la plus récente et erreur.
