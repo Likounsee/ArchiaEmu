@@ -17,6 +17,7 @@ archiaemu-app = { version = "0.1.0", path = "../archiaemu-app" }
 archiaemu-core = { version = "0.1.0", path = "../archiaemu-core" }
 archiaemu-game-boy = { version = "0.1.0", path = "../archiaemu-game-boy", optional = true }
 eframe = { version = "=0.27.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+ed25519-dalek = "=2.1.1"
 rfd = "=0.14.1"
 rodio = { version = "=0.17.3", default-features = false }
 serde = { version = "=1.0.228", features = ["derive"] }
