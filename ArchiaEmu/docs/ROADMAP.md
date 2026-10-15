@@ -118,6 +118,8 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 
 **Avancement estimé : ≈ 55 %.** Les préférences persistantes et diagnostics sont bien avancés; l'internationalisation, les réglages séparés par domaine et la finition UX restent à réaliser.
 
+La passe de finition actuelle clarifie aussi les limites du prototype dans l'accueil, la vue de session et le gestionnaire de sessions : ouvrir une session n'est pas présenté comme une promesse de jeu jouable. Le README contient un parcours de démonstration rapide. Ces changements UI/documentation sont committés; aucune validation visuelle manuelle ni CI du commit courant n'est encore confirmée.
+
 - [x] Séparer les préférences de présentation du matériel émulé et extraire leur persistance.
 - [x] Signaler correctement l'échec de sauvegarde dans l'interface au lieu d'afficher un succès trompeur; tester l'échec d'écriture et la préservation de l'ancien fichier de préférences.
 - [x] Synchroniser le fichier temporaire de préférences sur le disque (`sync_all`) avant de le promouvoir en configuration active, et nettoyer le temporaire si l'écriture ou la synchronisation échoue.
@@ -165,7 +167,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 ### P1.6 — tests de parcours, CI et finition de l'application
 
-**Avancement estimé : ≈ 51 %.** Les quality gates ont réussi historiquement sur Linux, Windows et macOS, mais le run du commit `efaf33bb` a révélé deux écarts de formatage dans les nouveaux tests de cadence; ils ont été corrigés, puis un test complémentaire de conservation du reliquat a été ajouté. Le workflow CI génère maintenant une seule résolution du graphe de dépendances du crate desktop exclu du workspace, puis passe `--locked` à check, test, Clippy et package afin d'éviter les mises à jour implicites entre ces étapes d'un même run. Ce changement reste à valider par CI. Les tests manuels du parcours desktop et la validation visuelle restent à exécuter.
+**Avancement estimé : ≈ 51 %.** Les quality gates ont réussi historiquement sur Linux, Windows et macOS, mais le run du commit `efaf33bb` a révélé deux écarts de formatage dans les nouveaux tests de cadence; ils ont été corrigés, puis un test complémentaire de conservation du reliquat a été ajouté. Le workflow CI génère une résolution du graphe de dépendances du crate desktop exclu du workspace, puis passe `--locked` à check, test, Clippy et package pour garder le même graphe entre ces étapes d'un même run. Le crate desktop ne possède toujours pas de `Cargo.lock` committé : cette génération à la volée ne garantit donc pas la reproductibilité entre deux runs et doit être remplacée par un lockfile versionné. Ce changement reste à valider par CI. Les tests manuels du parcours desktop et la validation visuelle restent à exécuter.
 - [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante.
 - [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; la matrice a réussi sur le commit `234de9a4`.
 - [x] Étendre également Clippy du workspace partagé aux runners Linux, Windows et macOS (au lieu de Linux seulement); la matrice a réussi sur le commit `234de9a4`.
