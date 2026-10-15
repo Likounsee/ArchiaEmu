@@ -23,9 +23,9 @@ mod game_view;
 mod home_page;
 mod library_page;
 pub mod manifest_ed25519;
-pub mod worker_process;
 mod preferences;
 mod sessions_page;
+pub mod worker_process;
 
 mod settings_page;
 mod systems_page;
