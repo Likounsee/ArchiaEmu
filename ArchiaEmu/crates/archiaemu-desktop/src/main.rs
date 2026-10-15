@@ -22,6 +22,7 @@ mod game_page;
 mod game_view;
 mod home_page;
 mod library_page;
+mod manifest_ed25519;
 mod preferences;
 mod sessions_page;
 
