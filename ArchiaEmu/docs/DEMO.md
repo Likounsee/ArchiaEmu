@@ -10,7 +10,19 @@ Depuis la racine du dépôt, avec Rust stable et les dépendances système de co
 cargo run --release --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
 ```
 
-Sur Windows, récupère l'installateur depuis GitHub : dépôt → **Actions** → **Windows installer** → ouvre une exécution terminée avec succès → **Artifacts** → télécharge `ArchiaEmu-Windows-x64-<version>`, puis extrais le `.zip`. Vérifie le fichier `.sha256` fourni avant d'exécuter l'installateur. Si aucun artefact issu d'une exécution réussie n'est disponible, ne présente pas l'installateur comme validé. Pour vérifier un binaire sans lancer l'interface graphique :
+Sur Windows, récupère l'installateur depuis GitHub : dépôt → **Actions** → **Windows installer** → ouvre une exécution terminée avec succès → **Artifacts** → télécharge `ArchiaEmu-Windows-x64-<version>`, puis extrais le `.zip`. Avant d'exécuter l'installateur, vérifie le SHA-256 dans PowerShell depuis le dossier extrait :
+
+```powershell
+$installer = Get-ChildItem .\ArchiaEmu-Setup-*.exe | Select-Object -First 1
+if (-not $installer) { throw "Installateur introuvable" }
+$checksumFile = "$($installer.FullName).sha256"
+$expected = ((Get-Content $checksumFile -Raw).Trim() -split '\\s+')[0].ToLowerInvariant()
+$actual = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -ne $expected) { throw "ÉCHEC : le SHA-256 ne correspond pas" }
+"SHA-256 OK : $($installer.Name)"
+```
+
+Si aucun artefact issu d'une exécution réussie n'est disponible, ne présente pas l'installateur comme validé. Pour vérifier un binaire sans lancer l'interface graphique :
 
 ```powershell
 .\archiaemu-desktop.exe --version
