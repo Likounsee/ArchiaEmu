@@ -32,17 +32,27 @@ impl DesktopApp {
                     .inner_margin(egui::Margin::symmetric(12.0, 8.0))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.label(format!("{} {}", session_count, "session(s)"));
+                            let session_label = if session_count == 1 {
+                                "session"
+                            } else if french {
+                                "sessions"
+                            } else {
+                                "sessions"
+                            };
+                            ui.label(format!("{session_count} {session_label}"));
                         });
                     });
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
-                    .button(if self.language == "fr" {
+                    .add_enabled(
+                    session_count > 0,
+                    egui::Button::new(if self.language == "fr" {
                         "Tout fermer"
                     } else {
                         "Close all"
-                    })
+                    }),
+                )
                     .clicked()
                 {
                     // Keyboard input is routed only to the active session. Release it before
