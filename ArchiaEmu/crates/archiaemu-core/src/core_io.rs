@@ -721,10 +721,23 @@ mod tests {
     }
 
     #[test]
-    fn cadence_rejects_zero_rate_and_zero_catch_up_limit() {
+    fn cadence_rejects_unrepresentable_rates_and_zero_catch_up_limit() {
         assert_eq!(
             FrameCadence::new(0, 1).unwrap_err(),
             CadenceError::ZeroFrameRate
+        );
+        assert_eq!(
+            FrameCadence::new(1_000_000_001, 1).unwrap_err(),
+            CadenceError::ZeroFrameRate,
+            "rates above nanosecond precision must not create a zero-length period"
+        );
+        let mut one_nanosecond = FrameCadence::new(1_000_000_000, 1).unwrap();
+        assert_eq!(one_nanosecond.frame_period(), std::time::Duration::from_nanos(1));
+        assert_eq!(
+            one_nanosecond
+                .advance(std::time::Duration::from_nanos(1))
+                .due_frames,
+            1
         );
         assert_eq!(
             FrameCadence::new(60, 0).unwrap_err(),
