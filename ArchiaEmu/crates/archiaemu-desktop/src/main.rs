@@ -31,6 +31,7 @@ mod update;
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::runtime::SessionState;
 use archiaemu_core::CoreRegistry;
+#[cfg(feature = "game-boy-core")]
 use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
 use eframe::egui;
 
@@ -118,6 +119,7 @@ fn poll_background_result<T>(receiver: &mut Option<Receiver<T>>) -> Result<Optio
 struct DesktopApp {
     controller: ApplicationController,
     registry: CoreRegistry,
+    #[cfg(feature = "game-boy-core")]
     probe: GameBoyCartridgeProbe,
     content_path: String,
     library_filter: String,
@@ -283,6 +285,7 @@ impl DesktopPage {
 impl DesktopApp {
     fn new() -> Result<Self, Box<dyn Error>> {
         let mut registry = CoreRegistry::new();
+        #[cfg(feature = "game-boy-core")]
         register_game_boy(&mut registry)?;
         let host = HostRuntime::new(HostRuntimeConfig::default())?;
         let mut controller = ApplicationController::new(host);
@@ -340,6 +343,7 @@ impl DesktopApp {
         Ok(Self {
             controller,
             registry,
+            #[cfg(feature = "game-boy-core")]
             probe: GameBoyCartridgeProbe,
             content_path: String::new(),
             library_filter: String::new(),
@@ -494,7 +498,10 @@ impl DesktopApp {
             }
         }
 
+        #[cfg(feature = "game-boy-core")]
         let probes: [&dyn ContentFormatProbe; 1] = [&self.probe];
+        #[cfg(not(feature = "game-boy-core"))]
+        let probes: [&dyn ContentFormatProbe; 0] = [];
         match self.controller.launch_content_path(
             Path::new(path),
             ContentLimits::new(MAX_CONTENT_BYTES),
