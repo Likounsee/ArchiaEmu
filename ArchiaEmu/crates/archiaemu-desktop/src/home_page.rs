@@ -58,9 +58,9 @@ impl DesktopApp {
                                 .add(
                                     egui::Button::new(
                                         egui::RichText::new(if french {
-                                            "＋  Importer des jeux"
+                                            "+  Importer des jeux"
                                         } else {
-                                            "＋  Import games"
+                                            "+  Import games"
                                         })
                                         .strong(),
                                     )
@@ -98,7 +98,7 @@ impl DesktopApp {
                             .inner_margin(egui::Margin::same(14.0))
                             .show(ui, |ui| {
                                 ui.horizontal(|ui| {
-                                    ui.label(egui::RichText::new("◈").size(18.0).color(accent));
+                                    ui.label(egui::RichText::new("•").size(18.0).color(accent));
                                     ui.vertical(|ui| {
                                         ui.label(egui::RichText::new(if french {
                                             "PRÊT À JOUER"
@@ -277,7 +277,7 @@ impl DesktopApp {
                 .stroke(border)
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new("＋").size(28.0).color(accent));
+                        ui.label(egui::RichText::new("+").size(28.0).color(accent));
                         ui.vertical(|ui| {
                             ui.label(
                                 egui::RichText::new(if french {
