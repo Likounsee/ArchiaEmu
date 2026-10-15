@@ -4,10 +4,52 @@ use super::*;
 
 impl DesktopApp {
     pub(super) fn show_sessions(&mut self, ui: &mut egui::Ui) {
+        let french = self.language == "fr";
+        let session_count = self.controller.session_count();
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
-                ui.heading(if self.language == "fr" { "Gestionnaire de sessions" } else { "Session manager" });
-                ui.label(if self.language == "fr" { "Gérez le cycle de vie des sessions du prototype ; cela ne signifie pas que l’émulation est jouable." } else { "Manage prototype session lifecycle; a session does not imply playable emulation." });
+                ui.label(
+                    egui::RichText::new(if french {
+                        "ACTIVITÉ"
+                    } else {
+                        "ACTIVITY"
+                    })
+                    .size(10.0)
+                    .strong()
+                    .color(self.accent_color),
+                );
+                ui.add_space(3.0);
+                ui.heading(if french {
+                    "Gestionnaire de sessions"
+                } else {
+                    "Session manager"
+                });
+                ui.label(if french {
+                    "Suivez l’état des sessions et contrôlez leur cycle de vie."
+                } else {
+                    "Inspect session state and control each session lifecycle."
+                });
+            });
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                egui::Frame::group(ui.style())
+                    .rounding(egui::Rounding::same(9.0))
+                    .inner_margin(egui::Margin::symmetric(12.0, 8.0))
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.label(egui::RichText::new("●").color(
+                                if session_count > 0 {
+                                    egui::Color32::from_rgb(46, 176, 120)
+                                } else {
+                                    ui.visuals().weak_text_color()
+                                },
+                            ));
+                            ui.label(format!(
+                                "{} {}",
+                                session_count,
+                                if french { "session(s)" } else { "session(s)" }
+                            ));
+                        });
+                    });
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button(if self.language == "fr" { "Tout fermer" } else { "Close all" }).clicked() {
