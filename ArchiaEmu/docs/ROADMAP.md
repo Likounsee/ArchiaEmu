@@ -90,6 +90,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Tester la disparition d'un fichier déjà importé et vérifier que sa disponibilité passe à « manquant »; les erreurs d'ouverture sont propagées par le pipeline de chargement. Le test de permissions OS strictement inaccessibles reste dépendant de la plateforme.
 - [x] Tester le refus d'un contenu vide ou dépassant la limite de taille sans modifier la session active ni son état.
 - [x] Tester qu'un échec de lancement sur un chemin absent ne crée pas de session fantôme et préserve la session active ainsi que les entrées de bibliothèque existantes.
+- [x] Ajouter un test d'intégration du contrôleur qui oublie un fichier disparu tout en conservant intacte la session active et en vérifiant qu'aucune session n'est fermée par effet de bord.
 
 **Critère de sortie :** les parcours import → bibliothèque → sélection → validation → lancement fonctionnent et les erreurs sont récupérables.
 
