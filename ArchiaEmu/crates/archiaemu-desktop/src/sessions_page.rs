@@ -380,10 +380,17 @@ impl DesktopApp {
                         );
                         if ui.button(if self.language == "fr" { "Copier le diagnostic de session" } else { "Copy session diagnostics" }).clicked() {
                             ui.output_mut(|output| output.copied_text = report);
-                            self.message = format!(
-                                "Copied diagnostics for session {} to the clipboard.",
-                                id.get()
-                            );
+                            self.message = if french {
+                                format!(
+                                    "Diagnostic de la session {} copié dans le presse-papiers.",
+                                    id.get()
+                                )
+                            } else {
+                                format!(
+                                    "Copied diagnostics for session {} to the clipboard.",
+                                    id.get()
+                                )
+                            };
                         }
                     });
             });
