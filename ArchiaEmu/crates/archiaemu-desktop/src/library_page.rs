@@ -19,6 +19,17 @@ impl DesktopApp {
         let total = self.controller.library().len();
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
+                ui.label(
+                    egui::RichText::new(if self.language == "fr" {
+                        "VOTRE COLLECTION"
+                    } else {
+                        "YOUR COLLECTION"
+                    })
+                    .size(10.0)
+                    .strong()
+                    .color(self.accent_color),
+                );
+                ui.add_space(3.0);
                 ui.heading(if self.language == "fr" {
                     "Vos jeux"
                 } else {
@@ -32,11 +43,18 @@ impl DesktopApp {
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
-                    .button(if self.language == "fr" {
-                        "＋ Importer des ROM"
-                    } else {
-                        "＋ Import ROMs…"
-                    })
+                    .add(
+                        egui::Button::new(
+                            egui::RichText::new(if self.language == "fr" {
+                                "＋  Importer des ROM"
+                            } else {
+                                "＋  Import ROMs…"
+                            })
+                            .strong(),
+                        )
+                        .fill(self.accent_color)
+                        .min_size(egui::vec2(150.0, 38.0)),
+                    )
                     .clicked()
                 {
                     self.choose_content_file();
@@ -136,18 +154,41 @@ impl DesktopApp {
             LibrarySort::Path => entries.sort_by(|a, b| a.1.cmp(&b.1)),
         }
 
-        ui.add_space(6.0);
-        ui.horizontal(|ui| {
-            ui.label(format!("Showing {} of {total}", entries.len()));
-            ui.separator();
-            let total_size: u64 = self
-                .controller
-                .library()
-                .entries()
-                .map(|entry| entry.size_bytes())
-                .sum();
-            ui.label(format!("{} total size", format_size(total_size)));
-        });
+        ui.add_space(8.0);
+        let total_size: u64 = self
+            .controller
+            .library()
+            .entries()
+            .map(|entry| entry.size_bytes())
+            .sum();
+        egui::Frame::group(ui.style())
+            .rounding(egui::Rounding::same(9.0))
+            .inner_margin(egui::Margin::symmetric(12.0, 8.0))
+            .show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(egui::RichText::new(format!(
+                        "{} {}",
+                        entries.len(),
+                        if self.language == "fr" {
+                            "résultat(s)"
+                        } else {
+                            "result(s)"
+                        }
+                    )).strong().color(self.accent_color));
+                    ui.separator();
+                    ui.label(if self.language == "fr" {
+                        format!("{total} élément(s) au total")
+                    } else {
+                        format!("{total} item(s) in library")
+                    });
+                    ui.separator();
+                    ui.label(if self.language == "fr" {
+                        format!("Taille : {}", format_size(total_size))
+                    } else {
+                        format!("Size: {}", format_size(total_size))
+                    });
+                });
+            });
         ui.add_space(6.0);
 
         if entries.is_empty() {
