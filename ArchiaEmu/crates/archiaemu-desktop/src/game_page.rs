@@ -26,7 +26,10 @@ impl DesktopApp {
             let id = summary.id;
             let state = summary.state;
             let system = summary.system_name;
-            egui::Frame::group(ui.style()).show(ui, |ui| {
+            egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     ui.vertical(|ui| {
                         ui.heading(format!("{system} · Session {}", id.get()));
@@ -100,7 +103,10 @@ impl DesktopApp {
                 });
             });
         } else {
-            egui::Frame::group(ui.style()).show(ui, |ui| {
+            egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
                 ui.heading(if self.language == "fr" { "Aucune session de jeu active" } else { "No active game session" });
                 ui.label(if self.language == "fr" { "Importez un fichier .gb ou .gbc et ouvrez une session pour tester le prototype actuel." } else { "Import a local .gb or .gbc file and open a session to inspect the current prototype workflow." });
                 if ui.button(if self.language == "fr" { "Ouvrir la bibliothèque" } else { "Browse library" }).clicked() {
@@ -112,7 +118,10 @@ impl DesktopApp {
         ui.add_space(8.0);
         let available = ui.available_size();
         let display_height = (available.y - 100.0).max(180.0);
-        egui::Frame::group(ui.style()).show(ui, |ui| {
+        egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
             ui.set_min_height(display_height);
             ui.set_min_width(ui.available_width());
             ui.vertical_centered(|ui| {
