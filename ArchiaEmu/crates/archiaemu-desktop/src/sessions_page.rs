@@ -110,13 +110,13 @@ impl DesktopApp {
                     ui.set_min_width(170.0);
                     ui.set_max_width(220.0);
                     ui.vertical(|ui| {
-                        ui.strong(format!("Ⅱ Session {}", id.get()));
+                        ui.strong(format!("Session {}", id.get()));
                         ui.label(&system_name);
                         ui.small(if self.language == "fr" { "En pause" } else { "Paused" });
-                        if ui.button(if self.language == "fr" { "▶ Reprendre" } else { "▶ Resume" }).clicked() {
+                        if ui.button(if self.language == "fr" { "Reprendre" } else { "Resume" }).clicked() {
                             self.session_action(id, SessionAction::Resume);
                         }
-                        if ui.button(if self.language == "fr" { "× Fermer" } else { "× Close" }).clicked() {
+                        if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
                             let was_active = self.controller.active_session() == Some(id);
                             if was_active {
                                 let _ = self.release_game_inputs();
