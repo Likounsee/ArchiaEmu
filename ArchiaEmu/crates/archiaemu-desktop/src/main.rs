@@ -452,7 +452,6 @@ impl DesktopApp {
         }
     }
 
-
     #[cfg(feature = "game-boy-core")]
     fn launch_content(&mut self) {
         let path = self.content_path.trim();
