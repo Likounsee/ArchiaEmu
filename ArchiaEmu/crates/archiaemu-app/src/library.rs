@@ -367,6 +367,61 @@ mod tests {
     }
 
     #[test]
+    fn import_rejects_missing_paths_without_mutating_catalog() {
+        let root = std::env::temp_dir().join(format!(
+            "archiaemu-library-missing-{}-{}",
+            std::process::id(),
+            NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed)
+        ));
+        let missing = root.join("missing.gb");
+        let mut library = ContentLibrary::new();
+
+        assert!(matches!(
+            library.import(&missing, 64),
+            Err(ContentLibraryError::Io(_))
+        ));
+        assert!(library.is_empty());
+        assert_eq!(library.len(), 0);
+    }
+
+    #[test]
+    fn format_detection_updates_only_matching_canonical_entries() {
+        let file = TempFile::new("detected.gb", b"rom-data");
+        let mut library = ContentLibrary::new();
+        library.import(&file.0, 64).unwrap();
+        let canonical = fs::canonicalize(&file.0).unwrap();
+
+        assert!(library.record_format_detection(
+            &canonical,
+            ContentFormatDetection::Detected("game-boy".to_owned())
+        ));
+        assert_eq!(
+            library.entries().next().unwrap().format_detection(),
+            &ContentFormatDetection::Detected("game-boy".to_owned())
+        );
+        assert!(!library.record_format_detection(
+            canonical.with_file_name("other.gb"),
+            ContentFormatDetection::NoMatch
+        ));
+        assert_eq!(library.len(), 1);
+    }
+
+    #[test]
+    fn extension_hints_are_case_insensitive_and_not_validation() {
+        let file = TempFile::new("UNKNOWN.GBC", b"unverified");
+        let mut library = ContentLibrary::new();
+
+        let entry = library.import(&file.0, 64).unwrap();
+        assert_eq!(entry.format_hint(), Some("gbc"));
+        assert_eq!(
+            entry.compatible_system_hint(),
+            Some("Game Boy / Game Boy Color")
+        );
+        assert_eq!(entry.validation(), &ContentValidation::Pending);
+        assert_eq!(entry.format_detection(), &ContentFormatDetection::Pending);
+    }
+
+    #[test]
     fn availability_is_rechecked_when_an_imported_file_disappears() {
         let file = TempFile::new("removed.gb", b"rom-data");
         let mut library = ContentLibrary::new();
