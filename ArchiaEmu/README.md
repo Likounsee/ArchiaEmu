@@ -29,7 +29,7 @@ From the repository root, launch the native application with:
 cargo run --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
 ```
 
-On Linux, install the native desktop development libraries listed in `.github/workflows/ci.yml` first. On Windows, the **Windows installer** GitHub Actions workflow builds a standalone installer; use its artifact from a successful run rather than presenting a local debug build as a release.
+On Linux, install the native desktop development libraries listed in `.github/workflows/ci.yml` first. On Windows, use the [Windows installer workflow](https://github.com/Likounsee/ArchiaEmu/actions/workflows/windows-installer.yml) and download the artifact from the latest successful run on branch `ArchiaEmu`. Verify the accompanying SHA-256 before running the installer; the ZIP also includes build provenance and the resolved dependency lockfile. Follow the [French three-minute demo and submission checklist](docs/DEMO.md). Do not use an older successful artifact as proof that newer commits build.
 
 For a short demonstration, show the home page, import a local `.gb`/`.gbc` file, browse and filter the library, open session management, and change/save appearance preferences. Use your own legally obtained test file. **Important limitation:** this demonstrates the desktop application shell and cartridge metadata inspection, not playable emulation. An experimental LR35902 instruction subset exists, but the CPU, memory bus, graphics, timers/interrupts, input, audio, and mapper support are incomplete; no game compatibility is claimed.
 
