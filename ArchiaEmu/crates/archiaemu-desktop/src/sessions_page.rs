@@ -32,11 +32,7 @@ impl DesktopApp {
                     .inner_margin(egui::Margin::symmetric(12.0, 8.0))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.label(format!(
-                                "{} {}",
-                                session_count,
-                                "session(s)"
-                            ));
+                            ui.label(format!("{} {}", session_count, "session(s)"));
                         });
                     });
             });
