@@ -2022,10 +2022,7 @@ mod tests {
 
         assert_eq!(
             session
-                .advance_frame_cadence(
-                    &mut cadence,
-                    period - std::time::Duration::from_nanos(1),
-                )
+                .advance_frame_cadence(&mut cadence, period - std::time::Duration::from_nanos(1),)
                 .due_frames,
             0
         );
