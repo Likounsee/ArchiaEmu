@@ -36,6 +36,9 @@ jobs:
       - name: Resolve and record desktop dependency graph
         run: cargo generate-lockfile --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
 
+      - name: Check desktop host without bundled console cores
+        run: cargo check --locked --no-default-features --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+
       - name: Build desktop executable with static MSVC runtime
         env:
           RUSTFLAGS: -C target-feature=+crt-static
