@@ -34,8 +34,6 @@ impl DesktopApp {
                         ui.horizontal(|ui| {
                             let session_label = if session_count == 1 {
                                 "session"
-                            } else if french {
-                                "sessions"
                             } else {
                                 "sessions"
                             };
