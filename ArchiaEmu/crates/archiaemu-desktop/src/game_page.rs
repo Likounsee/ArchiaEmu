@@ -33,15 +33,47 @@ impl DesktopApp {
                         ui.label(format!("State: {state:?}"));
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if state == SessionState::Running && ui.button(if self.language == "fr" { "Mettre en pause" } else { "Pause" }).clicked() {
+                        if state == SessionState::Running
+                            && ui
+                                .button(if self.language == "fr" {
+                                    "Mettre en pause"
+                                } else {
+                                    "Pause"
+                                })
+                                .clicked()
+                        {
                             self.session_action(id, SessionAction::Pause);
-                        } else if state == SessionState::Paused && ui.button(if self.language == "fr" { "Reprendre" } else { "Resume" }).clicked() {
+                        } else if state == SessionState::Paused
+                            && ui
+                                .button(if self.language == "fr" {
+                                    "Reprendre"
+                                } else {
+                                    "Resume"
+                                })
+                                .clicked()
+                        {
                             self.session_action(id, SessionAction::Resume);
                         }
-                        if state != SessionState::Empty && ui.button(if self.language == "fr" { "Arrêter" } else { "Stop" }).clicked() {
+                        if state != SessionState::Empty
+                            && ui
+                                .button(if self.language == "fr" {
+                                    "Arrêter"
+                                } else {
+                                    "Stop"
+                                })
+                                .clicked()
+                        {
                             self.session_action(id, SessionAction::Stop);
                         }
-                        if state != SessionState::Empty && ui.button(if self.language == "fr" { "Réinitialiser" } else { "Reset" }).clicked() {
+                        if state != SessionState::Empty
+                            && ui
+                                .button(if self.language == "fr" {
+                                    "Réinitialiser"
+                                } else {
+                                    "Reset"
+                                })
+                                .clicked()
+                        {
                             self.session_action(id, SessionAction::Reset);
                         }
                     });
@@ -60,7 +92,11 @@ impl DesktopApp {
                         "Audio: unavailable"
                     });
                     ui.separator();
-                    ui.label(if self.language == "fr" { "Entrée : clavier activé si pris en charge" } else { "Input: keyboard mapping enabled when supported" });
+                    ui.label(if self.language == "fr" {
+                        "Entrée : clavier activé si pris en charge"
+                    } else {
+                        "Input: keyboard mapping enabled when supported"
+                    });
                 });
             });
         } else {
@@ -101,7 +137,11 @@ impl DesktopApp {
         });
         ui.add_space(6.0);
         ui.horizontal_wrapped(|ui| {
-            ui.label(if self.language == "fr" { "État des médias :" } else { "Media status:" });
+            ui.label(if self.language == "fr" {
+                "État des médias :"
+            } else {
+                "Media status:"
+            });
             ui.label(&self.media_status);
         });
         ui.small("Keyboard controls are forwarded as semantic input transitions only when the core declares input support. Audio plays when the core emits PCM and a host output device is available.");
