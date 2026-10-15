@@ -33,6 +33,15 @@ use eframe::egui;
 const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.len() > 1 {
+        return Err("expected at most one command-line argument; try --help".into());
+    }
+    if let Some(argument) = arguments.first() {
+        println!("{}", cli_message(argument)?);
+        return Ok(());
+    }
+
     let app = DesktopApp::new()?;
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -46,6 +55,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         Box::new(move |_creation_context| Box::new(app)),
     )?;
     Ok(())
+}
+
+fn cli_message(argument: &str) -> Result<&'static str, String> {
+    match argument {
+        "--version" | "-V" => Ok(concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION"))),
+        "--help" | "-h" => Ok(concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION"), "\n\nUsage: archiaemu-desktop [OPTIONS]\n\nOptions:\n  -h, --help     Print this help message\n  -V, --version  Print version information\n")),
+        other => Err(format!("unknown argument: {other}; try --help")),
+    }
 }
 
 fn clear_tick_error_for_session(errors: &mut Vec<(SessionId, String)>, id: SessionId) {
@@ -1012,6 +1029,14 @@ mod preference_tests {
             "Launch cancelled: could not release inputs from session 3"
         ));
         assert!(!message_indicates_error("Launched session 3."));
+    }
+
+    #[test]
+    fn command_line_help_and_version_are_available_without_starting_the_gui() {
+        assert_eq!(cli_message("--version").unwrap(), concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION")));
+        assert!(cli_message("--help").unwrap().contains("--version"));
+        assert!(cli_message("-h").unwrap().contains("Usage: archiaemu-desktop"));
+        assert_eq!(cli_message("--unknown").unwrap_err(), "unknown argument: --unknown; try --help");
     }
 
     #[test]
