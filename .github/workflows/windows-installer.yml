@@ -123,6 +123,20 @@ jobs:
             Get-ChildItem -Force $installDir -ErrorAction SilentlyContinue | Format-List FullName, Length
             throw "Installed desktop executable is missing at expected path: $installedExe"
           }
+
+          # Verify that the Start Menu shortcut points to the installed binary, not the build tree.
+          $startMenuRoots = @(
+            (Join-Path $env:APPDATA "Microsoft\\Windows\\Start Menu\\Programs"),
+            (Join-Path $env:ProgramData "Microsoft\\Windows\\Start Menu\\Programs")
+          )
+          $startMenuShortcut = Get-ChildItem -Path $startMenuRoots -Filter "ArchiaEmu.lnk" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (!$startMenuShortcut) { throw "Start Menu shortcut was not created." }
+          $shell = New-Object -ComObject WScript.Shell
+          $shortcutTarget = $shell.CreateShortcut($startMenuShortcut.FullName).TargetPath
+          if ([IO.Path]::GetFullPath($shortcutTarget) -ne [IO.Path]::GetFullPath($installedExe)) {
+            throw "Start Menu shortcut targets '$shortcutTarget' instead of the installed executable."
+          }
+
           # Exercise the installed binary without requiring a display or OpenGL context.
           $versionOutput = & $installedExe --version
           if ($LASTEXITCODE -ne 0) { throw "Installed executable --version failed with exit code $LASTEXITCODE." }
@@ -152,6 +166,7 @@ jobs:
           $uninstall = Start-Process -FilePath $uninstaller -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES") -Wait -PassThru
           if ($uninstall.ExitCode -ne 0) { throw "Silent uninstall failed with exit code $($uninstall.ExitCode)." }
           if (Test-Path $installedExe) { throw "Installed executable remains after uninstall." }
+          if (Test-Path $startMenuShortcut.FullName) { throw "Start Menu shortcut remains after uninstall." }
           if (!(Test-Path $userSettings)) { throw "Silent uninstall unexpectedly removed user settings." }
           $preservedSettings = Get-Content -Path $userSettings -Raw
           if ($preservedSettings -ne $settingsSentinel) {
