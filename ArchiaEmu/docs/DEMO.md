@@ -10,7 +10,7 @@ Depuis la racine du dépôt, avec Rust stable et les dépendances système de co
 cargo run --release --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
 ```
 
-Sur Windows, l'installateur `.exe` est construit par le workflow GitHub Actions « Windows installer ». Pour vérifier un binaire sans lancer l'interface graphique :
+Sur Windows, récupère l'installateur depuis GitHub : dépôt → **Actions** → **Windows installer** → ouvre une exécution terminée avec succès → **Artifacts** → télécharge `ArchiaEmu-Windows-x64-<version>`, puis extrais le `.zip`. Vérifie le fichier `.sha256` fourni avant d'exécuter l'installateur. Si aucun artefact issu d'une exécution réussie n'est disponible, ne présente pas l'installateur comme validé. Pour vérifier un binaire sans lancer l'interface graphique :
 
 ```powershell
 .\archiaemu-desktop.exe --version
