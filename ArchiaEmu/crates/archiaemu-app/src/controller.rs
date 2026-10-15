@@ -95,6 +95,27 @@ pub struct SessionSummary {
     pub last_error: Option<String>,
 }
 
+/// Converts probe results without claiming a definitive match while any probe is undecided.
+fn content_format_detection(
+    detection: archiaemu_core::content::ContentDetection,
+) -> ContentFormatDetection {
+    if !detection.needs_more_data.is_empty() {
+        ContentFormatDetection::NeedsMoreData
+    } else if detection.matches.len() > 1 {
+        ContentFormatDetection::Ambiguous(
+            detection
+                .matches
+                .iter()
+                .map(|format| (*format).to_owned())
+                .collect(),
+        )
+    } else if let Some(format) = detection.matches.first() {
+        ContentFormatDetection::Detected((*format).to_owned())
+    } else {
+        ContentFormatDetection::NoMatch
+    }
+}
+
 /// Owns the state that every ArchiaEmu frontend must share.
 pub struct ApplicationController {
     host: HostRuntime,
@@ -250,21 +271,7 @@ impl ApplicationController {
             Some(detect_content_formats(&prefix, probes))
         });
         if let (Some(canonical_path), Some(detection)) = (canonical_path.as_ref(), detection) {
-            let detection = if detection.matches.len() > 1 {
-                ContentFormatDetection::Ambiguous(
-                    detection
-                        .matches
-                        .iter()
-                        .map(|format| (*format).to_owned())
-                        .collect(),
-                )
-            } else if let Some(format) = detection.matches.first() {
-                ContentFormatDetection::Detected((*format).to_owned())
-            } else if !detection.needs_more_data.is_empty() {
-                ContentFormatDetection::NeedsMoreData
-            } else {
-                ContentFormatDetection::NoMatch
-            };
+            let detection = content_format_detection(detection);
             self.library
                 .record_format_detection(canonical_path, detection);
         }
@@ -473,6 +480,45 @@ mod tests {
 
     fn controller() -> ApplicationController {
         ApplicationController::new(HostRuntime::new(Default::default()).unwrap())
+    }
+
+    #[test]
+    fn format_detection_stays_incomplete_when_a_probe_needs_more_data() {
+        let detection = archiaemu_core::content::ContentDetection {
+            matches: vec!["known-format"],
+            needs_more_data: vec![("possible-format", 8192)],
+        };
+
+        assert_eq!(
+            content_format_detection(detection),
+            ContentFormatDetection::NeedsMoreData
+        );
+    }
+
+    #[test]
+    fn format_detection_reports_ambiguity_when_multiple_probes_match() {
+        let detection = archiaemu_core::content::ContentDetection {
+            matches: vec!["format-a", "format-b"],
+            needs_more_data: Vec::new(),
+        };
+
+        assert_eq!(
+            content_format_detection(detection),
+            ContentFormatDetection::Ambiguous(vec![
+                "format-a".to_owned(),
+                "format-b".to_owned()
+            ])
+        );
+    }
+
+    #[test]
+    fn format_detection_reports_no_match_only_when_all_probes_decide() {
+        let detection = archiaemu_core::content::ContentDetection::default();
+
+        assert_eq!(
+            content_format_detection(detection),
+            ContentFormatDetection::NoMatch
+        );
     }
 
     #[test]
