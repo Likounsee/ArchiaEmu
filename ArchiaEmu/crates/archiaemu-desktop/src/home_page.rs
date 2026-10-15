@@ -5,7 +5,7 @@ use super::*;
 impl DesktopApp {
     pub(super) fn show_home(&mut self, ui: &mut egui::Ui) {
         ui.heading("Welcome back");
-        ui.label("Pick up where you left off or add a game to your library.");
+        ui.label("Manage local content, inspect supported metadata, and monitor application sessions.");
         ui.add_space(8.0);
 
         let card_columns = if ui.available_width() < 560.0 {
@@ -45,13 +45,13 @@ impl DesktopApp {
 
         ui.add_space(14.0);
         egui::Frame::group(ui.style()).show(ui, |ui| {
-            ui.heading("Start playing");
-            ui.label("Choose a Game Boy or Game Boy Color ROM to add it to your library.");
+            ui.heading("Import local content");
+            ui.label("Import a local Game Boy or Game Boy Color file to inspect its cartridge metadata. Full gameplay is not implemented yet.");
             ui.add_space(8.0);
             ui.horizontal_wrapped(|ui| {
                 ui.add(
                     egui::TextEdit::singleline(&mut self.content_path)
-                        .hint_text("Path to a .gb or .gbc file")
+                        .hint_text("Local path to a .gb or .gbc file")
                         .desired_width(ui.available_width().min(560.0)),
                 );
                 if ui.button("Browse…").clicked() {
@@ -123,7 +123,7 @@ impl DesktopApp {
             ui.horizontal_wrapped(|ui| {
                 ui.vertical(|ui| {
                     ui.heading("Emulation status");
-                    ui.label("The desktop shell is being built before full hardware emulation.");
+                    ui.label("Desktop application prototype: library, preferences, and session management are available; no playable console core is implemented yet.");
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.label("Experimental");
