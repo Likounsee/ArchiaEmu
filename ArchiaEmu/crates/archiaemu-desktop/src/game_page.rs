@@ -134,13 +134,122 @@ impl DesktopApp {
                     ui.image((texture.id(), size));
                     ui.small(format!("{width} × {height} · nearest-neighbour scaling"));
                 } else {
-                    ui.add_space(24.0);
-                    ui.heading(if self.language == "fr" { "Sortie vidéo" } else { "Video output" });
-                    ui.label(if self.language == "fr" { "La sortie vidéo attend un cœur capable de produire des images." } else { "Video output is waiting for a core that produces frames." });
-                    ui.label(if self.language == "fr" { "Le cœur Game Boy actuel n’implémente pas toute la chaîne CPU/vidéo/audio ; cet espace réservé est donc normal." } else { "The current Game Boy core does not implement the full CPU/video/audio path, so this placeholder is expected." });
-                    ui.add_space(12.0);
-                    ui.label("↑ ↓ ← →  Move    Z / X  Action    Enter  Start    Backspace  Select");
-                    ui.add_space(24.0);
+                    ui.add_space(14.0);
+                    ui.columns(2, |columns| {
+                        columns[0].vertical_centered(|ui| {
+                            ui.add_space(10.0);
+                            let width = ui.available_width().min(270.0);
+                            let (rect, _) = ui.allocate_exact_size(
+                                egui::vec2(width, 208.0),
+                                egui::Sense::hover(),
+                            );
+                            let accent = self.accent_color;
+                            let shell = egui::Rect::from_min_size(
+                                rect.min + egui::vec2(width * 0.12, 4.0),
+                                egui::vec2(width * 0.76, 194.0),
+                            );
+                            ui.painter().rect_filled(
+                                shell,
+                                egui::Rounding::same(24.0),
+                                if self.dark_mode {
+                                    egui::Color32::from_rgb(56, 65, 86)
+                                } else {
+                                    egui::Color32::from_rgb(207, 216, 237)
+                                },
+                            );
+                            let screen = egui::Rect::from_min_size(
+                                shell.min + egui::vec2(18.0, 18.0),
+                                egui::vec2(shell.width() - 36.0, 108.0),
+                            );
+                            ui.painter().rect_filled(
+                                screen,
+                                egui::Rounding::same(9.0),
+                                if self.dark_mode {
+                                    egui::Color32::from_rgb(15, 21, 33)
+                                } else {
+                                    egui::Color32::from_rgb(237, 244, 255)
+                                },
+                            );
+                            ui.painter().text(
+                                screen.center(),
+                                egui::Align2::CENTER_CENTER,
+                                "ARCHIA",
+                                egui::FontId::proportional(18.0),
+                                accent,
+                            );
+                            ui.painter().circle_filled(
+                                egui::pos2(shell.min.x + 32.0, shell.min.y + 158.0),
+                                8.0,
+                                accent,
+                            );
+                            ui.painter().circle_filled(
+                                egui::pos2(shell.min.x + 52.0, shell.min.y + 158.0),
+                                8.0,
+                                accent.gamma_multiply(0.65),
+                            );
+                            ui.painter().circle_filled(
+                                egui::pos2(shell.max.x - 38.0, shell.min.y + 156.0),
+                                10.0,
+                                egui::Color32::from_rgb(218, 91, 113),
+                            );
+                            ui.painter().circle_filled(
+                                egui::pos2(shell.max.x - 62.0, shell.min.y + 170.0),
+                                10.0,
+                                egui::Color32::from_rgb(83, 171, 137),
+                            );
+                            ui.add_space(10.0);
+                            ui.label(egui::RichText::new(if self.language == "fr" {
+                                "APERÇU DU MONITEUR"
+                            } else {
+                                "MONITOR PREVIEW"
+                            }).size(10.0).strong().color(ui.visuals().weak_text_color()));
+                        });
+                        columns[1].vertical(|ui| {
+                            ui.add_space(14.0);
+                            ui.label(egui::RichText::new(if self.language == "fr" {
+                                "EN ATTENTE DU CŒUR"
+                            } else {
+                                "WAITING FOR CORE"
+                            }).size(10.0).strong().color(self.accent_color));
+                            ui.add_space(6.0);
+                            ui.heading(if self.language == "fr" {
+                                "Votre écran de jeu apparaîtra ici"
+                            } else {
+                                "Your game display will appear here"
+                            });
+                            ui.add_space(6.0);
+                            ui.label(if self.language == "fr" {
+                                "Le cœur Game Boy actuel n’émet pas encore les images nécessaires à une session jouable."
+                            } else {
+                                "The current Game Boy core does not yet emit the frames needed for playable sessions."
+                            });
+                            ui.add_space(14.0);
+                            egui::Frame::group(ui.style())
+                                .rounding(egui::Rounding::same(9.0))
+                                .inner_margin(egui::Margin::same(12.0))
+                                .show(ui, |ui| {
+                                    ui.label(egui::RichText::new(if self.language == "fr" {
+                                        "COMMANDES PRÉVUES"
+                                    } else {
+                                        "PLANNED CONTROLS"
+                                    }).size(10.0).strong());
+                                    ui.add_space(8.0);
+                                    ui.horizontal_wrapped(|ui| {
+                                        for (key, action) in [
+                                            ("↑ ↓ ← →", if self.language == "fr" { "Déplacement" } else { "Move" }),
+                                            ("Z / X", if self.language == "fr" { "Action" } else { "Action" }),
+                                            ("Entrée", if self.language == "fr" { "Start" } else { "Start" }),
+                                            ("Retour", if self.language == "fr" { "Select" } else { "Select" }),
+                                        ] {
+                                            ui.label(egui::RichText::new(key).strong());
+                                            ui.label(action);
+                                            ui.separator();
+                                        }
+                                    });
+                                });
+                        });
+                    });
+                    ui.add_space(14.0);
                 }
             });
         });
