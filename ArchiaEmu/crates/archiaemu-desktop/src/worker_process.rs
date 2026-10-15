@@ -212,18 +212,24 @@ impl WorkerProcess {
         Ok(message)
     }
 
-    /// Receives one message, terminating the wait if the timeout expires.
+    /// Receives one message, killing and reaping the worker if the timeout expires.
     ///
-    /// A timeout does not automatically kill the worker; the caller should invoke
-    /// terminate when the worker is unresponsive or otherwise unsafe to continue.
+    /// This fail-closed behavior prevents a worker that stops responding from being
+    /// reused after the caller's operation deadline has elapsed.
     pub fn receive_timeout(
         &mut self,
         timeout: Duration,
     ) -> Result<WorkerMessage, WorkerProcessError> {
         let message = match self.messages.recv_timeout(timeout) {
             Ok(Ok(message)) => message,
-            Ok(Err(error)) => return Err(WorkerProcessError::Protocol(error)),
-            Err(RecvTimeoutError::Timeout) => return Err(WorkerProcessError::ReceiveTimeout),
+            Ok(Err(error)) => {
+                let _ = self.terminate();
+                return Err(WorkerProcessError::Protocol(error));
+            }
+            Err(RecvTimeoutError::Timeout) => {
+                self.terminate()?;
+                return Err(WorkerProcessError::ReceiveTimeout);
+            }
             Err(RecvTimeoutError::Disconnected) => {
                 return Err(WorkerProcessError::Process(io::Error::new(
                     io::ErrorKind::UnexpectedEof,
