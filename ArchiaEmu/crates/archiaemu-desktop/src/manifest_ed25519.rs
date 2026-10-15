@@ -13,6 +13,7 @@ use archiaemu_core::module_manifest_trust::{
     SignedManifestEnvelope,
 };
 use ed25519_dalek::{Signature, VerifyingKey};
+use serde::Deserialize;
 
 /// Ed25519 signature verifier backed by the reviewed ed25519-dalek implementation.
 #[derive(Clone, Copy, Debug, Default)]
@@ -50,6 +51,135 @@ where
     F: FnOnce(&[u8]) -> Result<ModuleManifest, ()>,
 {
     policy.verify_and_parse(envelope, &Ed25519ManifestVerifier, parse_verified_payload)
+}
+
+const MAX_SIGNED_CATALOGUE_BYTES: usize = 1024 * 1024;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct JsonManifest {
+    schema_version: u32,
+    revision: u64,
+    modules: Vec<JsonManifestModule>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct JsonManifestModule {
+    id: String,
+    version: String,
+    min_app_version: String,
+    max_app_version_exclusive: Option<String>,
+    targets: Vec<JsonModuleTarget>,
+    readiness: String,
+    dependencies: Vec<String>,
+    artifact: Option<JsonPackageArtifact>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct JsonModuleTarget {
+    os: String,
+    arch: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct JsonPackageArtifact {
+    url: String,
+    size_bytes: u64,
+    sha256: String,
+    signing_key_id: String,
+}
+
+/// Verifies a signed JSON catalogue and parses the exact authenticated bytes.
+///
+/// The JSON schema is strict: unknown fields, malformed IDs or versions, and
+/// unknown platform/readiness values are rejected. The 1 MiB cap is checked
+/// before parsing. This function does not download packages or install modules.
+pub fn verify_signed_manifest_json(
+    policy: &mut ManifestTrustPolicy,
+    envelope: &SignedManifestEnvelope,
+) -> Result<ModuleManifest, ManifestTrustError> {
+    verify_signed_manifest(policy, envelope, parse_manifest_json)
+}
+
+fn parse_manifest_json(payload: &[u8]) -> Result<ModuleManifest, ()> {
+    use archiaemu_core::module_management::{ModuleId, ModuleReadiness};
+    use archiaemu_core::module_manifest::{
+        ManifestModule, ModuleTarget, PackageArtifact, ReleaseVersion, TargetArch, TargetOs,
+    };
+
+    if payload.len() > MAX_SIGNED_CATALOGUE_BYTES {
+        return Err(());
+    }
+    let source: JsonManifest = serde_json::from_slice(payload).map_err(|_| ())?;
+    let modules = source
+        .modules
+        .into_iter()
+        .map(|module| {
+            let readiness = match module.readiness.as_str() {
+                "installable" => ModuleReadiness::Installable,
+                "experimental" => ModuleReadiness::Experimental,
+                "in_development" => ModuleReadiness::InDevelopment,
+                _ => return Err(()),
+            };
+            let targets = module
+                .targets
+                .into_iter()
+                .map(|target| {
+                    let os = match target.os.as_str() {
+                        "windows" => TargetOs::Windows,
+                        "macos" => TargetOs::Macos,
+                        "linux" => TargetOs::Linux,
+                        _ => return Err(()),
+                    };
+                    let arch = match target.arch.as_str() {
+                        "x86_64" => TargetArch::X86_64,
+                        "aarch64" => TargetArch::Aarch64,
+                        _ => return Err(()),
+                    };
+                    Ok(ModuleTarget { os, arch })
+                })
+                .collect::<Result<Vec<_>, ()>>()?;
+            let dependencies = module
+                .dependencies
+                .into_iter()
+                .map(|id| ModuleId::new(id).map_err(|_| ()))
+                .collect::<Result<Vec<_>, ()>>()?;
+            let artifact = module
+                .artifact
+                .map(|artifact| {
+                    Ok(PackageArtifact {
+                        url: artifact.url,
+                        size_bytes: artifact.size_bytes,
+                        sha256: artifact.sha256,
+                        signing_key_id: artifact.signing_key_id,
+                    })
+                })
+                .transpose()?;
+            Ok(ManifestModule {
+                id: ModuleId::new(module.id).map_err(|_| ())?,
+                version: ReleaseVersion::parse(&module.version).map_err(|_| ())?,
+                min_app_version: ReleaseVersion::parse(&module.min_app_version).map_err(|_| ())?,
+                max_app_version_exclusive: module
+                    .max_app_version_exclusive
+                    .as_deref()
+                    .map(ReleaseVersion::parse)
+                    .transpose()
+                    .map_err(|_| ())?,
+                targets,
+                readiness,
+                dependencies,
+                artifact,
+            })
+        })
+        .collect::<Result<Vec<_>, ()>>()?;
+    Ok(ModuleManifest {
+        schema_version: source.schema_version,
+        revision: source.revision,
+        modules,
+    })
 }
 
 #[cfg(test)]
