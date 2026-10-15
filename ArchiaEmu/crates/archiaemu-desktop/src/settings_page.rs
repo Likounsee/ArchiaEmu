@@ -4,6 +4,9 @@ use super::*;
 
 impl DesktopApp {
     pub(super) fn show_settings(&mut self, ui: &mut egui::Ui, context: &egui::Context) {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
         ui.heading(if self.language == "fr" {
             "Paramètres · apparence"
         } else {
@@ -294,5 +297,6 @@ impl DesktopApp {
                 self.message = "Diagnostics copied to clipboard.".to_owned();
             }
         });
+            });
     }
 }
