@@ -147,17 +147,12 @@ fn parse_manifest_json(payload: &[u8]) -> Result<ModuleManifest, ()> {
                 .into_iter()
                 .map(|id| ModuleId::new(id).map_err(|_| ()))
                 .collect::<Result<Vec<_>, ()>>()?;
-            let artifact = module
-                .artifact
-                .map(|artifact| {
-                    Ok(PackageArtifact {
-                        url: artifact.url,
-                        size_bytes: artifact.size_bytes,
-                        sha256: artifact.sha256,
-                        signing_key_id: artifact.signing_key_id,
-                    })
-                })
-                .transpose()?;
+            let artifact = module.artifact.map(|artifact| PackageArtifact {
+                url: artifact.url,
+                size_bytes: artifact.size_bytes,
+                sha256: artifact.sha256,
+                signing_key_id: artifact.signing_key_id,
+            });
             Ok(ManifestModule {
                 id: ModuleId::new(module.id).map_err(|_| ())?,
                 version: ReleaseVersion::parse(&module.version).map_err(|_| ())?,
@@ -235,6 +230,37 @@ mod tests {
         assert!(Ed25519ManifestVerifier
             .verify(&[0; 32], b"", &[0; 63])
             .is_err());
+    }
+
+    #[test]
+    fn strict_json_parser_validates_manifest_and_rejects_unknown_fields() {
+        let valid = br#"{
+            "schema_version": 1,
+            "revision": 1,
+            "modules": [{
+                "id": "sample-module",
+                "version": "1.0.0",
+                "min_app_version": "0.1.0",
+                "max_app_version_exclusive": "2.0.0",
+                "targets": [{"os": "windows", "arch": "x86_64"}],
+                "readiness": "installable",
+                "dependencies": [],
+                "artifact": {
+                    "url": "https://packages.example.invalid/module.zip",
+                    "size_bytes": 128,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "signing_key_id": "release"
+                }
+            }]
+        }"#;
+        let parsed = parse_manifest_json(valid).unwrap();
+        assert_eq!(parsed.revision, 1);
+        assert_eq!(parsed.modules[0].id.as_str(), "sample-module");
+        parsed.validate().unwrap();
+
+        let unknown_field = br#"{"schema_version":1,"revision":1,"modules":[],"unexpected":true}"#;
+        assert!(parse_manifest_json(unknown_field).is_err());
+        assert!(parse_manifest_json(&vec![b' '; MAX_SIGNED_CATALOGUE_BYTES + 1]).is_err());
     }
 
     #[test]
