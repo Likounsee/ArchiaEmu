@@ -803,22 +803,50 @@ impl eframe::App for DesktopApp {
         });
         context.set_zoom_factor(self.ui_scale);
         context.style_mut(|style| {
-            style.spacing.item_spacing = egui::vec2(10.0, 10.0);
-            style.spacing.button_padding = egui::vec2(12.0, 8.0);
-            style.spacing.window_margin = egui::Margin::same(16.0);
+            style.spacing.item_spacing = egui::vec2(12.0, 12.0);
+            style.spacing.button_padding = egui::vec2(14.0, 9.0);
+            style.spacing.window_margin = egui::Margin::same(18.0);
+            style.spacing.menu_margin = egui::Margin::same(8.0);
+            style.spacing.indent = 18.0;
             let accent = self.accent_color;
-            style.visuals.selection.bg_fill = accent.gamma_multiply(0.45);
+            style.visuals.panel_fill = if self.dark_mode {
+                egui::Color32::from_rgb(17, 20, 28)
+            } else {
+                egui::Color32::from_rgb(246, 247, 250)
+            };
+            style.visuals.window_fill = if self.dark_mode {
+                egui::Color32::from_rgb(23, 27, 37)
+            } else {
+                egui::Color32::from_rgb(255, 255, 255)
+            };
+            style.visuals.extreme_bg_color = if self.dark_mode {
+                egui::Color32::from_rgb(13, 16, 22)
+            } else {
+                egui::Color32::from_rgb(242, 244, 248)
+            };
+            style.visuals.selection.bg_fill = accent.gamma_multiply(0.38);
             style.visuals.selection.stroke = egui::Stroke::new(1.0_f32, accent);
+            style.visuals.widgets.inactive.bg_fill = if self.dark_mode {
+                egui::Color32::from_rgb(32, 37, 49)
+            } else {
+                egui::Color32::from_rgb(246, 247, 250)
+            };
             style.visuals.widgets.inactive.bg_stroke =
-                egui::Stroke::new(1.0_f32, accent.gamma_multiply(0.45));
-            style.visuals.widgets.hovered.bg_fill = accent.gamma_multiply(0.22);
+                egui::Stroke::new(1.0_f32, if self.dark_mode {
+                    egui::Color32::from_rgb(52, 59, 75)
+                } else {
+                    egui::Color32::from_rgb(222, 226, 235)
+                });
+            style.visuals.widgets.hovered.bg_fill = accent.gamma_multiply(0.18);
             style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0_f32, accent);
-            style.visuals.widgets.active.bg_fill = accent.gamma_multiply(0.38);
+            style.visuals.widgets.active.bg_fill = accent.gamma_multiply(0.32);
             style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0_f32, accent);
-            style.visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
-            style.visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
-            style.visuals.widgets.active.rounding = egui::Rounding::same(6.0);
-            style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(6.0);
+            style.visuals.widgets.inactive.rounding = egui::Rounding::same(8.0);
+            style.visuals.widgets.hovered.rounding = egui::Rounding::same(8.0);
+            style.visuals.widgets.active.rounding = egui::Rounding::same(8.0);
+            style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(8.0);
+            style.visuals.window_rounding = egui::Rounding::same(12.0);
+            style.visuals.menu_rounding = egui::Rounding::same(10.0);
         });
 
         // Keep the toggle synchronized with native window-manager changes and support F11.
