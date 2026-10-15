@@ -14,7 +14,7 @@ ArchiaEmu uses a publisher-controlled Ed25519 signing identity for its official 
 6. Persist the highest accepted catalogue revision durably and reject rollback.
 7. Document a key-rotation procedure before the first production catalogue is shipped.
 
-A placeholder key, test verifier, HTTPS-only URL, or SHA-256 digest is not a substitute for an authentic signature. The desktop crate now contains a strict Ed25519 verifier backed by `ed25519-dalek`, with RFC 8032 known-vector, tamper, and malformed-input tests. However, no production public key is pinned, no protected signing secret is configured, and the verifier is not yet connected to an end-to-end catalogue-download/install path. External module installation must remain disabled.
+A placeholder key, test verifier, HTTPS-only URL, or SHA-256 digest is not a substitute for an authentic signature. The desktop crate contains a strict Ed25519 verifier backed by `ed25519-dalek`, and its `verify_signed_manifest` adapter now routes signed envelopes through the core trust policy. Tests cover the RFC 8032 known vector, tampering, malformed inputs, and the adapter's verify-before-parse behavior. However, no production public key is pinned, no protected signing secret is configured, and the adapter is not yet connected to an end-to-end catalogue-download/install path. External module installation must remain disabled.
 
 ## Package verification
 
