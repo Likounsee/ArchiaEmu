@@ -44,13 +44,13 @@ impl DesktopApp {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
                     .add_enabled(
-                    session_count > 0,
-                    egui::Button::new(if self.language == "fr" {
-                        "Tout fermer"
-                    } else {
-                        "Close all"
-                    }),
-                )
+                        session_count > 0,
+                        egui::Button::new(if self.language == "fr" {
+                            "Tout fermer"
+                        } else {
+                            "Close all"
+                        }),
+                    )
                     .clicked()
                 {
                     // Keyboard input is routed only to the active session. Release it before
