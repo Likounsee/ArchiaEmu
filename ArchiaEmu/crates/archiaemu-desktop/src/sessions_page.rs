@@ -36,13 +36,6 @@ impl DesktopApp {
                     .inner_margin(egui::Margin::symmetric(12.0, 8.0))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new("●").color(
-                                if session_count > 0 {
-                                    egui::Color32::from_rgb(46, 176, 120)
-                                } else {
-                                    ui.visuals().weak_text_color()
-                                },
-                            ));
                             ui.label(format!(
                                 "{} {}",
                                 session_count,
