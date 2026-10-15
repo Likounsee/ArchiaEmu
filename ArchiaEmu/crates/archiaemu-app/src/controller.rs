@@ -359,7 +359,9 @@ impl ApplicationController {
                     Ok(Some(frame)) => newest_frame = Some(frame),
                     Ok(None) => break,
                     Err(frame_error) => {
-                        error = Some(format!("Video output error: {frame_error}"));
+                        if error.is_none() {
+                            error = Some(format!("Video output error: {frame_error}"));
+                        }
                         break;
                     }
                 }
@@ -598,6 +600,24 @@ mod tests {
     }
 
     #[test]
+    fn advancing_a_closed_session_returns_an_error_without_changing_selection() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(id).unwrap();
+        app.close_session(id).unwrap();
+        let mut cadence = FrameCadence::new(60, 3).unwrap();
+
+        assert!(app
+            .advance_session(id, Duration::from_millis(17), &mut cadence)
+            .is_err());
+        assert_eq!(app.active_session(), None);
+        assert_eq!(app.session_count(), 0);
+    }
+
+    #[test]
     fn session_summaries_expose_view_state_without_runtime_access() {
         let mut app = controller();
         let id = app
@@ -692,6 +712,61 @@ mod tests {
         }
     }
 
+    struct FailingMediaCore {
+        loaded: bool,
+    }
+
+    impl archiaemu_core::EmulationCore for FailingMediaCore {
+        fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
+            archiaemu_core::CoreDescriptor {
+                api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
+                system_id: archiaemu_core::SystemId::new("failing-media-test").unwrap(),
+                display_name: "Failing media test core",
+                core_version: "0.0.0-test",
+                capabilities: archiaemu_core::CoreCapabilities {
+                    content_loading: true,
+                    video_output: true,
+                    audio_output: true,
+                    ..archiaemu_core::CoreCapabilities::default()
+                },
+            }
+        }
+
+        fn load_content(&mut self, content: &[u8]) -> Result<(), archiaemu_core::CoreError> {
+            if content.is_empty() {
+                return Err(archiaemu_core::CoreError::InvalidContent("empty test content"));
+            }
+            self.loaded = true;
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), archiaemu_core::CoreError> {
+            self.loaded = true;
+            Ok(())
+        }
+
+        fn run_until_event(
+            &mut self,
+        ) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
+            if !self.loaded {
+                return Err(archiaemu_core::CoreError::NotInitialized);
+            }
+            Err(archiaemu_core::CoreError::Execution("primary execution failure"))
+        }
+
+        fn take_video_frame(
+            &mut self,
+        ) -> Result<Option<VideoFrame>, archiaemu_core::CoreError> {
+            Err(archiaemu_core::CoreError::Execution("secondary video failure"))
+        }
+
+        fn take_audio_buffer(
+            &mut self,
+        ) -> Result<Option<AudioBuffer>, archiaemu_core::CoreError> {
+            Err(archiaemu_core::CoreError::Execution("secondary audio failure"))
+        }
+    }
+
     #[test]
     fn backend_tick_collects_core_audio_buffers_in_order() {
         let expected = AudioBuffer::new(48_000, 2, vec![0, 1, -1, 2]).unwrap();
@@ -718,6 +793,33 @@ mod tests {
         assert!(update.audio_available);
         assert_eq!(update.audio_buffers, vec![expected]);
         assert!(update.error.is_none());
+    }
+
+    #[test]
+    fn backend_tick_preserves_the_first_error_when_media_collection_also_fails() {
+        let mut app = controller();
+        let id = app
+            .host_mut()
+            .create_session(Box::new(FailingMediaCore { loaded: false }))
+            .unwrap();
+        app.host_mut()
+            .session_mut(id)
+            .unwrap()
+            .load_content(&[1])
+            .unwrap();
+        let mut cadence = FrameCadence::new(60, 3).unwrap();
+
+        let update = app
+            .advance_session(id, Duration::from_millis(17), &mut cadence)
+            .unwrap();
+
+        assert_eq!(update.state, SessionState::Error);
+        assert_eq!(
+            update.error.as_deref(),
+            Some("Execution error: emulation execution failed: primary execution failure")
+        );
+        assert!(update.video_available);
+        assert!(update.audio_available);
     }
 
     #[test]
