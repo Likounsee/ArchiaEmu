@@ -1042,7 +1042,9 @@ mod preference_tests {
             concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION"))
         );
         assert!(cli_message("--help").unwrap().contains("--version"));
-        assert!(cli_message("-h").unwrap().contains("Usage: archiaemu-desktop"));
+        assert!(cli_message("-h")
+            .unwrap()
+            .contains("Usage: archiaemu-desktop"));
         assert_eq!(
             cli_message("--unknown").unwrap_err(),
             "unknown argument: --unknown; try --help"
@@ -1060,7 +1062,10 @@ mod preference_tests {
             "Input error: device disconnected",
             "Session 7 failed: core stopped unexpectedly",
         ] {
-            assert!(message_indicates_error(message), "not classified as error: {message}");
+            assert!(
+                message_indicates_error(message),
+                "not classified as error: {message}"
+            );
         }
         for message in [
             "Ready. Select a content path to import or launch.",
@@ -1068,7 +1073,10 @@ mod preference_tests {
             "Launched session 7.",
             "No active session.",
         ] {
-            assert!(!message_indicates_error(message), "false error classification: {message}");
+            assert!(
+                !message_indicates_error(message),
+                "false error classification: {message}"
+            );
         }
     }
 
