@@ -26,6 +26,7 @@ pub mod manifest_ed25519;
 mod preferences;
 mod sessions_page;
 pub mod worker_process;
+pub mod worker_messages;
 
 mod settings_page;
 mod systems_page;
