@@ -7,7 +7,7 @@ impl DesktopApp {
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.heading("Session manager");
-                ui.label("Select a session to manage its lifecycle.");
+                ui.label("Manage prototype session lifecycle; a session does not imply playable emulation.");
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("Close all").clicked() {
@@ -35,7 +35,7 @@ impl DesktopApp {
         if sessions.is_empty() {
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.heading("No open sessions");
-                ui.label("Launch a game from your library to create a session.");
+                ui.label("Open a session from an imported local file to inspect lifecycle and capability reporting.");
                 if ui.button("Browse library").clicked() {
                     self.navigate_to(DesktopPage::Library);
                 }
