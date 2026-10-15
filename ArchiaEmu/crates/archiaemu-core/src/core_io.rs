@@ -706,6 +706,21 @@ mod tests {
     }
 
     #[test]
+    fn cadence_drops_excess_whole_frames_but_preserves_fractional_remainder() {
+        let mut cadence = FrameCadence::new(10, 2).unwrap();
+
+        assert_eq!(
+            cadence.advance(std::time::Duration::from_millis(550)),
+            CadenceAdvance {
+                due_frames: 2,
+                dropped_frames: 3,
+            }
+        );
+        assert_eq!(cadence.advance(std::time::Duration::from_millis(49)).due_frames, 0);
+        assert_eq!(cadence.advance(std::time::Duration::from_millis(1)).due_frames, 1);
+    }
+
+    #[test]
     fn cadence_rejects_zero_rate_and_zero_catch_up_limit() {
         assert_eq!(
             FrameCadence::new(0, 1).unwrap_err(),
