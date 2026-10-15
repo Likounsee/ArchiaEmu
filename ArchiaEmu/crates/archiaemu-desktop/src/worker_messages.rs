@@ -241,8 +241,12 @@ mod tests {
         let large = WorkerMessage::new(
             WorkerMessageKind::Input,
             vec![b' '; MAX_CONTROL_PAYLOAD_BYTES + 1],
-        ).unwrap();
-        assert_eq!(validate_worker_message(&large), Err(WorkerPayloadError::ControlPayloadTooLarge));
+        )
+        .unwrap();
+        assert_eq!(
+            validate_worker_message(&large),
+            Err(WorkerPayloadError::ControlPayloadTooLarge)
+        );
     }
 
     #[test]
