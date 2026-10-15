@@ -8,6 +8,9 @@ impl DesktopApp {
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 let french = self.language == "fr";
+                let previous_dark_mode = self.dark_mode;
+                let previous_ui_scale = self.ui_scale;
+                let previous_accent_color = self.accent_color;
                 ui.add_space(4.0);
                 ui.horizontal(|ui| {
                     ui.label(
@@ -379,6 +382,14 @@ impl DesktopApp {
                         self.message = "Diagnostics copied to clipboard.".to_owned();
                     }
                 });
+                // Persist visual preferences as soon as the user changes them.
+                // Comparing against this frame snapshot avoids writing the config every frame.
+                if previous_dark_mode != self.dark_mode
+                    || (previous_ui_scale - self.ui_scale).abs() > f32::EPSILON
+                    || previous_accent_color != self.accent_color
+                {
+                    self.save_preferences();
+                }
             });
     }
 }
