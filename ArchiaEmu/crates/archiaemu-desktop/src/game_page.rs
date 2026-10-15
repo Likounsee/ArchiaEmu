@@ -237,9 +237,9 @@ impl DesktopApp {
                                     ui.horizontal_wrapped(|ui| {
                                         for (key, action) in [
                                             (if self.language == "fr" { "Flèches directionnelles" } else { "Arrow keys" }, if self.language == "fr" { "Déplacement" } else { "Move" }),
-                                            ("Z / X", if self.language == "fr" { "Action" } else { "Action" }),
-                                            ("Entrée", if self.language == "fr" { "Start" } else { "Start" }),
-                                            ("Retour", if self.language == "fr" { "Select" } else { "Select" }),
+                                            ("Z / X", "Action"),
+                                            ("Entrée", "Start"),
+                                            ("Retour", "Select"),
                                         ] {
                                             ui.label(egui::RichText::new(key).strong());
                                             ui.label(action);
