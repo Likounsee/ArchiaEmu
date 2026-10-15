@@ -525,6 +525,27 @@ mod tests {
     }
 
     #[test]
+    fn availability_detects_when_an_imported_file_is_replaced_by_a_directory() {
+        let file = TempFile::new("replaced.gb", b"rom-data");
+        let mut library = ContentLibrary::new();
+        let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
+
+        assert_eq!(
+            library.entries().next().unwrap().availability(),
+            ContentAvailability::Available
+        );
+        fs::remove_file(&canonical).unwrap();
+        fs::create_dir(&canonical).unwrap();
+
+        assert_eq!(
+            library.entries().next().unwrap().availability(),
+            ContentAvailability::NotRegularFile
+        );
+
+        fs::remove_dir(&canonical).unwrap();
+    }
+
+    #[test]
     fn validation_outcome_is_recorded_without_claiming_extension_proves_validity() {
         let file = TempFile::new("bad.gb", b"not a valid cartridge");
         let mut library = ContentLibrary::new();
