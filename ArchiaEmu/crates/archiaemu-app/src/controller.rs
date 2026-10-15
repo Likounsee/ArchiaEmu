@@ -813,7 +813,11 @@ mod tests {
             .advance_session(id, Duration::from_millis(17), &mut cadence)
             .unwrap();
 
-        assert_eq!(update.state, SessionState::Error);
+        assert_eq!(update.state, SessionState::Running);
+        assert_eq!(
+            app.session_summary(id).unwrap().last_error.as_deref(),
+            Some("emulation execution failed: primary execution failure")
+        );
         assert_eq!(
             update.error.as_deref(),
             Some("Execution error: emulation execution failed: primary execution failure")
