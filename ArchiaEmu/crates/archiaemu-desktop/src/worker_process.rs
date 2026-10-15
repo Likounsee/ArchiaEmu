@@ -15,7 +15,9 @@ use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::process::{Child, ChildStdin, Command, Stdio};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
+use std::time::Duration;
 
 /// Errors from worker executable validation, startup, or IPC.
 #[derive(Debug)]
@@ -28,6 +30,8 @@ pub enum WorkerProcessError {
     MissingPipe,
     /// The executable's SHA-256 did not match trusted installation metadata.
     ExecutableHashMismatch,
+    /// No complete worker message arrived before the requested timeout.
+    ReceiveTimeout,
     /// Framed IPC failed.
     Protocol(WorkerProtocolError),
 }
@@ -43,6 +47,7 @@ impl std::fmt::Display for WorkerProcessError {
             Self::ExecutableHashMismatch => {
                 f.write_str("worker executable SHA-256 does not match trusted metadata")
             }
+            Self::ReceiveTimeout => f.write_str("worker IPC receive timed out"),
             Self::Protocol(error) => write!(f, "worker IPC failed: {error}"),
         }
     }
@@ -66,7 +71,7 @@ impl From<WorkerProtocolError> for WorkerProcessError {
 pub struct WorkerProcess {
     child: Child,
     stdin: ChildStdin,
-    stdout: ChildStdout,
+    messages: Receiver<Result<WorkerMessage, WorkerProtocolError>>,
     executable: PathBuf,
 }
 
@@ -145,11 +150,19 @@ impl WorkerProcess {
 
         let mut child = command.spawn()?;
         let stdin = child.stdin.take().ok_or(WorkerProcessError::MissingPipe)?;
-        let stdout = child.stdout.take().ok_or(WorkerProcessError::MissingPipe)?;
+        let mut stdout = child.stdout.take().ok_or(WorkerProcessError::MissingPipe)?;
+        let (sender, messages) = mpsc::sync_channel(1);
+        std::thread::spawn(move || loop {
+            let message = read_message(&mut stdout);
+            let finished = message.is_err();
+            if sender.send(message).is_err() || finished {
+                break;
+            }
+        });
         Ok(Self {
             child,
             stdin,
-            stdout,
+            messages,
             executable,
         })
     }
@@ -171,7 +184,33 @@ impl WorkerProcess {
     /// A supervising thread or platform-specific job object is still needed for hard
     /// timeouts and resource limits.
     pub fn receive(&mut self) -> Result<WorkerMessage, WorkerProcessError> {
-        Ok(read_message(&mut self.stdout)?)
+        self.messages
+            .recv()
+            .map_err(|_| {
+                WorkerProcessError::Process(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "worker IPC reader stopped",
+                ))
+            })?
+            .map_err(WorkerProcessError::Protocol)
+    }
+
+    /// Receives one message, terminating the wait if the timeout expires.
+    ///
+    /// A timeout does not automatically kill the worker; the caller should invoke
+    /// terminate when the worker is unresponsive or otherwise unsafe to continue.
+    pub fn receive_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<WorkerMessage, WorkerProcessError> {
+        match self.messages.recv_timeout(timeout) {
+            Ok(Ok(message)) => Ok(message),
+            Ok(Err(error)) => Err(WorkerProcessError::Protocol(error)),
+            Err(RecvTimeoutError::Timeout) => Err(WorkerProcessError::ReceiveTimeout),
+            Err(RecvTimeoutError::Disconnected) => Err(WorkerProcessError::Process(
+                io::Error::new(io::ErrorKind::UnexpectedEof, "worker IPC reader stopped"),
+            )),
+        }
     }
 
     /// Requests an orderly shutdown without waiting indefinitely for the child.
