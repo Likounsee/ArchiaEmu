@@ -1245,10 +1245,13 @@ mod tests {
 
     #[test]
     fn forgetting_a_missing_library_file_preserves_open_sessions() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-forget-controller-{}-{}",
-            std::process::id(),
-            NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed)
+            "archiaemu-forget-controller-{}-{nonce}",
+            std::process::id()
         ));
         std::fs::create_dir(&root).unwrap();
         let file = root.join("game.gb");
