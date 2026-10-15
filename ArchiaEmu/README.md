@@ -52,4 +52,4 @@ For a short demonstration, show the home page, import a local `.gb`/`.gbc` file,
 
 ## Status
 
-P0 is underway. The initial shared interface is a contract for future cores; it does not imply a console has been implemented. See `docs/ROADMAP.md`, `docs/SUPPORTED_SYSTEMS.md`, and `docs/GAME_BOY_DMG.md` for the first-target decision and explicit scope.
+P0 foundations are complete and maintained; **P1 (the desktop application and Windows delivery) is the current priority**. Percentages and exit criteria are tracked in `docs/ROADMAP.md`. The shared interface is a contract for cores; it does not imply that a complete console has been implemented. See `docs/SUPPORTED_SYSTEMS.md` and `docs/GAME_BOY_DMG.md` for the first-target decision and explicit scope.
