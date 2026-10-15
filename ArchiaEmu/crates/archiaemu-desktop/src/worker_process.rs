@@ -13,7 +13,7 @@ use archiaemu_core::module_worker_protocol::{
 use sha2::{Digest, Sha256};
 use std::ffi::OsStr;
 use std::fs::File;
-use std::io::{self, Read, Write};
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
