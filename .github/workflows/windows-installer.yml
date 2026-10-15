@@ -90,7 +90,7 @@ jobs:
           # the exact source commit and CI run that produced this installer.
           $buildInfo = @(
             "Application: ArchiaEmu"
-            "Version: $version"
+            "Version: ${{ steps.stage.outputs.version }}"
             "Source branch/ref: $env:GITHUB_REF_NAME"
             "Source commit: $env:GITHUB_SHA"
             "Workflow run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
