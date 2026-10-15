@@ -11,7 +11,7 @@ use archiaemu_core::module_worker_protocol::{
     read_message, write_message, WorkerMessage, WorkerMessageKind, WorkerProtocolError,
 };
 use std::ffi::OsStr;
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
@@ -142,7 +142,5 @@ impl Drop for WorkerProcess {
             let _ = self.child.kill();
             let _ = self.child.wait();
         }
-        let _ = self.stdin.flush();
-        let _ = self.stdout.by_ref().read(&mut []);
     }
 }
