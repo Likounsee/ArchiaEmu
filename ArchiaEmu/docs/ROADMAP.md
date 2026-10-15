@@ -81,6 +81,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [x] Étendre les tests unitaires de la bibliothèque pour les chemins absents, l'ordre d'itération déterministe, la détection qui ne doit modifier qu'une entrée existante, les indices d'extension insensibles à la casse, la suppression d'une entrée dont le fichier a disparu et l'absence de mutation après une suppression invalide. Le catalogue comporte maintenant 12 tests unitaires; leur exécution locale/CI reste à confirmer.
 - [x] Prévoir des états vides utiles et des actions claires lorsque la bibliothèque ne contient aucun fichier.
 - [x] Détecter à l'affichage les chemins de bibliothèque devenus indisponibles, expliquer qu'une réimportation est nécessaire et désactiver le lancement direct quand le chemin ne désigne plus un fichier.
+- [x] Permettre d'oublier une entrée même après la disparition du fichier source et signaler si la modification de bibliothèque n'a pas pu être persistée.
 - [x] Ajouter des tests unitaires des états de chemin : fichier absent, répertoire au lieu d'un fichier et fichier existant en attente de validation du lancement.
 - [x] Tester le refus d'un format inconnu sans créer de session fantôme ni modifier la session active.
 - [x] Tester le refus par le cœur d'une ROM détectée mais invalide, sans modifier les sessions existantes.
