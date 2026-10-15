@@ -452,35 +452,6 @@ impl DesktopApp {
         }
     }
 
-    fn import_content(&mut self) {
-        let path = self.content_path.trim();
-        if path.is_empty() {
-            self.message = "Enter a content path first.".to_owned();
-            return;
-        }
-        match self
-            .controller
-            .import_content(Path::new(path), MAX_CONTENT_BYTES as u64)
-        {
-            Ok(entry) => {
-                self.selected_content = Some(entry.path().to_path_buf());
-                let import_message = format!(
-                    "Imported '{}' ({}).",
-                    entry.title(),
-                    format_size(entry.size_bytes())
-                );
-                self.message = import_message.clone();
-                self.navigate_to(DesktopPage::Library);
-                if !self.save_preferences() {
-                    let save_error = std::mem::take(&mut self.message);
-                    self.message = format!(
-                        "{import_message} The import is active for this session, but preferences were not saved. {save_error}"
-                    );
-                }
-            }
-            Err(error) => self.message = format!("Import failed: {error}"),
-        }
-    }
 
     #[cfg(feature = "game-boy-core")]
     fn launch_content(&mut self) {
@@ -1085,11 +1056,7 @@ impl eframe::App for DesktopApp {
                                 ui.label(format!(
                                     "{} {}",
                                     self.controller.session_count(),
-                                    if self.language == "fr" {
-                                        "session(s)"
-                                    } else {
-                                        "session(s)"
-                                    }
+                                    "session(s)"
                                 ));
                             });
                         ui.label(if self.dark_mode {
