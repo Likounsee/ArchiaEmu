@@ -58,10 +58,17 @@ mod tests {
             ViewState::Error("preferences could not be saved".to_owned()),
         ];
 
-        for state in states {
-            let mapped = state.clone().map(|value| value.to_string());
+        let expected = [
+            ViewState::<String>::Loading,
+            ViewState::Empty,
+            ViewState::Unavailable("audio device missing".to_owned()),
+            ViewState::Error("preferences could not be saved".to_owned()),
+        ];
+
+        for (state, expected) in states.into_iter().zip(expected) {
+            let mapped = state.map(|value| value.to_string());
             assert!(!mapped.is_ready());
-            assert_eq!(mapped, state);
+            assert_eq!(mapped, expected);
         }
 
         let ready = ViewState::Ready(42_u8).map(|value| value.to_string());
