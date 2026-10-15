@@ -647,6 +647,49 @@ mod tests {
     }
 
     #[test]
+    fn cadence_emits_frames_only_at_exact_period_boundaries() {
+        let mut cadence = FrameCadence::new(50, 4).unwrap();
+        let period = cadence.frame_period();
+
+        assert_eq!(cadence.advance(period - std::time::Duration::from_nanos(1)).due_frames, 0);
+        assert_eq!(cadence.advance(std::time::Duration::from_nanos(1)).due_frames, 1);
+        assert_eq!(cadence.advance(period * 2).due_frames, 2);
+    }
+
+    #[test]
+    fn cadence_reset_discards_fractional_time_before_resume() {
+        let mut cadence = FrameCadence::new(60, 4).unwrap();
+        let half_period = cadence.frame_period() / 2;
+
+        assert_eq!(cadence.advance(half_period).due_frames, 0);
+        cadence.reset();
+        assert_eq!(cadence.advance(half_period).due_frames, 0);
+        assert_eq!(
+            cadence.advance(half_period).due_frames,
+            1,
+            "only time accumulated after reset should contribute"
+        );
+    }
+
+    #[test]
+    fn input_state_releases_all_controls_in_canonical_order() {
+        let mut state = InputState::new();
+        for control in InputControl::ALL.into_iter().rev() {
+            assert!(state.apply(InputEvent { control, pressed: true }));
+        }
+
+        assert_eq!(state.pressed_count(), InputControl::ALL.len());
+        let released = state.release_all();
+        assert_eq!(
+            released.iter().map(|event| event.control).collect::<Vec<_>>(),
+            InputControl::ALL
+        );
+        assert!(released.iter().all(|event| !event.pressed));
+        assert_eq!(state.pressed_count(), 0);
+        assert!(state.release_all().is_empty());
+    }
+
+    #[test]
     fn cadence_rejects_zero_rate_and_zero_catch_up_limit() {
         assert_eq!(
             FrameCadence::new(0, 1).unwrap_err(),
