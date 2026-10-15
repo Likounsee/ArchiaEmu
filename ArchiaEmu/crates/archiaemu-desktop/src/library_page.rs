@@ -172,8 +172,7 @@ impl DesktopApp {
                                     let entry_metadata = self
                                         .controller
                                         .library()
-                                        .entries()
-                                        .find(|entry| entry.path() == path)
+                                        .get(&path)
                                         .map(|entry| {
                                             (
                                                 entry.format_hint().map(str::to_owned),
