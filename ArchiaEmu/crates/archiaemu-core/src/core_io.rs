@@ -651,8 +651,16 @@ mod tests {
         let mut cadence = FrameCadence::new(50, 4).unwrap();
         let period = cadence.frame_period();
 
-        assert_eq!(cadence.advance(period - std::time::Duration::from_nanos(1)).due_frames, 0);
-        assert_eq!(cadence.advance(std::time::Duration::from_nanos(1)).due_frames, 1);
+        assert_eq!(
+            cadence
+                .advance(period - std::time::Duration::from_nanos(1))
+                .due_frames,
+            0
+        );
+        assert_eq!(
+            cadence.advance(std::time::Duration::from_nanos(1)).due_frames,
+            1
+        );
         assert_eq!(cadence.advance(period * 2).due_frames, 2);
     }
 
@@ -675,13 +683,19 @@ mod tests {
     fn input_state_releases_all_controls_in_canonical_order() {
         let mut state = InputState::new();
         for control in InputControl::ALL.into_iter().rev() {
-            assert!(state.apply(InputEvent { control, pressed: true }));
+            assert!(state.apply(InputEvent {
+                control,
+                pressed: true
+            }));
         }
 
         assert_eq!(state.pressed_count(), InputControl::ALL.len());
         let released = state.release_all();
         assert_eq!(
-            released.iter().map(|event| event.control).collect::<Vec<_>>(),
+            released
+                .iter()
+                .map(|event| event.control)
+                .collect::<Vec<_>>(),
             InputControl::ALL
         );
         assert!(released.iter().all(|event| !event.pressed));
