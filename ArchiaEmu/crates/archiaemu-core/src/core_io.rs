@@ -716,8 +716,18 @@ mod tests {
                 dropped_frames: 3,
             }
         );
-        assert_eq!(cadence.advance(std::time::Duration::from_millis(49)).due_frames, 0);
-        assert_eq!(cadence.advance(std::time::Duration::from_millis(1)).due_frames, 1);
+        assert_eq!(
+            cadence
+                .advance(std::time::Duration::from_millis(49))
+                .due_frames,
+            0
+        );
+        assert_eq!(
+            cadence
+                .advance(std::time::Duration::from_millis(1))
+                .due_frames,
+            1
+        );
     }
 
     #[test]
@@ -732,7 +742,10 @@ mod tests {
             "rates above nanosecond precision must not create a zero-length period"
         );
         let mut one_nanosecond = FrameCadence::new(1_000_000_000, 1).unwrap();
-        assert_eq!(one_nanosecond.frame_period(), std::time::Duration::from_nanos(1));
+        assert_eq!(
+            one_nanosecond.frame_period(),
+            std::time::Duration::from_nanos(1)
+        );
         assert_eq!(
             one_nanosecond
                 .advance(std::time::Duration::from_nanos(1))
