@@ -38,6 +38,22 @@ impl<T> ViewState<T> {
         matches!(self, Self::Unavailable(_))
     }
 
+    /// Borrows the message when the state describes an unavailable capability.
+    pub fn unavailable_reason(&self) -> Option<&str> {
+        match self {
+            Self::Unavailable(reason) => Some(reason),
+            _ => None,
+        }
+    }
+
+    /// Borrows the message when the state describes a failed operation.
+    pub fn error_message(&self) -> Option<&str> {
+        match self {
+            Self::Error(message) => Some(message),
+            _ => None,
+        }
+    }
+
     /// Returns true when the state represents a failed operation.
     pub const fn is_error(&self) -> bool {
         matches!(self, Self::Error(_))
@@ -94,6 +110,18 @@ mod tests {
 
         let ready = ViewState::Ready(42_u8).map(|value| value.to_string());
         assert_eq!(ready, ViewState::Ready("42".to_owned()));
+    }
+
+    #[test]
+    fn error_and_unavailable_messages_are_borrowable_without_cloning() {
+        let unavailable = ViewState::<u8>::Unavailable("audio device missing".to_owned());
+        let error = ViewState::<u8>::Error("preferences write failed".to_owned());
+
+        assert_eq!(unavailable.unavailable_reason(), Some("audio device missing"));
+        assert_eq!(unavailable.error_message(), None);
+        assert_eq!(error.error_message(), Some("preferences write failed"));
+        assert_eq!(error.unavailable_reason(), None);
+        assert_eq!(ViewState::<u8>::Loading.unavailable_reason(), None);
     }
 
     #[test]
