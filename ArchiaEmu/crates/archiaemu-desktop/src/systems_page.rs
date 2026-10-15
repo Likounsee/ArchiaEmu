@@ -4,8 +4,8 @@ use super::*;
 
 impl DesktopApp {
     pub(super) fn show_systems(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Registered systems");
-        ui.label("Capabilities are reported from each core descriptor, not inferred from the UI.");
+        ui.heading(if self.language == "fr" { "Systèmes enregistrés" } else { "Registered systems" });
+        ui.label(if self.language == "fr" { "Les capacités viennent de la description de chaque cœur, pas de l’interface." } else { "Capabilities are reported from each core descriptor, not inferred from the UI." });
         ui.add_space(8.0);
         for id in self.registry.system_ids() {
             if let Some(descriptor) = self.registry.registered_descriptor(id) {
