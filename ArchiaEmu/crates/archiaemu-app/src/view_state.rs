@@ -117,7 +117,10 @@ mod tests {
         let unavailable = ViewState::<u8>::Unavailable("audio device missing".to_owned());
         let error = ViewState::<u8>::Error("preferences write failed".to_owned());
 
-        assert_eq!(unavailable.unavailable_reason(), Some("audio device missing"));
+        assert_eq!(
+            unavailable.unavailable_reason(),
+            Some("audio device missing")
+        );
         assert_eq!(unavailable.error_message(), None);
         assert_eq!(error.error_message(), Some("preferences write failed"));
         assert_eq!(error.unavailable_reason(), None);
