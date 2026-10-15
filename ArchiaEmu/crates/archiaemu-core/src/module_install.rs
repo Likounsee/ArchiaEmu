@@ -167,7 +167,15 @@ pub fn install_module<B: ModuleInstallBackend>(
         });
     }
 
-    advance_and_save(&mut journal, InstallPhase::Activated, journal_path)?;
+    // From this point onward, the final installation may already exist. A journal
+    // write failure must therefore request recovery instead of looking like an
+    // ordinary pre-install error that callers might safely retry.
+    advance_and_save_after_activation(
+        &mut journal,
+        InstallPhase::Activated,
+        journal_path,
+        InstallOperation::Journal,
+    )?;
     if let Err(message) = backend.persist_installed_state(&module, &version) {
         // Do not roll back or delete files: activation succeeded, and state may be
         // partially persisted. Startup must reconcile the durable Activated journal.
@@ -179,7 +187,12 @@ pub fn install_module<B: ModuleInstallBackend>(
         });
     }
 
-    advance_and_save(&mut journal, InstallPhase::Committed, journal_path)?;
+    advance_and_save_after_activation(
+        &mut journal,
+        InstallPhase::Committed,
+        journal_path,
+        InstallOperation::Journal,
+    )?;
     Ok(())
 }
 
@@ -190,6 +203,24 @@ fn advance_and_save(
 ) -> Result<(), ModuleInstallError> {
     journal.advance(phase)?;
     journal.save(path)?;
+    Ok(())
+}
+
+/// Persists a journal milestone after activation has begun.
+fn advance_and_save_after_activation(
+    journal: &mut InstallJournal,
+    phase: InstallPhase,
+    path: &Path,
+    operation: InstallOperation,
+) -> Result<(), ModuleInstallError> {
+    if let Err(error) = journal.advance(phase).and_then(|()| journal.save(path)) {
+        return Err(ModuleInstallError::RecoveryRequired {
+            operation,
+            module: journal.entry().module.clone(),
+            message: format!("could not persist {phase:?} journal milestone: {error}"),
+            journal_path: path.to_path_buf(),
+        });
+    }
     Ok(())
 }
 
