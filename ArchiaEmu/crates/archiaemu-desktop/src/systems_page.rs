@@ -6,6 +6,15 @@ impl DesktopApp {
     pub(super) fn show_systems(&mut self, ui: &mut egui::Ui) {
         let french = self.language == "fr";
         let system_count = self.registry.system_ids().count();
+        let capability_label = |enabled| {
+            if enabled {
+                if french { "Disponible" } else { "Available" }
+            } else if french {
+                "Non implémenté"
+            } else {
+                "Not implemented"
+            }
+        };
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.label(
@@ -38,7 +47,13 @@ impl DesktopApp {
                         ui.label(format!(
                             "{} {}",
                             system_count,
-                            if french { "système(s)" } else { "system(s)" }
+                            if french {
+                                if system_count == 1 { "système" } else { "systèmes" }
+                            } else if system_count == 1 {
+                                "system"
+                            } else {
+                                "systems"
+                            }
                         ));
                     });
             });
@@ -65,24 +80,33 @@ impl DesktopApp {
                         ui.separator();
                         ui.horizontal_wrapped(|ui| {
                             ui.label(format!(
-                                "Content loading: {}",
+                                "{}: {}",
+                                if french { "Chargement du contenu" } else { "Content loading" },
                                 capability_label(caps.content_loading)
                             ));
-                            ui.label(format!("Input: {}", capability_label(caps.input)));
                             ui.label(format!(
-                                "Video output: {}",
+                                "{}: {}",
+                                if french { "Entrées" } else { "Input" },
+                                capability_label(caps.input)
+                            ));
+                            ui.label(format!(
+                                "{}: {}",
+                                if french { "Sortie vidéo" } else { "Video output" },
                                 capability_label(caps.video_output)
                             ));
                             ui.label(format!(
-                                "Audio output: {}",
+                                "{}: {}",
+                                if french { "Sortie audio" } else { "Audio output" },
                                 capability_label(caps.audio_output)
                             ));
                             ui.label(format!(
-                                "Save states: {}",
+                                "{}: {}",
+                                if french { "États de sauvegarde" } else { "Save states" },
                                 capability_label(caps.save_states)
                             ));
                             ui.label(format!(
-                                "Persistent saves: {}",
+                                "{}: {}",
+                                if french { "Sauvegardes persistantes" } else { "Persistent saves" },
                                 capability_label(caps.persistent_saves)
                             ));
                         });
