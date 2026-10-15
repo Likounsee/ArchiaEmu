@@ -15,7 +15,16 @@ impl DesktopApp {
             "Capabilities are reported from each core descriptor, not inferred from the UI."
         });
         ui.add_space(8.0);
-        for id in self.registry.system_ids() {
+        let system_ids = self.registry.system_ids();
+        if system_ids.is_empty() {
+            ui.label(if self.language == "fr" {
+                "Aucun cœur n’est enregistré dans cette compilation. Les cœurs optionnels doivent être inclus ou installés avant de pouvoir lancer des jeux."
+            } else {
+                "No emulation core is registered in this build. Optional cores must be included or installed before games can be launched."
+            });
+            return;
+        }
+        for id in system_ids {
             if let Some(descriptor) = self.registry.registered_descriptor(id) {
                 let caps = descriptor.capabilities;
                 egui::Frame::group(ui.style()).show(ui, |ui| {
