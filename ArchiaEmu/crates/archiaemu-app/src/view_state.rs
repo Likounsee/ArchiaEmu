@@ -33,6 +33,17 @@ impl<T> ViewState<T> {
         matches!(self, Self::Empty)
     }
 
+    /// Borrows ready data while preserving the current state and its messages.
+    pub fn as_ref(&self) -> ViewState<&T> {
+        match self {
+            Self::Loading => ViewState::Loading,
+            Self::Ready(value) => ViewState::Ready(value),
+            Self::Empty => ViewState::Empty,
+            Self::Unavailable(reason) => ViewState::Unavailable(reason.clone()),
+            Self::Error(message) => ViewState::Error(message.clone()),
+        }
+    }
+
     /// Maps ready data while preserving every non-ready state unchanged.
     pub fn map<U>(self, map: impl FnOnce(T) -> U) -> ViewState<U> {
         match self {
@@ -73,6 +84,27 @@ mod tests {
 
         let ready = ViewState::Ready(42_u8).map(|value| value.to_string());
         assert_eq!(ready, ViewState::Ready("42".to_owned()));
+    }
+
+    #[test]
+    fn borrowing_ready_data_does_not_consume_the_state() {
+        let state = ViewState::Ready(vec![1_u8, 2, 3]);
+        let borrowed = state.as_ref();
+
+        assert_eq!(borrowed, ViewState::Ready(&vec![1, 2, 3]));
+        assert_eq!(state, ViewState::Ready(vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn borrowing_preserves_unavailable_and_error_messages() {
+        assert_eq!(
+            ViewState::<u8>::Unavailable("no audio device".to_owned()).as_ref(),
+            ViewState::<&u8>::Unavailable("no audio device".to_owned())
+        );
+        assert_eq!(
+            ViewState::<u8>::Error("disk full".to_owned()).as_ref(),
+            ViewState::<&u8>::Error("disk full".to_owned())
+        );
     }
 
     #[test]
