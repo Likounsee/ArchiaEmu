@@ -7,8 +7,10 @@
 //! not decide which keys are trusted; callers must pin approved public keys in the
 //! application and must not accept keys fetched from the same untrusted catalogue.
 
+use archiaemu_core::module_manifest::ModuleManifest;
 use archiaemu_core::module_manifest_trust::{
-    ManifestSignatureVerifier, SignatureVerificationError,
+    ManifestSignatureVerifier, ManifestTrustError, ManifestTrustPolicy, SignatureVerificationError,
+    SignedManifestEnvelope,
 };
 use ed25519_dalek::{Signature, VerifyingKey};
 
@@ -32,6 +34,26 @@ impl ManifestSignatureVerifier for Ed25519ManifestVerifier {
         key.verify_strict(payload, &signature)
             .map_err(|_| SignatureVerificationError)
     }
+}
+
+/// Verifies and parses a signed manifest using the production Ed25519 verifier.
+///
+/// The trust policy must be constructed from public keys pinned by the application,
+/// not from key material supplied by the catalogue. The parser receives only the
+/// exact payload bytes covered by the signature.
+pub fn verify_signed_manifest<F>(
+    policy: &mut ManifestTrustPolicy,
+    envelope: &SignedManifestEnvelope,
+    parse_verified_payload: F,
+) -> Result<ModuleManifest, ManifestTrustError>
+where
+    F: FnOnce(&[u8]) -> Result<ModuleManifest, ()>,
+{
+    policy.verify_and_parse(
+        envelope,
+        &Ed25519ManifestVerifier,
+        parse_verified_payload,
+    )
 }
 
 #[cfg(test)]
