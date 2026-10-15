@@ -792,7 +792,7 @@ impl eframe::App for DesktopApp {
                     ui.horizontal(|ui| {
                         ui.strong("◈ ArchiaEmu");
                         ui.separator();
-                        for (page, glyph, label) in navigation_items() {
+                        for (page, glyph, label) in navigation_items(self.language == "fr") {
                             if ui
                                 .selectable_label(
                                     self.active_page == page,
