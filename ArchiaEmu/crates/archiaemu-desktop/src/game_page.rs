@@ -30,78 +30,78 @@ impl DesktopApp {
                 .rounding(egui::Rounding::same(12.0))
                 .inner_margin(egui::Margin::same(14.0))
                 .show(ui, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.vertical(|ui| {
-                        ui.heading(format!("{system} · Session {}", id.get()));
-                        ui.label(format!("State: {state:?}"));
-                    });
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if state == SessionState::Running
-                            && ui
-                                .button(if self.language == "fr" {
-                                    "Mettre en pause"
-                                } else {
-                                    "Pause"
-                                })
-                                .clicked()
-                        {
-                            self.session_action(id, SessionAction::Pause);
-                        } else if state == SessionState::Paused
-                            && ui
-                                .button(if self.language == "fr" {
-                                    "Reprendre"
-                                } else {
-                                    "Resume"
-                                })
-                                .clicked()
-                        {
-                            self.session_action(id, SessionAction::Resume);
-                        }
-                        if state != SessionState::Empty
-                            && ui
-                                .button(if self.language == "fr" {
-                                    "Arrêter"
-                                } else {
-                                    "Stop"
-                                })
-                                .clicked()
-                        {
-                            self.session_action(id, SessionAction::Stop);
-                        }
-                        if state != SessionState::Empty
-                            && ui
-                                .button(if self.language == "fr" {
-                                    "Réinitialiser"
-                                } else {
-                                    "Reset"
-                                })
-                                .clicked()
-                        {
-                            self.session_action(id, SessionAction::Reset);
-                        }
-                    });
-                });
-                ui.separator();
-                ui.horizontal_wrapped(|ui| {
-                    ui.label(if summary.video_available {
-                        "Video: available"
-                    } else {
-                        "Video: not implemented by this core"
+                    ui.horizontal_wrapped(|ui| {
+                        ui.vertical(|ui| {
+                            ui.heading(format!("{system} · Session {}", id.get()));
+                            ui.label(format!("State: {state:?}"));
+                        });
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if state == SessionState::Running
+                                && ui
+                                    .button(if self.language == "fr" {
+                                        "Mettre en pause"
+                                    } else {
+                                        "Pause"
+                                    })
+                                    .clicked()
+                            {
+                                self.session_action(id, SessionAction::Pause);
+                            } else if state == SessionState::Paused
+                                && ui
+                                    .button(if self.language == "fr" {
+                                        "Reprendre"
+                                    } else {
+                                        "Resume"
+                                    })
+                                    .clicked()
+                            {
+                                self.session_action(id, SessionAction::Resume);
+                            }
+                            if state != SessionState::Empty
+                                && ui
+                                    .button(if self.language == "fr" {
+                                        "Arrêter"
+                                    } else {
+                                        "Stop"
+                                    })
+                                    .clicked()
+                            {
+                                self.session_action(id, SessionAction::Stop);
+                            }
+                            if state != SessionState::Empty
+                                && ui
+                                    .button(if self.language == "fr" {
+                                        "Réinitialiser"
+                                    } else {
+                                        "Reset"
+                                    })
+                                    .clicked()
+                            {
+                                self.session_action(id, SessionAction::Reset);
+                            }
+                        });
                     });
                     ui.separator();
-                    ui.label(if summary.audio_available {
-                        "Audio: core output declared; host playback integrated"
-                    } else {
-                        "Audio: unavailable"
-                    });
-                    ui.separator();
-                    ui.label(if self.language == "fr" {
-                        "Entrée : clavier activé si pris en charge"
-                    } else {
-                        "Input: keyboard mapping enabled when supported"
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(if summary.video_available {
+                            "Video: available"
+                        } else {
+                            "Video: not implemented by this core"
+                        });
+                        ui.separator();
+                        ui.label(if summary.audio_available {
+                            "Audio: core output declared; host playback integrated"
+                        } else {
+                            "Audio: unavailable"
+                        });
+                        ui.separator();
+                        ui.label(if self.language == "fr" {
+                            "Entrée : clavier activé si pris en charge"
+                        } else {
+                            "Input: keyboard mapping enabled when supported"
+                        });
                     });
                 });
-            });
         } else {
             egui::Frame::group(ui.style())
                 .rounding(egui::Rounding::same(12.0))
