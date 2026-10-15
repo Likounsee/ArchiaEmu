@@ -258,8 +258,7 @@ impl DesktopApp {
         let mut controller = ApplicationController::new(host);
         let config_path = config_file_path();
         let mut dark_mode = true;
-        let locale = std::env::var("LANG").unwrap_or_default().to_ascii_lowercase();
-        let mut language = if locale.starts_with("fr") { "fr".to_owned() } else { "en".to_owned() };
+        let mut language = preferences::system_language();
         let mut ui_scale = 1.0;
         let mut accent_color = egui::Color32::from_rgb(75, 115, 210);
         let mut message = String::from("Ready. Select a content path to import or launch.");
