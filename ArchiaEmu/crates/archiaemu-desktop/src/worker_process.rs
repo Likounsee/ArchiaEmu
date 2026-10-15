@@ -195,15 +195,12 @@ impl WorkerProcess {
     /// A supervising thread or platform-specific job object is still needed for hard
     /// timeouts and resource limits.
     pub fn receive(&mut self) -> Result<WorkerMessage, WorkerProcessError> {
-        let message = self
-            .messages
-            .recv()
-            .map_err(|_| {
-                WorkerProcessError::Process(io::Error::new(
-                    io::ErrorKind::UnexpectedEof,
-                    "worker IPC reader stopped",
-                ))
-            })?;
+        let message = self.messages.recv().map_err(|_| {
+            WorkerProcessError::Process(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                "worker IPC reader stopped",
+            ))
+        })?;
         let message = match message {
             Ok(message) => message,
             Err(error) => {
