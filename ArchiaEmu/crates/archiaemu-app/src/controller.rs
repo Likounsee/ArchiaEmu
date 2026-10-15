@@ -506,7 +506,7 @@ mod tests {
             content_format_detection(detection),
             ContentFormatDetection::Ambiguous(vec![
                 "format-a".to_owned(),
-                "format-b".to_owned()
+                "format-b".to_owned(),
             ])
         );
     }
