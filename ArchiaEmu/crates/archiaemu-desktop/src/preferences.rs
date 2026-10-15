@@ -151,6 +151,7 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
     }))
 }
 
+#[cfg(test)]
 pub(crate) fn write_preferences(
     path: &Path,
     dark_mode: bool,
