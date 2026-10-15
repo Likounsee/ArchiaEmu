@@ -9,7 +9,9 @@ ArchiaEmu uses **Inno Setup 6** for its initial Windows x64 installer. The scrip
 The workflow builds the desktop crate in release mode, stages
 `archiaemu-desktop.exe`, compiles a versioned `ArchiaEmu-Setup-<version>.exe`,
 runs a silent install/start/uninstall smoke test on the Windows runner, and emits a
-SHA-256 sidecar file. Manually dispatch the workflow or push a `v*` tag; the
+SHA-256 sidecar file. The smoke test checks the installed binary's exact version,
+documented help options, actionable rejection of unknown CLI options, Start Menu
+shortcut target, and preservation of user settings after silent uninstall. Manually dispatch the workflow or push a `v*` tag; the
 installer and checksum are uploaded as a 30-day workflow artifact and attached to
 a GitHub Release for tagged builds. A runner smoke test is not a substitute for
 testing upgrade and user-data choices on a clean VM.
