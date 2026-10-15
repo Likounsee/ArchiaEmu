@@ -504,10 +504,7 @@ mod tests {
 
         assert_eq!(
             content_format_detection(detection),
-            ContentFormatDetection::Ambiguous(vec![
-                "format-a".to_owned(),
-                "format-b".to_owned(),
-            ])
+            ContentFormatDetection::Ambiguous(vec!["format-a".to_owned(), "format-b".to_owned()])
         );
     }
 
@@ -780,7 +777,9 @@ mod tests {
 
         fn load_content(&mut self, content: &[u8]) -> Result<(), archiaemu_core::CoreError> {
             if content.is_empty() {
-                return Err(archiaemu_core::CoreError::InvalidContent("empty test content"));
+                return Err(archiaemu_core::CoreError::InvalidContent(
+                    "empty test content",
+                ));
             }
             self.loaded = true;
             Ok(())
@@ -797,19 +796,21 @@ mod tests {
             if !self.loaded {
                 return Err(archiaemu_core::CoreError::NotInitialized);
             }
-            Err(archiaemu_core::CoreError::Execution("primary execution failure"))
+            Err(archiaemu_core::CoreError::Execution(
+                "primary execution failure",
+            ))
         }
 
-        fn take_video_frame(
-            &mut self,
-        ) -> Result<Option<VideoFrame>, archiaemu_core::CoreError> {
-            Err(archiaemu_core::CoreError::Execution("secondary video failure"))
+        fn take_video_frame(&mut self) -> Result<Option<VideoFrame>, archiaemu_core::CoreError> {
+            Err(archiaemu_core::CoreError::Execution(
+                "secondary video failure",
+            ))
         }
 
-        fn take_audio_buffer(
-            &mut self,
-        ) -> Result<Option<AudioBuffer>, archiaemu_core::CoreError> {
-            Err(archiaemu_core::CoreError::Execution("secondary audio failure"))
+        fn take_audio_buffer(&mut self) -> Result<Option<AudioBuffer>, archiaemu_core::CoreError> {
+            Err(archiaemu_core::CoreError::Execution(
+                "secondary audio failure",
+            ))
         }
     }
 
@@ -1326,7 +1327,10 @@ mod tests {
             ContentValidation::Rejected(_)
         ));
         assert!(matches!(
-            app.library().get(&canonical_rom).unwrap().format_detection(),
+            app.library()
+                .get(&canonical_rom)
+                .unwrap()
+                .format_detection(),
             ContentFormatDetection::Detected(_)
         ));
 
@@ -1423,7 +1427,11 @@ mod tests {
         std::fs::write(&file, b"test-content").unwrap();
 
         let mut app = controller();
-        let canonical = app.import_content(&file, 1024).unwrap().path().to_path_buf();
+        let canonical = app
+            .import_content(&file, 1024)
+            .unwrap()
+            .path()
+            .to_path_buf();
         let session = app
             .host_mut()
             .create_session(Box::new(GameBoyCore::new()))
