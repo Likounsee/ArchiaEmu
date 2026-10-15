@@ -161,19 +161,19 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 **Avancement estimé : ≈ 50 %.** Sur le commit `aba4fa51`, les quality gates desktop et les quality gates Rust du workspace ont réussi sur Linux, Windows et macOS. Les tests manuels du parcours desktop et la validation visuelle restent à exécuter.
 - [x] Ajouter un quality gate Clippy pour le crate desktop sur Linux, en complément de formatage, compilation et tests sur la matrice existante.
-- [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; la matrice a réussi sur le commit `aba4fa51`.
-- [x] Étendre également Clippy du workspace partagé aux runners Linux, Windows et macOS (au lieu de Linux seulement); la matrice a réussi sur le commit `aba4fa51`.
+- [x] Étendre Clippy du crate desktop à Linux, Windows et macOS afin de vérifier aussi les branches spécifiques aux plateformes; la matrice a réussi sur le commit `234de9a4`.
+- [x] Étendre également Clippy du workspace partagé aux runners Linux, Windows et macOS (au lieu de Linux seulement); la matrice a réussi sur le commit `234de9a4`.
 - [x] Installer explicitement les dépendances système X11/Wayland/OpenGL/audio requises avant les contrôles du desktop sur les runners Linux du workflow CI principal; les quality gates desktop ont réussi sur Linux.
 
 - [ ] Ajouter des tests de parcours couvrant démarrage, bibliothèque vide, import, lancement réussi, lancement refusé, changement de session, paramètres, arrêt et fermeture globale.
 - [x] Ajouter un test d'intégration du lancement réussi depuis la bibliothèque avec une ROM de test construite en mémoire sur disque temporaire, puis pause/reprise/arrêt/fermeture; son exécution reste à confirmer en CI.
-- [x] Exécuter les quality gates Rust du workspace et du desktop sur le commit `aba4fa51` : Linux, Windows et macOS ont tous réussi.
-- [x] Ajouter `.github/workflows/desktop-ci.yml` pour lancer formatage, tests et Clippy du desktop sur Linux, Windows et macOS; le workflow a réussi sur le commit `aba4fa51`.
+- [x] Exécuter les quality gates Rust du workspace et du desktop sur le commit `234de9a4` : Linux, Windows et macOS ont tous réussi.
+- [x] Ajouter `.github/workflows/desktop-ci.yml` pour lancer formatage, tests et Clippy du desktop sur Linux, Windows et macOS; le workflow a réussi sur le commit `234de9a4`.
 - [x] Déclencher aussi les quality gates desktop quand le manifeste de mise à jour (`ArchiaEmu/update/**`) change, afin que les changements de canal de publication ne passent pas silencieusement hors de la CI.
 - [x] Étendre le workflow aux tests et à Clippy du workspace partagé, en plus du crate desktop exclu du workspace; le workflow a réussi sur Linux, Windows et macOS.
 - [x] Ajouter à la CI la génération de la documentation du workspace avec `RUSTDOCFLAGS=-D warnings`, un délai maximal de job et une concurrence contrôlée; l'état des runs reste à vérifier.
 - [x] Corriger le parcours « Save settings now » : un échec d'écriture ou l'absence de répertoire de configuration ne peut plus être affiché comme une sauvegarde réussie; ajouter un test de défaillance du système de fichiers.
-- [x] Faire passer la CI desktop sur Linux, Windows et macOS; les trois runners ont réussi sur le commit `aba4fa51`. Relancer ces contrôles à chaque changement de code.
+- [x] Faire passer la CI desktop sur Linux, Windows et macOS; les trois runners ont réussi sur le commit `234de9a4`. Relancer ces contrôles à chaque changement de code.
 - [ ] Vérifier démarrage et fermeture propres, absence de panique sur erreurs utilisateur et absence de session/ressource orpheline.
 - [x] Actualiser le README pour décrire honnêtement les fonctions/limites du projet et les quality gates configurés.
 - [x] Ajouter `docs/MANUAL_TEST_CHECKLIST.md` pour les parcours principaux; la checklist reste à exécuter et à documenter sur chaque plateforme.
@@ -183,7 +183,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 ### P1.7 — livraison locale et installateur Windows
 
-**Avancement estimé : ≈ 40 %.** Le build de l'installateur a réussi sur le commit `33574008`, avec compilation `--locked`, génération d'un checksum et archivage du `Cargo.lock` exact associé au binaire. Le lockfile n'est toutefois pas encore versionné dans le dépôt : la résolution peut varier entre builds. Les dépendances embarquées et le fonctionnement réel en VM propre ainsi que la mise à jour/rollback sûre restent des bloqueurs majeurs.
+**Avancement estimé : ≈ 40 %.** Le build de l'installateur et le smoke test d'installation/désinstallation ont réussi sur les commits `bbf34671` et `e0cae058` (runs 38690569707 et 38690615439), avec compilation `--locked`, vérification du checksum et archivage du `Cargo.lock` exact associé au binaire. Le lockfile n'est toutefois pas encore versionné dans le dépôt : la résolution peut varier entre builds. Les dépendances embarquées et le fonctionnement réel en VM propre ainsi que la mise à jour/rollback sûre restent des bloqueurs majeurs.
 
 Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale de livraison est Windows, cohérente avec le besoin d'un installateur .exe; les autres plateformes doivent continuer à passer leurs quality gates sans être considérées comme livrées si aucun paquet n'est produit.
 
