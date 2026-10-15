@@ -33,7 +33,10 @@ impl DesktopApp {
         ui.add_space(8.0);
         let sessions = self.controller.session_summaries();
         if sessions.is_empty() {
-            egui::Frame::group(ui.style()).show(ui, |ui| {
+            egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
                 ui.heading(if self.language == "fr" { "Aucune session ouverte" } else { "No open sessions" });
                 ui.label(if self.language == "fr" { "Ouvrez une session à partir d’un fichier importé pour consulter son état et ses capacités." } else { "Open a session from an imported local file to inspect lifecycle and capability reporting." });
                 if ui.button(if self.language == "fr" { "Ouvrir la bibliothèque" } else { "Browse library" }).clicked() {
@@ -57,7 +60,10 @@ impl DesktopApp {
                     None
                 }
             });
-            egui::Frame::group(ui.style()).show(ui, |ui| {
+            egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
                 if state == SessionState::Paused {
                     ui.set_min_width(170.0);
                     ui.set_max_width(220.0);
