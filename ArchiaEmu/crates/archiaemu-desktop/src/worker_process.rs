@@ -35,7 +35,9 @@ pub enum WorkerProcessError {
 impl std::fmt::Display for WorkerProcessError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidExecutablePath => f.write_str("worker executable must be an absolute file path"),
+            Self::InvalidExecutablePath => {
+                f.write_str("worker executable must be an absolute file path")
+            },
             Self::Process(error) => write!(f, "worker process operation failed: {error}"),
             Self::MissingPipe => f.write_str("worker process did not expose required IPC pipes"),
             Self::ExecutableHashMismatch => {
@@ -132,7 +134,11 @@ impl WorkerProcess {
         command
             .args(arguments)
             .env_clear()
-            .current_dir(executable.parent().ok_or(WorkerProcessError::InvalidExecutablePath)?)
+            .current_dir(
+                executable
+                    .parent()
+                    .ok_or(WorkerProcessError::InvalidExecutablePath)?,
+            )
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
@@ -140,7 +146,12 @@ impl WorkerProcess {
         let mut child = command.spawn()?;
         let stdin = child.stdin.take().ok_or(WorkerProcessError::MissingPipe)?;
         let stdout = child.stdout.take().ok_or(WorkerProcessError::MissingPipe)?;
-        Ok(Self { child, stdin, stdout, executable })
+        Ok(Self {
+            child,
+            stdin,
+            stdout,
+            executable,
+        })
     }
 
     /// Returns the canonical path of the executable launched for this worker.
@@ -165,7 +176,10 @@ impl WorkerProcess {
 
     /// Requests an orderly shutdown without waiting indefinitely for the child.
     pub fn request_shutdown(&mut self) -> Result<(), WorkerProcessError> {
-        self.send(&WorkerMessage::new(WorkerMessageKind::Shutdown, Vec::new())?)
+        self.send(&WorkerMessage::new(
+            WorkerMessageKind::Shutdown,
+            Vec::new(),
+        )?)
     }
 
     /// Returns the exit status if the worker has exited.
