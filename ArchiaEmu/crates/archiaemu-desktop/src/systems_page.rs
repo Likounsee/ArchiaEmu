@@ -27,7 +27,10 @@ impl DesktopApp {
         for id in system_ids {
             if let Some(descriptor) = self.registry.registered_descriptor(id) {
                 let caps = descriptor.capabilities;
-                egui::Frame::group(ui.style()).show(ui, |ui| {
+                egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
                     ui.heading(descriptor.display_name);
                     ui.small(id.as_str());
                     ui.separator();
