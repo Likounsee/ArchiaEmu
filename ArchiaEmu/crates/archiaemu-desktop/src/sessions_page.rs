@@ -304,28 +304,33 @@ impl DesktopApp {
                         format!("Last core error: {error}"),
                     );
                 }
-                egui::CollapsingHeader::new("Session diagnostics")
+                egui::CollapsingHeader::new(if french { "Diagnostics de session" } else { "Session diagnostics" })
                     .id_source(("session_diagnostics", id))
                     .default_open(false)
                     .show(ui, |ui| {
-                        ui.label(format!("Session identifier: {}", id.get()));
+                        ui.label(format!("{}: {}", if french { "Identifiant de session" } else { "Session identifier" }, id.get()));
                         ui.label(format!(
-                            "Selected by host: {}",
+                            "{}: {}",
+                            if french { "Sélectionnée par l’hôte" } else { "Selected by host" },
                             self.controller.active_session() == Some(id)
                         ));
-                        ui.label(format!("Lifecycle state: {state:?}"));
-                        ui.label(format!("Content loaded: {content_loaded}"));
+                        ui.label(format!("{}: {state:?}", if french { "État du cycle de vie" } else { "Lifecycle state" }));
+                        ui.label(format!("{}: {content_loaded}", if french { "Contenu chargé" } else { "Content loaded" }));
                         ui.label(format!(
-                            "Video output capability: {}",
-                            if video_available {
+                            "{}: {}",
+                            if french {
+                                if video_available { "déclarée disponible" } else { "indisponible dans ce cœur" }
+                            } else if video_available {
                                 "declared available"
                             } else {
                                 "unavailable in this core"
                             }
                         ));
                         ui.label(format!(
-                            "Audio output capability: {}",
-                            if audio_available {
+                            "{}: {}",
+                            if french {
+                                if audio_available { "déclarée disponible" } else { "indisponible dans ce cœur" }
+                            } else if audio_available {
                                 "declared available"
                             } else {
                                 "unavailable in this core"
