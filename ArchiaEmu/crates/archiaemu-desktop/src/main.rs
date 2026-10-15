@@ -15,7 +15,7 @@ use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent};
 use audio_output::AudioOutput;
 use game_view::{map_key_to_control, video_frame_to_image};
-use preferences::{config_file_path, load_preferences, write_preferences};
+use preferences::{config_file_path, load_preferences, write_preferences_with_language};
 
 mod audio_output;
 mod game_page;
@@ -126,6 +126,7 @@ struct DesktopApp {
     selected_content: Option<PathBuf>,
     message: String,
     dark_mode: bool,
+    language: String,
     ui_scale: f32,
     accent_color: egui::Color32,
     config_path: Option<PathBuf>,
@@ -237,14 +238,14 @@ enum DesktopPage {
 }
 
 impl DesktopPage {
-    fn title(self) -> &'static str {
+    fn title(self, french: bool) -> &'static str {
         match self {
-            Self::Home => "Overview",
-            Self::Library => "Game library",
+            Self::Home => if french { "Accueil" } else { "Overview" },
+            Self::Library => if french { "Bibliothèque" } else { "Game library" },
             Self::Sessions => "Sessions",
-            Self::Game => "Game",
-            Self::Systems => "Systems",
-            Self::Settings => "Settings",
+            Self::Game => if french { "Jeu" } else { "Game" },
+            Self::Systems => if french { "Systèmes" } else { "Systems" },
+            Self::Settings => if french { "Paramètres" } else { "Settings" },
         }
     }
 }
@@ -257,6 +258,8 @@ impl DesktopApp {
         let mut controller = ApplicationController::new(host);
         let config_path = config_file_path();
         let mut dark_mode = true;
+        let locale = std::env::var("LANG").unwrap_or_default().to_ascii_lowercase();
+        let mut language = if locale.starts_with("fr") { "fr".to_owned() } else { "en".to_owned() };
         let mut ui_scale = 1.0;
         let mut accent_color = egui::Color32::from_rgb(75, 115, 210);
         let mut message = String::from("Ready. Select a content path to import or launch.");
@@ -264,6 +267,7 @@ impl DesktopApp {
             match load_preferences(path) {
                 Ok(Some(saved)) => {
                     dark_mode = saved.dark_mode;
+                    language = saved.language;
                     ui_scale = saved.ui_scale.clamp(0.8, 1.4);
                     accent_color = egui::Color32::from_rgb(
                         saved.accent_rgb[0],
@@ -315,6 +319,7 @@ impl DesktopApp {
             selected_content: None,
             message,
             dark_mode,
+            language,
             ui_scale,
             accent_color,
             config_path,
@@ -534,7 +539,7 @@ impl DesktopApp {
             .entries()
             .map(|entry| entry.path().to_path_buf())
             .collect();
-        if let Err(error) = write_preferences(
+        if let Err(error) = write_preferences_with_language(
             path,
             self.dark_mode,
             self.ui_scale,
@@ -543,6 +548,7 @@ impl DesktopApp {
                 self.accent_color.g(),
                 self.accent_color.b(),
             ],
+            &self.language,
             &paths,
         ) {
             self.message = format!("Could not save preferences: {error}");
@@ -646,16 +652,16 @@ impl SessionAction {
     }
 }
 
-fn navigation_items() -> [(DesktopPage, &'static str, &'static str); 6] {
+fn navigation_items(french: bool) -> [(DesktopPage, &'static str, &'static str); 6] {
     // Use common glyphs supported by the bundled default font; avoid the
     // uncommon filled-square symbols that appeared as missing-glyph boxes.
     [
-        (DesktopPage::Home, "⌂", "Overview"),
-        (DesktopPage::Library, "≡", "Game library"),
+        (DesktopPage::Home, "⌂", if french { "Accueil" } else { "Overview" }),
+        (DesktopPage::Library, "≡", if french { "Bibliothèque" } else { "Game library" }),
         (DesktopPage::Sessions, "○", "Sessions"),
-        (DesktopPage::Game, "▶", "Game"),
-        (DesktopPage::Systems, "◎", "Systems"),
-        (DesktopPage::Settings, "*", "Settings"),
+        (DesktopPage::Game, "▶", if french { "Jeu" } else { "Game" }),
+        (DesktopPage::Systems, "◎", if french { "Systèmes" } else { "Systems" }),
+        (DesktopPage::Settings, "*", if french { "Paramètres" } else { "Settings" }),
     ]
 }
 
@@ -763,7 +769,7 @@ impl eframe::App for DesktopApp {
                     ui.add_space(24.0);
                     ui.label("WORKSPACE");
                     ui.add_space(4.0);
-                    for (page, glyph, label) in navigation_items() {
+                    for (page, glyph, label) in navigation_items(self.language == "fr") {
                         if ui
                             .selectable_label(
                                 self.active_page == page,
@@ -806,8 +812,8 @@ impl eframe::App for DesktopApp {
         egui::TopBottomPanel::top("app_header").show(context, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.vertical(|ui| {
-                    ui.heading(self.active_page.title());
-                    ui.label("Your library, sessions and emulator tools in one place.");
+                    ui.heading(self.active_page.title(self.language == "fr"));
+                    ui.label(if self.language == "fr" { "Votre bibliothèque, vos sessions et vos outils d’émulation au même endroit." } else { "Your library, sessions and emulator tools in one place." });
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
@@ -823,10 +829,8 @@ impl eframe::App for DesktopApp {
                             .send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
                     }
                     ui.label(if self.dark_mode {
-                        "◐ Dark"
-                    } else {
-                        "☼ Light"
-                    });
+                        if self.language == "fr" { "◐ Sombre" } else { "◐ Dark" }
+                    } else if self.language == "fr" { "☼ Clair" } else { "☼ Light" });
                     ui.label(format!("{} session(s)", self.controller.session_count()));
                 });
             });
