@@ -95,19 +95,31 @@ impl DesktopApp {
             (
                 if french { "BIBLIOTHÈQUE" } else { "LIBRARY" },
                 self.controller.library().len().to_string(),
-                if french { "jeux importés" } else { "imported items" },
+                if french {
+                    "jeux importés"
+                } else {
+                    "imported items"
+                },
                 egui::Color32::from_rgb(111, 155, 255),
             ),
             (
                 if french { "SESSIONS" } else { "SESSIONS" },
                 self.controller.session_count().to_string(),
-                if french { "sessions ouvertes" } else { "open sessions" },
+                if french {
+                    "sessions ouvertes"
+                } else {
+                    "open sessions"
+                },
                 egui::Color32::from_rgb(98, 205, 164),
             ),
             (
                 if french { "SYSTÈMES" } else { "SYSTEMS" },
                 self.registry.system_ids().count().to_string(),
-                if french { "cœurs enregistrés" } else { "registered cores" },
+                if french {
+                    "cœurs enregistrés"
+                } else {
+                    "registered cores"
+                },
                 egui::Color32::from_rgb(190, 145, 255),
             ),
         ];
@@ -122,17 +134,10 @@ impl DesktopApp {
                     .stroke(border)
                     .show(card_ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.add(
-                                egui::Label::new(
-                                    egui::RichText::new("●").size(12.0).color(tint),
-                                ),
-                            );
-                            ui.label(
-                                egui::RichText::new(label)
-                                    .size(10.0)
-                                    .strong()
-                                    .color(muted),
-                            );
+                            ui.add(egui::Label::new(
+                                egui::RichText::new("●").size(12.0).color(tint),
+                            ));
+                            ui.label(egui::RichText::new(label).size(10.0).strong().color(muted));
                         });
                         ui.add_space(6.0);
                         ui.heading(egui::RichText::new(value).size(30.0).strong().color(text));
@@ -143,9 +148,20 @@ impl DesktopApp {
 
         ui.add_space(18.0);
         ui.horizontal_wrapped(|ui| {
-            ui.heading(if french { "Reprendre" } else { "Pick up where you left off" });
+            ui.heading(if french {
+                "Reprendre"
+            } else {
+                "Pick up where you left off"
+            });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.link(if french { "Toute la bibliothèque  →" } else { "View library  →" }).clicked() {
+                if ui
+                    .link(if french {
+                        "Toute la bibliothèque  →"
+                    } else {
+                        "View library  →"
+                    })
+                    .clicked()
+                {
                     self.navigate_to(DesktopPage::Library);
                 }
             });
@@ -156,11 +172,13 @@ impl DesktopApp {
             .controller
             .library()
             .entries()
-            .map(|entry| (
-                entry.title().to_owned(),
-                entry.path().to_path_buf(),
-                entry.size_bytes(),
-            ))
+            .map(|entry| {
+                (
+                    entry.title().to_owned(),
+                    entry.path().to_path_buf(),
+                    entry.size_bytes(),
+                )
+            })
             .collect();
 
         if entries.is_empty() {
@@ -173,18 +191,29 @@ impl DesktopApp {
                     ui.horizontal(|ui| {
                         ui.label(egui::RichText::new("＋").size(28.0).color(accent));
                         ui.vertical(|ui| {
-                            ui.label(egui::RichText::new(if french {
-                                "Votre bibliothèque commence ici"
-                            } else {
-                                "Your library starts here"
-                            }).strong().size(16.0));
+                            ui.label(
+                                egui::RichText::new(if french {
+                                    "Votre bibliothèque commence ici"
+                                } else {
+                                    "Your library starts here"
+                                })
+                                .strong()
+                                .size(16.0),
+                            );
                             ui.label(if french {
                                 "Importez une ROM .gb ou .gbc pour l’ajouter à votre collection."
                             } else {
                                 "Import a .gb or .gbc ROM to add it to your collection."
                             });
                             ui.add_space(6.0);
-                            if ui.button(if french { "Parcourir les fichiers…" } else { "Browse files…" }).clicked() {
+                            if ui
+                                .button(if french {
+                                    "Parcourir les fichiers…"
+                                } else {
+                                    "Browse files…"
+                                })
+                                .clicked()
+                            {
                                 self.choose_content_file();
                             }
                         });
@@ -209,19 +238,31 @@ impl DesktopApp {
                             ui.add_space(4.0);
                             ui.vertical(|ui| {
                                 ui.label(egui::RichText::new(title).strong());
-                                ui.label(egui::RichText::new(format!(
-                                    "{}  ·  {}",
-                                    path.file_name().and_then(|name| name.to_str()).unwrap_or("ROM"),
-                                    format_size(*size)
-                                )).size(12.0).color(muted));
+                                ui.label(
+                                    egui::RichText::new(format!(
+                                        "{}  ·  {}",
+                                        path.file_name()
+                                            .and_then(|name| name.to_str())
+                                            .unwrap_or("ROM"),
+                                        format_size(*size)
+                                    ))
+                                    .size(12.0)
+                                    .color(muted),
+                                );
                             });
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if ui.button(if french { "Lancer  →" } else { "Launch  →" }).clicked() {
-                                    self.content_path = path.display().to_string();
-                                    self.selected_content = Some(path.clone());
-                                    self.launch_content();
-                                }
-                            });
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui
+                                        .button(if french { "Lancer  →" } else { "Launch  →" })
+                                        .clicked()
+                                    {
+                                        self.content_path = path.display().to_string();
+                                        self.selected_content = Some(path.clone());
+                                        self.launch_content();
+                                    }
+                                },
+                            );
                         });
                         ui.add_space(4.0);
                         ui.separator();
