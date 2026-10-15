@@ -77,7 +77,11 @@ impl DesktopApp {
                     self.session_content_paths.clear();
                     self.message = match (french, release_error) {
                         (true, Some(error)) => {
-                            let noun = if count == 1 { "session fermée" } else { "sessions fermées" };
+                            let noun = if count == 1 {
+                                "session fermée"
+                            } else {
+                                "sessions fermées"
+                            };
                             format!("{error} ; {count} {noun}.")
                         }
                         (true, None) => {
@@ -85,7 +89,11 @@ impl DesktopApp {
                             format!("{count} {noun}.")
                         }
                         (false, Some(error)) => {
-                            let noun = if count == 1 { "session" } else { "sessions" };
+                            let noun = if count == 1 {
+                                "session"
+                            } else {
+                                "sessions"
+                            };
                             format!("{error}; closed {count} {noun}.")
                         }
                         (false, None) => {
