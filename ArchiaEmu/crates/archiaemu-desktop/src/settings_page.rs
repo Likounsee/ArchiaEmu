@@ -243,7 +243,7 @@ impl DesktopApp {
                         let current = option_env!("CARGO_PKG_VERSION").unwrap_or("0.0.0");
                         let update_available = update::is_newer_version(&version, current);
                         if update_available {
-                            ui.label(format!("Update available: {current} → {version}"));
+                            ui.label(format!("Update available: {current} to {version}"));
                             if let Some(download) = download {
                                 let downloading = self.update_download_receiver.is_some();
                                 if ui
