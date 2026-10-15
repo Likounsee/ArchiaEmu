@@ -1144,6 +1144,11 @@ mod tests {
         let probe = archiaemu_game_boy::GameBoyCartridgeProbe;
 
         let mut app = controller();
+        let canonical_rom = app
+            .import_content(&malformed_rom, 0x10000)
+            .unwrap()
+            .path()
+            .to_path_buf();
         let existing_session = app
             .host_mut()
             .create_session(Box::new(GameBoyCore::new()))
@@ -1164,6 +1169,14 @@ mod tests {
             app.session_summary(existing_session).unwrap().state,
             SessionState::Empty
         );
+        assert!(matches!(
+            app.library().get(&canonical_rom).unwrap().validation(),
+            ContentValidation::Rejected(_)
+        ));
+        assert!(matches!(
+            app.library().get(&canonical_rom).unwrap().format_detection(),
+            ContentFormatDetection::Detected(_)
+        ));
 
         app.close_all_sessions();
         std::fs::remove_file(malformed_rom).unwrap();
