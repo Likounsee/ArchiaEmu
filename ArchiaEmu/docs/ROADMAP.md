@@ -13,14 +13,14 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | Ordre | Phase | État estimé | Objectif |
 | --- | --- | ---: | --- |
 | **P0** | Fondations déjà présentes | **100 %** | Garder le runtime, les contrats communs et le pipeline de contenu suffisamment stables pour construire l'application |
-| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 60 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
+| **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 61 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | **≈ 65 %** | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | **≈ 85 %** | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
 | **P1.3** | Sessions et commandes génériques | **≈ 61 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
 | **P1.4** | Paramètres, diagnostics et ergonomie | **≈ 55 %** | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
 | **P1.5** | Sorties média hôte et validation multiplateforme | **≈ 80 %** | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
-| **P1.6** | Tests de parcours, CI et finition | **≈ 51 %** | Tests exécutés et validation multiplateforme de l'application |
-| **P1.7** | Livraison locale et installateur Windows | **≈ 40 %** | Installateur testé en environnement propre et mise à jour sûre |
+| **P1.6** | Tests de parcours, CI et finition | **≈ 53 %** | Tests exécutés et validation multiplateforme de l'application |
+| **P1.7** | Livraison locale et installateur Windows | **≈ 43 %** | Installateur testé en environnement propre et mise à jour sûre |
 | **P2** | Intégration et fiabilité des modules logiciels | **≈ 24 %** — après P1 | Découverte, téléchargement de modules logiciels autorisés, provenance et frontières de confiance; aucun catalogue de ROM |
 | **CPU** | Architecture transversale des stratégies d'exécution | **≈ 20 %** | Contrats CPU/ABI/GPU et stratégies réellement implémentées |
 | **P3** | Premier module de console réellement fonctionnel | **0 %** — après P1 | Un système testé de bout en bout, avec limites de compatibilité honnêtes |
@@ -189,7 +189,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 ### P1.7 — livraison locale et installateur Windows
 
-**Avancement estimé : ≈ 40 %.** Le build de l'installateur et le smoke test d'installation/désinstallation ont réussi sur les commits `bbf34671` et `e0cae058` (runs 38690569707 et 38690615439), avec compilation `--locked`, vérification du checksum et archivage du `Cargo.lock` exact associé au binaire. Le lockfile n'est toutefois pas encore versionné dans le dépôt : la résolution peut varier entre builds. Les dépendances embarquées et le fonctionnement réel en VM propre ainsi que la mise à jour/rollback sûre restent des bloqueurs majeurs.
+**Avancement estimé : ≈ 43 %.** Le binaire desktop expose maintenant `--help` et `--version` sans initialiser l'interface graphique; le smoke test d'installation vérifie ces deux commandes après installation, ce qui couvre le démarrage du processus même sur un runner sans OpenGL. Ces nouveaux changements doivent encore passer la CI. Le build de l'installateur et le smoke test d'installation/désinstallation ont réussi sur les commits `bbf34671` et `e0cae058` (runs 38690569707 et 38690615439), avec compilation `--locked`, vérification du checksum et archivage du `Cargo.lock` exact associé au binaire. Le lockfile n'est toutefois pas encore versionné dans le dépôt : la résolution peut varier entre builds. Les dépendances embarquées et le fonctionnement réel en VM propre ainsi que la mise à jour/rollback sûre restent des bloqueurs majeurs.
 
 Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale de livraison est Windows, cohérente avec le besoin d'un installateur .exe; les autres plateformes doivent continuer à passer leurs quality gates sans être considérées comme livrées si aucun paquet n'est produit.
 
@@ -197,6 +197,7 @@ Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale d
 - [ ] Versionner et valider un lockfile desktop dédié pour rendre la résolution reproductible entre builds. En attendant, le workflow génère le lockfile au début de chaque run, utilise `cargo build --locked` pour ce build et publie le lockfile associé à l'installateur comme preuve d'audit; cela ne garantit pas encore une résolution identique entre runs.
 - [ ] Recenser et embarquer tous les fichiers, bibliothèques natives, ressources et runtimes réellement requis; le workflow stage actuellement le binaire seul, à confirmer sur une VM Windows propre.
 - [x] Ajouter un workflow Windows x64 qui construit l'application, génère l'installateur versionné et son checksum SHA-256, publie un artefact de workflow et joint l'installateur aux releases créées depuis un tag `v*`; le build et le smoke test d'installation/désinstallation ont réussi sur le commit `33574008`. Le smoke test vérifie désormais aussi que le checksum correspond à l'installateur et que le `Cargo.lock` associé est bien archivé.
+- [x] Ajouter des commandes `--help`/`--version` qui n'initialisent pas le moteur graphique, avec tests unitaires et vérification du nom/version depuis le binaire réellement installé dans le smoke test Windows; la validation du commit courant reste en attente.
 - [x] Installer dans un répertoire local choisi, avec mode utilisateur par défaut et possibilité d'élévation; les préférences restent dans `%APPDATA%\\ArchiaEmu\\desktop.conf`, pas à côté de l'exécutable. Vérification réelle des chemins en VM toujours requise.
 - [x] Créer un raccourci Menu Démarrer et proposer le raccourci bureau comme option décochée par défaut dans l'assistant.
 - [x] Fournir le désinstallateur Inno Setup via Windows et le menu Démarrer, avec une question explicite sur la suppression des préférences/journaux/cache connus; le nettoyage couvre maintenant aussi les préférences temporaires dans `%LOCALAPPDATA%` si l'application a dû utiliser ce chemin de secours. Les ROM et fichiers arbitraires ne sont pas ciblés; le consentement interactif reste à vérifier en VM.
