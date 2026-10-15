@@ -702,36 +702,14 @@ impl SessionAction {
     }
 }
 
-fn navigation_items(french: bool) -> [(DesktopPage, &'static str, &'static str); 6] {
-    // Use common glyphs supported by the bundled default font; avoid the
-    // uncommon filled-square symbols that appeared as missing-glyph boxes.
+fn navigation_items(french: bool) -> [(DesktopPage, &'static str); 6] {
     [
-        (
-            DesktopPage::Home,
-            "H",
-            if french { "Accueil" } else { "Overview" },
-        ),
-        (
-            DesktopPage::Library,
-            "L",
-            if french {
-                "Bibliothèque"
-            } else {
-                "Game library"
-            },
-        ),
-        (DesktopPage::Sessions, "S", "Sessions"),
-        (DesktopPage::Game, "G", if french { "Jeu" } else { "Game" }),
-        (
-            DesktopPage::Systems,
-            "Y",
-            if french { "Systèmes" } else { "Systems" },
-        ),
-        (
-            DesktopPage::Settings,
-            "*",
-            if french { "Paramètres" } else { "Settings" },
-        ),
+        (DesktopPage::Home, if french { "Accueil" } else { "Overview" }),
+        (DesktopPage::Library, if french { "Bibliothèque" } else { "Game library" }),
+        (DesktopPage::Sessions, "Sessions"),
+        (DesktopPage::Game, if french { "Jeu" } else { "Game" }),
+        (DesktopPage::Systems, if french { "Systèmes" } else { "Systems" }),
+        (DesktopPage::Settings, if french { "Paramètres" } else { "Settings" }),
     ]
 }
 
@@ -927,7 +905,7 @@ impl eframe::App for DesktopApp {
                             .color(ui.visuals().weak_text_color()),
                     );
                     ui.add_space(9.0);
-                    for (page, glyph, label) in navigation_items(french) {
+                    for (page, label) in navigation_items(french) {
                         let selected = self.active_page == page;
                         let fill = if selected {
                             accent.gamma_multiply(if self.dark_mode { 0.22 } else { 0.13 })
@@ -939,21 +917,19 @@ impl eframe::App for DesktopApp {
                             .rounding(egui::Rounding::same(9.0))
                             .inner_margin(egui::Margin::symmetric(10.0, 10.0))
                             .show(ui, |ui| {
-                                ui.horizontal(|ui| {
-                                    let marker = if selected { accent } else { ui.visuals().weak_text_color() };
-                                    ui.label(egui::RichText::new(glyph).size(17.0).color(marker));
-                                    let response = ui.selectable_label(
+                                if ui
+                                    .selectable_label(
                                         selected,
                                         egui::RichText::new(label).size(13.0).color(if selected {
                                             accent
                                         } else {
                                             ui.visuals().text_color()
                                         }),
-                                    );
-                                    if response.clicked() {
-                                        self.navigate_to(page);
-                                    }
-                                });
+                                    )
+                                    .clicked()
+                                {
+                                    self.navigate_to(page);
+                                }
                             });
                         ui.add_space(3.0);
                     }
@@ -967,14 +943,11 @@ impl eframe::App for DesktopApp {
                             .rounding(egui::Rounding::same(10.0))
                             .inner_margin(egui::Margin::same(12.0))
                             .show(ui, |ui| {
-                                ui.horizontal(|ui| {
-                                    ui.label(egui::RichText::new("●").color(accent));
-                                    ui.label(egui::RichText::new(if french {
-                                        "Développement actif"
-                                    } else {
-                                        "Active development"
-                                    }).strong().size(12.0));
-                                });
+                                ui.label(egui::RichText::new(if french {
+                                    "Développement actif"
+                                } else {
+                                    "Active development"
+                                }).strong().size(12.0));
                                 ui.add_space(4.0);
                                 ui.label(egui::RichText::new(if french {
                                     "Les cœurs et la compatibilité restent expérimentaux."
@@ -983,12 +956,9 @@ impl eframe::App for DesktopApp {
                                 }).size(10.0).color(ui.visuals().weak_text_color()));
                                 ui.add_space(8.0);
                                 ui.separator();
-                                ui.horizontal(|ui| {
-                                    ui.label(egui::RichText::new("*").color(accent));
-                                    ui.label(if self.dark_mode {
-                                        if french { "Thème sombre" } else { "Dark appearance" }
-                                    } else if french { "Thème clair" } else { "Light appearance" });
-                                });
+                                ui.label(if self.dark_mode {
+                                    if french { "Thème sombre" } else { "Dark appearance" }
+                                } else if french { "Thème clair" } else { "Light appearance" });
                             });
                     });
                 });
@@ -1000,14 +970,8 @@ impl eframe::App for DesktopApp {
                         ui.horizontal(|ui| {
                             ui.strong("ArchiaEmu");
                             ui.separator();
-                            for (page, glyph, label) in navigation_items(self.language == "fr") {
-                                if ui
-                                    .selectable_label(
-                                        self.active_page == page,
-                                        format!("{glyph}  {label}"),
-                                    )
-                                    .clicked()
-                                {
+                            for (page, label) in navigation_items(self.language == "fr") {
+                                if ui.selectable_label(self.active_page == page, label).clicked() {
                                     self.navigate_to(page);
                                 }
                             }
@@ -1078,22 +1042,15 @@ impl eframe::App for DesktopApp {
                             .rounding(egui::Rounding::same(9.0))
                             .inner_margin(egui::Margin::symmetric(10.0, 7.0))
                             .show(ui, |ui| {
-                                ui.horizontal(|ui| {
-                                    ui.label(egui::RichText::new("●").color(if self.controller.session_count() > 0 {
-                                        egui::Color32::from_rgb(46, 176, 120)
-                                    } else {
-                                        ui.visuals().weak_text_color()
-                                    }));
-                                    ui.label(format!(
-                                        "{} {}",
-                                        self.controller.session_count(),
-                                        if self.language == "fr" { "session(s)" } else { "session(s)" }
-                                    ));
-                                });
+                                ui.label(format!(
+                                    "{} {}",
+                                    self.controller.session_count(),
+                                    if self.language == "fr" { "session(s)" } else { "session(s)" }
+                                ));
                             });
                         ui.label(if self.dark_mode {
-                            if self.language == "fr" { "Sombre" } else { "Dark" }
-                        } else if self.language == "fr" { "Clair" } else { "Light" });
+                            if self.language == "fr" { "Thème sombre" } else { "Dark theme" }
+                        } else if self.language == "fr" { "Thème clair" } else { "Light theme" });
                     });
                 });
             });
@@ -1115,7 +1072,7 @@ impl eframe::App for DesktopApp {
                     ui.separator();
                     ui.horizontal_wrapped(|ui| {
                         let status = self.ui_status();
-                        ui.colored_label(status.color(), format!("● {}", status.label()));
+                        ui.colored_label(status.color(), status.label());
                         ui.label(&self.message);
                     });
                 });
