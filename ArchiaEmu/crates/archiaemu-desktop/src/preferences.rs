@@ -16,6 +16,7 @@ pub(crate) struct SavedPreferences {
     pub(crate) ui_scale: f32,
     pub(crate) accent_rgb: [u8; 3],
     pub(crate) paths: Vec<PathBuf>,
+    pub(crate) language: String,
 }
 
 pub(crate) fn config_file_path() -> Option<PathBuf> {
@@ -55,6 +56,15 @@ fn read_preferences_file(path: &Path) -> std::io::Result<String> {
         .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))
 }
 
+fn system_language() -> String {
+    let locale = ["LC_ALL", "LC_MESSAGES", "LANG"]
+        .iter()
+        .filter_map(|key| std::env::var(key).ok())
+        .find(|value| !value.is_empty())
+        .unwrap_or_default();
+    if locale.to_ascii_lowercase().starts_with("fr") { "fr".to_owned() } else { "en".to_owned() }
+}
+
 pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
     let contents = match read_preferences_file(path) {
         Ok(contents) => contents,
@@ -82,9 +92,10 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
     let mut ui_scale = 1.0f32;
     let mut accent_rgb = [75, 115, 210];
     let mut paths = Vec::new();
+    let mut language = system_language();
     for line in contents.lines() {
         if let Some(value) = line.strip_prefix("version=") {
-            if value != "1" && value != "2" {
+            if value != "1" && value != "2" && value != "3" {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     format!("unsupported preferences version: {value}"),
@@ -112,6 +123,8 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
                     accent_rgb = [r, g, b];
                 }
             }
+        } else if let Some(value) = line.strip_prefix("language=") {
+            language = if value.eq_ignore_ascii_case("fr") { "fr" } else { "en" }.to_owned();
         } else if let Some(value) = line.strip_prefix("path=") {
             if let Some(decoded) = unescape_config_value(value) {
                 paths.push(PathBuf::from(decoded));
@@ -123,6 +136,7 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
         ui_scale,
         accent_rgb,
         paths,
+        language,
     }))
 }
 
@@ -131,6 +145,17 @@ pub(crate) fn write_preferences(
     dark_mode: bool,
     ui_scale: f32,
     accent_rgb: [u8; 3],
+    paths: &[PathBuf],
+) -> std::io::Result<()> {
+    write_preferences_with_language(path, dark_mode, ui_scale, accent_rgb, "en", paths)
+}
+
+pub(crate) fn write_preferences_with_language(
+    path: &Path,
+    dark_mode: bool,
+    ui_scale: f32,
+    accent_rgb: [u8; 3],
+    language: &str,
     paths: &[PathBuf],
 ) -> std::io::Result<()> {
     let parent = path.parent().ok_or_else(|| {
@@ -148,7 +173,7 @@ pub(crate) fn write_preferences(
         1.0
     };
     let mut contents = format!(
-        "version=2\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\n",
+        "version=3\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\nlanguage={}\n",
         accent_rgb[0], accent_rgb[1], accent_rgb[2]
     );
     for path in paths {
