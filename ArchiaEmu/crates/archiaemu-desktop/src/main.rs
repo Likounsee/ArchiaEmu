@@ -60,7 +60,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn cli_message(argument: &str) -> Result<&'static str, String> {
     match argument {
         "--version" | "-V" => Ok(concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION"))),
-        "--help" | "-h" => Ok(concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION"), "\n\nUsage: archiaemu-desktop [OPTIONS]\n\nOptions:\n  -h, --help     Print this help message\n  -V, --version  Print version information\n")),
+        "--help" | "-h" => Ok(concat!(
+            "ArchiaEmu ",
+            env!("CARGO_PKG_VERSION"),
+            "\n\nUsage: archiaemu-desktop [OPTIONS]\n\nOptions:\n  -h, --help     Print this help message\n  -V, --version  Print version information\n"
+        )),
         other => Err(format!("unknown argument: {other}; try --help")),
     }
 }
@@ -1033,10 +1037,16 @@ mod preference_tests {
 
     #[test]
     fn command_line_help_and_version_are_available_without_starting_the_gui() {
-        assert_eq!(cli_message("--version").unwrap(), concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION")));
+        assert_eq!(
+            cli_message("--version").unwrap(),
+            concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION"))
+        );
         assert!(cli_message("--help").unwrap().contains("--version"));
         assert!(cli_message("-h").unwrap().contains("Usage: archiaemu-desktop"));
-        assert_eq!(cli_message("--unknown").unwrap_err(), "unknown argument: --unknown; try --help");
+        assert_eq!(
+            cli_message("--unknown").unwrap_err(),
+            "unknown argument: --unknown; try --help"
+        );
     }
 
     #[test]
