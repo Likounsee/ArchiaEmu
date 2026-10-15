@@ -294,6 +294,21 @@ mod tests {
     }
 
     #[test]
+    fn oversized_save_does_not_replace_existing_preferences() {
+        let path = temporary_config("preserve-existing-on-oversized-save");
+        let original = b"version=2\\ndark=false\\nscale=1.2\\n";
+        fs::write(&path, original).expect("existing config should be written");
+        let oversized_path = PathBuf::from("x".repeat(MAX_PREFERENCES_BYTES + 1));
+
+        let error = write_preferences(&path, true, 1.0, [75, 115, 210], &[oversized_path])
+            .expect_err("oversized replacement must be rejected");
+
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+        assert_eq!(fs::read(&path).expect("existing config should remain"), original);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
     fn refuses_to_write_preferences_that_loader_would_reject() {
         let path = temporary_config("oversized-write");
         let oversized_path = PathBuf::from("x".repeat(MAX_PREFERENCES_BYTES + 1));
