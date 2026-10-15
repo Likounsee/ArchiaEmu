@@ -1,6 +1,6 @@
 # Présenter ArchiaEmu en 3 minutes
 
-Ce guide sert à présenter honnêtement l'état actuel du projet. ArchiaEmu est une application desktop expérimentale : le shell, la bibliothèque, les sessions et les outils de diagnostic sont en développement. Le cœur Game Boy est expérimental et **aucune compatibilité de jeu n'est garantie**.
+Ce guide sert à présenter honnêtement l'état actuel du projet. ArchiaEmu est une application desktop expérimentale : le shell, la bibliothèque, les sessions et les outils de diagnostic sont en développement. Le cœur Game Boy est expérimental : un petit sous-ensemble d'instructions LR35902 existe, mais il ne constitue pas un cœur complet et **aucune compatibilité de jeu n'est garantie**.
 
 ## Préparer la démonstration
 
@@ -43,6 +43,6 @@ La CI doit être vérifiée sur le commit exact présenté. Une compilation réu
 ## Limites à annoncer
 
 - Le projet est encore en phase P1 : l'objectif actuel est l'application desktop générique et sa livraison.
-- Le cœur Game Boy / Game Boy Color est expérimental; ne pas promettre que des jeux commerciaux fonctionnent.
+- Le cœur Game Boy / Game Boy Color reste incomplet : sous-ensemble d'instructions LR35902 seulement, sans PPU, audio, timer/interruptions, joypad matériel ni banques de cartouche. Ne pas promettre que des jeux commerciaux fonctionnent.
 - Le téléchargement de mise à jour prépare un fichier vérifié; l'installation automatique et le rollback ne sont pas activés.
 - La reproductibilité de la compilation desktop et la validation de l'installation dans une VM propre restent des points à finaliser.
