@@ -49,11 +49,7 @@ pub fn verify_signed_manifest<F>(
 where
     F: FnOnce(&[u8]) -> Result<ModuleManifest, ()>,
 {
-    policy.verify_and_parse(
-        envelope,
-        &Ed25519ManifestVerifier,
-        parse_verified_payload,
-    )
+    policy.verify_and_parse(envelope, &Ed25519ManifestVerifier, parse_verified_payload)
 }
 
 #[cfg(test)]
