@@ -97,6 +97,24 @@ mod tests {
     }
 
     #[test]
+    fn map_does_not_invoke_transform_for_non_ready_states() {
+        use std::cell::Cell;
+
+        let calls = Cell::new(0);
+        let state = ViewState::<u8>::Unavailable("device missing".to_owned());
+        let mapped = state.map(|value| {
+            calls.set(calls.get() + 1);
+            value + 1
+        });
+
+        assert_eq!(calls.get(), 0);
+        assert_eq!(
+            mapped,
+            ViewState::<u8>::Unavailable("device missing".to_owned())
+        );
+    }
+
+    #[test]
     fn status_helpers_distinguish_unavailable_from_failure() {
         let unavailable = ViewState::<u8>::Unavailable("audio device missing".to_owned());
         let error = ViewState::<u8>::Error("audio initialization failed".to_owned());
