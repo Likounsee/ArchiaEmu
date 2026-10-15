@@ -1027,43 +1027,27 @@ impl eframe::App for DesktopApp {
             )
             .show(context, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    ui.vertical(|ui| {
-                        ui.horizontal(|ui| {
-                            ui.label(
-                                egui::RichText::new(if self.language == "fr" {
-                                    "ESPACE DE TRAVAIL"
-                                } else {
-                                    "WORKSPACE"
-                                })
-                                .size(10.0)
-                                .strong()
-                                .color(self.accent_color),
-                            );
-                            ui.label(
-                                egui::RichText::new(" / ")
-                                    .size(10.0)
-                                    .color(ui.visuals().weak_text_color()),
-                            );
-                            ui.label(
-                                egui::RichText::new(self.active_page.title(self.language == "fr"))
-                                    .size(10.0)
-                                    .color(ui.visuals().weak_text_color()),
-                            );
-                        });
-                        ui.add_space(3.0);
-                        ui.heading(
-                            egui::RichText::new(self.active_page.title(self.language == "fr"))
-                                .size(25.0)
-                                .strong(),
-                        );
+                    ui.horizontal(|ui| {
                         ui.label(
                             egui::RichText::new(if self.language == "fr" {
-                                "Votre bibliothèque, vos sessions et vos outils au même endroit."
+                                "ESPACE DE TRAVAIL"
                             } else {
-                                "Your library, sessions and tools in one place."
+                                "WORKSPACE"
                             })
-                            .size(12.0)
-                            .color(ui.visuals().weak_text_color()),
+                            .size(10.0)
+                            .strong()
+                            .color(self.accent_color),
+                        );
+                        ui.label(
+                            egui::RichText::new(" / ")
+                                .size(10.0)
+                                .color(ui.visuals().weak_text_color()),
+                        );
+                        ui.label(
+                            egui::RichText::new(self.active_page.title(self.language == "fr"))
+                                .size(11.0)
+                                .strong()
+                                .color(ui.visuals().text_color()),
                         );
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
