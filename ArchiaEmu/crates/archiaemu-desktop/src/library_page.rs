@@ -282,11 +282,17 @@ impl DesktopApp {
                                                     {
                                                         self.selected_content = None;
                                                     }
-                                                    self.message = format!(
+                                                    let removal_message = format!(
                                                         "Removed '{}' from the library.",
                                                         title
                                                     );
-                                                    self.save_preferences();
+                                                    self.message = removal_message.clone();
+                                                    if !self.save_preferences() {
+                                                        let save_error = std::mem::take(&mut self.message);
+                                                        self.message = format!(
+                                                            "{removal_message} The item is removed for this session, but the library change was not saved. {save_error}"
+                                                        );
+                                                    }
                                                 }
                                                 Err(error) => {
                                                     self.message =
