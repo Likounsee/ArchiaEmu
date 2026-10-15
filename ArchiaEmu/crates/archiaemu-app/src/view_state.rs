@@ -33,6 +33,16 @@ impl<T> ViewState<T> {
         matches!(self, Self::Empty)
     }
 
+    /// Returns true when the state describes an unavailable capability.
+    pub const fn is_unavailable(&self) -> bool {
+        matches!(self, Self::Unavailable(_))
+    }
+
+    /// Returns true when the state represents a failed operation.
+    pub const fn is_error(&self) -> bool {
+        matches!(self, Self::Error(_))
+    }
+
     /// Borrows ready data while preserving the current state and its messages.
     pub fn as_ref(&self) -> ViewState<&T> {
         match self {
@@ -84,6 +94,18 @@ mod tests {
 
         let ready = ViewState::Ready(42_u8).map(|value| value.to_string());
         assert_eq!(ready, ViewState::Ready("42".to_owned()));
+    }
+
+    #[test]
+    fn status_helpers_distinguish_unavailable_from_failure() {
+        let unavailable = ViewState::<u8>::Unavailable("audio device missing".to_owned());
+        let error = ViewState::<u8>::Error("audio initialization failed".to_owned());
+
+        assert!(unavailable.is_unavailable());
+        assert!(!unavailable.is_error());
+        assert!(error.is_error());
+        assert!(!error.is_unavailable());
+        assert!(!ViewState::<u8>::Empty.is_error());
     }
 
     #[test]
