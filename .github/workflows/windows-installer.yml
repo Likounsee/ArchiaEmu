@@ -151,36 +151,50 @@ jobs:
             throw "Start Menu shortcut targets '$shortcutTarget' instead of the installed executable."
           }
 
-          # Exercise the installed binary without requiring a display or OpenGL context.
-          $versionOutput = & $installedExe --version
-          if ($LASTEXITCODE -ne 0) { throw "Installed executable --version failed with exit code $LASTEXITCODE." }
-          if ($versionOutput.Trim() -ne "ArchiaEmu ${{ steps.stage.outputs.version }}") {
-            throw "Installed executable reported unexpected version: $versionOutput"
+          # Capture CLI output to files rather than PowerShell pipes. Rust's stdout
+          # panics if PowerShell closes a native-process pipe before it finishes writing.
+          function Invoke-CapturedExecutable {
+            param([string]$Name, [string[]]$Arguments)
+            $stdoutPath = Join-Path $env:RUNNER_TEMP "$Name.stdout.txt"
+            $stderrPath = Join-Path $env:RUNNER_TEMP "$Name.stderr.txt"
+            $process = Start-Process -FilePath $installedExe -ArgumentList $Arguments -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+            $stdout = if (Test-Path $stdoutPath) { Get-Content $stdoutPath -Raw } else { "" }
+            $stderr = if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw } else { "" }
+            return [PSCustomObject]@{
+              ExitCode = $process.ExitCode
+              StdOut = $stdout
+              StdErr = $stderr
+              Text = "$stdout`n$stderr"
+            }
           }
-          $helpOutput = & $installedExe --help
-          $helpText = $helpOutput -join "`n"
-          if ($LASTEXITCODE -ne 0 -or $helpText -notmatch "Usage:" -or $helpText -notmatch "archiaemu-desktop") {
-            Write-Host "Installed executable --help output (exit=$LASTEXITCODE):"
-            Write-Host ($helpOutput | Out-String)
-            Write-Host "Combined help text:"
+
+          # Exercise the installed binary without requiring a display or OpenGL context.
+          $versionResult = Invoke-CapturedExecutable -Name "archiaemu-version" -Arguments @("--version")
+          if ($versionResult.ExitCode -ne 0) { throw "Installed executable --version failed with exit code $($versionResult.ExitCode): $($versionResult.Text)" }
+          $versionText = $versionResult.StdOut.Trim()
+          if ($versionText -ne "ArchiaEmu ${{ steps.stage.outputs.version }}") {
+            throw "Installed executable reported unexpected version: $versionText"
+          }
+
+          $helpResult = Invoke-CapturedExecutable -Name "archiaemu-help" -Arguments @("--help")
+          $helpText = $helpResult.Text
+          if ($helpResult.ExitCode -ne 0 -or $helpText -notmatch "Usage:" -or $helpText -notmatch "archiaemu-desktop") {
+            Write-Host "Installed executable --help output (exit=$($helpResult.ExitCode)):"
             Write-Host $helpText
             throw "Installed executable --help smoke test failed."
           }
-
           if ($helpText -notmatch "--version" -or $helpText -notmatch "--help") {
             throw "Installed executable --help does not document both supported options."
           }
 
           # Invalid CLI arguments must fail clearly rather than opening the GUI or exiting successfully.
-          $unknownOutput = & $installedExe --archiaemu-smoke-invalid-option 2>&1
-          $unknownExitCode = $LASTEXITCODE
-          if ($unknownExitCode -eq 0) {
+          $unknownResult = Invoke-CapturedExecutable -Name "archiaemu-invalid-option" -Arguments @("--archiaemu-smoke-invalid-option")
+          if ($unknownResult.ExitCode -eq 0) {
             throw "Installed executable unexpectedly accepted an unknown command-line option."
           }
-          $unknownText = $unknownOutput -join "`n"
-          if ($unknownText -notmatch "unknown argument" -or $unknownText -notmatch "--help") {
+          if ($unknownResult.Text -notmatch "unknown argument" -or $unknownResult.Text -notmatch "--help") {
             Write-Host "Unknown-option output:"
-            Write-Host $unknownText
+            Write-Host $unknownResult.Text
             throw "Unknown-option failure did not provide actionable CLI guidance."
           }
           # Hosted Windows runners may not expose an OpenGL 2.0+ context.
