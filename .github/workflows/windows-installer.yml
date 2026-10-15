@@ -159,8 +159,10 @@ jobs:
           }
           $helpOutput = & $installedExe --help
           $helpText = $helpOutput -join "`n"
-          if ($LASTEXITCODE -ne 0 -or $helpText -notmatch "Usage: archiaemu-desktop") {
-            Write-Host "Installed executable --help output:"
+          if ($LASTEXITCODE -ne 0 -or $helpText -notmatch "Usage:" -or $helpText -notmatch "archiaemu-desktop") {
+            Write-Host "Installed executable --help output (exit=$LASTEXITCODE):"
+            Write-Host ($helpOutput | Out-String)
+            Write-Host "Combined help text:"
             Write-Host $helpText
             throw "Installed executable --help smoke test failed."
           }
