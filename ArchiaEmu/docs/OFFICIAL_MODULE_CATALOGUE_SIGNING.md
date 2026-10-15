@@ -14,7 +14,7 @@ ArchiaEmu uses a publisher-controlled Ed25519 signing identity for its official 
 6. Persist the highest accepted catalogue revision durably and reject rollback.
 7. Document a key-rotation procedure before the first production catalogue is shipped.
 
-A placeholder key, test verifier, HTTPS-only URL, or SHA-256 digest is not a substitute for an authentic signature. The desktop crate contains a strict Ed25519 verifier backed by `ed25519-dalek`, and its `verify_signed_manifest` adapter now routes signed envelopes through the core trust policy. Tests cover the RFC 8032 known vector, tampering, malformed inputs, and the adapter's verify-before-parse behavior. However, no production public key is pinned, no protected signing secret is configured, and the adapter is not yet connected to an end-to-end catalogue-download/install path. External module installation must remain disabled.
+A placeholder key, test verifier, HTTPS-only URL, or SHA-256 digest is not a substitute for an authentic signature. The desktop crate contains a strict Ed25519 verifier backed by `ed25519-dalek`, a strict JSON parser for signed catalogues (unknown fields rejected, bounded to 1 MiB), and an adapter that routes signed envelopes through the core trust policy. Tests cover the RFC 8032 known vector, tampering, malformed inputs, strict JSON parsing, and verify-before-parse behavior. A basic worker-process launcher now connects standard input/output to the bounded IPC framing and kills/reaps the child when its handle is dropped. However, no production public key is pinned, no protected signing secret is configured, catalogue download and package installation are not wired to this path, and the worker launcher does not provide a complete OS sandbox or hard IPC timeouts. External module installation must remain disabled.
 
 ## Package verification
 
@@ -41,6 +41,6 @@ Do not publish a production module catalogue or advertise dynamic module install
 - Automated signature/tamper/unknown-key/rollback tests.
 - A trusted catalogue publication workflow using a protected signing secret.
 - A verified package installer and recovery tests.
-- A worker-process launcher, complete message schemas, and executable isolation tests for external cores.
+- A worker-process launcher with complete message schemas, hard timeouts/resource limits, OS-level isolation, and executable isolation tests for external cores.
 
 The built-in Game Boy core remains optional through the `game-boy-core` Cargo feature. A build without that feature must report that no Game Boy core is bundled rather than implying that an external core can already be installed.
