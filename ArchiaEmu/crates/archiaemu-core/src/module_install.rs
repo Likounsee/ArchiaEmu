@@ -360,6 +360,30 @@ mod tests {
     }
 
     #[test]
+    fn activation_failure_requires_recovery_without_cleanup() {
+        let path = journal_path();
+        let mut backend = TestBackend::new(Some(InstallOperation::Activation));
+        let result = install_module(
+            &mut backend,
+            &path,
+            ModuleId::new("test-module").unwrap(),
+            "1.0.0",
+        );
+
+        assert!(matches!(
+            result,
+            Err(ModuleInstallError::RecoveryRequired {
+                operation: InstallOperation::Activation,
+                ..
+            })
+        ));
+        assert_eq!(read_install_phase(&path).unwrap(), InstallPhase::Failed);
+        assert!(!backend.calls.contains(&InstallOperation::Cleanup));
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
     fn download_failure_marks_journal_failed_and_attempts_cleanup() {
         let path = journal_path();
         let mut backend = TestBackend::new(Some(InstallOperation::Download));
