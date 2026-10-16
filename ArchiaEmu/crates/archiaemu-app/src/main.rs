@@ -13,7 +13,7 @@ use archiaemu_core::core_io::{InputControl, InputEvent};
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::save_state_store::SaveStateStore;
 use archiaemu_core::CoreRegistry;
-use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
+use archiaemu_game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
 
 use archiaemu_app::library::ContentLibraryError;
 
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let mut registry = CoreRegistry::new();
-    register_game_boy(&mut registry)?;
+    register_game_boy_color(&mut registry)?;
     if args.len() == 1 && args[0] == "--list-systems" {
         list_systems(&registry);
         return Ok(());
@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let options = parse_launch_options(&args)
         .map_err(|message| io::Error::new(io::ErrorKind::InvalidInput, message))?;
 
-    let probe = GameBoyCartridgeProbe;
+    let probe = GameBoyColorCartridgeProbe;
     if let Some(selected) = options.selected_system.as_deref() {
         validate_system_selection(&registry, selected, probe.format_id())
             .map_err(|message| io::Error::new(io::ErrorKind::InvalidInput, message))?;
@@ -726,7 +726,7 @@ mod tests {
 
     fn registry() -> CoreRegistry {
         let mut registry = CoreRegistry::new();
-        register_game_boy(&mut registry).unwrap();
+        register_game_boy_color(&mut registry).unwrap();
         registry
     }
 
@@ -793,9 +793,9 @@ mod tests {
     fn close_all_sessions_clears_active_selection_and_releases_every_session() {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
         let first = host
-            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
             .unwrap();
-        host.create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+        host.create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
             .unwrap();
         let mut active = Some(first);
 
@@ -869,7 +869,7 @@ mod tests {
         );
 
         let id = host
-            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
             .unwrap();
         assert_eq!(
             inspect_inputs(&mut host, Some(id)).unwrap(),
@@ -881,7 +881,7 @@ mod tests {
     fn media_inspection_reports_unsupported_outputs_without_polling_the_core() {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
         let id = host
-            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
             .unwrap();
 
         assert_eq!(
