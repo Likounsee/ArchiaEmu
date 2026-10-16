@@ -909,9 +909,7 @@ mod tests {
     #[test]
     fn save_state_commands_report_unsupported_capability_before_file_access() {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
-        let id = host
-            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
-            .unwrap();
+        let id = host.create_session(Box::new(NoSaveStateCore)).unwrap();
         let path = std::env::temp_dir().join(format!(
             "archiaemu-unsupported-state-{}.bin",
             std::process::id()
