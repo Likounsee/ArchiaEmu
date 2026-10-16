@@ -311,9 +311,10 @@ fn game_boy_core_descriptor() -> archiaemu_core::CoreDescriptor {
             .expect("the built-in Game Boy system ID is valid"),
         display_name: "Game Boy / Game Boy Color",
         core_version: env!("CARGO_PKG_VERSION"),
-        // Loading and validating a cartridge is supported; machine I/O and full execution are not.
+        // Save states cover the complete mutable state of the currently implemented ROM-only machine.
         capabilities: archiaemu_core::CoreCapabilities {
             content_loading: true,
+            save_states: true,
             ..archiaemu_core::CoreCapabilities::default()
         },
     }
@@ -411,6 +412,86 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         Ok(())
     }
 
+
+    fn save_state(&self) -> Result<Vec<u8>, archiaemu_core::CoreError> {
+        use archiaemu_core::CoreError;
+
+        let image = self.image.as_deref().ok_or(CoreError::NotInitialized)?;
+        let header = self.header.as_ref().ok_or(CoreError::NotInitialized)?;
+        if header.cartridge_type != 0x00 {
+            return Err(CoreError::Unsupported(
+                "save states currently support ROM-only cartridges (mapper 0)",
+            ));
+        }
+        let cpu = self.cpu.encode_save_state();
+        let mut state = Vec::with_capacity(8_354);
+        state.extend_from_slice(b"GBST");
+        state.extend_from_slice(&1_u16.to_le_bytes());
+        state.extend_from_slice(
+            &u32::try_from(image.len())
+                .map_err(|_| CoreError::InvalidState("ROM image is too large"))?
+                .to_le_bytes(),
+        );
+        state.extend_from_slice(&rom_fingerprint(image).to_le_bytes());
+        state.extend_from_slice(&cpu);
+        state.extend_from_slice(&self.work_ram);
+        state.extend_from_slice(&self.high_ram);
+        state.push(self.interrupt_enable);
+        state.push(self.interrupt_request);
+        Ok(state)
+    }
+
+    fn load_state(&mut self, state: &[u8]) -> Result<(), archiaemu_core::CoreError> {
+        use archiaemu_core::CoreError;
+
+        const STATE_BYTES: usize = 8_354;
+        const CPU_START: usize = 18;
+        const CPU_END: usize = CPU_START + 15;
+        const WRAM_END: usize = CPU_END + 0x2000;
+        const HRAM_END: usize = WRAM_END + 0x7F;
+        if state.len() != STATE_BYTES {
+            return Err(CoreError::InvalidState("unexpected Game Boy state length"));
+        }
+        if &state[..4] != b"GBST" {
+            return Err(CoreError::InvalidState("invalid Game Boy state signature"));
+        }
+        if u16::from_le_bytes([state[4], state[5]]) != 1 {
+            return Err(CoreError::InvalidState("unsupported Game Boy state version"));
+        }
+        let image = self.image.as_deref().ok_or(CoreError::NotInitialized)?;
+        let header = self.header.as_ref().ok_or(CoreError::NotInitialized)?;
+        if header.cartridge_type != 0x00 {
+            return Err(CoreError::Unsupported(
+                "save states currently support ROM-only cartridges (mapper 0)",
+            ));
+        }
+        let stored_image_len = u32::from_le_bytes(state[6..10].try_into().expect("fixed slice"));
+        let stored_fingerprint =
+            u64::from_le_bytes(state[10..18].try_into().expect("fixed slice"));
+        if usize::try_from(stored_image_len).ok() != Some(image.len())
+            || stored_fingerprint != rom_fingerprint(image)
+        {
+            return Err(CoreError::InvalidState(
+                "save state belongs to a different ROM image",
+            ));
+        }
+        let cpu = Cpu::decode_save_state(&state[CPU_START..CPU_END])
+            .map_err(CoreError::InvalidState)?;
+        let interrupt_enable = state[HRAM_END];
+        let interrupt_request = state[HRAM_END + 1];
+        if interrupt_enable & !0x1F != 0 || interrupt_request & !0x1F != 0 {
+            return Err(CoreError::InvalidState("invalid interrupt register bits"));
+        }
+
+        // All validation is complete: commit the decoded machine state atomically.
+        self.cpu = cpu;
+        self.work_ram.copy_from_slice(&state[CPU_END..WRAM_END]);
+        self.high_ram.copy_from_slice(&state[WRAM_END..HRAM_END]);
+        self.interrupt_enable = interrupt_enable;
+        self.interrupt_request = interrupt_request;
+        Ok(())
+    }
+
     fn run_until_event(&mut self) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
         let image = self
             .image
@@ -502,6 +583,13 @@ impl CpuBus for GameBoyBus<'_> {
     }
 }
 
+/// Computes a stable content fingerprint used to reject states for another ROM.
+fn rom_fingerprint(image: &[u8]) -> u64 {
+    image.iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
+        (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+    })
+}
+
 /// Registers the single Game Boy / Game Boy Color module with the shared core registry.
 ///
 /// Registration makes the module discoverable, but does not imply that game
@@ -528,7 +616,7 @@ mod tests {
         assert!(!capabilities.input);
         assert!(!capabilities.video_output);
         assert!(!capabilities.audio_output);
-        assert!(!capabilities.save_states);
+        assert!(capabilities.save_states);
         assert!(!capabilities.persistent_saves);
     }
 
@@ -825,6 +913,7 @@ mod tests {
             core.descriptor().capabilities,
             archiaemu_core::CoreCapabilities {
                 content_loading: true,
+                save_states: true,
                 ..archiaemu_core::CoreCapabilities::default()
             }
         );
