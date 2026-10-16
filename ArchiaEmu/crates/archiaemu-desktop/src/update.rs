@@ -253,6 +253,23 @@ fn validate_release_notes_url(url: &str) -> Result<(), String> {
             "Release notes must point to the official ArchiaEmu GitHub releases page.".to_owned(),
         );
     }
+    // Keep the path canonical so encoded separators or dot-segments cannot
+    // redirect the browser to a different GitHub route than the one validated.
+    let lower_path = path.to_ascii_lowercase();
+    if lower_path.contains("%2e")
+        || lower_path.contains("%2f")
+        || lower_path.contains("%5c")
+        || path.contains('\\')
+        || path.chars().any(char::is_control)
+        || path
+            .split('/')
+            .any(|segment| segment == "." || segment == "..")
+    {
+        return Err(
+            "Release notes URL must not contain encoded separators, control characters, or path traversal segments."
+                .to_owned(),
+        );
+    }
     Ok(())
 }
 
@@ -600,6 +617,10 @@ mod tests {
             "https://github.com:8443/Likounsee/ArchiaEmu/releases",
             "https://github.com/Likounsee/ArchiaEmu/releases?redirect=example.com",
             "https://github.com/Likounsee/ArchiaEmu/releases#other-project",
+            "https://github.com/Likounsee/ArchiaEmu/releases/../../another-project",
+            "https://github.com/Likounsee/ArchiaEmu/releases/%2e%2e/another-project",
+            "https://github.com/Likounsee/ArchiaEmu/releases%2f..%2fanother-project",
+            "https://github.com/Likounsee/ArchiaEmu/releases\\\\..\\\\another-project",
         ] {
             assert!(
                 super::validate_release_notes_url(url).is_err(),
