@@ -17,9 +17,9 @@ impl DesktopApp {
                     "Available"
                 }
             } else if french {
-                "Non implémenté"
+                "Indisponible"
             } else {
-                "Not implemented"
+                "Unavailable"
             }
         };
 
@@ -205,6 +205,34 @@ impl DesktopApp {
             }
         }
 
+        // Keep persisted selections visible even when this build does not ship
+        // the corresponding core. Hiding them would make old preferences look lost.
+        let unavailable_selected: Vec<_> = selected
+            .iter()
+            .filter(|selected_id| {
+                !system_ids
+                    .iter()
+                    .any(|system_id| system_id.as_str() == selected_id.as_str())
+            })
+            .collect();
+        if !unavailable_selected.is_empty() {
+            ui.add_space(4.0);
+            ui.label(if french {
+                "Sélections conservées mais indisponibles dans cette compilation :"
+            } else {
+                "Selections retained but unavailable in this build:"
+            });
+            for selected_id in unavailable_selected {
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new(selected_id.as_str()).strong());
+                    ui.colored_label(
+                        egui::Color32::GRAY,
+                        if french { "Cœur absent" } else { "Core not bundled" },
+                    );
+                });
+            }
+        }
+
         if changed {
             state.set_selection(selected);
             match store.save(&state) {
@@ -244,6 +272,16 @@ impl DesktopApp {
                     ui.label(egui::RichText::new(installed.id.as_str()).strong());
                     ui.label("Version");
                     ui.monospace(&installed.version);
+                    let bundled = system_ids
+                        .iter()
+                        .any(|system_id| system_id.as_str() == installed.id.as_str());
+                    ui.label(if bundled {
+                        if french { "Cœur également intégré" } else { "Core also bundled" }
+                    } else if french {
+                        "Paquet externe"
+                    } else {
+                        "External package"
+                    });
                 });
             }
         }
