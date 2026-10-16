@@ -242,8 +242,9 @@ impl InstallJournal {
 
     /// Atomically replaces the journal file using a sibling temporary file.
     ///
-    /// The parent directory must already exist. This does not claim power-loss
-    /// durability on filesystems that do not support directory synchronization.
+    /// The parent directory must already exist. The temporary file is flushed
+    /// before replacement; Unix directory metadata is then synchronized, and
+    /// Windows replacement uses write-through semantics.
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), InstallJournalError> {
         let path = path.as_ref();
         let parent = path
@@ -263,7 +264,8 @@ impl InstallJournal {
             file.write_all(self.encode().as_bytes())?;
             file.sync_all()?;
             drop(file);
-            fs::rename(&temp_path, path)?;
+            platform_rename(&temp_path, path)?;
+            sync_parent_directory(parent)?;
             Ok::<(), io::Error>(())
         })();
         if result.is_err() {
@@ -271,6 +273,31 @@ impl InstallJournal {
         }
         result.map_err(InstallJournalError::Io)
     }
+}
+
+/// Replaces a journal using write-through semantics on Windows.
+fn platform_rename(from: &Path, to: &Path) -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        archiaemu_windows_durability::rename_write_through(from, to)
+    }
+
+    #[cfg(not(windows))]
+    {
+        fs::rename(from, to)
+    }
+}
+
+/// Flushes directory metadata on Unix after replacing the journal.
+#[cfg(unix)]
+fn sync_parent_directory(parent: &Path) -> io::Result<()> {
+    File::open(parent)?.sync_all()
+}
+
+/// Windows requests write-through completion as part of the rename operation.
+#[cfg(not(unix))]
+fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
+    Ok(())
 }
 
 fn encode_hex(bytes: &[u8]) -> String {
