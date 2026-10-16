@@ -8,14 +8,14 @@ rust-version = "1.78"
 repository = "https://github.com/Likounsee/ArchiaEmu"
 
 [features]
-default = ["game-boy-core"]
-# Allows packaging a host without statically linking the Game Boy implementation.
-game-boy-core = ["dep:archiaemu-game-boy"]
+# Console cores are optional modules; a fresh desktop build contains no console by default.
+default = []
+game-boy-color-module = ["dep:archiaemu-game-boy"]
 
 [dependencies]
 archiaemu-app = { version = "0.1.0", path = "../archiaemu-app" }
 archiaemu-core = { version = "0.1.0", path = "../archiaemu-core" }
-archiaemu-game-boy = { version = "0.1.0", path = "../archiaemu-game-boy", optional = true }
+archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../archiaemu-game-boy", optional = true }
 eframe = { version = "=0.27.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 ed25519-dalek = "=2.1.1"
 rfd = "=0.14.1"
