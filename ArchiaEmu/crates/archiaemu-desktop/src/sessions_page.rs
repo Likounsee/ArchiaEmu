@@ -151,7 +151,7 @@ impl DesktopApp {
                             self.session_action(id, SessionAction::Resume);
                         }
                         if content_loaded && save_states {
-                            if ui.button(if french { "Sauvegarder l’état" } else { "Save state" }).clicked() {
+                            if ui.button(if french { "Sauvegarder l’état" } else { "Save" }).clicked() {
                                 self.save_state_action(id);
                             }
                             if ui.button(if french { "Charger l’état" } else { "Load state" }).clicked() {
