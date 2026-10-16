@@ -543,7 +543,7 @@ impl DesktopApp {
                         } else {
                             format!("Launched session {}, but its in-game save could not be loaded: {error}", id.get())
                         }
-                    },
+                    }
                 };
                 self.frame_cadence.reset();
                 self.frame_texture = None;
