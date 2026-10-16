@@ -265,6 +265,7 @@ pub struct GameBoyCore {
     high_ram: [u8; 0x7F],
     interrupt_enable: u8,
     interrupt_request: u8,
+    cartridge_ram: Vec<u8>,
 }
 
 impl GameBoyCore {
@@ -284,6 +285,7 @@ impl GameBoyCore {
             high_ram: [0; 0x7F],
             interrupt_enable: 0,
             interrupt_request: 0,
+            cartridge_ram: Vec::new(),
         }
     }
 
@@ -344,7 +346,9 @@ fn game_boy_core_descriptor() -> archiaemu_core::CoreDescriptor {
 
 impl archiaemu_core::EmulationCore for GameBoyCore {
     fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
-        game_boy_core_descriptor()
+        let mut descriptor = game_boy_core_descriptor();
+        descriptor.capabilities.persistent_saves = self.has_battery_backed_ram();
+        descriptor
     }
 
     fn load_content(&mut self, content: &[u8]) -> Result<(), archiaemu_core::CoreError> {
@@ -363,15 +367,16 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         }
         // Commit state only after validation succeeds, preserving any previously
         // loaded image if the caller supplies malformed replacement content.
+        let cartridge_ram_len = cartridge_ram_size(&header).unwrap_or(0);
         self.image = Some(content.to_vec());
         self.header = Some(header);
+        self.cartridge_ram = vec![0; cartridge_ram_len];
         self.work_ram.fill(0);
         self.high_ram.fill(0);
         self.interrupt_enable = 0;
         self.interrupt_request = 0;
         self.cpu = Cpu::new();
-        if header.cartridge_type == 0x00
-            && header.preferred_hardware_mode().is_some()
+        if supports_execution(&header)
             && matches!(
                 expected_rom_size(header.rom_size_code),
                 Some(required) if content.len() >= required
@@ -389,9 +394,9 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
             .header
             .as_ref()
             .ok_or(archiaemu_core::CoreError::NotInitialized)?;
-        if header.cartridge_type != 0x00 {
+        if !supports_execution(header) {
             return Err(archiaemu_core::CoreError::Unsupported(
-                "execution currently supports ROM-only cartridges (mapper 0)",
+                "execution supports ROM-only and ROM+RAM cartridges with up to 8 KiB RAM (mapper 0)",
             ));
         }
         let required_size = expected_rom_size(header.rom_size_code).ok_or(
@@ -439,15 +444,15 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
 
         let image = self.image.as_deref().ok_or(CoreError::NotInitialized)?;
         let header = self.header.as_ref().ok_or(CoreError::NotInitialized)?;
-        if header.cartridge_type != 0x00 {
+        if !supports_execution(header) {
             return Err(CoreError::Unsupported(
-                "save states currently support ROM-only cartridges (mapper 0)",
+                "save states support mapper 0 cartridges with up to 8 KiB RAM",
             ));
         }
         let cpu = self.cpu.encode_save_state();
-        let mut state = Vec::with_capacity(8_354);
+        let mut state = Vec::with_capacity(8_354 + self.cartridge_ram.len());
         state.extend_from_slice(b"GBST");
-        state.extend_from_slice(&1_u16.to_le_bytes());
+        state.extend_from_slice(&2_u16.to_le_bytes());
         state.extend_from_slice(
             &u32::try_from(image.len())
                 .map_err(|_| CoreError::InvalidState("ROM image is too large"))?
@@ -459,6 +464,7 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         state.extend_from_slice(&self.high_ram);
         state.push(self.interrupt_enable);
         state.push(self.interrupt_request);
+        state.extend_from_slice(&self.cartridge_ram);
         Ok(state)
     }
 
@@ -470,23 +476,38 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         const CPU_END: usize = CPU_START + 15;
         const WRAM_END: usize = CPU_END + 0x2000;
         const HRAM_END: usize = WRAM_END + 0x7F;
-        if state.len() != STATE_BYTES {
+        if state.len() < STATE_BYTES {
             return Err(CoreError::InvalidState("unexpected Game Boy state length"));
         }
         if &state[..4] != b"GBST" {
             return Err(CoreError::InvalidState("invalid Game Boy state signature"));
         }
-        if u16::from_le_bytes([state[4], state[5]]) != 1 {
+        let state_version = u16::from_le_bytes([state[4], state[5]]);
+        if !matches!(state_version, 1 | 2) {
             return Err(CoreError::InvalidState(
                 "unsupported Game Boy state version",
             ));
         }
         let image = self.image.as_deref().ok_or(CoreError::NotInitialized)?;
         let header = self.header.as_ref().ok_or(CoreError::NotInitialized)?;
-        if header.cartridge_type != 0x00 {
+        if !supports_execution(header) {
             return Err(CoreError::Unsupported(
-                "save states currently support ROM-only cartridges (mapper 0)",
+                "save states support mapper 0 cartridges with up to 8 KiB RAM",
             ));
+        }
+        let expected_state_len = STATE_BYTES
+            + if state_version == 2 {
+                self.cartridge_ram.len()
+            } else {
+                if !self.cartridge_ram.is_empty() {
+                    return Err(CoreError::InvalidState(
+                        "legacy state does not contain cartridge RAM",
+                    ));
+                }
+                0
+            };
+        if state.len() != expected_state_len {
+            return Err(CoreError::InvalidState("unexpected Game Boy state length"));
         }
         let stored_image_len = u32::from_le_bytes(state[6..10].try_into().expect("fixed slice"));
         let stored_fingerprint = u64::from_le_bytes(state[10..18].try_into().expect("fixed slice"));
@@ -511,6 +532,9 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         self.high_ram.copy_from_slice(&state[WRAM_END..HRAM_END]);
         self.interrupt_enable = interrupt_enable;
         self.interrupt_request = interrupt_request;
+        if state_version == 2 {
+            self.cartridge_ram.copy_from_slice(&state[STATE_BYTES..]);
+        }
         Ok(())
     }
 
@@ -547,9 +571,9 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
             .header
             .as_ref()
             .ok_or(archiaemu_core::CoreError::NotInitialized)?;
-        if header.cartridge_type != 0x00 {
+        if !supports_execution(header) {
             return Err(archiaemu_core::CoreError::Unsupported(
-                "execution currently supports ROM-only cartridges (mapper 0)",
+                "execution supports ROM-only and ROM+RAM cartridges with up to 8 KiB RAM (mapper 0)",
             ));
         }
         let required_size = expected_rom_size(header.rom_size_code).ok_or(
@@ -570,6 +594,7 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
             image,
             work_ram: &mut self.work_ram,
             high_ram: &mut self.high_ram,
+            cartridge_ram: &mut self.cartridge_ram,
             interrupt_enable: &mut self.interrupt_enable,
             interrupt_request: &mut self.interrupt_request,
         };
@@ -595,6 +620,7 @@ struct GameBoyBus<'a> {
     image: &'a [u8],
     work_ram: &'a mut [u8; 0x2000],
     high_ram: &'a mut [u8; 0x7F],
+    cartridge_ram: &'a mut [u8],
     interrupt_enable: &'a mut u8,
     interrupt_request: &'a mut u8,
 }
