@@ -250,7 +250,7 @@ pub enum HardwareMode {
 /// Stable identifier shared by Game Boy and Game Boy Color game support.
 pub const SYSTEM_ID: &str = "game-boy-color";
 
-/// A module adapter that exposes Game Boy cartridge inspection through the
+/// A module adapter that exposes Game Boy Color and backwards-compatible Game Boy cartridge inspection through the
 /// shared ArchiaEmu core contract.
 ///
 /// This is an early execution foundation, not a functioning game emulator yet:
@@ -278,7 +278,7 @@ impl GameBoyColorCore {
         })
     }
 
-    /// Creates an uninitialized unified Game Boy / Game Boy Color module instance.
+    /// Creates an uninitialized Game Boy Color core that can select original Game Boy mode for compatible cartridges.
     pub const fn new() -> Self {
         Self {
             image: None,
@@ -300,7 +300,7 @@ impl GameBoyColorCore {
 
     /// Returns the hardware mode selected for the loaded cartridge, if known.
     ///
-    /// The same core instance handles both modes; this value is not a separate
+    /// The same module instance handles both modes; this value is not a separate
     /// emulator/module selection.
     pub const fn hardware_mode(&self) -> Option<HardwareMode> {
         match self.header.as_ref() {
