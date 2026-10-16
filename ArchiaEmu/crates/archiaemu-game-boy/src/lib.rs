@@ -730,7 +730,10 @@ mod tests {
         let mut registry = archiaemu_core::CoreRegistry::new();
         super::register_game_boy_color(&mut registry).unwrap();
         let system_id = registry.system_ids().next().unwrap();
-        assert_eq!(super::GameBoyColorCartridgeProbe.format_id(), system_id.as_str());
+        assert_eq!(
+            super::GameBoyColorCartridgeProbe.format_id(),
+            system_id.as_str()
+        );
         assert_eq!(system_id.as_str(), "game-boy-color");
     }
 
@@ -1012,7 +1015,10 @@ mod tests {
         assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-dmg").unwrap()));
         assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy").unwrap()));
         let core = registry.create(id).unwrap();
-        assert_eq!(core.descriptor().display_name, "Game Boy Color (backwards compatible with Game Boy)");
+        assert_eq!(
+            core.descriptor().display_name,
+            "Game Boy Color (backwards compatible with Game Boy)"
+        );
         assert_eq!(
             core.descriptor().capabilities,
             archiaemu_core::CoreCapabilities {
@@ -1149,11 +1155,18 @@ mod tests {
         bus.write8(0xA123, 0x37);
         assert!(*bus.cartridge_ram_dirty);
         assert_eq!(bus.read8(0xA123), 0x37);
-        assert_eq!(bus.read8(0xA923), 0x37, "2 KiB RAM is mirrored across the 8 KiB window");
+        assert_eq!(
+            bus.read8(0xA923),
+            0x37,
+            "2 KiB RAM is mirrored across the 8 KiB window"
+        );
 
         *bus.cartridge_ram_dirty = false;
         bus.write8(0xA123, 0x37);
-        assert!(!*bus.cartridge_ram_dirty, "writing the same byte must not trigger an autosave");
+        assert!(
+            !*bus.cartridge_ram_dirty,
+            "writing the same byte must not trigger an autosave"
+        );
         bus.write8(0xA123, 0x38);
         assert!(*bus.cartridge_ram_dirty);
         assert_eq!(bus.read8(0xA923), 0x38);
@@ -1193,7 +1206,10 @@ mod tests {
 
         core.load_state(&state).unwrap();
         assert_eq!(core.cartridge_ram[0x432], 0xD6);
-        assert!(core.persistent_save_dirty(), "restored cartridge RAM must be persisted");
+        assert!(
+            core.persistent_save_dirty(),
+            "restored cartridge RAM must be persisted"
+        );
     }
 
     #[test]
