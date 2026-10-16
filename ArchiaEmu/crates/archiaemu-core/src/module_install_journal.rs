@@ -426,6 +426,43 @@ mod tests {
     }
 
     #[test]
+    fn save_replaces_existing_journal_and_loads_latest_phase() {
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-install-journal-{}-{}.journal",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        let mut journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
+        journal.save(&path).unwrap();
+
+        journal.advance(InstallPhase::Downloading).unwrap();
+        journal.advance(InstallPhase::Verified).unwrap();
+        journal.save(&path).unwrap();
+
+        let loaded = InstallJournal::load(&path).unwrap();
+        assert_eq!(loaded, journal);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn load_rejects_malformed_journal_without_repairing_it() {
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-install-journal-invalid-{}-{}.journal",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::write(&path, "not a journal\\n").unwrap();
+
+        assert!(matches!(
+            InstallJournal::load(&path),
+            Err(InstallJournalError::InvalidFormat)
+        ));
+        assert_eq!(fs::read_to_string(&path).unwrap(), "not a journal\\n");
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
     fn constructor_rejects_empty_or_record_separated_versions() {
         for version in ["", "  ", "1.0\nphase\tcommitted", "1.0\r", "1.0\tbad"] {
             assert!(matches!(
