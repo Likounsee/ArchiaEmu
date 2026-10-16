@@ -502,7 +502,7 @@ mod tests {
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
-        let bytes = b"ARCHIAEMU-INSTALL-JOURNAL\\t1\\n\\xff";
+        let bytes = b"ARCHIAEMU-INSTALL-JOURNAL\t1\n\xff";
         fs::write(&path, bytes).unwrap();
 
         assert!(matches!(
