@@ -11,7 +11,10 @@ use core::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::module_install_journal::{InstallJournal, InstallJournalError, InstallPhase};
+use crate::module_install_journal::{
+    plan_install_recovery, remove_committed_install_journal, remove_discarded_install_journal,
+    InstallJournal, InstallJournalError, InstallPhase, InstallRecovery, InstallRecoveryPlan,
+};
 use crate::module_management::ModuleId;
 
 /// Operations supplied by the trusted host installer.
@@ -35,6 +38,154 @@ pub trait ModuleInstallBackend {
     ///
     /// This must not delete or overwrite a previously installed working version.
     fn cleanup_uncommitted(&mut self, module: &ModuleId, version: &str) -> Result<(), String>;
+}
+
+/// Host operations required to recover interrupted module installations.
+pub trait ModuleInstallRecoveryBackend {
+    /// Removes isolated transaction staging and temporary artifact files.
+    ///
+    /// Must not modify the currently installed module version.
+    fn cleanup_transaction_files(&mut self, module: &ModuleId, version: &str) -> Result<(), String>;
+
+    /// Confirms that the requested version is active and persists that fact in installed state.
+    ///
+    /// This must inspect the final installation and be idempotent. It must return an error
+    /// rather than guess when the final state is ambiguous.
+    fn reconcile_activated_state(&mut self, module: &ModuleId, version: &str) -> Result<(), String>;
+}
+
+/// Result for one journal handled during startup recovery.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum InstallRecoveryResult {
+    /// Pre-activation staging was cleaned and its journal removed.
+    Discarded { journal_path: PathBuf },
+    /// An already committed transaction's temporary files and journal were removed.
+    CleanedCommitted { journal_path: PathBuf },
+    /// Activation was reconciled, committed durably, and its journal removed.
+    ReconciledCommitted { journal_path: PathBuf },
+    /// A failed transaction was preserved for explicit inspection or retry.
+    NeedsInspection { journal_path: PathBuf, phase: InstallPhase },
+}
+
+/// Startup recovery failure. The journal is retained whenever recovery cannot finish.
+#[derive(Debug)]
+pub struct InstallRecoveryError {
+    /// Journal that could not be recovered.
+    pub journal_path: PathBuf,
+    /// Operation that failed.
+    pub operation: &'static str,
+    /// Backend or persistence error details.
+    pub message: String,
+}
+
+impl fmt::Display for InstallRecoveryError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "module installation recovery failed during {} for {}: {}",
+            self.operation,
+            self.journal_path.display(),
+            self.message
+        )
+    }
+}
+
+impl std::error::Error for InstallRecoveryError {}
+
+/// Plans and executes recovery for every journal in a transaction directory.
+///
+/// No journal is removed until the backend has successfully cleaned transaction files or
+/// reconciled the final installed version. Ambiguous activation and failed transactions
+/// remain on disk for inspection. A malformed journal aborts planning before any action.
+pub fn recover_module_installs<B: ModuleInstallRecoveryBackend>(
+    backend: &mut B,
+    directory: impl AsRef<Path>,
+) -> Result<Vec<InstallRecoveryResult>, InstallRecoveryError> {
+    let plans = plan_install_recovery(directory).map_err(|error| InstallRecoveryError {
+        journal_path: PathBuf::from("<journal directory>"),
+        operation: "planning",
+        message: error.to_string(),
+    })?;
+    let mut results = Vec::with_capacity(plans.len());
+
+    for plan in plans {
+        let result = recover_one_module_install(backend, &plan)?;
+        results.push(result);
+    }
+    Ok(results)
+}
+
+fn recover_one_module_install<B: ModuleInstallRecoveryBackend>(
+    backend: &mut B,
+    plan: &InstallRecoveryPlan,
+) -> Result<InstallRecoveryResult, InstallRecoveryError> {
+    let fail = |operation, message: String| InstallRecoveryError {
+        journal_path: plan.journal_path.clone(),
+        operation,
+        message,
+    };
+
+    match plan.action {
+        InstallRecovery::DiscardStaging => {
+            backend
+                .cleanup_transaction_files(&plan.module, &plan.version)
+                .map_err(|message| fail("staging cleanup", message))?;
+            remove_discarded_install_journal(&plan.journal_path)
+                .map_err(|error| fail("journal removal", error.to_string()))?;
+            Ok(InstallRecoveryResult::Discarded {
+                journal_path: plan.journal_path.clone(),
+            })
+        }
+        InstallRecovery::ReconcileActivation => {
+            backend
+                .reconcile_activated_state(&plan.module, &plan.version)
+                .map_err(|message| fail("activation reconciliation", message))?;
+            let mut journal = InstallJournal::load(&plan.journal_path)
+                .map_err(|error| fail("journal reload", error.to_string()))?;
+            if journal.entry().phase == InstallPhase::Activating {
+                journal
+                    .advance(InstallPhase::Activated)
+                    .map_err(|error| fail("activation milestone", error.to_string()))?;
+                journal
+                    .save(&plan.journal_path)
+                    .map_err(|error| fail("activation milestone persistence", error.to_string()))?;
+            }
+            if journal.entry().phase != InstallPhase::Activated {
+                return Err(fail(
+                    "activation reconciliation",
+                    format!("journal phase changed unexpectedly to {:?}", journal.entry().phase),
+                ));
+            }
+            journal
+                .advance(InstallPhase::Committed)
+                .map_err(|error| fail("commit milestone", error.to_string()))?;
+            journal
+                .save(&plan.journal_path)
+                .map_err(|error| fail("commit persistence", error.to_string()))?;
+            backend
+                .cleanup_transaction_files(&plan.module, &plan.version)
+                .map_err(|message| fail("committed cleanup", message))?;
+            remove_committed_install_journal(&plan.journal_path)
+                .map_err(|error| fail("committed journal removal", error.to_string()))?;
+            Ok(InstallRecoveryResult::ReconciledCommitted {
+                journal_path: plan.journal_path.clone(),
+            })
+        }
+        InstallRecovery::CleanupCommitted => {
+            backend
+                .cleanup_transaction_files(&plan.module, &plan.version)
+                .map_err(|message| fail("committed cleanup", message))?;
+            remove_committed_install_journal(&plan.journal_path)
+                .map_err(|error| fail("committed journal removal", error.to_string()))?;
+            Ok(InstallRecoveryResult::CleanedCommitted {
+                journal_path: plan.journal_path.clone(),
+            })
+        }
+        InstallRecovery::InspectFailure => Ok(InstallRecoveryResult::NeedsInspection {
+            journal_path: plan.journal_path.clone(),
+            phase: plan.phase,
+        }),
+    }
 }
 
 /// Last operation attempted by an installation coordinator.
