@@ -721,6 +721,52 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_install_requests_never_duplicate_a_module_in_the_plan() {
+        let descriptors = catalogue_descriptors();
+        let catalog = ModuleCatalog::new(&descriptors);
+
+        let plan = catalog
+            .plan_install(
+                &[id("game-boy"), id("nes"), id("game-boy"), id("nes")],
+                &[],
+            )
+            .unwrap();
+
+        assert_eq!(
+            plan.install_order,
+            vec![id("shared-runtime"), id("game-boy"), id("nes")]
+        );
+    }
+
+    #[test]
+    fn duplicate_uninstall_requests_never_duplicate_a_module_in_the_plan() {
+        let descriptors = catalogue_descriptors();
+        let catalog = ModuleCatalog::new(&descriptors);
+
+        let plan = catalog
+            .plan_uninstall(
+                &[id("game-boy"), id("game-boy"), id("shared-runtime")],
+                &[id("shared-runtime"), id("game-boy")],
+            )
+            .unwrap();
+
+        assert_eq!(
+            plan.removal_order,
+            vec![id("game-boy"), id("shared-runtime")]
+        );
+    }
+
+    #[test]
+    fn empty_uninstall_request_is_a_no_op() {
+        let descriptors = catalogue_descriptors();
+        let catalog = ModuleCatalog::new(&descriptors);
+
+        let plan = catalog.plan_uninstall(&[], &[id("shared-runtime")]).unwrap();
+
+        assert!(plan.removal_order.is_empty());
+    }
+
+    #[test]
     fn catalogue_validation_is_independent_of_selection() {
         let descriptors = catalogue_descriptors();
         assert!(ModuleCatalog::new(&descriptors).validate().is_ok());
