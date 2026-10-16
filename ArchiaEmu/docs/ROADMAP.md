@@ -16,7 +16,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 61 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | **≈ 65 %** | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | **≈ 85 %** | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
-| **P1.3** | Sessions et commandes génériques | **≈ 61 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
+| **P1.3** | Sessions et commandes génériques | **≈ 62 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
 | **P1.4** | Paramètres, diagnostics et ergonomie | **≈ 55 %** | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
 | **P1.5** | Sorties média hôte et validation multiplateforme | **≈ 80 %** | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
 | **P1.6** | Tests de parcours, CI et finition | **≈ 53 %** | Tests exécutés et validation multiplateforme de l'application |
@@ -96,7 +96,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 
 ### P1.3 — gestion des sessions et commandes génériques
 
-**Avancement estimé : ≈ 61 %.** Les commandes essentielles, la cohérence de sélection, les erreurs de tick et les cas de détection de format incomplète sont couverts par 29 tests unitaires de contrôleur. La conversion des sondes privilégie désormais `NeedsMoreData` tant qu'au moins une sonde reste indécise, même si une autre correspond déjà; l'exécution sur le commit courant, la matrice complète de parcours et la validation manuelle restent ouvertes.
+**Avancement estimé : ≈ 62 %.** Les commandes essentielles, la cohérence de sélection, les erreurs de tick et les cas de détection de format incomplète sont couverts par 29 tests unitaires de contrôleur. La fermeture de l'application libère maintenant les entrées de la session active puis ferme toutes les sessions, au lieu de compter uniquement sur la destruction implicite du runtime. La conversion des sondes privilégie `NeedsMoreData` tant qu'au moins une sonde reste indécise, même si une autre correspond déjà; l'exécution sur le commit courant, la matrice complète de parcours et la validation manuelle restent ouvertes.
 
 - [x] Gérer plusieurs sessions, la sélection de la session active, pause/reprise, arrêt/réinitialisation et fermeture depuis l'interface.
 - [x] Avancer les sessions via le contrôleur avec budget borné et remonter état, capacités, trame la plus récente et erreur.
@@ -191,7 +191,7 @@ Cette étape concerne les adaptateurs de l'application, pas l'implémentation vi
 
 ### P1.7 — livraison locale et installateur Windows
 
-**Avancement estimé : ≈ 43 %.** Le binaire desktop expose maintenant `--help` et `--version` sans initialiser l'interface graphique; le smoke test d'installation vérifie ces deux commandes après installation, ce qui couvre le démarrage du processus même sur un runner sans OpenGL. Les vérifications de `--help`, `--version` et des arguments inconnus ainsi que la résolution verrouillée des dépendances du desktop dans la CI doivent encore passer sur le commit courant. Le build de l'installateur et le smoke test d'installation/désinstallation ont réussi sur les commits `bbf34671` et `e0cae058` (runs 38690569707 et 38690615439), avec compilation `--locked`, vérification du checksum et archivage du `Cargo.lock` exact associé au binaire. Le lockfile n'est toutefois pas encore versionné dans le dépôt : la résolution peut varier entre builds. Les dépendances embarquées et le fonctionnement réel en VM propre ainsi que la mise à jour/rollback sûre restent des bloqueurs majeurs.
+**Avancement estimé : ≈ 44 %.** Le binaire desktop expose maintenant `--help` et `--version` sans initialiser l'interface graphique; le smoke test d'installation vérifie ces deux commandes après installation, ce qui couvre le démarrage du processus même sur un runner sans OpenGL. Les vérifications de `--help`, `--version` et des arguments inconnus ainsi que la résolution verrouillée des dépendances du desktop dans la CI doivent encore passer sur le commit courant. Le build de l'installateur et le smoke test d'installation/désinstallation ont réussi sur les commits `bbf34671` et `e0cae058` (runs 38690569707 et 38690615439), avec compilation `--locked`, vérification du checksum et archivage du `Cargo.lock` exact associé au binaire. Le lockfile n'est toutefois pas encore versionné dans le dépôt : la résolution peut varier entre builds. Les dépendances embarquées et le fonctionnement réel en VM propre ainsi que la mise à jour/rollback sûre restent des bloqueurs majeurs.
 
 Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale de livraison est Windows, cohérente avec le besoin d'un installateur .exe; les autres plateformes doivent continuer à passer leurs quality gates sans être considérées comme livrées si aucun paquet n'est produit.
 
