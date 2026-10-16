@@ -24,8 +24,8 @@ mod home_page;
 mod library_page;
 pub mod manifest_ed25519;
 mod preferences;
-mod sessions_page;
 mod save_states;
+mod sessions_page;
 pub mod worker_messages;
 pub mod worker_process;
 
@@ -601,16 +601,20 @@ impl DesktopApp {
     }
 
     fn save_state_path(&self, id: SessionId) -> Result<PathBuf, String> {
-        let config_path = self
-            .config_path
-            .as_deref()
-            .ok_or_else(|| "Save states are unavailable because the configuration directory is missing.".to_owned())?;
+        let config_path = self.config_path.as_deref().ok_or_else(|| {
+            "Save states are unavailable because the configuration directory is missing.".to_owned()
+        })?;
         let content_path = self
             .session_content_paths
             .iter()
             .find(|(session_id, _)| *session_id == id)
             .map(|(_, path)| path.as_path())
-            .ok_or_else(|| format!("Session {} has no known ROM path for its save slot.", id.get()))?;
+            .ok_or_else(|| {
+                format!(
+                    "Session {} has no known ROM path for its save slot.",
+                    id.get()
+                )
+            })?;
         save_states::state_path(config_path, content_path)
             .map_err(|error| format!("Could not resolve save-state path: {error}"))
     }
@@ -847,7 +851,13 @@ impl eframe::App for DesktopApp {
         let update_result = match poll_background_result(&mut self.update_check_receiver) {
             Ok(result) => result,
             Err(()) => {
-                self.update_status = if self.language == "fr" { "Échec de la vérification : le processus en arrière-plan s’est interrompu.".to_owned() } else { "Update check failed: background worker disconnected before returning a result.".to_owned() };
+                self.update_status = if self.language == "fr" {
+                    "Échec de la vérification : le processus en arrière-plan s’est interrompu."
+                        .to_owned()
+                } else {
+                    "Update check failed: background worker disconnected before returning a result."
+                        .to_owned()
+                };
                 self.update_manifest = None;
                 None
             }
@@ -858,17 +868,33 @@ impl eframe::App for DesktopApp {
                     let current = option_env!("CARGO_PKG_VERSION").unwrap_or("0.0.0");
                     self.update_status = if update::is_newer_version(&manifest.version, current) {
                         if manifest.download_for_current_platform().is_some() {
-                            if self.language == "fr" { format!("La version {} est disponible au téléchargement et à la vérification; l’installation n’est pas automatique.", manifest.version) } else { format!("Version {} is available for download and integrity verification; installation is not automatic yet.", manifest.version) }
+                            if self.language == "fr" {
+                                format!("La version {} est disponible au téléchargement et à la vérification; l’installation n’est pas automatique.", manifest.version)
+                            } else {
+                                format!("Version {} is available for download and integrity verification; installation is not automatic yet.", manifest.version)
+                            }
                         } else {
-                            if self.language == "fr" { format!("La version {} est publiée, mais aucun téléchargement n’est disponible pour cette plateforme.", manifest.version) } else { format!("Version {} is published, but no download is available for this platform yet.", manifest.version) }
+                            if self.language == "fr" {
+                                format!("La version {} est publiée, mais aucun téléchargement n’est disponible pour cette plateforme.", manifest.version)
+                            } else {
+                                format!("Version {} is published, but no download is available for this platform yet.", manifest.version)
+                            }
                         }
                     } else {
-                        if self.language == "fr" { format!("Vous utilisez la dernière version stable ({}).", current) } else { format!("You are using the latest stable version ({}).", current) }
+                        if self.language == "fr" {
+                            format!("Vous utilisez la dernière version stable ({}).", current)
+                        } else {
+                            format!("You are using the latest stable version ({}).", current)
+                        }
                     };
                     self.update_manifest = Some(manifest);
                 }
                 Err(error) => {
-                    self.update_status = if self.language == "fr" { format!("Échec de la vérification des mises à jour : {error}") } else { format!("Update check failed: {error}") };
+                    self.update_status = if self.language == "fr" {
+                        format!("Échec de la vérification des mises à jour : {error}")
+                    } else {
+                        format!("Update check failed: {error}")
+                    };
                     self.update_manifest = None;
                 }
             }
@@ -876,7 +902,12 @@ impl eframe::App for DesktopApp {
         let download_result = match poll_background_result(&mut self.update_download_receiver) {
             Ok(result) => result,
             Err(()) => {
-                self.update_status = if self.language == "fr" { "Échec du téléchargement : le processus en arrière-plan s’est interrompu.".to_owned() } else { "Update download failed: background worker disconnected before returning a result.".to_owned() };
+                self.update_status = if self.language == "fr" {
+                    "Échec du téléchargement : le processus en arrière-plan s’est interrompu."
+                        .to_owned()
+                } else {
+                    "Update download failed: background worker disconnected before returning a result.".to_owned()
+                };
                 self.staged_update_path = None;
                 None
             }
@@ -892,7 +923,11 @@ impl eframe::App for DesktopApp {
                     self.staged_update_path = Some(path);
                 }
                 Err(error) => {
-                    self.update_status = if self.language == "fr" { format!("Échec du téléchargement de la mise à jour : {error}") } else { format!("Update download failed: {error}") };
+                    self.update_status = if self.language == "fr" {
+                        format!("Échec du téléchargement de la mise à jour : {error}")
+                    } else {
+                        format!("Update download failed: {error}")
+                    };
                     self.staged_update_path = None;
                 }
             }
