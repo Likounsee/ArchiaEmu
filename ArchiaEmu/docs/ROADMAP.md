@@ -20,7 +20,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | **P1.4** | Paramètres, diagnostics et ergonomie | **≈ 55 %** | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
 | **P1.5** | Sorties média hôte et validation multiplateforme | **≈ 80 %** | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
 | **P1.6** | Tests de parcours, CI et finition | **≈ 53 %** | Tests exécutés et validation multiplateforme de l'application |
-| **P1.7** | Livraison locale et installateur Windows | **≈ 43 %** | Installateur testé en environnement propre et mise à jour sûre |
+| **P1.7** | Livraison locale et installateur Windows | **≈ 44 %** | Installateur testé en environnement propre et mise à jour sûre |
 | **P2** | Intégration et fiabilité des modules logiciels | **≈ 24 %** — après P1 | Découverte, téléchargement de modules logiciels autorisés, provenance et frontières de confiance; aucun catalogue de ROM |
 | **CPU** | Architecture transversale des stratégies d'exécution | **≈ 20 %** | Contrats CPU/ABI/GPU et stratégies réellement implémentées |
 | **P3** | Premier module de console réellement fonctionnel | **0 %** — après P1 | Un système testé de bout en bout, avec limites de compatibilité honnêtes |
@@ -216,7 +216,7 @@ Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale d
 - [x] Rejeter les clés de plateforme inconnues dans le manifeste updater au lieu de les ignorer silencieusement; test de régression pour une clé erronée ajoutée, exécution à confirmer en CI.
 - [x] Restreindre aussi l'URL des notes de version au chemin des releases du dépôt officiel `Likounsee/ArchiaEmu`; tests couvrant domaines, dépôts, préfixes trompeurs, identifiants et ports non autorisés, exécution à confirmer en CI.
 - [x] Terminer proprement le suivi des tâches updater si un thread se déconnecte avant d'envoyer son résultat, plutôt que de laisser l'interface en état « en cours » avec des rafraîchissements indéfinis; tests unitaires ajoutés, exécution à confirmer en CI.
-- [ ] Mettre en place une vérification automatique des mises à jour d'ArchiaEmu, séparée de celle des modules, à partir d'un manifeste de versions hébergé sur le dépôt GitHub officiel (version locale comparée à la version publiée).
+- [x] Vérifier automatiquement les mises à jour d'ArchiaEmu au démarrage, séparément des modules, via le manifeste stable officiel GitHub et comparer la version locale à la version publiée; la vérification tourne en arrière-plan sans bloquer l'ouverture de la fenêtre, et reste relançable depuis Paramètres. La vérification automatique ne télécharge ni n'installe quoi que ce soit.
 - [ ] Pour l'updater de l'application, télécharger vers une zone temporaire, vérifier version, intégrité et provenance, préparer l'installation puis appliquer la mise à jour uniquement lorsque l'application est fermée et qu'aucune écriture n'est en cours; relancer l'application après succès et conserver une récupération/rollback en cas d'échec.
 - [ ] Permettre à l'utilisateur de choisir la fréquence de vérification, d'être informé de la version et des notes de version, et de différer une mise à jour; ne jamais remplacer les fichiers exécutables en cours d'utilisation.
 - [ ] Vérifier mise à niveau depuis une version précédente, échec/annulation d'installation et désinstallation sans supprimer les contenus personnels sans consentement explicite.
