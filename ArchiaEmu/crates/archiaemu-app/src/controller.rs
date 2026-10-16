@@ -91,6 +91,10 @@ pub struct SessionSummary {
     pub video_available: bool,
     /// Whether the core advertises audio output.
     pub audio_available: bool,
+    /// Whether the core supports complete machine save states.
+    pub save_states: bool,
+    /// Whether the core supports battery-backed persistent game saves.
+    pub persistent_saves: bool,
     /// Most recent core error, if any.
     pub last_error: Option<String>,
 }
@@ -219,6 +223,8 @@ impl ApplicationController {
             system_name: session.descriptor().display_name.to_owned(),
             video_available: capabilities.video_output,
             audio_available: capabilities.audio_output,
+            save_states: capabilities.save_states,
+            persistent_saves: capabilities.persistent_saves,
             last_error: session.last_core_error().map(|error| error.to_string()),
         })
     }
