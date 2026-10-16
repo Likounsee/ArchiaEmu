@@ -734,6 +734,23 @@ mod tests {
     }
 
     #[test]
+    fn store_does_not_treat_corrupt_primary_without_backup_as_first_launch() {
+        let path = temp_path();
+        let store = ModuleStateStore::new(&path);
+        fs::write(&path, b"corrupt").unwrap();
+
+        assert!(matches!(
+            store.load(),
+            Err(ModuleStateStoreError::Format(
+                StateFormatError::MalformedRecord
+            ))
+        ));
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(backup_path(&path));
+    }
+
+    #[test]
     fn store_persists_and_recovers_backup_after_corruption() {
         let path = temp_path();
         let store = ModuleStateStore::new(&path);
