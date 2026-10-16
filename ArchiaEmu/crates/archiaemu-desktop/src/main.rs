@@ -95,6 +95,8 @@ fn message_indicates_error(message: &str) -> bool {
         "import failed:",
         "launch failed:",
         "launch cancelled:",
+        "save state failed:",
+        "load state failed:",
         "could not ",
         "preferences unavailable:",
         "input error:",
@@ -664,6 +666,13 @@ impl DesktopApp {
                 return;
             }
         };
+        let envelope = match archiaemu_core::save_state::SaveStateEnvelope::decode(&bytes) {
+            Ok(envelope) => envelope,
+            Err(error) => {
+                self.message = format!("Load state failed: {error}");
+                return;
+            }
+        };
         let result = self
             .controller
             .host_mut()
@@ -671,7 +680,7 @@ impl DesktopApp {
             .map_err(|error| error.to_string())
             .and_then(|session| {
                 session
-                    .load_state_envelope(&bytes)
+                    .load_state_envelope(&envelope)
                     .map_err(|error| error.to_string())
             });
         match result {
