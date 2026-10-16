@@ -235,9 +235,6 @@ impl DesktopApp {
                     }
                     ui.label(&system_name);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if content_loaded && persistent_saves && ui.button(if french { "Sauvegarder la partie" } else { "Save game" }).clicked() {
-                        self.save_game_data_action(id);
-                    }
                         if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
                             if let Err(error) = self.save_dirty_game_data_for_session(id) {
                                 self.message = if french {
@@ -338,6 +335,9 @@ impl DesktopApp {
                         if ui.button(if french { "Arrêter et sauvegarder" } else { "Stop and Save" }).clicked() {
                             self.session_action(id, SessionAction::StopAndSave);
                         }
+                    }
+                    if content_loaded && persistent_saves && ui.button(if french { "Sauvegarder la partie" } else { "Save game" }).clicked() {
+                        self.save_game_data_action(id);
                     }
                     if state != SessionState::Empty && ui.button(if self.language == "fr" { "Réinitialiser" } else { "Reset" }).clicked() {
                         self.session_action(id, SessionAction::Reset);
