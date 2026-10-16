@@ -214,6 +214,7 @@ impl DesktopApp {
                     .iter()
                     .any(|system_id| system_id.as_str() == selected_id.as_str())
             })
+            .cloned()
             .collect();
         if !unavailable_selected.is_empty() {
             ui.add_space(4.0);
@@ -222,14 +223,24 @@ impl DesktopApp {
             } else {
                 "Selections retained but unavailable in this build:"
             });
+            let mut deselected_unavailable = Vec::new();
             for selected_id in unavailable_selected {
+                let mut keep_selected = true;
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new(selected_id.as_str()).strong());
+                    if ui.checkbox(&mut keep_selected, selected_id.as_str()).changed()
+                        && !keep_selected
+                    {
+                        deselected_unavailable.push(selected_id.clone());
+                    }
                     ui.colored_label(
                         egui::Color32::GRAY,
                         if french { "Cœur absent" } else { "Core not bundled" },
                     );
                 });
+            }
+            if !deselected_unavailable.is_empty() {
+                selected.retain(|id| !deselected_unavailable.contains(id));
+                changed = true;
             }
         }
 
