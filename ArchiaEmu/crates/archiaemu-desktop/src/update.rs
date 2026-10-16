@@ -111,6 +111,7 @@ pub(crate) fn download_and_verify(
     let directory = std::env::temp_dir().join("ArchiaEmu").join("updates");
     fs::create_dir_all(&directory)
         .map_err(|error| format!("Could not create update staging directory: {error}"))?;
+    ensure_real_staging_directory(&directory)?;
     let nonce = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|error| format!("System clock is invalid: {error}"))?
@@ -219,6 +220,15 @@ fn validate_content_length(header: Option<&str>, expected_size: u64) -> Result<(
         return Err(format!(
             "Update server Content-Length mismatch (expected {expected_size} bytes, declared {declared_size})."
         ));
+    }
+    Ok(())
+}
+
+fn ensure_real_staging_directory(directory: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(directory)
+        .map_err(|error| format!("Could not inspect update staging directory: {error}"))?;
+    if !metadata.file_type().is_dir() {
+        return Err("Update staging path must be a real directory, not a symbolic link or file.".to_owned());
     }
     Ok(())
 }
@@ -813,6 +823,23 @@ mod tests {
         assert!(validate_content_length(Some("9"), 10).is_err());
         assert!(validate_content_length(Some("not-a-number"), 10).is_err());
         assert!(validate_content_length(Some("-1"), 10).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn update_staging_directory_rejects_symbolic_links() {
+        use std::os::unix::fs::symlink;
+
+        let target = temporary_file();
+        let link = temporary_file().with_extension("staging-link");
+        std::fs::create_dir(&target).expect("staging target directory should be created");
+        symlink(&target, &link).expect("staging symbolic link should be created");
+
+        assert!(ensure_real_staging_directory(&link).is_err());
+        assert!(ensure_real_staging_directory(&target).is_ok());
+
+        let _ = std::fs::remove_file(link);
+        let _ = std::fs::remove_dir(target);
     }
 
     #[cfg(unix)]
