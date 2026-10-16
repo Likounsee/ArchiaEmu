@@ -941,6 +941,73 @@ mod tests {
     }
 
     #[test]
+    fn save_state_round_trip_restores_cpu_and_all_implemented_ram() {
+        use archiaemu_core::EmulationCore;
+
+        let mut core = super::GameBoyCore::new();
+        let image = valid_rom();
+        core.load_content(&image).unwrap();
+        core.cpu.registers.a = 0xA5;
+        core.cpu.registers.set_f(0xB0);
+        core.cpu.registers.sp = 0xCDEF;
+        core.cpu.registers.pc = 0x4567;
+        core.cpu.halted = true;
+        core.cpu.ime = true;
+        core.work_ram[0x123] = 0x91;
+        core.work_ram[0x1FFF] = 0x27;
+        core.high_ram[0x22] = 0x63;
+        core.interrupt_enable = 0x12;
+        core.interrupt_request = 0x08;
+
+        let saved = core.save_state().unwrap();
+        core.cpu.registers.a = 0;
+        core.cpu.registers.sp = 0;
+        core.cpu.registers.pc = 0;
+        core.cpu.halted = false;
+        core.cpu.ime = false;
+        core.work_ram.fill(0);
+        core.high_ram.fill(0);
+        core.interrupt_enable = 0;
+        core.interrupt_request = 0;
+
+        core.load_state(&saved).unwrap();
+        assert_eq!(core.cpu.registers.a, 0xA5);
+        assert_eq!(core.cpu.registers.f(), 0xB0);
+        assert_eq!(core.cpu.registers.sp, 0xCDEF);
+        assert_eq!(core.cpu.registers.pc, 0x4567);
+        assert!(core.cpu.is_halted());
+        assert!(core.cpu.interrupts_enabled());
+        assert_eq!(core.work_ram[0x123], 0x91);
+        assert_eq!(core.work_ram[0x1FFF], 0x27);
+        assert_eq!(core.high_ram[0x22], 0x63);
+        assert_eq!(core.interrupt_enable, 0x12);
+        assert_eq!(core.interrupt_request, 0x08);
+    }
+
+    #[test]
+    fn invalid_or_foreign_save_state_does_not_mutate_machine_state() {
+        use archiaemu_core::EmulationCore;
+
+        let mut core = super::GameBoyCore::new();
+        core.load_content(&valid_rom()).unwrap();
+        core.work_ram[0] = 0x5A;
+        let saved = core.save_state().unwrap();
+
+        let mut corrupt = saved.clone();
+        corrupt[0] ^= 0xFF;
+        assert!(core.load_state(&corrupt).is_err());
+        assert_eq!(core.work_ram[0], 0x5A);
+
+        let mut other_rom = valid_rom();
+        other_rom[0x0134] ^= 1;
+        other_rom[0x014D] = super::header_checksum(&other_rom);
+        let mut other_core = super::GameBoyCore::new();
+        other_core.load_content(&other_rom).unwrap();
+        assert!(other_core.load_state(&saved).is_err());
+        assert!(other_core.work_ram.iter().all(|byte| *byte == 0));
+    }
+
+    #[test]
     fn execution_rejects_unimplemented_cartridge_mappers() {
         let mut core = GameBoyCore::new();
         let mut image = valid_rom();
