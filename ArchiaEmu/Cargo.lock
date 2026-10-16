@@ -7,7 +7,7 @@ name = "archiaemu-app"
 version = "0.1.0"
 dependencies = [
  "archiaemu-core",
- "archiaemu-game-boy",
+ "archiaemu-game-boy-color",
 ]
 
 [[package]]
@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "archiaemu-game-boy"
+name = "archiaemu-game-boy-color"
 version = "0.1.0"
 dependencies = [
  "archiaemu-core",
