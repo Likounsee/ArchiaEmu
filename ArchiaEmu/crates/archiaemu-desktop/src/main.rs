@@ -1456,7 +1456,7 @@ impl DesktopApp {
         let mut failures = Vec::new();
         for id in session_ids {
             if let Err(error) = self.controller.release_inputs(id) {
-                failures.push(format!("session {id}: {error}"));
+                failures.push(format!("session {}: {error}", id.get()));
             }
         }
         if failures.is_empty() {
