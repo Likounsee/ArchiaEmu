@@ -184,6 +184,14 @@ pub(crate) fn write_preferences_with_language(
     } else {
         1.0
     };
+    // Serialize only the two supported language identifiers. Writing the raw
+    // value would allow a newline in an unexpected caller-provided string to
+    // inject additional preference keys into the config file.
+    let language = if language.eq_ignore_ascii_case("fr") {
+        "fr"
+    } else {
+        "en"
+    };
     let mut contents = format!(
         "version=3\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\nlanguage={}\n",
         accent_rgb[0], accent_rgb[1], accent_rgb[2], language
@@ -560,6 +568,30 @@ mod tests {
         );
 
         let _ = fs::remove_dir(stale_temporary);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn saving_preferences_canonicalizes_language_and_prevents_key_injection() {
+        let path = temporary_config("language-key-injection");
+        write_preferences_with_language(
+            &path,
+            true,
+            1.0,
+            [75, 115, 210],
+            "fr\ndark=false\npath=attacker.gb",
+            &[],
+        )
+        .expect("unexpected language input should be safely normalized");
+
+        let raw = fs::read_to_string(&path).expect("preferences should be readable");
+        assert!(raw.contains("language=en\n"));
+        assert!(!raw.contains("attacker.gb"));
+        let loaded = load_preferences(&path)
+            .expect("normalized preferences should load")
+            .expect("preferences should exist");
+        assert!(loaded.dark_mode);
+        assert_eq!(loaded.language, "en");
         let _ = fs::remove_file(path);
     }
 
