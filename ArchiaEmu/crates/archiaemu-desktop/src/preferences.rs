@@ -572,7 +572,7 @@ mod tests {
         let backup = path.with_extension("conf.bak");
         fs::write(&path, "version=99\\ndark=true\\n")
             .expect("corrupt active config should be written");
-        fs::write(&backup, "version=3\\ndark=false\\nscale=1.2\\n")
+        fs::write(&backup, "version=3\ndark=false\nscale=1.2\n")
             .expect("valid recovery backup should be written");
 
         let recovered = load_preferences(&path)
