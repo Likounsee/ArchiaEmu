@@ -357,7 +357,8 @@ pub(crate) fn unescape_config_value(value: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        load_preferences, unescape_config_value, write_preferences, MAX_PREFERENCES_BYTES,
+        load_preferences, unescape_config_value, write_preferences, write_preferences_with_language,
+        MAX_PREFERENCES_BYTES,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -723,6 +724,34 @@ mod tests {
 
         let _ = fs::remove_dir(stale_temporary);
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn french_language_and_unicode_library_paths_survive_a_preferences_round_trip() {
+        let path = temporary_config("french-language-round-trip");
+        let library_path = PathBuf::from("bibliothèque/Jeu — édition.gb");
+
+        write_preferences_with_language(
+            &path,
+            false,
+            1.2,
+            [12, 34, 56],
+            "fr",
+            std::slice::from_ref(&library_path),
+        )
+        .expect("valid French preferences should be saved");
+
+        let loaded = load_preferences(&path)
+            .expect("saved preferences should be readable")
+            .expect("saved preferences should exist");
+        assert!(!loaded.dark_mode);
+        assert!((loaded.ui_scale - 1.2).abs() < f32::EPSILON);
+        assert_eq!(loaded.accent_rgb, [12, 34, 56]);
+        assert_eq!(loaded.language, "fr");
+        assert_eq!(loaded.paths, vec![library_path]);
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(path.with_extension("conf.bak"));
     }
 
     #[test]
