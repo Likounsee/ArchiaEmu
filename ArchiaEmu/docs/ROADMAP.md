@@ -19,7 +19,7 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | **P1.3** | Sessions et commandes génériques | **≈ 62 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
 | **P1.4** | Paramètres, diagnostics et ergonomie | **≈ 55 %** | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
 | **P1.5** | Sorties média hôte et validation multiplateforme | **≈ 80 %** | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
-| **P1.6** | Tests de parcours, CI et finition | **≈ 53 %** | Tests exécutés et validation multiplateforme de l'application |
+| **P1.6** | Tests de parcours, CI et finition | **≈ 51 %** | Tests exécutés et validation multiplateforme de l'application |
 | **P1.7** | Livraison locale et installateur Windows | **≈ 44 %** | Installateur testé en environnement propre et mise à jour sûre |
 | **P2** | Intégration et fiabilité des modules logiciels | **≈ 24 %** — après P1 | Découverte, téléchargement de modules logiciels autorisés, provenance et frontières de confiance; aucun catalogue de ROM |
 | **CPU** | Architecture transversale des stratégies d'exécution | **≈ 20 %** | Contrats CPU/ABI/GPU et stratégies réellement implémentées |
@@ -96,7 +96,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 
 ### P1.3 — gestion des sessions et commandes génériques
 
-**Avancement estimé : ≈ 62 %.** Les commandes essentielles, la cohérence de sélection, les erreurs de tick et les cas de détection de format incomplète sont couverts par 29 tests unitaires de contrôleur. La fermeture de l'application libère maintenant les entrées de la session active puis ferme toutes les sessions, au lieu de compter uniquement sur la destruction implicite du runtime. La conversion des sondes privilégie `NeedsMoreData` tant qu'au moins une sonde reste indécise, même si une autre correspond déjà; l'exécution sur le commit courant, la matrice complète de parcours et la validation manuelle restent ouvertes.
+**Avancement estimé : ≈ 62 %.** Les commandes essentielles, la cohérence de sélection, les erreurs de tick et les cas de détection de format incomplète sont couverts par 29 tests unitaires de contrôleur. À la fermeture, l'application tente maintenant de libérer les entrées maintenues de chaque session ouverte (et non uniquement de la session sélectionnée) avant de fermer toutes les sessions. Les tests de parcours complets et la validation manuelle restent ouverts. La conversion des sondes privilégie `NeedsMoreData` tant qu'au moins une sonde reste indécise, même si une autre correspond déjà; l'exécution sur le commit courant, la matrice complète de parcours et la validation manuelle restent ouvertes.
 
 - [x] Gérer plusieurs sessions, la sélection de la session active, pause/reprise, arrêt/réinitialisation et fermeture depuis l'interface.
 - [x] Avancer les sessions via le contrôleur avec budget borné et remonter état, capacités, trame la plus récente et erreur.
