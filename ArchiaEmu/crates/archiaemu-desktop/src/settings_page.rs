@@ -211,19 +211,14 @@ impl DesktopApp {
                     "Application updates"
                 });
                 egui::Frame::group(ui.style()).show(ui, |ui| {
-                    ui.label(if self.language == "fr" { "Vérifie le manifeste officiel de la version stable. Les modules sont téléchargés séparément." } else { "Checks the official stable application manifest. Module downloads are independent." });
+                    ui.label(if self.language == "fr" { "ArchiaEmu vérifie automatiquement le manifeste officiel au démarrage; vous pouvez aussi relancer la vérification ici. Les modules sont téléchargés séparément." } else { "ArchiaEmu checks the official stable manifest at startup; you can also run a check here. Module downloads are independent." });
                     ui.horizontal_wrapped(|ui| {
                         let checking = self.update_check_receiver.is_some();
                         if ui
                             .add_enabled(!checking, egui::Button::new(if self.language == "fr" { "Rechercher des mises à jour" } else { "Check for updates" }))
                             .clicked()
                         {
-                            let (sender, receiver) = mpsc::channel();
-                            self.update_check_receiver = Some(receiver);
-                            self.update_status = "Checking the official stable manifest…".to_owned();
-                            std::thread::spawn(move || {
-                                let _ = sender.send(update::fetch_manifest());
-                            });
+                            self.start_update_check();
                             context.request_repaint_after(Duration::from_millis(250));
                         }
                         ui.label(&self.update_status);
