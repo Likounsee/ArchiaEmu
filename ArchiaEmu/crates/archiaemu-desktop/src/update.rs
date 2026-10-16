@@ -426,9 +426,11 @@ pub(crate) fn verify_staged_file(
     {
         return Err("Expected SHA-256 digest is malformed.".to_owned());
     }
-    let metadata = std::fs::metadata(path)
+    // Do not follow a symlink supplied in place of the staged artifact. Verification
+    // must hash the regular file at this exact path, not an arbitrary target.
+    let metadata = std::fs::symlink_metadata(path)
         .map_err(|error| format!("Could not inspect staged update: {error}"))?;
-    if !metadata.is_file() || metadata.len() != expected_size {
+    if !metadata.file_type().is_file() || metadata.len() != expected_size {
         return Err(format!(
             "Staged update size mismatch (expected {expected_size} bytes, found {}).",
             metadata.len()
@@ -811,6 +813,27 @@ mod tests {
         assert!(validate_content_length(Some("9"), 10).is_err());
         assert!(validate_content_length(Some("not-a-number"), 10).is_err());
         assert!(validate_content_length(Some("-1"), 10).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn staged_file_verification_rejects_symbolic_links() {
+        use std::os::unix::fs::symlink;
+
+        let target = temporary_file();
+        let link = temporary_file().with_extension("symlink");
+        let contents = b"trusted staged update";
+        write_test_file(&target, contents);
+        symlink(&target, &link).expect("symbolic-link fixture should be created");
+        let digest = format!("{:x}", Sha256::digest(contents));
+
+        assert!(
+            verify_staged_file(&link, contents.len() as u64, &digest).is_err(),
+            "a staged update path must not resolve through a symbolic link"
+        );
+
+        let _ = std::fs::remove_file(link);
+        let _ = std::fs::remove_file(target);
     }
 
     #[test]
