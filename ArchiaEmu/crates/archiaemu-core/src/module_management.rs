@@ -157,6 +157,8 @@ pub enum PlanError {
     InvalidCatalog(CatalogError),
     /// A requested module is not currently installed.
     NotInstalled(ModuleId),
+    /// An installed module is absent from the catalogue, so its dependencies cannot be checked.
+    UnknownInstalledModule(ModuleId),
     /// An installed module still depends on a module selected for removal.
     RequiredBy {
         /// Module that cannot yet be removed.
@@ -177,6 +179,10 @@ impl fmt::Display for PlanError {
             ),
             Self::InvalidCatalog(error) => write!(f, "invalid module catalogue: {error}"),
             Self::NotInstalled(id) => write!(f, "module '{id}' is not installed"),
+            Self::UnknownInstalledModule(id) => write!(
+                f,
+                "installed module '{id}' is missing from the catalogue; dependency safety cannot be verified"
+            ),
             Self::RequiredBy { module, dependent } => write!(
                 f,
                 "module '{module}' cannot be removed while installed module '{dependent}' depends on it"
@@ -377,6 +383,15 @@ impl<'a> ModuleCatalog<'a> {
             .enumerate()
             .map(|(index, descriptor)| (descriptor.id.clone(), index))
             .collect();
+        // Fail closed when installed state contains a module absent from the
+        // catalogue: its dependency edges are unknown, so removal safety cannot
+        // be established reliably.
+        for id in installed {
+            if !indices.contains_key(id) {
+                return Err(PlanError::UnknownInstalledModule(id.clone()));
+            }
+        }
+
         let mut removal = HashSet::new();
         for id in requested {
             if !indices.contains_key(id) {
@@ -736,6 +751,22 @@ mod tests {
                 module: id("runtime"),
                 dependent: id("player"),
             })
+        );
+    }
+
+    #[test]
+    fn uninstall_fails_closed_when_an_installed_module_is_missing_from_catalogue() {
+        let descriptors = vec![
+            descriptor("runtime", "Runtime", ModuleReadiness::Installable, &[]),
+        ];
+        let catalog = ModuleCatalog::new(&descriptors);
+
+        assert_eq!(
+            catalog.plan_uninstall(
+                &[id("runtime")],
+                &[id("runtime"), id("legacy-plugin")],
+            ),
+            Err(PlanError::UnknownInstalledModule(id("legacy-plugin")))
         );
     }
 
