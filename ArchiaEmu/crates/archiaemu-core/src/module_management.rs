@@ -726,10 +726,7 @@ mod tests {
         let catalog = ModuleCatalog::new(&descriptors);
 
         let plan = catalog
-            .plan_install(
-                &[id("game-boy"), id("nes"), id("game-boy"), id("nes")],
-                &[],
-            )
+            .plan_install(&[id("game-boy"), id("nes"), id("game-boy"), id("nes")], &[])
             .unwrap();
 
         assert_eq!(
@@ -761,7 +758,9 @@ mod tests {
         let descriptors = catalogue_descriptors();
         let catalog = ModuleCatalog::new(&descriptors);
 
-        let plan = catalog.plan_uninstall(&[], &[id("shared-runtime")]).unwrap();
+        let plan = catalog
+            .plan_uninstall(&[], &[id("shared-runtime")])
+            .unwrap();
 
         assert!(plan.removal_order.is_empty());
     }
