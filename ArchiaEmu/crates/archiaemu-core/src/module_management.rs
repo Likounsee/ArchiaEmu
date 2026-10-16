@@ -759,12 +759,9 @@ mod tests {
 
     #[test]
     fn empty_uninstall_is_a_no_op_even_with_unknown_legacy_installed_modules() {
-        let descriptors = vec![descriptor(
-            "runtime",
-            "Runtime",
-            ModuleReadiness::Installable,
-            &[],
-        )];
+        let descriptors = vec![
+            descriptor("runtime", "Runtime", ModuleReadiness::Installable, &[]),
+        ];
         let catalog = ModuleCatalog::new(&descriptors);
 
         let plan = catalog
