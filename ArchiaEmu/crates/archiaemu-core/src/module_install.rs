@@ -339,6 +339,36 @@ mod tests {
     }
 
     #[test]
+    fn successful_install_commits_journal_after_all_backend_steps() {
+        let path = journal_path();
+        let mut backend = TestBackend::new(None);
+
+        install_module(
+            &mut backend,
+            &path,
+            ModuleId::new("test-module").unwrap(),
+            "1.0.0",
+        )
+        .unwrap();
+
+        assert_eq!(read_install_phase(&path).unwrap(), InstallPhase::Committed);
+        assert_eq!(
+            backend.calls,
+            vec![
+                InstallOperation::Download,
+                InstallOperation::Extraction,
+                InstallOperation::Activation,
+                InstallOperation::StatePersistence,
+            ]
+        );
+        let journal = InstallJournal::load(&path).unwrap();
+        assert_eq!(journal.entry().module.as_str(), "test-module");
+        assert_eq!(journal.entry().version, "1.0.0");
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
     fn initial_journal_failure_prevents_all_backend_operations() {
         let blocker = journal_path();
         fs::write(&blocker, b"not a directory").unwrap();
