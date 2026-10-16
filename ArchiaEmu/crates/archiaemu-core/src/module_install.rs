@@ -412,6 +412,93 @@ mod tests {
     }
 
     #[test]
+    fn journal_write_failure_after_activation_requires_recovery() {
+        struct ReplaceJournalBackend {
+            journal_path: PathBuf,
+            calls: Vec<InstallOperation>,
+        }
+
+        impl ModuleInstallBackend for ReplaceJournalBackend {
+            fn download_and_verify(
+                &mut self,
+                _: &ModuleId,
+                _: &str,
+            ) -> Result<(), String> {
+                self.calls.push(InstallOperation::Download);
+                Ok(())
+            }
+
+            fn extract_to_staging(
+                &mut self,
+                _: &ModuleId,
+                _: &str,
+            ) -> Result<(), String> {
+                self.calls.push(InstallOperation::Extraction);
+                Ok(())
+            }
+
+            fn activate_staged(
+                &mut self,
+                _: &ModuleId,
+                _: &str,
+            ) -> Result<(), String> {
+                self.calls.push(InstallOperation::Activation);
+                fs::remove_file(&self.journal_path).map_err(|error| error.to_string())?;
+                fs::create_dir(&self.journal_path).map_err(|error| error.to_string())?;
+                Ok(())
+            }
+
+            fn persist_installed_state(
+                &mut self,
+                _: &ModuleId,
+                _: &str,
+            ) -> Result<(), String> {
+                self.calls.push(InstallOperation::StatePersistence);
+                Ok(())
+            }
+
+            fn cleanup_uncommitted(
+                &mut self,
+                _: &ModuleId,
+                _: &str,
+            ) -> Result<(), String> {
+                self.calls.push(InstallOperation::Cleanup);
+                Ok(())
+            }
+        }
+
+        let path = journal_path();
+        let mut backend = ReplaceJournalBackend {
+            journal_path: path.clone(),
+            calls: Vec::new(),
+        };
+        let result = install_module(
+            &mut backend,
+            &path,
+            ModuleId::new("test-module").unwrap(),
+            "1.0.0",
+        );
+
+        assert!(matches!(
+            result,
+            Err(ModuleInstallError::RecoveryRequired {
+                operation: InstallOperation::Journal,
+                ..
+            })
+        ));
+        assert_eq!(
+            backend.calls,
+            vec![
+                InstallOperation::Download,
+                InstallOperation::Extraction,
+                InstallOperation::Activation,
+            ]
+        );
+        assert!(path.is_dir(), "fault injection should block journal replacement");
+        fs::remove_dir(&path).unwrap();
+    }
+
+    #[test]
     fn state_persistence_failure_keeps_activated_journal_for_recovery() {
         let path = journal_path();
         let mut backend = TestBackend::new(Some(InstallOperation::StatePersistence));
