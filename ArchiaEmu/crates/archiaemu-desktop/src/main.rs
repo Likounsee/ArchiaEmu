@@ -680,6 +680,13 @@ impl DesktopApp {
     }
 
     fn load_game_data_for_session(&mut self, id: SessionId) -> Result<bool, String> {
+        let summary = self
+            .controller
+            .session_summary(id)
+            .map_err(|error| error.to_string())?;
+        if !summary.persistent_saves {
+            return Ok(false);
+        }
         let path = self.game_save_path(id)?;
         let envelope = match archiaemu_core::save_state_store::SaveStateStore::new(path).load() {
             Ok(envelope) => envelope,
