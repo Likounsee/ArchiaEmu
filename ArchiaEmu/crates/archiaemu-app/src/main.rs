@@ -868,7 +868,9 @@ mod tests {
             "no active session"
         );
 
-        let id = host.create_session(Box::new(NoSaveStateCore)).unwrap();
+        let id = host
+            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
+            .unwrap();
         assert_eq!(
             inspect_inputs(&mut host, Some(id)).unwrap(),
             "input: unsupported by this core"
