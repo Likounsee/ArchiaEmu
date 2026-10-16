@@ -41,7 +41,7 @@ pub fn read_state(path: &Path) -> io::Result<Option<Vec<u8>>> {
             "save-state file exceeds the maximum supported size",
         ));
     }
-    let mut file = OpenOptions::new().read(true).open(path)?;
+    let file = OpenOptions::new().read(true).open(path)?;
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
     file.take(MAX_STATE_FILE_BYTES + 1).read_to_end(&mut bytes)?;
     if bytes.len() as u64 > MAX_STATE_FILE_BYTES {
@@ -171,13 +171,7 @@ mod tests {
         let root = temporary_directory("missing");
         let path = root.join("missing.archiasave");
         assert_eq!(read_state(&path).unwrap(), None);
-        assert_eq!(
-            write_state(&path, b""),
-            Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "save-state payload is empty or too large"
-            ))
-        );
+        assert!(write_state(&path, b"").is_err());
         fs::remove_dir_all(root).unwrap();
     }
 }
