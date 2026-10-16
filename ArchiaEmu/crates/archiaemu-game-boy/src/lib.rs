@@ -268,6 +268,12 @@ pub struct GameBoyCore {
 }
 
 impl GameBoyCore {
+    fn has_battery_backed_ram(&self) -> bool {
+        self.header
+            .as_ref()
+            .is_some_and(|header| header.cartridge_type == 0x09 && !self.cartridge_ram.is_empty())
+    }
+
     /// Creates an uninitialized unified Game Boy / Game Boy Color module instance.
     pub const fn new() -> Self {
         Self {
@@ -296,6 +302,22 @@ impl GameBoyCore {
             None => None,
         }
     }
+}
+
+/// Returns the supported fixed cartridge RAM size for mapper 0 RAM cartridges.
+fn cartridge_ram_size(header: &CartridgeHeader) -> Option<usize> {
+    match (header.cartridge_type, header.ram_size_code) {
+        (0x08 | 0x09, 0x01) => Some(0x0800),
+        (0x08 | 0x09, 0x02) => Some(0x2000),
+        (0x00, 0x00) => Some(0),
+        _ => None,
+    }
+}
+
+fn supports_execution(header: &CartridgeHeader) -> bool {
+    header.preferred_hardware_mode().is_some()
+        && header.rom_size_code == 0
+        && cartridge_ram_size(header).is_some()
 }
 
 impl Default for GameBoyCore {
@@ -492,6 +514,30 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         Ok(())
     }
 
+    fn save_game_data(&self) -> Result<Vec<u8>, archiaemu_core::CoreError> {
+        if !self.has_battery_backed_ram() {
+            return Err(archiaemu_core::CoreError::Unsupported(
+                "persistent saves require a supported battery-backed cartridge",
+            ));
+        }
+        Ok(self.cartridge_ram.clone())
+    }
+
+    fn load_game_data(&mut self, data: &[u8]) -> Result<(), archiaemu_core::CoreError> {
+        if !self.has_battery_backed_ram() {
+            return Err(archiaemu_core::CoreError::Unsupported(
+                "persistent saves require a supported battery-backed cartridge",
+            ));
+        }
+        if data.len() != self.cartridge_ram.len() {
+            return Err(archiaemu_core::CoreError::InvalidState(
+                "persistent save has an unexpected cartridge RAM size",
+            ));
+        }
+        self.cartridge_ram.copy_from_slice(data);
+        Ok(())
+    }
+
     fn run_until_event(&mut self) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
         let image = self
             .image
@@ -561,6 +607,10 @@ impl CpuBus for GameBoyBus<'_> {
                 .get(usize::from(address))
                 .copied()
                 .unwrap_or(0xFF),
+            0xA000..=0xBFFF if !self.cartridge_ram.is_empty() => {
+                let index = usize::from(address - 0xA000) % self.cartridge_ram.len();
+                self.cartridge_ram[index]
+            }
             0xC000..=0xDFFF => self.work_ram[usize::from(address - 0xC000)],
             0xE000..=0xFDFF => self.work_ram[usize::from(address - 0xE000)],
             0xFF0F => 0xE0 | *self.interrupt_request,
@@ -572,6 +622,10 @@ impl CpuBus for GameBoyBus<'_> {
 
     fn write8(&mut self, address: u16, value: u8) {
         match address {
+            0xA000..=0xBFFF if !self.cartridge_ram.is_empty() => {
+                let index = usize::from(address - 0xA000) % self.cartridge_ram.len();
+                self.cartridge_ram[index] = value;
+            }
             0xC000..=0xDFFF => self.work_ram[usize::from(address - 0xC000)] = value,
             0xE000..=0xFDFF => self.work_ram[usize::from(address - 0xE000)] = value,
             0xFF0F => *self.interrupt_request = value & 0x1F,
