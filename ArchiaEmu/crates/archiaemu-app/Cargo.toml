@@ -13,4 +13,4 @@ path = "src/main.rs"
 
 [dependencies]
 archiaemu-core = { version = "0.1.0", path = "../archiaemu-core" }
-archiaemu-game-boy = { version = "0.1.0", path = "../archiaemu-game-boy" }
+archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../archiaemu-game-boy" }
