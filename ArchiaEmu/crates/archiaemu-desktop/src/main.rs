@@ -720,6 +720,13 @@ fn navigation_items(french: bool) -> [(DesktopPage, &'static str); 6] {
 }
 
 impl eframe::App for DesktopApp {
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        // Release held controls before tearing down sessions so a core never exits
+        // with inputs logically stuck in the pressed state.
+        let _ = self.release_game_inputs();
+        self.controller.close_all_sessions();
+    }
+
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
         let update_result = match poll_background_result(&mut self.update_check_receiver) {
             Ok(result) => result,
