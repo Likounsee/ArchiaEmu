@@ -40,7 +40,12 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
+; Keep the executable as a required source so packaging fails if staging is broken.
 Source: "{#StageDir}\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; Bundle staged runtime DLLs, native dependencies, and resources as well. The
+; installer must not rely on files from the repository or a developer's PATH.
+; Debug symbols are intentionally not shipped.
+Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "{#AppExeName},*.pdb,*.ilk"
 
 [Icons]
 Name: "{group}\ArchiaEmu"; Filename: "{app}\{#AppExeName}"
