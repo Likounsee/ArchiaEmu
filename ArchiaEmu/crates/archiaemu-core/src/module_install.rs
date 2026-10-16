@@ -369,6 +369,30 @@ mod tests {
     }
 
     #[test]
+    fn invalid_package_version_is_rejected_before_journal_or_backend_work() {
+        let path = journal_path();
+        let mut backend = TestBackend::new(None);
+
+        let result = install_module(
+            &mut backend,
+            &path,
+            ModuleId::new("test-module").unwrap(),
+            "1.0.0\nphase\tcommitted",
+        );
+
+        assert!(matches!(
+            result,
+            Err(ModuleInstallError::Journal(
+                InstallJournalError::InvalidVersion
+            ))
+        ));
+        assert!(backend.calls.is_empty());
+        assert!(!path.exists());
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
     fn initial_journal_failure_prevents_all_backend_operations() {
         let blocker = journal_path();
         fs::write(&blocker, b"not a directory").unwrap();
