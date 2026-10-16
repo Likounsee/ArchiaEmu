@@ -412,7 +412,6 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         Ok(())
     }
 
-
     fn save_state(&self) -> Result<Vec<u8>, archiaemu_core::CoreError> {
         use archiaemu_core::CoreError;
 
@@ -456,7 +455,9 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
             return Err(CoreError::InvalidState("invalid Game Boy state signature"));
         }
         if u16::from_le_bytes([state[4], state[5]]) != 1 {
-            return Err(CoreError::InvalidState("unsupported Game Boy state version"));
+            return Err(CoreError::InvalidState(
+                "unsupported Game Boy state version",
+            ));
         }
         let image = self.image.as_deref().ok_or(CoreError::NotInitialized)?;
         let header = self.header.as_ref().ok_or(CoreError::NotInitialized)?;
@@ -466,8 +467,7 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
             ));
         }
         let stored_image_len = u32::from_le_bytes(state[6..10].try_into().expect("fixed slice"));
-        let stored_fingerprint =
-            u64::from_le_bytes(state[10..18].try_into().expect("fixed slice"));
+        let stored_fingerprint = u64::from_le_bytes(state[10..18].try_into().expect("fixed slice"));
         if usize::try_from(stored_image_len).ok() != Some(image.len())
             || stored_fingerprint != rom_fingerprint(image)
         {
@@ -475,8 +475,8 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
                 "save state belongs to a different ROM image",
             ));
         }
-        let cpu = Cpu::decode_save_state(&state[CPU_START..CPU_END])
-            .map_err(CoreError::InvalidState)?;
+        let cpu =
+            Cpu::decode_save_state(&state[CPU_START..CPU_END]).map_err(CoreError::InvalidState)?;
         let interrupt_enable = state[HRAM_END];
         let interrupt_request = state[HRAM_END + 1];
         if interrupt_enable & !0x1F != 0 || interrupt_request & !0x1F != 0 {
