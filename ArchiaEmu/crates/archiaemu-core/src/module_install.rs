@@ -45,13 +45,15 @@ pub trait ModuleInstallRecoveryBackend {
     /// Removes isolated transaction staging and temporary artifact files.
     ///
     /// Must not modify the currently installed module version.
-    fn cleanup_transaction_files(&mut self, module: &ModuleId, version: &str) -> Result<(), String>;
+    fn cleanup_transaction_files(&mut self, module: &ModuleId, version: &str)
+        -> Result<(), String>;
 
     /// Confirms that the requested version is active and persists that fact in installed state.
     ///
     /// This must inspect the final installation and be idempotent. It must return an error
     /// rather than guess when the final state is ambiguous.
-    fn reconcile_activated_state(&mut self, module: &ModuleId, version: &str) -> Result<(), String>;
+    fn reconcile_activated_state(&mut self, module: &ModuleId, version: &str)
+        -> Result<(), String>;
 }
 
 /// Result for one journal handled during startup recovery.
@@ -64,7 +66,10 @@ pub enum InstallRecoveryResult {
     /// Activation was reconciled, committed durably, and its journal removed.
     ReconciledCommitted { journal_path: PathBuf },
     /// A failed transaction was preserved for explicit inspection or retry.
-    NeedsInspection { journal_path: PathBuf, phase: InstallPhase },
+    NeedsInspection {
+        journal_path: PathBuf,
+        phase: InstallPhase,
+    },
 }
 
 /// Startup recovery failure. The journal is retained whenever recovery cannot finish.
@@ -173,7 +178,10 @@ fn recover_one_module_install<B: ModuleInstallRecoveryBackend>(
             if journal.entry().phase != InstallPhase::Activated {
                 return Err(fail(
                     "activation reconciliation",
-                    format!("journal phase changed unexpectedly to {:?}", journal.entry().phase),
+                    format!(
+                        "journal phase changed unexpectedly to {:?}",
+                        journal.entry().phase
+                    ),
                 ));
             }
             journal
@@ -515,20 +523,12 @@ mod tests {
     }
 
     impl ModuleInstallRecoveryBackend for RecoveryTestBackend {
-        fn cleanup_transaction_files(
-            &mut self,
-            _: &ModuleId,
-            _: &str,
-        ) -> Result<(), String> {
+        fn cleanup_transaction_files(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
             self.calls.push("cleanup");
             Ok(())
         }
 
-        fn reconcile_activated_state(
-            &mut self,
-            _: &ModuleId,
-            _: &str,
-        ) -> Result<(), String> {
+        fn reconcile_activated_state(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
             self.calls.push("reconcile");
             if self.fail_reconcile {
                 Err("ambiguous final state".to_owned())
@@ -548,11 +548,7 @@ mod tests {
         path
     }
 
-    fn save_journal_at(
-        directory: &Path,
-        name: &str,
-        phases: &[InstallPhase],
-    ) -> PathBuf {
+    fn save_journal_at(directory: &Path, name: &str, phases: &[InstallPhase]) -> PathBuf {
         let path = directory.join(name);
         let mut journal =
             InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
@@ -569,7 +565,11 @@ mod tests {
         let discard_path = save_journal_at(
             &directory,
             "discard.journal",
-            &[InstallPhase::Downloading, InstallPhase::Verified, InstallPhase::Staged],
+            &[
+                InstallPhase::Downloading,
+                InstallPhase::Verified,
+                InstallPhase::Staged,
+            ],
         );
         let failed_path = save_journal_at(
             &directory,
@@ -624,7 +624,10 @@ mod tests {
         let error = recover_module_installs(&mut failing_backend, &directory).unwrap_err();
         assert_eq!(error.operation, "activation reconciliation");
         assert!(path.exists());
-        assert_eq!(InstallJournal::load(&path).unwrap().entry().phase, InstallPhase::Activating);
+        assert_eq!(
+            InstallJournal::load(&path).unwrap().entry().phase,
+            InstallPhase::Activating
+        );
         assert_eq!(failing_backend.calls, vec!["reconcile"]);
 
         let mut backend = RecoveryTestBackend {
@@ -722,49 +725,29 @@ mod tests {
         }
 
         impl ModuleInstallBackend for ReplaceJournalBackend {
-            fn download_and_verify(
-                &mut self,
-                _: &ModuleId,
-                _: &str,
-            ) -> Result<(), String> {
+            fn download_and_verify(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
                 self.calls.push(InstallOperation::Download);
                 Ok(())
             }
 
-            fn extract_to_staging(
-                &mut self,
-                _: &ModuleId,
-                _: &str,
-            ) -> Result<(), String> {
+            fn extract_to_staging(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
                 self.calls.push(InstallOperation::Extraction);
                 Ok(())
             }
 
-            fn activate_staged(
-                &mut self,
-                _: &ModuleId,
-                _: &str,
-            ) -> Result<(), String> {
+            fn activate_staged(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
                 self.calls.push(InstallOperation::Activation);
                 fs::remove_file(&self.journal_path).map_err(|error| error.to_string())?;
                 fs::create_dir(&self.journal_path).map_err(|error| error.to_string())?;
                 Ok(())
             }
 
-            fn persist_installed_state(
-                &mut self,
-                _: &ModuleId,
-                _: &str,
-            ) -> Result<(), String> {
+            fn persist_installed_state(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
                 self.calls.push(InstallOperation::StatePersistence);
                 Ok(())
             }
 
-            fn cleanup_uncommitted(
-                &mut self,
-                _: &ModuleId,
-                _: &str,
-            ) -> Result<(), String> {
+            fn cleanup_uncommitted(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
                 self.calls.push(InstallOperation::Cleanup);
                 Ok(())
             }
@@ -797,7 +780,10 @@ mod tests {
                 InstallOperation::Activation,
             ]
         );
-        assert!(path.is_dir(), "fault injection should block journal replacement");
+        assert!(
+            path.is_dir(),
+            "fault injection should block journal replacement"
+        );
         fs::remove_dir(&path).unwrap();
     }
 
