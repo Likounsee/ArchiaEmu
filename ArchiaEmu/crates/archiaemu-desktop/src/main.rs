@@ -1284,7 +1284,6 @@ fn format_size(bytes: u64) -> String {
     }
 }
 
-
 #[cfg(test)]
 mod preference_tests {
     use super::*;
