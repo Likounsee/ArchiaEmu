@@ -1101,6 +1101,7 @@ mod tests {
 
         assert_eq!(core.cartridge_ram[0x123], 0x5A);
         assert_eq!(core.cartridge_ram[0x1FFF], 0xA5);
+        assert!(!core.persistent_save_dirty(), "loaded saves start clean");
     }
 
     #[test]
@@ -1123,8 +1124,16 @@ mod tests {
         };
 
         bus.write8(0xA123, 0x37);
+        assert!(*bus.cartridge_ram_dirty);
         assert_eq!(bus.read8(0xA123), 0x37);
         assert_eq!(bus.read8(0xA923), 0x37, "2 KiB RAM is mirrored across the 8 KiB window");
+
+        *bus.cartridge_ram_dirty = false;
+        bus.write8(0xA123, 0x37);
+        assert!(!*bus.cartridge_ram_dirty, "writing the same byte must not trigger an autosave");
+        bus.write8(0xA123, 0x38);
+        assert!(*bus.cartridge_ram_dirty);
+        assert_eq!(bus.read8(0xA923), 0x38);
     }
 
     #[test]
@@ -1161,6 +1170,7 @@ mod tests {
 
         core.load_state(&state).unwrap();
         assert_eq!(core.cartridge_ram[0x432], 0xD6);
+        assert!(core.persistent_save_dirty(), "restored cartridge RAM must be persisted");
     }
 
     #[test]
