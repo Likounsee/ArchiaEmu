@@ -248,7 +248,7 @@ pub enum HardwareMode {
 }
 
 /// Stable identifier shared by Game Boy and Game Boy Color game support.
-pub const SYSTEM_ID: &str = "game-boy";
+pub const SYSTEM_ID: &str = "game-boy-color";
 
 /// A module adapter that exposes Game Boy cartridge inspection through the
 /// shared ArchiaEmu core contract.
@@ -337,7 +337,7 @@ fn game_boy_core_descriptor() -> archiaemu_core::CoreDescriptor {
         api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
         system_id: archiaemu_core::SystemId::new(SYSTEM_ID)
             .expect("the built-in Game Boy system ID is valid"),
-        display_name: "Game Boy / Game Boy Color",
+        display_name: "Game Boy Color (backwards compatible with Game Boy)",
         core_version: env!("CARGO_PKG_VERSION"),
         // Save states cover all mutable machine state implemented by this core.
         capabilities: archiaemu_core::CoreCapabilities {
@@ -730,7 +730,7 @@ mod tests {
         let mut registry = archiaemu_core::CoreRegistry::new();
         super::register_game_boy(&mut registry).unwrap();
         let system_id = registry.system_ids().next().unwrap();
-        assert_eq!(super::GameBoyCartridgeProbe.format_id(), system_id.as_str());
+        assert_eq!(super::GameBoyCartridgeProbe.format_id(), "game-boy-color");
     }
 
     #[test]
