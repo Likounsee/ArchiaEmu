@@ -120,7 +120,7 @@ pub struct InstallJournalEntry {
 }
 
 /// Discovers journal files in one transaction directory in deterministic path order.
-////
+///
 /// Only direct, regular files with the `.journal` extension are considered.
 /// Temporary files and symlinks are ignored. A malformed journal or filesystem
 /// error is returned to the caller so startup recovery cannot silently skip a
@@ -151,6 +151,15 @@ pub fn discover_install_journals(
         .collect()
 }
 
+/// Rejects directories and symbolic links before a cleanup operation.
+fn ensure_regular_journal_file(path: &Path) -> Result<(), InstallJournalError> {
+    let metadata = fs::symlink_metadata(path)?;
+    if !metadata.file_type().is_file() {
+        return Err(InstallJournalError::InvalidPath);
+    }
+    Ok(())
+}
+
 /// Removes a journal only after its committed phase is durably recorded.
 ///
 /// On Unix, synchronizes the containing directory after unlinking the journal.
@@ -160,6 +169,7 @@ pub fn remove_committed_install_journal(
     path: impl AsRef<Path>,
 ) -> Result<(), InstallJournalError> {
     let path = path.as_ref();
+    ensure_regular_journal_file(path)?;
     let journal = InstallJournal::load(path)?;
     if journal.entry().phase != InstallPhase::Committed {
         return Err(InstallJournalError::NotCommitted(journal.entry().phase));
@@ -186,6 +196,7 @@ pub fn remove_discarded_install_journal(
     path: impl AsRef<Path>,
 ) -> Result<(), InstallJournalError> {
     let path = path.as_ref();
+    ensure_regular_journal_file(path)?;
     let journal = InstallJournal::load(path)?;
     match journal.entry().phase {
         InstallPhase::Planned
@@ -548,6 +559,40 @@ mod tests {
                 "unexpected recovery action for durable phase {phase:?}"
             );
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn journal_cleanup_rejects_symbolic_links() {
+        let directory = std::env::temp_dir().join(format!(
+            "archiaemu-journal-symlink-{}-{}",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&directory).unwrap();
+        let target = directory.join("target.journal");
+        let link = directory.join("link.journal");
+        let mut journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
+        journal.advance(InstallPhase::Downloading).unwrap();
+        journal.advance(InstallPhase::Verified).unwrap();
+        journal.advance(InstallPhase::Staged).unwrap();
+        journal.advance(InstallPhase::Activating).unwrap();
+        journal.advance(InstallPhase::Activated).unwrap();
+        journal.advance(InstallPhase::Committed).unwrap();
+        journal.save(&target).unwrap();
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+
+        assert!(matches!(
+            remove_committed_install_journal(&link),
+            Err(InstallJournalError::InvalidPath)
+        ));
+        assert!(target.exists());
+        assert!(link.exists());
+
+        fs::remove_file(link).unwrap();
+        fs::remove_file(target).unwrap();
+        fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]
