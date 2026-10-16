@@ -89,175 +89,175 @@ impl DesktopApp {
                                 } else {
                                     "sessions fermées"
                                 };
-                                format!("{error} ; {count} {noun}.")
-                            }
-                            (true, None) => {
-                                let noun = if count == 1 {
-                                    "session fermée"
-                                } else {
-                                    "sessions fermées"
-                                };
-                                format!("{count} {noun}.")
-                            }
-                            (false, Some(error)) => {
-                                let noun = if count == 1 { "session" } else { "sessions" };
-                                format!("{error}; closed {count} {noun}.")
-                            }
-                            (false, None) => {
-                                let noun = if count == 1 { "session" } else { "sessions" };
-                                format!("Closed {count} {noun}.")
-                            }
-                        };
+                            format!("{error} ; {count} {noun}.")
                         }
+                        (true, None) => {
+                            let noun = if count == 1 {
+                                "session fermée"
+                            } else {
+                                "sessions fermées"
+                            };
+                            format!("{count} {noun}.")
+                        }
+                        (false, Some(error)) => {
+                            let noun = if count == 1 { "session" } else { "sessions" };
+                            format!("{error}; closed {count} {noun}.")
+                        }
+                        (false, None) => {
+                            let noun = if count == 1 { "session" } else { "sessions" };
+                            format!("Closed {count} {noun}.")
+                        }
+                    };
                     }
-                });
+                }
             });
-            ui.add_space(8.0);
-            let sessions = self.controller.session_summaries();
-            if sessions.is_empty() {
-                egui::Frame::group(ui.style())
-                    .rounding(egui::Rounding::same(12.0))
-                    .inner_margin(egui::Margin::same(14.0))
-                    .show(ui, |ui| {
-                    ui.heading(if self.language == "fr" { "Aucune session ouverte" } else { "No open sessions" });
-                    ui.label(if self.language == "fr" { "Ouvrez une session à partir d’un fichier importé pour consulter son état et ses capacités." } else { "Open a session from an imported local file to inspect lifecycle and capability reporting." });
-                    if ui.button(if self.language == "fr" { "Ouvrir la bibliothèque" } else { "Browse library" }).clicked() {
-                        self.navigate_to(DesktopPage::Library);
-                    }
-                });
-            }
-            for summary in sessions {
-                let id = summary.id;
-                let state = summary.state;
-                let content_loaded = summary.content_loaded;
-                let save_states = summary.save_states;
-                let persistent_saves = summary.persistent_saves;
-                let system_name = summary.system_name;
-                let video_available = summary.video_available;
-                let audio_available = summary.audio_available;
-                let active_error = summary.last_error.clone();
-                let core_diagnostic = summary.last_error.clone();
-                let tick_error = self.last_tick_errors.iter().find_map(|(error_id, error)| {
-                    if *error_id == id {
-                        Some(error.clone())
-                    } else {
-                        None
-                    }
-                });
-                egui::Frame::group(ui.style())
-                    .rounding(egui::Rounding::same(12.0))
-                    .inner_margin(egui::Margin::same(14.0))
-                    .show(ui, |ui| {
-                    if state == SessionState::Paused {
-                        ui.set_min_width(170.0);
-                        ui.set_max_width(220.0);
-                        ui.vertical(|ui| {
-                            ui.strong(format!("Session {}", id.get()));
-                            ui.label(&system_name);
-                            ui.small(if self.language == "fr" { "En pause" } else { "Paused" });
-                            if ui.button(if self.language == "fr" { "Reprendre" } else { "Resume" }).clicked() {
-                                self.session_action(id, SessionAction::Resume);
+        });
+        ui.add_space(8.0);
+        let sessions = self.controller.session_summaries();
+        if sessions.is_empty() {
+            egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
+                ui.heading(if self.language == "fr" { "Aucune session ouverte" } else { "No open sessions" });
+                ui.label(if self.language == "fr" { "Ouvrez une session à partir d’un fichier importé pour consulter son état et ses capacités." } else { "Open a session from an imported local file to inspect lifecycle and capability reporting." });
+                if ui.button(if self.language == "fr" { "Ouvrir la bibliothèque" } else { "Browse library" }).clicked() {
+                    self.navigate_to(DesktopPage::Library);
+                }
+            });
+        }
+        for summary in sessions {
+            let id = summary.id;
+            let state = summary.state;
+            let content_loaded = summary.content_loaded;
+            let save_states = summary.save_states;
+            let persistent_saves = summary.persistent_saves;
+            let system_name = summary.system_name;
+            let video_available = summary.video_available;
+            let audio_available = summary.audio_available;
+            let active_error = summary.last_error.clone();
+            let core_diagnostic = summary.last_error.clone();
+            let tick_error = self.last_tick_errors.iter().find_map(|(error_id, error)| {
+                if *error_id == id {
+                    Some(error.clone())
+                } else {
+                    None
+                }
+            });
+            egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(12.0))
+                .inner_margin(egui::Margin::same(14.0))
+                .show(ui, |ui| {
+                if state == SessionState::Paused {
+                    ui.set_min_width(170.0);
+                    ui.set_max_width(220.0);
+                    ui.vertical(|ui| {
+                        ui.strong(format!("Session {}", id.get()));
+                        ui.label(&system_name);
+                        ui.small(if self.language == "fr" { "En pause" } else { "Paused" });
+                        if ui.button(if self.language == "fr" { "Reprendre" } else { "Resume" }).clicked() {
+                            self.session_action(id, SessionAction::Resume);
+                        }
+                        if content_loaded && save_states {
+                            if ui.button(if french { "Sauvegarder l’état" } else { "Save" }).clicked() {
+                                self.save_state_action(id);
                             }
-                            if content_loaded && save_states {
-                                if ui.button(if french { "Sauvegarder l’état" } else { "Save" }).clicked() {
-                                    self.save_state_action(id);
-                                }
-                                if ui.button(if french { "Charger l’état" } else { "Load state" }).clicked() {
-                                    self.load_state_action(id);
-                                }
-                                if persistent_saves && ui.button(if french { "Sauvegarder la partie" } else { "Save game" }).clicked() {
-                                    self.save_game_data_action(id);
-                                }
-                                if ui.button(if french { "Arrêter et sauvegarder" } else { "Stop and Save" }).clicked() {
-                                    self.session_action(id, SessionAction::StopAndSave);
-                                }
+                            if ui.button(if french { "Charger l’état" } else { "Load state" }).clicked() {
+                                self.load_state_action(id);
                             }
-                            if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
-                                if let Err(error) = self.save_dirty_game_data_for_session(id) {
-                                    self.message = format!("Close cancelled; game save could not be flushed: {error}");
-                                    return;
-                                }
-                                let was_active = self.controller.active_session() == Some(id);
-                                if was_active {
-                                    let _ = self.release_game_inputs();
-                                }
-                                match self.controller.close_session(id) {
-                                    Ok(()) => {
-                                        self.message = if french {
-                                            format!("Session {} fermée.", id.get())
-                                        } else {
-                                            format!("Closed session {}.", id.get())
-                                        };
-                                        if was_active {
-                                            self.audio_output.clear();
-                                            self.frame_cadence.reset();
-                                            self.frame_texture = None;
-                                            self.video_size = None;
-                                            self.last_tick = Instant::now();
-                                        }
-                                        self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
-                                        self.session_content_paths.retain(|(session_id, _)| *session_id != id);
-                                    }
-                                    Err(error) => self.message = error.to_string(),
-                                }
+                            if persistent_saves && ui.button(if french { "Sauvegarder la partie" } else { "Save game" }).clicked() {
+                                self.save_game_data_action(id);
                             }
-                        });
-                        return;
-                    }
-                    ui.horizontal_wrapped(|ui| {
-                        let selected = self.controller.active_session() == Some(id);
-                        if ui
-                            .selectable_label(selected, format!("Session {}", id.get()))
-                            .clicked()
-                            && self.controller.active_session() != Some(id)
-                        {
-                            // Do not switch away if held controls could not be released:
-                            // the old session must not keep receiving stuck input.
-                            if let Err(error) = self.release_game_inputs() {
-                                self.message = error;
+                            if ui.button(if french { "Arrêter et sauvegarder" } else { "Stop and Save" }).clicked() {
+                                self.session_action(id, SessionAction::StopAndSave);
+                            }
+                        }
+                        if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
+                            if let Err(error) = self.save_dirty_game_data_for_session(id) {
+                                self.message = format!("Close cancelled; game save could not be flushed: {error}");
                                 return;
                             }
-                            match self.controller.select_session(id) {
+                            let was_active = self.controller.active_session() == Some(id);
+                            if was_active {
+                                let _ = self.release_game_inputs();
+                            }
+                            match self.controller.close_session(id) {
                                 Ok(()) => {
-                                    self.audio_output.clear();
-                                    self.frame_cadence.reset();
-                                    self.frame_texture = None;
-                                    self.video_size = None;
-                                    self.last_tick = Instant::now();
-                                    self.active_page = DesktopPage::Game;
+                                    self.message = if french {
+                                        format!("Session {} fermée.", id.get())
+                                    } else {
+                                        format!("Closed session {}.", id.get())
+                                    };
+                                    if was_active {
+                                        self.audio_output.clear();
+                                        self.frame_cadence.reset();
+                                        self.frame_texture = None;
+                                        self.video_size = None;
+                                        self.last_tick = Instant::now();
+                                    }
+                                    self.last_tick_errors.retain(|(error_id, _)| *error_id != id);
+                                    self.session_content_paths.retain(|(session_id, _)| *session_id != id);
                                 }
                                 Err(error) => self.message = error.to_string(),
                             }
                         }
-                        ui.label(&system_name);
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
-                                if let Err(error) = self.save_dirty_game_data_for_session(id) {
-                                    self.message = format!("Close cancelled; game save could not be flushed: {error}");
-                                    return;
-                                }
-                                let was_active = self.controller.active_session() == Some(id);
-                                let release_error = if was_active {
-                                    self.release_game_inputs().err()
-                                } else {
-                                    None
-                                };
-                                match self.controller.close_session(id) {
-                                    Ok(()) => {
-                                        self.message = match (french, release_error) {
-                                            (true, Some(error)) => {
-                                                format!("Session {} fermée, mais {error}", id.get())
-                                            }
-                                            (true, None) => {
-                                                format!("Session {} fermée.", id.get())
-                                            }
-                                            (false, Some(error)) => {
-                                                format!("Session {} closed, but {error}", id.get())
-                                            }
-                                            (false, None) => {
-                                                format!("Closed session {}.", id.get())
-                                            }
-                                        };
+                    });
+                    return;
+                }
+                ui.horizontal_wrapped(|ui| {
+                    let selected = self.controller.active_session() == Some(id);
+                    if ui
+                        .selectable_label(selected, format!("Session {}", id.get()))
+                        .clicked()
+                        && self.controller.active_session() != Some(id)
+                    {
+                        // Do not switch away if held controls could not be released:
+                        // the old session must not keep receiving stuck input.
+                        if let Err(error) = self.release_game_inputs() {
+                            self.message = error;
+                            return;
+                        }
+                        match self.controller.select_session(id) {
+                            Ok(()) => {
+                                self.audio_output.clear();
+                                self.frame_cadence.reset();
+                                self.frame_texture = None;
+                                self.video_size = None;
+                                self.last_tick = Instant::now();
+                                self.active_page = DesktopPage::Game;
+                            }
+                            Err(error) => self.message = error.to_string(),
+                        }
+                    }
+                    ui.label(&system_name);
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
+                            if let Err(error) = self.save_dirty_game_data_for_session(id) {
+                                self.message = format!("Close cancelled; game save could not be flushed: {error}");
+                                return;
+                            }
+                            let was_active = self.controller.active_session() == Some(id);
+                            let release_error = if was_active {
+                                self.release_game_inputs().err()
+                            } else {
+                                None
+                            };
+                            match self.controller.close_session(id) {
+                                Ok(()) => {
+                                    self.message = match (french, release_error) {
+                                        (true, Some(error)) => {
+                                            format!("Session {} fermée, mais {error}", id.get())
+                                        }
+                                        (true, None) => {
+                                            format!("Session {} fermée.", id.get())
+                                        }
+                                        (false, Some(error)) => {
+                                            format!("Session {} closed, but {error}", id.get())
+                                        }
+                                        (false, None) => {
+                                            format!("Closed session {}.", id.get())
+                                        }
+                                    };
                                     if was_active {
                                         self.audio_output.clear();
                                         self.frame_cadence.reset();
