@@ -349,3 +349,97 @@ impl From<io::Error> for InstallJournalError {
         Self::Io(value)
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn journal_round_trips_module_version_and_phase() {
+        let mut journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.2.3+build.7")
+                .unwrap();
+        journal.advance(InstallPhase::Downloading).unwrap();
+        journal.advance(InstallPhase::Verified).unwrap();
+
+        let encoded = journal.encode();
+        let decoded = InstallJournal::decode(&encoded).unwrap();
+
+        assert_eq!(decoded, journal);
+        assert_eq!(decoded.entry().module.as_str(), "test-module");
+        assert_eq!(decoded.entry().version, "1.2.3+build.7");
+        assert_eq!(decoded.entry().phase, InstallPhase::Verified);
+    }
+
+    #[test]
+    fn invalid_transition_does_not_change_last_durable_phase() {
+        let mut journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
+
+        assert!(matches!(
+            journal.advance(InstallPhase::Committed),
+            Err(InstallJournalError::InvalidTransition {
+                from: InstallPhase::Planned,
+                to: InstallPhase::Committed,
+            })
+        ));
+        assert_eq!(journal.entry().phase, InstallPhase::Planned);
+    }
+
+    #[test]
+    fn decoder_rejects_duplicate_and_unknown_records() {
+        let duplicate = format!(
+            "{HEADER}\nmodule\\ttest-module\nmodule\\tother-module\nversion\\t312e302e30\nphase\\tplanned\n"
+        )
+        .replace("\\t", "\t");
+        assert!(matches!(
+            InstallJournal::decode(&duplicate),
+            Err(InstallJournalError::InvalidFormat)
+        ));
+
+        let unknown = format!(
+            "{HEADER}\nmodule\ttest-module\nversion\t312e302e30\nphase\tplanned\nextra\tvalue\n"
+        );
+        assert!(matches!(
+            InstallJournal::decode(&unknown),
+            Err(InstallJournalError::InvalidFormat)
+        ));
+    }
+
+    #[test]
+    fn recovery_action_tracks_activation_and_commit_boundaries() {
+        let mut journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
+        assert_eq!(
+            journal.recovery_action(),
+            InstallRecovery::DiscardStaging
+        );
+
+        journal.advance(InstallPhase::Downloading).unwrap();
+        journal.advance(InstallPhase::Verified).unwrap();
+        journal.advance(InstallPhase::Staged).unwrap();
+        journal.advance(InstallPhase::Activating).unwrap();
+        assert_eq!(
+            journal.recovery_action(),
+            InstallRecovery::ReconcileActivation
+        );
+
+        journal.advance(InstallPhase::Activated).unwrap();
+        journal.advance(InstallPhase::Committed).unwrap();
+        assert_eq!(
+            journal.recovery_action(),
+            InstallRecovery::CleanupCommitted
+        );
+    }
+
+    #[test]
+    fn constructor_rejects_empty_or_record_separated_versions() {
+        for version in ["", "  ", "1.0\nphase\tcommitted", "1.0\r", "1.0\tbad"] {
+            assert!(matches!(
+                InstallJournal::new(ModuleId::new("test-module").unwrap(), version),
+                Err(InstallJournalError::InvalidVersion)
+            ));
+        }
+    }
+}
