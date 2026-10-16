@@ -2,7 +2,6 @@
 
 use super::*;
 use archiaemu_core::module_management::ModuleId;
-use archiaemu_core::module_state::ModuleManagerState;
 use archiaemu_core::module_state_store::{default_user_state_path, ModuleStateStore};
 
 impl DesktopApp {
@@ -12,7 +11,11 @@ impl DesktopApp {
         let system_count = system_ids.len();
         let capability_label = |enabled| {
             if enabled {
-                if french { "Disponible" } else { "Available" }
+                if french {
+                    "Disponible"
+                } else {
+                    "Available"
+                }
             } else if french {
                 "Non implémenté"
             } else {
@@ -23,13 +26,21 @@ impl DesktopApp {
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.label(
-                    egui::RichText::new(if french { "ENVIRONNEMENT" } else { "ENVIRONMENT" })
-                        .size(10.0)
-                        .strong()
-                        .color(self.accent_color),
+                    egui::RichText::new(if french {
+                        "ENVIRONNEMENT"
+                    } else {
+                        "ENVIRONMENT"
+                    })
+                    .size(10.0)
+                    .strong()
+                    .color(self.accent_color),
                 );
                 ui.add_space(3.0);
-                ui.heading(if french { "Systèmes et modules" } else { "Systems and modules" });
+                ui.heading(if french {
+                    "Systèmes et modules"
+                } else {
+                    "Systems and modules"
+                });
                 ui.label(if french {
                     "Disponibilité issue des cœurs enregistrés ; sélection conservée dans votre profil."
                 } else {
@@ -45,8 +56,16 @@ impl DesktopApp {
                             "{} {}",
                             system_count,
                             if french {
-                                if system_count == 1 { "système" } else { "systèmes" }
-                            } else if system_count == 1 { "system" } else { "systems" }
+                                if system_count == 1 {
+                                    "système"
+                                } else {
+                                    "systèmes"
+                                }
+                            } else if system_count == 1 {
+                                "system"
+                            } else {
+                                "systems"
+                            }
                         ));
                     });
             });
@@ -88,14 +107,18 @@ impl DesktopApp {
             }
         };
 
-        ui.heading(if french { "Sélection des modules" } else { "Module selection" });
+        ui.heading(if french {
+            "Sélection des modules"
+        } else {
+            "Module selection"
+        });
         ui.label(if french {
             "Cette sélection enregistre votre préférence. Elle ne télécharge ni n’installe de paquet."
         } else {
             "This records your preference only. It does not download or install a package."
         });
 
-        let mut selected: Vec<ModuleId> = state.selected_modules().to_vec();
+        let mut selected = state.selected_modules().to_vec();
         let mut changed = false;
         if system_ids.is_empty() {
             ui.label(if french {
@@ -109,7 +132,15 @@ impl DesktopApp {
             let Ok(module_id) = ModuleId::new(id.as_str().to_owned()) else {
                 ui.colored_label(
                     egui::Color32::LIGHT_RED,
-                    format!("{}: {}", if french { "Identifiant non valide" } else { "Invalid module ID" }, id.as_str()),
+                    format!(
+                        "{}: {}",
+                        if french {
+                            "Identifiant non valide"
+                        } else {
+                            "Invalid module ID"
+                        },
+                        id.as_str()
+                    ),
                 );
                 continue;
             };
@@ -127,7 +158,11 @@ impl DesktopApp {
                     }
                 }
                 ui.label(if available.is_some() {
-                    if french { "Disponible dans cette compilation" } else { "Available in this build" }
+                    if french {
+                        "Disponible dans cette compilation"
+                    } else {
+                        "Available in this build"
+                    }
                 } else if french {
                     "Non disponible"
                 } else {
@@ -139,12 +174,29 @@ impl DesktopApp {
                 ui.indent(id.as_str(), |ui| {
                     ui.horizontal_wrapped(|ui| {
                         for (label, enabled) in [
-                            (if french { "Contenu" } else { "Content" }, caps.content_loading),
+                            (
+                                if french { "Contenu" } else { "Content" },
+                                caps.content_loading,
+                            ),
                             (if french { "Entrées" } else { "Input" }, caps.input),
                             (if french { "Vidéo" } else { "Video" }, caps.video_output),
                             (if french { "Audio" } else { "Audio" }, caps.audio_output),
-                            (if french { "États de sauvegarde" } else { "Save states" }, caps.save_states),
-                            (if french { "Sauvegardes persistantes" } else { "Persistent saves" }, caps.persistent_saves),
+                            (
+                                if french {
+                                    "États de sauvegarde"
+                                } else {
+                                    "Save states"
+                                },
+                                caps.save_states,
+                            ),
+                            (
+                                if french {
+                                    "Sauvegardes persistantes"
+                                } else {
+                                    "Persistent saves"
+                                },
+                                caps.persistent_saves,
+                            ),
                         ] {
                             ui.label(format!("{label}: {}", capability_label(enabled)));
                         }
@@ -175,7 +227,11 @@ impl DesktopApp {
 
         ui.add_space(12.0);
         ui.separator();
-        ui.heading(if french { "Modules installés" } else { "Installed modules" });
+        ui.heading(if french {
+            "Modules installés"
+        } else {
+            "Installed modules"
+        });
         if state.installed_modules().is_empty() {
             ui.label(if french {
                 "Aucun paquet de module externe n’est enregistré comme installé."
@@ -186,7 +242,7 @@ impl DesktopApp {
             for installed in state.installed_modules() {
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new(installed.id.as_str()).strong());
-                    ui.label(if french { "Version" } else { "Version" });
+                    ui.label("Version");
                     ui.monospace(&installed.version);
                 });
             }
