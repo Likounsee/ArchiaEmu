@@ -85,15 +85,15 @@ impl DesktopApp {
                             format!("{error} ; {count} {noun}.")
                         }
                         (true, None) => {
-                            let noun = if count == 1 { "session fermée" } else { "sessions fermées" };
+                            let noun = if count == 1 {
+                                "session fermée"
+                            } else {
+                                "sessions fermées"
+                            };
                             format!("{count} {noun}.")
                         }
                         (false, Some(error)) => {
-                            let noun = if count == 1 {
-                                "session"
-                            } else {
-                                "sessions"
-                            };
+                            let noun = if count == 1 { "session" } else { "sessions" };
                             format!("{error}; closed {count} {noun}.")
                         }
                         (false, None) => {
