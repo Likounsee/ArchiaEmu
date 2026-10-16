@@ -108,7 +108,12 @@ pub(crate) fn download_and_verify(
         return Err("Update download has a malformed SHA-256 digest.".to_owned());
     }
 
-    let directory = std::env::temp_dir().join("ArchiaEmu").join("updates");
+    let application_directory = std::env::temp_dir().join("ArchiaEmu");
+    fs::create_dir_all(&application_directory)
+        .map_err(|error| format!("Could not create update application directory: {error}"))?;
+    ensure_real_staging_directory(&application_directory)?;
+
+    let directory = application_directory.join("updates");
     fs::create_dir_all(&directory)
         .map_err(|error| format!("Could not create update staging directory: {error}"))?;
     ensure_real_staging_directory(&directory)?;
@@ -834,6 +839,23 @@ mod tests {
         let link = temporary_file().with_extension("staging-link");
         std::fs::create_dir(&target).expect("staging target directory should be created");
         symlink(&target, &link).expect("staging symbolic link should be created");
+
+        assert!(ensure_real_staging_directory(&link).is_err());
+        assert!(ensure_real_staging_directory(&target).is_ok());
+
+        let _ = std::fs::remove_file(link);
+        let _ = std::fs::remove_dir(target);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn update_application_directory_rejects_symbolic_links() {
+        use std::os::unix::fs::symlink;
+
+        let target = temporary_file();
+        let link = temporary_file().with_extension("application-link");
+        std::fs::create_dir(&target).expect("target directory should be created");
+        symlink(&target, &link).expect("application directory link should be created");
 
         assert!(ensure_real_staging_directory(&link).is_err());
         assert!(ensure_real_staging_directory(&target).is_ok());
