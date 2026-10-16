@@ -157,17 +157,25 @@ impl DesktopApp {
                         selected.retain(|selected_id| selected_id != &module_id);
                     }
                 }
-                ui.label(if available.is_some() {
-                    if french {
-                        "Disponible dans cette compilation"
+                if let Some(version) = state.installed_version(&module_id) {
+                    ui.label(if french {
+                        format!("Installé · version {version}")
                     } else {
-                        "Available in this build"
-                    }
-                } else if french {
-                    "Non disponible"
+                        format!("Installed · version {version}")
+                    });
                 } else {
-                    "Unavailable"
-                });
+                    ui.label(if available.is_some() {
+                        if french {
+                            "Disponible dans cette compilation"
+                        } else {
+                            "Available in this build"
+                        }
+                    } else if french {
+                        "Non disponible"
+                    } else {
+                        "Unavailable"
+                    });
+                }
             });
             if let Some(descriptor) = available {
                 let caps = descriptor.capabilities;
