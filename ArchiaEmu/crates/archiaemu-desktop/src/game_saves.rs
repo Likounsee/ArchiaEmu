@@ -14,7 +14,14 @@ pub fn save_path(config_file: &Path, content_path: &Path) -> io::Result<PathBuf>
             "configuration path has no parent",
         )
     })?;
-    let canonical_content = std::fs::canonicalize(content_path)?;
+    // Session paths are canonicalized when a ROM is launched. If the user
+    // deletes or moves that ROM while the session is still open, retain the
+    // known absolute path so its battery RAM can still be flushed safely.
+    let canonical_content = match std::fs::canonicalize(content_path) {
+        Ok(path) => path,
+        Err(_) if content_path.is_absolute() => content_path.to_path_buf(),
+        Err(error) => return Err(error),
+    };
     let fingerprint = stable_fingerprint(canonical_content.to_string_lossy().as_bytes());
     Ok(config_dir
         .join("saves")
@@ -62,10 +69,11 @@ mod tests {
     }
 
     #[test]
-    fn missing_rom_does_not_create_a_game_save_slot() {
+    fn missing_absolute_rom_keeps_a_stable_slot_without_creating_directories() {
         let root = temporary_directory("missing-rom");
         let config = root.join("config.conf");
-        assert!(save_path(&config, &root.join("missing.gb")).is_err());
+        let slot = save_path(&config, &root.join("missing.gb")).unwrap();
+        assert!(slot.starts_with(root.join("saves")));
         assert!(!root.join("saves").exists());
         std::fs::remove_dir_all(root).unwrap();
     }
