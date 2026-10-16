@@ -45,7 +45,7 @@ Source: "{#StageDir}\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 ; Bundle staged runtime DLLs, native dependencies, and resources as well. The
 ; installer must not rely on files from the repository or a developer's PATH.
 ; Debug symbols are intentionally not shipped.
-Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "{#AppExeName},*.pdb,*.ilk"
+Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist; Excludes: "{#AppExeName},*.pdb,*.ilk"
 
 [Icons]
 Name: "{group}\ArchiaEmu"; Filename: "{app}\{#AppExeName}"
