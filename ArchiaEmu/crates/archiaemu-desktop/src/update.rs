@@ -290,6 +290,24 @@ fn validate_download_url(url: &str) -> Result<(), String> {
         if !path.starts_with("/Likounsee/ArchiaEmu/releases/download/") {
             return Err("Update artifacts must come from an ArchiaEmu GitHub release.".to_owned());
         }
+        // Manifest artifact URLs are stable release-asset paths, not signed
+        // redirect URLs. Reject query/fragment tricks and dot-segments rather
+        // than letting URL/server path normalization change the requested asset.
+        if path.contains('?') || path.contains('#') {
+            return Err("ArchiaEmu release artifact URLs must not contain a query or fragment.".to_owned());
+        }
+        let lower_path = path.to_ascii_lowercase();
+        if lower_path.contains("%2e")
+            || path
+                .split('/')
+                .any(|segment| segment == "." || segment == "..")
+        {
+            return Err("ArchiaEmu release artifact URLs must not contain path traversal segments.".to_owned());
+        }
+        let segments: Vec<_> = path.split('/').filter(|segment| !segment.is_empty()).collect();
+        if segments.len() < 6 || segments[4].is_empty() || segments[5..].iter().any(|s| s.is_empty()) {
+            return Err("ArchiaEmu release artifact URL must identify a specific release asset.".to_owned());
+        }
     }
     Ok(())
 }
@@ -644,6 +662,17 @@ mod tests {
             "https://github.com/Likounsee/ArchiaEmu/releases/tag/v0.2.0"
         )
         .is_err());
+        for traversal in [
+            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/../other.exe",
+            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/%2e%2e/other.exe",
+            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe?redirect=example.com",
+            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe#other",
+        ] {
+            assert!(
+                validate_download_url(traversal).is_err(),
+                "release asset URL must reject path/query/fragment tricks: {traversal}"
+            );
+        }
         assert!(validate_download_url("http://github.com/app.exe").is_err());
         // GitHub's release downloads can redirect to these dedicated asset hosts.
         assert!(validate_download_url(
