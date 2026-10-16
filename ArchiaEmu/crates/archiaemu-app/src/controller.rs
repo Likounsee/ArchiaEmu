@@ -591,17 +591,28 @@ mod tests {
     }
 
     #[test]
-    fn closing_all_sessions_clears_selection_and_is_idempotent() {
+    fn closing_all_sessions_clears_multiple_sessions_and_is_idempotent() {
         let mut app = controller();
-        let id = app
+        let first = app
             .host_mut()
             .create_session(Box::new(GameBoyCore::new()))
             .unwrap();
-        app.select_session(id).unwrap();
+        let second = app
+            .host_mut()
+            .create_session(Box::new(GameBoyCore::new()))
+            .unwrap();
+        app.select_session(second).unwrap();
+        assert_eq!(app.session_count(), 2);
 
-        assert_eq!(app.close_all_sessions(), 1);
+        assert_eq!(app.close_all_sessions(), 2);
         assert_eq!(app.active_session(), None);
+        assert_eq!(app.session_count(), 0);
+        assert!(app.session_summaries().is_empty());
         assert_eq!(app.close_all_sessions(), 0);
+
+        // Closing all sessions also makes every previous identifier stale.
+        assert!(app.select_session(first).is_err());
+        assert!(app.select_session(second).is_err());
     }
 
     #[test]
