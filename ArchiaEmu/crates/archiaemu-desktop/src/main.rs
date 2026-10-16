@@ -144,6 +144,7 @@ struct DesktopApp {
     config_path: Option<PathBuf>,
     active_page: DesktopPage,
     last_tick: Instant,
+    last_game_save: Instant,
     frame_cadence: FrameCadence,
     frame_texture: Option<egui::TextureHandle>,
     video_size: Option<[u32; 2]>,
@@ -368,6 +369,7 @@ impl DesktopApp {
             config_path,
             active_page: DesktopPage::Home,
             last_tick: Instant::now(),
+            last_game_save: Instant::now(),
             frame_cadence: FrameCadence::new(60, 3)?,
             frame_texture: None,
             video_size: None,
@@ -666,6 +668,11 @@ impl DesktopApp {
         archiaemu_core::save_state_store::SaveStateStore::new(path.clone())
             .save(&envelope)
             .map_err(|error| format!("Could not write game save: {error}"))?;
+        self.controller
+            .host_mut()
+            .session_mut(id)
+            .map_err(|error| error.to_string())?
+            .clear_persistent_save_dirty();
         Ok(path)
     }
 
@@ -679,6 +686,47 @@ impl DesktopApp {
                 };
             }
             Err(error) => self.message = format!("Game save failed: {error}"),
+        }
+    }
+
+    fn save_dirty_game_data_for_session(&mut self, id: SessionId) -> Result<(), String> {
+        let dirty = self
+            .controller
+            .host()
+            .session(id)
+            .map_err(|error| error.to_string())?
+            .persistent_save_dirty();
+        if dirty {
+            self.save_game_data_for_session(id)?;
+        }
+        Ok(())
+    }
+
+    fn flush_dirty_game_saves(&mut self) -> Vec<String> {
+        let session_ids: Vec<_> = self
+            .controller
+            .session_summaries()
+            .into_iter()
+            .filter(|session| session.persistent_saves)
+            .map(|session| session.id)
+            .collect();
+        let mut failures = Vec::new();
+        for id in session_ids {
+            if let Err(error) = self.save_dirty_game_data_for_session(id) {
+                failures.push(format!("session {}: {error}", id.get()));
+            }
+        }
+        failures
+    }
+
+    fn autosave_dirty_game_saves(&mut self) {
+        if self.last_game_save.elapsed() < Duration::from_secs(2) {
+            return;
+        }
+        let failures = self.flush_dirty_game_saves();
+        self.last_game_save = Instant::now();
+        if !failures.is_empty() {
+            self.message = format!("Game save failed: {}", failures.join("; "));
         }
     }
 
@@ -854,6 +902,20 @@ impl DesktopApp {
                 return;
             }
         }
+        if matches!(action, SessionAction::StopAndSave)
+            && self
+                .controller
+                .session_summary(id)
+                .is_ok_and(|summary| summary.persistent_saves)
+        {
+            if let Err(error) = self.save_game_data_for_session(id) {
+                self.message = format!(
+                    "Session {}: stop aborted because saving in-game data failed: {error}",
+                    id.get()
+                );
+                return;
+            }
+        }
 
         let command = match action {
             SessionAction::Pause => SessionCommand::Pause,
@@ -958,6 +1020,10 @@ fn navigation_items(french: bool) -> [(DesktopPage, &'static str); 6] {
 
 impl eframe::App for DesktopApp {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        // Flush dirty battery-backed RAM before tearing down sessions.
+        for error in self.flush_dirty_game_saves() {
+            eprintln!("ArchiaEmu: could not flush persistent game save on exit: {error}");
+        }
         // Release held controls before tearing down sessions so a core never exits
         // with inputs logically stuck in the pressed state.
         let _ = self.release_game_inputs();
@@ -1540,6 +1606,7 @@ impl DesktopApp {
         } else {
             pipeline_status
         };
+        self.autosave_dirty_game_saves();
         if state == SessionState::Running {
             context.request_repaint_after(Duration::from_millis(16));
         }
