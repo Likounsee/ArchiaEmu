@@ -119,6 +119,38 @@ pub struct InstallJournalEntry {
     pub phase: InstallPhase,
 }
 
+/// Discovers journal files in one transaction directory in deterministic path order.
+////
+//// Only direct, regular files with the `.journal` extension are considered.
+//// Temporary files and symlinks are ignored. A malformed journal or filesystem
+//// error is returned to the caller so startup recovery cannot silently skip a
+//// transaction that may need attention.
+pub fn discover_install_journals(
+    directory: impl AsRef<Path>,
+) -> Result<Vec<(PathBuf, InstallJournal)>, InstallJournalError> {
+    let mut paths = Vec::new();
+    for entry in fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().is_none_or(|extension| extension != "journal") {
+            continue;
+        }
+        let metadata = fs::symlink_metadata(&path)?;
+        if metadata.file_type().is_file() {
+            paths.push(path);
+        }
+    }
+    paths.sort();
+
+    paths
+        .into_iter()
+        .map(|path| {
+            let journal = InstallJournal::load(&path)?;
+            Ok((path, journal))
+        })
+        .collect()
+}
+
 /// A bounded, versioned installation journal for one package.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InstallJournal {
@@ -415,6 +447,57 @@ mod tests {
                 "unexpected recovery action for durable phase {phase:?}"
             );
         }
+    }
+
+    #[test]
+    fn discovery_returns_only_journals_in_deterministic_order() {
+        let directory = std::env::temp_dir().join(format!(
+            "archiaemu-journal-discovery-{}-{}",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&directory).unwrap();
+
+        let first = directory.join("a.journal");
+        let second = directory.join("z.journal");
+        let temporary = directory.join("a.journal.tmp-123");
+        InstallJournal::new(ModuleId::new("module-a").unwrap(), "1.0.0")
+            .unwrap()
+            .save(&first)
+            .unwrap();
+        InstallJournal::new(ModuleId::new("module-z").unwrap(), "2.0.0")
+            .unwrap()
+            .save(&second)
+            .unwrap();
+        fs::write(&temporary, b"partial").unwrap();
+        fs::write(directory.join("notes.txt"), b"not a journal").unwrap();
+
+        let found = discover_install_journals(&directory).unwrap();
+        assert_eq!(
+            found.iter().map(|(path, _)| path.clone()).collect::<Vec<_>>(),
+            vec![first.clone(), second.clone()]
+        );
+        assert_eq!(found[0].1.entry().module.as_str(), "module-a");
+        assert_eq!(found[1].1.entry().module.as_str(), "module-z");
+
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn discovery_fails_closed_on_malformed_journal() {
+        let directory = std::env::temp_dir().join(format!(
+            "archiaemu-journal-malformed-{}-{}",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&directory).unwrap();
+        fs::write(directory.join("broken.journal"), b"not a journal").unwrap();
+
+        assert!(matches!(
+            discover_install_journals(&directory),
+            Err(InstallJournalError::InvalidFormat)
+        ));
+        fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]
