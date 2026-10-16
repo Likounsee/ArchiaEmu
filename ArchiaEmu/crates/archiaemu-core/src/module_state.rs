@@ -271,6 +271,53 @@ mod tests {
     }
 
     #[test]
+    fn rejected_installed_batch_leaves_existing_state_unchanged() {
+        let mut state = ModuleManagerState::new();
+        state.record_installed(id("game-boy"), "1.0.0").unwrap();
+        let before = state.clone();
+
+        assert_eq!(
+            state.record_installed_batch([
+                (id("nes"), "2.0.0".to_owned()),
+                (id("nes"), "2.1.0".to_owned()),
+            ]),
+            Err(ModuleStateError::DuplicateModuleInBatch(id("nes")))
+        );
+        assert_eq!(state, before);
+
+        assert_eq!(
+            state.record_installed_batch([
+                (id("nes"), "2.0.0".to_owned()),
+                (id("snes"), " ".to_owned()),
+            ]),
+            Err(ModuleStateError::EmptyVersion)
+        );
+        assert_eq!(state, before);
+    }
+
+    #[test]
+    fn uninstall_batch_removes_only_matching_records_and_returns_count() {
+        let mut state = ModuleManagerState::new();
+        state.record_installed(id("game-boy"), "1.0.0").unwrap();
+        state.record_installed(id("nes"), "2.0.0").unwrap();
+        state.record_installed(id("snes"), "3.0.0").unwrap();
+
+        assert_eq!(
+            state.record_uninstalled_batch([id("nes"), id("nes"), id("missing")]),
+            1
+        );
+        assert_eq!(
+            state
+                .installed_modules()
+                .iter()
+                .map(|module| module.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["game-boy", "snes"]
+        );
+        assert_eq!(state.record_uninstalled_batch([id("nes")]), 0);
+    }
+
+    #[test]
     fn uninstall_record_changes_only_after_success_and_is_idempotent() {
         let mut state = ModuleManagerState::new();
         state.record_installed(id("game-boy"), "1.0.0").unwrap();
