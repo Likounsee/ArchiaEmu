@@ -552,9 +552,9 @@ impl DesktopApp {
     #[cfg(not(feature = "game-boy-color-module"))]
     fn launch_content(&mut self) {
         self.message = if self.language == "fr" {
-            "Le cœur Game Boy n’est pas inclus dans cette compilation. Recompilez avec --features game-boy-core pour l’activer.".to_owned()
+            "Le module Game Boy Color n’est pas inclus dans cette compilation. Recompilez avec --features game-boy-color-module pour l’activer.".to_owned()
         } else {
-            "The Game Boy core is not included in this build. Rebuild with --features game-boy-core to enable it.".to_owned()
+            "The Game Boy Color module is not included in this build. Rebuild with --features game-boy-color-module to enable it.".to_owned()
         };
     }
 
