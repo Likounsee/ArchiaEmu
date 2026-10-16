@@ -16,10 +16,10 @@ Les pourcentages sont des **estimations fonctionnelles** fondées sur les critè
 | **P1** | **Application desktop utilisable et installable — priorité actuelle** | **≈ 61 %** | Une application locale réellement utilisable, avec parcours fiables, paramètres, diagnostics, dépendances embarquées et installateur Windows .exe |
 | **P1.1** | Architecture frontend/backend de l'application | **≈ 65 %** | UI séparée de l'orchestration et de l'exécution, modules d'interface clairs, tests isolés |
 | **P1.2** | Parcours de bibliothèque et lancement | **≈ 85 %** | Importer, rechercher, sélectionner, valider, lancer et gérer les erreurs sans état incohérent |
-| **P1.3** | Sessions et commandes génériques | **≈ 66 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
+| **P1.3** | Sessions et commandes génériques | **≈ 68 %** | Gérer plusieurs sessions, pause/reprise/arrêt/réinitialisation et fermeture propre |
 | **P1.4** | Paramètres, diagnostics et ergonomie | **≈ 55 %** | Préférences fiables, états vides/erreurs explicites, diagnostics exploitables |
 | **P1.5** | Sorties média hôte et validation multiplateforme | **≈ 80 %** | Afficher les trames et jouer l'audio lorsqu'un cœur le fournit, tester les adaptateurs et garantir les quality gates |
-| **P1.6** | Tests de parcours, CI et finition | **≈ 51 %** | Tests exécutés et validation multiplateforme de l'application |
+| **P1.6** | Tests de parcours, CI et finition | **≈ 52 %** | Tests exécutés et validation multiplateforme de l'application |
 | **P1.7** | Livraison locale et installateur Windows | **≈ 44 %** | Installateur testé en environnement propre et mise à jour sûre |
 | **P2** | Intégration et fiabilité des modules logiciels | **≈ 24 %** — après P1 | Découverte, téléchargement de modules logiciels autorisés, provenance et frontières de confiance; aucun catalogue de ROM |
 | **CPU** | Architecture transversale des stratégies d'exécution | **≈ 20 %** | Contrats CPU/ABI/GPU et stratégies réellement implémentées |
@@ -96,7 +96,7 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 
 ### P1.3 — gestion des sessions et commandes génériques
 
-**Avancement estimé : ≈ 66 %.** Les commandes essentielles, la cohérence de sélection, les erreurs de tick et les cas de détection de format incomplète sont couverts par 29 tests unitaires de contrôleur. À la fermeture, l'application tente maintenant de libérer les entrées maintenues de chaque session ouverte (et non uniquement de la session sélectionnée) avant de fermer toutes les sessions. Les tests de parcours complets et la validation manuelle restent ouverts. La conversion des sondes privilégie `NeedsMoreData` tant qu'au moins une sonde reste indécise, même si une autre correspond déjà; l'exécution sur le commit courant, la matrice complète de parcours et la validation manuelle restent ouvertes.
+**Avancement estimé : ≈ 68 %.** Les commandes essentielles, la cohérence de sélection, les erreurs de tick et les cas de détection de format incomplète sont couverts par 29 tests unitaires de contrôleur. Les snapshots de machine et les sauvegardes de cartouche ont désormais des actions distinctes; la validation automatisée de ces changements reste ouverte. À la fermeture, l'application tente maintenant de libérer les entrées maintenues de chaque session ouverte (et non uniquement de la session sélectionnée) avant de fermer toutes les sessions. Les tests de parcours complets et la validation manuelle restent ouverts. La conversion des sondes privilégie `NeedsMoreData` tant qu'au moins une sonde reste indécise, même si une autre correspond déjà; l'exécution sur le commit courant, la matrice complète de parcours et la validation manuelle restent ouvertes.
 
 - [x] Gérer plusieurs sessions, la sélection de la session active, pause/reprise, arrêt/réinitialisation et fermeture depuis l'interface.
 - [x] Avancer les sessions via le contrôleur avec budget borné et remonter état, capacités, trame la plus récente et erreur.
@@ -110,9 +110,10 @@ Le desktop utilise eframe/egui, possède une bibliothèque et un contrôleur d'a
 - [ ] Tester les erreurs de tick, les transitions après arrêt/suppression de la session active et le nettoyage des ressources sur ces chemins.
 - [x] Relâcher les entrées sur perte de focus, changement/fermeture de session et fermeture globale; tenter également de les libérer quand l'avancement de session échoue ou remonte une erreur média. Avant de lancer un nouveau contenu, la libération de la session active est maintenant préalable et un échec annule le lancement au lieu de laisser une transition ambiguë. La vérification manuelle des périphériques et ce nouveau parcours restent à exécuter.
 - [x] Afficher les capacités réellement déclarées et expliquer explicitement l'absence de vidéo/audio dans la vue de jeu, la liste des sessions et les diagnostics.
-- [x] Ajouter les états sauvegardés versionnés du cœur Game Boy pour le sous-ensemble machine implémenté : registres CPU, WRAM, HRAM, registres d'interruption et empreinte ROM; rejeter les fichiers corrompus ou associés à une autre ROM sans modifier la machine.
-- [x] Ajouter les actions « Save », « Load state » et « Stop and Save » dans les vues de jeu et de sessions, en s'appuyant sur le stockage partagé avec sauvegarde de secours et écriture durable. Les nouveaux tests et les quality gates du commit courant restent à exécuter.
-- [ ] Implémenter séparément les sauvegardes en jeu des cartouches (RAM externe/batterie et mappers pris en charge); un état complet de machine n'est pas un fichier de sauvegarde de jeu.
+- [x] Ajouter les états sauvegardés versionnés du cœur Game Boy pour le sous-ensemble machine implémenté : registres CPU, WRAM, HRAM, RAM de cartouche prise en charge, registres d'interruption et empreinte ROM; rejeter les fichiers corrompus ou associés à une autre ROM sans modifier la machine.
+- [x] Exposer séparément « Save » (snapshot complet de l'état machine), « Load state » et « Stop and Save » dans les vues de jeu et de sessions, avec stockage durable et récupération par sauvegarde de secours.
+- [x] Ajouter « Save game » séparé pour les cartouches Game Boy mapper 0 de type ROM+RAM+batterie (0x09), avec 2 ou 8 Kio de RAM : sauvegarde persistante par ROM, restauration automatique au lancement, validation de taille et stockage avec checksum/sauvegarde de secours. Les snapshots incluent également cette RAM. Les autres mappers, RTC et autres matériels de sauvegarde restent non pris en charge.
+- [ ] Exécuter les nouveaux tests et les quality gates; la présence des actions ne signifie pas que le cœur Game Boy est jouable, car la vidéo, l'audio, les périphériques et une grande partie du CPU restent incomplets.
 - [ ] Ne pas présenter un cœur factice comme une session de console jouable.
 
 **Critère de sortie :** les commandes sont prévisibles et aucun changement de session ou échec ne laisse l'interface dans un état périmé.
