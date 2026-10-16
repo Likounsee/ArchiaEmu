@@ -731,7 +731,7 @@ impl eframe::App for DesktopApp {
         let update_result = match poll_background_result(&mut self.update_check_receiver) {
             Ok(result) => result,
             Err(()) => {
-                self.update_status = "Update check failed: background worker disconnected before returning a result.".to_owned();
+                self.update_status = if self.language == "fr" { "Échec de la vérification : le processus en arrière-plan s’est interrompu.".to_owned() } else { "Update check failed: background worker disconnected before returning a result.".to_owned() };
                 self.update_manifest = None;
                 None
             }
@@ -742,17 +742,17 @@ impl eframe::App for DesktopApp {
                     let current = option_env!("CARGO_PKG_VERSION").unwrap_or("0.0.0");
                     self.update_status = if update::is_newer_version(&manifest.version, current) {
                         if manifest.download_for_current_platform().is_some() {
-                            format!("Version {} is available for download and integrity verification; installation is not automatic yet.", manifest.version)
+                            if self.language == "fr" { format!("La version {} est disponible au téléchargement et à la vérification; l’installation n’est pas automatique.", manifest.version) } else { format!("Version {} is available for download and integrity verification; installation is not automatic yet.", manifest.version) }
                         } else {
-                            format!("Version {} is published, but no download is available for this platform yet.", manifest.version)
+                            if self.language == "fr" { format!("La version {} est publiée, mais aucun téléchargement n’est disponible pour cette plateforme.", manifest.version) } else { format!("Version {} is published, but no download is available for this platform yet.", manifest.version) }
                         }
                     } else {
-                        format!("You are using the latest stable version ({}).", current)
+                        if self.language == "fr" { format!("Vous utilisez la dernière version stable ({}).", current) } else { format!("You are using the latest stable version ({}).", current) }
                     };
                     self.update_manifest = Some(manifest);
                 }
                 Err(error) => {
-                    self.update_status = format!("Update check failed: {error}");
+                    self.update_status = if self.language == "fr" { format!("Échec de la vérification des mises à jour : {error}") } else { format!("Update check failed: {error}") };
                     self.update_manifest = None;
                 }
             }
@@ -760,7 +760,7 @@ impl eframe::App for DesktopApp {
         let download_result = match poll_background_result(&mut self.update_download_receiver) {
             Ok(result) => result,
             Err(()) => {
-                self.update_status = "Update download failed: background worker disconnected before returning a result.".to_owned();
+                self.update_status = if self.language == "fr" { "Échec du téléchargement : le processus en arrière-plan s’est interrompu.".to_owned() } else { "Update download failed: background worker disconnected before returning a result.".to_owned() };
                 self.staged_update_path = None;
                 None
             }
@@ -768,14 +768,15 @@ impl eframe::App for DesktopApp {
         if let Some(result) = download_result {
             match result {
                 Ok(path) => {
-                    self.update_status = format!(
-                        "Update downloaded and SHA-256 verified at {}. Installation is not automatic.",
-                        path.display()
-                    );
+                    self.update_status = if self.language == "fr" {
+                        format!("Mise à jour téléchargée et SHA-256 vérifié : {}. L’installation n’est pas automatique.", path.display())
+                    } else {
+                        format!("Update downloaded and SHA-256 verified at {}. Installation is not automatic.", path.display())
+                    };
                     self.staged_update_path = Some(path);
                 }
                 Err(error) => {
-                    self.update_status = format!("Update download failed: {error}");
+                    self.update_status = if self.language == "fr" { format!("Échec du téléchargement de la mise à jour : {error}") } else { format!("Update download failed: {error}") };
                     self.staged_update_path = None;
                 }
             }
