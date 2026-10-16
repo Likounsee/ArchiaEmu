@@ -450,6 +450,18 @@ impl EmulationSession {
         self.record_core_result(result)
     }
 
+    /// Returns whether battery-backed cartridge data needs to be written to durable storage.
+    pub fn persistent_save_dirty(&self) -> bool {
+        self.core.descriptor().capabilities.persistent_saves && self.core.persistent_save_dirty()
+    }
+
+    /// Clears the core's persistent-save dirty flag after a successful durable write.
+    pub fn clear_persistent_save_dirty(&mut self) {
+        if self.core.descriptor().capabilities.persistent_saves {
+            self.core.clear_persistent_save_dirty();
+        }
+    }
+
     /// Captures a save state wrapped with the active core's identity and version.
     ///
     /// The payload is opaque to the host. The envelope's size and metadata checks
