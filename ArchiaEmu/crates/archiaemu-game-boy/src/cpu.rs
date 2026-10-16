@@ -320,6 +320,61 @@ impl Cpu {
         self.ime
     }
 
+    /// Encodes every mutable CPU execution field for a versioned core save state.
+    pub(crate) fn encode_save_state(&self) -> [u8; 15] {
+        let [sp_high, sp_low] = self.registers.sp.to_le_bytes();
+        let [pc_low, pc_high] = self.registers.pc.to_le_bytes();
+        [
+            self.registers.a,
+            self.registers.f(),
+            self.registers.b,
+            self.registers.c,
+            self.registers.d,
+            self.registers.e,
+            self.registers.h,
+            self.registers.l,
+            sp_high,
+            sp_low,
+            pc_low,
+            pc_high,
+            u8::from(self.halted),
+            u8::from(self.ime),
+            self.ime_enable_delay,
+        ]
+    }
+
+    /// Decodes and validates a complete CPU snapshot without mutating an existing CPU.
+    pub(crate) fn decode_save_state(bytes: &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() != 15 {
+            return Err("invalid CPU state length");
+        }
+        if bytes[1] & 0x0F != 0 {
+            return Err("reserved CPU flag bits must be zero");
+        }
+        if bytes[12] > 1 || bytes[13] > 1 || bytes[14] > 2 {
+            return Err("invalid CPU control state");
+        }
+        if bytes[13] == 1 && bytes[14] != 0 {
+            return Err("enabled interrupts cannot have a pending enable delay");
+        }
+
+        let mut cpu = Self::new();
+        cpu.registers.a = bytes[0];
+        cpu.registers.set_f(bytes[1]);
+        cpu.registers.b = bytes[2];
+        cpu.registers.c = bytes[3];
+        cpu.registers.d = bytes[4];
+        cpu.registers.e = bytes[5];
+        cpu.registers.h = bytes[6];
+        cpu.registers.l = bytes[7];
+        cpu.registers.sp = u16::from_le_bytes([bytes[9], bytes[8]]);
+        cpu.registers.pc = u16::from_le_bytes([bytes[10], bytes[11]]);
+        cpu.halted = bytes[12] == 1;
+        cpu.ime = bytes[13] == 1;
+        cpu.ime_enable_delay = bytes[14];
+        Ok(cpu)
+    }
+
     /// Leaves the halted state. Interrupt requests are checked on the next step.
     pub fn wake(&mut self) {
         self.halted = false;
