@@ -60,13 +60,34 @@ impl DesktopApp {
                                 self.session_action(id, SessionAction::Resume);
                             }
                             if content_loaded && save_states {
-                                if ui.button(if self.language == "fr" { "Sauvegarder" } else { "Save" }).clicked() {
+                                if ui
+                                    .button(if self.language == "fr" {
+                                        "Sauvegarder l’état"
+                                    } else {
+                                        "Save state"
+                                    })
+                                    .clicked()
+                                {
                                     self.save_state_action(id);
                                 }
-                                if ui.button(if self.language == "fr" { "Charger l’état" } else { "Load state" }).clicked() {
+                                if ui
+                                    .button(if self.language == "fr" {
+                                        "Charger l’état"
+                                    } else {
+                                        "Load state"
+                                    })
+                                    .clicked()
+                                {
                                     self.load_state_action(id);
                                 }
-                                if ui.button(if self.language == "fr" { "Arrêter et sauvegarder" } else { "Stop and Save" }).clicked() {
+                                if ui
+                                    .button(if self.language == "fr" {
+                                        "Arrêter et sauvegarder"
+                                    } else {
+                                        "Stop and Save"
+                                    })
+                                    .clicked()
+                                {
                                     self.session_action(id, SessionAction::StopAndSave);
                                 }
                             }
@@ -98,7 +119,11 @@ impl DesktopApp {
                         });
                         ui.separator();
                         ui.label(if summary.persistent_saves {
-                            if self.language == "fr" { "Sauvegardes en jeu : disponibles" } else { "In-game saves: available" }
+                            if self.language == "fr" {
+                                "Sauvegardes en jeu : disponibles"
+                            } else {
+                                "In-game saves: available"
+                            }
                         } else if self.language == "fr" {
                             "Sauvegardes en jeu : non prises en charge"
                         } else {
