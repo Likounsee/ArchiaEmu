@@ -297,6 +297,17 @@ pub trait EmulationCore {
         Err(CoreError::Unsupported("persistent game saves"))
     }
 
+    /// Reports whether persistent cartridge data changed since the last successful host save.
+    fn persistent_save_dirty(&self) -> bool {
+        false
+    }
+
+    /// Marks persistent cartridge data as durably saved by the host.
+    ///
+    /// The host calls this only after the write succeeds; implementations must
+    /// not clear dirty state before persistence has completed.
+    fn clear_persistent_save_dirty(&mut self) {}
+
     /// Sends a platform-neutral input transition to the emulated machine.
     ///
     /// Cores should map semantic controls to their own hardware and handle
