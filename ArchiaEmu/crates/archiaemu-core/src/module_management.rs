@@ -377,6 +377,9 @@ impl<'a> ModuleCatalog<'a> {
         installed: &[ModuleId],
     ) -> Result<ModuleRemovalPlan, PlanError> {
         self.validate().map_err(PlanError::InvalidCatalog)?;
+        if requested.is_empty() {
+            return Ok(ModuleRemovalPlan::default());
+        }
         let indices: HashMap<ModuleId, usize> = self
             .descriptors
             .iter()
@@ -752,6 +755,20 @@ mod tests {
                 dependent: id("player"),
             })
         );
+    }
+
+    #[test]
+    fn empty_uninstall_is_a_no_op_even_with_unknown_legacy_installed_modules() {
+        let descriptors = vec![
+            descriptor("runtime", "Runtime", ModuleReadiness::Installable, &[]),
+        ];
+        let catalog = ModuleCatalog::new(&descriptors);
+
+        let plan = catalog
+            .plan_uninstall(&[], &[id("runtime"), id("legacy-plugin")])
+            .unwrap();
+
+        assert!(plan.removal_order.is_empty());
     }
 
     #[test]
