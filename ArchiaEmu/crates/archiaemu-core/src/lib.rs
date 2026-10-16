@@ -1062,7 +1062,7 @@ mod tests {
             }
         }
 
-        let core = MetadataOnlyCore;
+        let mut core = MetadataOnlyCore;
         assert_eq!(
             core.save_state(),
             Err(CoreError::Unsupported("save states"))
@@ -1075,7 +1075,6 @@ mod tests {
             core.load_game_data(&[1, 2, 3]),
             Err(CoreError::Unsupported("persistent game saves"))
         );
-        let mut core = core;
         assert_eq!(
             core.load_state(&[0, 1, 2]),
             Err(CoreError::Unsupported("save states"))
