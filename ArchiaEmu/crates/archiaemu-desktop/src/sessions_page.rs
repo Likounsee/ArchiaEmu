@@ -122,6 +122,7 @@ impl DesktopApp {
             let id = summary.id;
             let state = summary.state;
             let content_loaded = summary.content_loaded;
+            let save_states = summary.save_states;
             let system_name = summary.system_name;
             let video_available = summary.video_available;
             let audio_available = summary.audio_available;
@@ -147,6 +148,17 @@ impl DesktopApp {
                         ui.small(if self.language == "fr" { "En pause" } else { "Paused" });
                         if ui.button(if self.language == "fr" { "Reprendre" } else { "Resume" }).clicked() {
                             self.session_action(id, SessionAction::Resume);
+                        }
+                        if content_loaded && save_states {
+                            if ui.button(if french { "Sauvegarder" } else { "Save" }).clicked() {
+                                self.save_state_action(id);
+                            }
+                            if ui.button(if french { "Charger l’état" } else { "Load state" }).clicked() {
+                                self.load_state_action(id);
+                            }
+                            if ui.button(if french { "Arrêter et sauvegarder" } else { "Stop and Save" }).clicked() {
+                                self.session_action(id, SessionAction::StopAndSave);
+                            }
                         }
                         if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
                             let was_active = self.controller.active_session() == Some(id);
@@ -285,8 +297,16 @@ impl DesktopApp {
                     if state == SessionState::Paused && ui.button(if self.language == "fr" { "Reprendre" } else { "Resume" }).clicked() {
                         self.session_action(id, SessionAction::Resume);
                     }
-                    if state != SessionState::Empty && ui.button(if self.language == "fr" { "Arrêter" } else { "Stop" }).clicked() {
-                        self.session_action(id, SessionAction::Stop);
+                    if content_loaded && save_states {
+                        if ui.button(if french { "Sauvegarder" } else { "Save" }).clicked() {
+                            self.save_state_action(id);
+                        }
+                        if ui.button(if french { "Charger l’état" } else { "Load state" }).clicked() {
+                            self.load_state_action(id);
+                        }
+                        if ui.button(if french { "Arrêter et sauvegarder" } else { "Stop and Save" }).clicked() {
+                            self.session_action(id, SessionAction::StopAndSave);
+                        }
                     }
                     if state != SessionState::Empty && ui.button(if self.language == "fr" { "Réinitialiser" } else { "Reset" }).clicked() {
                         self.session_action(id, SessionAction::Reset);
