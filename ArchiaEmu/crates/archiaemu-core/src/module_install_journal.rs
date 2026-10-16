@@ -236,10 +236,14 @@ impl InstallJournal {
         if file.metadata()?.len() > MAX_INSTALL_JOURNAL_BYTES {
             return Err(InstallJournalError::TooLarge);
         }
-        let mut input = String::new();
+        let mut input = Vec::new();
         file.take(MAX_INSTALL_JOURNAL_BYTES + 1)
-            .read_to_string(&mut input)?;
-        Self::decode(&input)
+            .read_to_end(&mut input)?;
+        if input.len() as u64 > MAX_INSTALL_JOURNAL_BYTES {
+            return Err(InstallJournalError::TooLarge);
+        }
+        let input = std::str::from_utf8(&input).map_err(|_| InstallJournalError::InvalidFormat)?;
+        Self::decode(input)
     }
 
     /// Atomically replaces the journal file using a sibling temporary file.
@@ -488,6 +492,25 @@ mod tests {
             Err(InstallJournalError::InvalidFormat)
         ));
         assert_eq!(fs::read_to_string(&path).unwrap(), "not a journal\\n");
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn load_reports_invalid_utf8_as_malformed_journal_without_modifying_file() {
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-install-journal-utf8-{}-{}.journal",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        let bytes = b"ARCHIAEMU-INSTALL-JOURNAL\\t1\\n\\xff";
+        fs::write(&path, bytes).unwrap();
+
+        assert!(matches!(
+            InstallJournal::load(&path),
+            Err(InstallJournalError::InvalidFormat)
+        ));
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+
         let _ = fs::remove_file(path);
     }
 
