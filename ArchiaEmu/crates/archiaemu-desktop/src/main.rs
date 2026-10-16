@@ -25,6 +25,7 @@ mod library_page;
 pub mod manifest_ed25519;
 mod preferences;
 mod save_states;
+mod game_saves;
 mod sessions_page;
 pub mod worker_messages;
 pub mod worker_process;
@@ -513,7 +514,23 @@ impl DesktopApp {
                 self.session_content_paths
                     .retain(|(session_id, _)| *session_id != id);
                 self.session_content_paths.push((id, launched_path));
-                self.message = format!("Launched session {}.", id.get());
+                self.message = match self.load_game_data_for_session(id) {
+                    Ok(true) => if self.language == "fr" {
+                        format!("Session {} lancée ; sauvegarde en jeu restaurée.", id.get())
+                    } else {
+                        format!("Launched session {}; restored its in-game save.", id.get())
+                    },
+                    Ok(false) => if self.language == "fr" {
+                        format!("Session {} lancée.", id.get())
+                    } else {
+                        format!("Launched session {}.", id.get())
+                    },
+                    Err(error) => if self.language == "fr" {
+                        format!("Session {} lancée, mais la sauvegarde en jeu n’a pas pu être chargée : {error}", id.get())
+                    } else {
+                        format!("Launched session {}, but its in-game save could not be loaded: {error}", id.get())
+                    },
+                };
                 self.frame_cadence.reset();
                 self.frame_texture = None;
                 self.video_size = None;
@@ -598,6 +615,96 @@ impl DesktopApp {
             return false;
         }
         true
+    }
+
+    fn game_save_path(&self, id: SessionId) -> Result<PathBuf, String> {
+        let config_path = self.config_path.as_deref().ok_or_else(|| {
+            "Game saves are unavailable because the configuration directory is missing.".to_owned()
+        })?;
+        let content_path = self
+            .session_content_paths
+            .iter()
+            .find(|(session_id, _)| *session_id == id)
+            .map(|(_, path)| path.as_path())
+            .ok_or_else(|| {
+                format!(
+                    "Session {} has no known ROM path for its game-save slot.",
+                    id.get()
+                )
+            })?;
+        game_saves::save_path(config_path, content_path)
+            .map_err(|error| format!("Could not resolve game-save path: {error}"))
+    }
+
+    fn save_game_data_for_session(&mut self, id: SessionId) -> Result<PathBuf, String> {
+        let path = self.game_save_path(id)?;
+        let (system_id, core_version, data) = {
+            let session = self
+                .controller
+                .host_mut()
+                .session_mut(id)
+                .map_err(|error| error.to_string())?;
+            let descriptor = session.descriptor();
+            let data = session
+                .save_game_data()
+                .map_err(|error| error.to_string())?;
+            (
+                descriptor.system_id.as_str().to_owned(),
+                descriptor.core_version.to_owned(),
+                data,
+            )
+        };
+        let envelope = archiaemu_core::save_state::SaveStateEnvelope::new(
+            system_id,
+            core_version,
+            data,
+        )
+        .map_err(|error| format!("Could not encode game save: {error}"))?;
+        archiaemu_core::save_state_store::SaveStateStore::new(path.clone())
+            .save(&envelope)
+            .map_err(|error| format!("Could not write game save: {error}"))?;
+        Ok(path)
+    }
+
+    fn save_game_data_action(&mut self, id: SessionId) {
+        match self.save_game_data_for_session(id) {
+            Ok(_) => {
+                self.message = if self.language == "fr" {
+                    format!("Sauvegarde en jeu de la session {} enregistrée.", id.get())
+                } else {
+                    format!("Session {} in-game save written.", id.get())
+                };
+            }
+            Err(error) => self.message = format!("Game save failed: {error}"),
+        }
+    }
+
+    fn load_game_data_for_session(&mut self, id: SessionId) -> Result<bool, String> {
+        let path = self.game_save_path(id)?;
+        let envelope = match archiaemu_core::save_state_store::SaveStateStore::new(path).load() {
+            Ok(envelope) => envelope,
+            Err(archiaemu_core::save_state_store::SaveStateStoreError::Io(error))
+                if error.kind() == std::io::ErrorKind::NotFound =>
+            {
+                return Ok(false);
+            }
+            Err(error) => return Err(format!("Could not read game save: {error}")),
+        };
+        let result = self
+            .controller
+            .host_mut()
+            .session_mut(id)
+            .map_err(|error| error.to_string())
+            .and_then(|session| {
+                let descriptor = session.descriptor();
+                envelope
+                    .validate_for(descriptor.system_id.as_str(), descriptor.core_version)
+                    .map_err(|error| error.to_string())?;
+                session
+                    .load_game_data(envelope.payload())
+                    .map_err(|error| error.to_string())
+            });
+        result.map(|()| true)
     }
 
     fn save_state_path(&self, id: SessionId) -> Result<PathBuf, String> {
