@@ -297,12 +297,19 @@ fn validate_download_url(url: &str) -> Result<(), String> {
             return Err("ArchiaEmu release artifact URLs must not contain a query or fragment.".to_owned());
         }
         let lower_path = path.to_ascii_lowercase();
+        // Encoded separators and backslashes can be interpreted differently by
+        // proxies and origin servers. Reject them alongside encoded dot segments
+        // so validation and the eventual HTTP request agree on path boundaries.
         if lower_path.contains("%2e")
+            || lower_path.contains("%2f")
+            || lower_path.contains("%5c")
+            || path.contains('\\')
+            || path.chars().any(char::is_control)
             || path
                 .split('/')
                 .any(|segment| segment == "." || segment == "..")
         {
-            return Err("ArchiaEmu release artifact URLs must not contain path traversal segments.".to_owned());
+            return Err("ArchiaEmu release artifact URLs must not contain encoded separators, control characters, or path traversal segments.".to_owned());
         }
         let segments: Vec<_> = path.split('/').filter(|segment| !segment.is_empty()).collect();
         if segments.len() < 6 || segments[4].is_empty() || segments[5..].iter().any(|s| s.is_empty()) {
@@ -665,6 +672,9 @@ mod tests {
         for traversal in [
             "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/../other.exe",
             "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/%2e%2e/other.exe",
+            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/folder%2fapp.exe",
+            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/folder%5capp.exe",
+            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/folder\\\\app.exe",
             "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe?redirect=example.com",
             "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe#other",
         ] {
