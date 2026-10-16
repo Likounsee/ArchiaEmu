@@ -123,6 +123,7 @@ impl DesktopApp {
             let state = summary.state;
             let content_loaded = summary.content_loaded;
             let save_states = summary.save_states;
+            let persistent_saves = summary.persistent_saves;
             let system_name = summary.system_name;
             let video_available = summary.video_available;
             let audio_available = summary.audio_available;
@@ -155,6 +156,9 @@ impl DesktopApp {
                             }
                             if ui.button(if french { "Charger l’état" } else { "Load state" }).clicked() {
                                 self.load_state_action(id);
+                            }
+                            if persistent_saves && ui.button(if french { "Sauvegarder la partie" } else { "Save game" }).clicked() {
+                                self.save_game_data_action(id);
                             }
                             if ui.button(if french { "Arrêter et sauvegarder" } else { "Stop and Save" }).clicked() {
                                 self.session_action(id, SessionAction::StopAndSave);
@@ -303,6 +307,9 @@ impl DesktopApp {
                         }
                         if ui.button(if french { "Charger l’état" } else { "Load state" }).clicked() {
                             self.load_state_action(id);
+                        }
+                        if persistent_saves && ui.button(if french { "Sauvegarder la partie" } else { "Save game" }).clicked() {
+                            self.save_game_data_action(id);
                         }
                         if ui.button(if french { "Arrêter et sauvegarder" } else { "Stop and Save" }).clicked() {
                             self.session_action(id, SessionAction::StopAndSave);
