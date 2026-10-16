@@ -1,7 +1,7 @@
 [package]
-name = "archiaemu-game-boy"
+name = "archiaemu-game-boy-color"
 version = "0.1.0"
-description = "Unified Game Boy / Game Boy Color module and cartridge metadata parser for ArchiaEmu"
+description = "Game Boy Color module with original Game Boy backwards compatibility for ArchiaEmu"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
