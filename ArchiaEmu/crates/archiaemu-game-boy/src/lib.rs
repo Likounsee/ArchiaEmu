@@ -693,7 +693,7 @@ fn rom_fingerprint(image: &[u8]) -> u64 {
     })
 }
 
-/// Registers the single Game Boy / Game Boy Color module with the shared core registry.
+/// Registers the Game Boy Color module, including original Game Boy cartridge support, with the shared core registry.
 ///
 /// Registration makes the module discoverable, but does not imply that game
 /// execution is implemented. The descriptor deliberately reports no execution
@@ -701,10 +701,10 @@ fn rom_fingerprint(image: &[u8]) -> u64 {
 pub fn register_game_boy_color(
     registry: &mut archiaemu_core::CoreRegistry,
 ) -> Result<(), archiaemu_core::RegistryError> {
-    registry.register_with_descriptor(game_boy_core_descriptor(), create_game_boy_core)
+    registry.register_with_descriptor(game_boy_core_descriptor(), create_game_boy_color_core)
 }
 
-fn create_game_boy_core() -> Box<dyn archiaemu_core::EmulationCore> {
+fn create_game_boy_color_core() -> Box<dyn archiaemu_core::EmulationCore> {
     Box::new(GameBoyColorCore::new())
 }
 
@@ -730,7 +730,8 @@ mod tests {
         let mut registry = archiaemu_core::CoreRegistry::new();
         super::register_game_boy_color(&mut registry).unwrap();
         let system_id = registry.system_ids().next().unwrap();
-        assert_eq!(super::GameBoyColorCartridgeProbe.format_id(), "game-boy-color");
+        assert_eq!(super::GameBoyColorCartridgeProbe.format_id(), system_id.as_str());
+        assert_eq!(system_id.as_str(), "game-boy-color");
     }
 
     #[test]
@@ -1009,7 +1010,7 @@ mod tests {
             Some(game_boy_core_descriptor())
         );
         assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-dmg").unwrap()));
-        assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-dmg").unwrap()));
+        assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy").unwrap()));
         let core = registry.create(id).unwrap();
         assert_eq!(core.descriptor().display_name, "Game Boy Color (backwards compatible with Game Boy)");
         assert_eq!(
