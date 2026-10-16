@@ -1117,6 +1117,7 @@ mod tests {
             work_ram: &mut core.work_ram,
             high_ram: &mut core.high_ram,
             cartridge_ram: &mut core.cartridge_ram,
+            cartridge_ram_dirty: &mut core.cartridge_ram_dirty,
             interrupt_enable: &mut core.interrupt_enable,
             interrupt_request: &mut core.interrupt_request,
         };
