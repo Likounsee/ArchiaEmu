@@ -463,6 +463,32 @@ mod tests {
     }
 
     #[test]
+    fn load_rejects_oversized_journal_before_decoding() {
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-install-journal-large-{}-{}.journal",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::write(
+            &path,
+            vec![b'x'; MAX_INSTALL_JOURNAL_BYTES as usize + 1],
+        )
+        .unwrap();
+
+        assert!(matches!(
+            InstallJournal::load(&path),
+            Err(InstallJournalError::TooLarge)
+        ));
+        assert_eq!(
+            fs::metadata(&path).unwrap().len(),
+            MAX_INSTALL_JOURNAL_BYTES + 1,
+            "loading an oversized journal must not modify or truncate it"
+        );
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
     fn constructor_rejects_empty_or_record_separated_versions() {
         for version in ["", "  ", "1.0\nphase\tcommitted", "1.0\r", "1.0\tbad"] {
             assert!(matches!(
