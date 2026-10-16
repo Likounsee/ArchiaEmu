@@ -1732,6 +1732,8 @@ mod preference_tests {
             "Input error: device disconnected",
             "Game save failed: invalid RAM payload",
             "Launched session 7, but its in-game save could not be loaded: checksum mismatch",
+            "Fermeture annulée ; sauvegarde en jeu impossible : disk full",
+            "Close all cancelled; game saves could not be flushed: disk full",
             "Session 7 failed: core stopped unexpectedly",
         ] {
             assert!(
