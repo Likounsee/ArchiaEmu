@@ -60,14 +60,25 @@ pub trait ModuleInstallRecoveryBackend {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum InstallRecoveryResult {
     /// Pre-activation staging was cleaned and its journal removed.
-    Discarded { journal_path: PathBuf },
+    Discarded {
+        /// Path of the removed journal.
+        journal_path: PathBuf,
+    },
     /// An already committed transaction's temporary files and journal were removed.
-    CleanedCommitted { journal_path: PathBuf },
+    CleanedCommitted {
+        /// Path of the removed journal.
+        journal_path: PathBuf,
+    },
     /// Activation was reconciled, committed durably, and its journal removed.
-    ReconciledCommitted { journal_path: PathBuf },
+    ReconciledCommitted {
+        /// Path of the removed journal.
+        journal_path: PathBuf,
+    },
     /// A failed transaction was preserved for explicit inspection or retry.
     NeedsInspection {
+        /// Path of the journal retained for recovery.
         journal_path: PathBuf,
+        /// Transaction phase recorded when recovery stopped.
         phase: InstallPhase,
     },
 }
