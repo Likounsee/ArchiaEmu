@@ -233,7 +233,9 @@ fn ensure_real_staging_directory(directory: &Path) -> Result<(), String> {
     let metadata = fs::symlink_metadata(directory)
         .map_err(|error| format!("Could not inspect update staging directory: {error}"))?;
     if !metadata.file_type().is_dir() {
-        return Err("Update staging path must be a real directory, not a symbolic link or file.".to_owned());
+        return Err(
+            "Update staging path must be a real directory, not a symbolic link or file.".to_owned(),
+        );
     }
     Ok(())
 }
@@ -326,7 +328,9 @@ fn validate_download_url(url: &str) -> Result<(), String> {
         // redirect URLs. Reject query/fragment tricks and dot-segments rather
         // than letting URL/server path normalization change the requested asset.
         if path.contains('?') || path.contains('#') {
-            return Err("ArchiaEmu release artifact URLs must not contain a query or fragment.".to_owned());
+            return Err(
+                "ArchiaEmu release artifact URLs must not contain a query or fragment.".to_owned(),
+            );
         }
         let lower_path = path.to_ascii_lowercase();
         // Encoded separators and backslashes can be interpreted differently by
@@ -343,9 +347,17 @@ fn validate_download_url(url: &str) -> Result<(), String> {
         {
             return Err("ArchiaEmu release artifact URLs must not contain encoded separators, control characters, or path traversal segments.".to_owned());
         }
-        let segments: Vec<_> = path.split('/').filter(|segment| !segment.is_empty()).collect();
-        if segments.len() < 6 || segments[4].is_empty() || segments[5..].iter().any(|s| s.is_empty()) {
-            return Err("ArchiaEmu release artifact URL must identify a specific release asset.".to_owned());
+        let segments: Vec<_> = path
+            .split('/')
+            .filter(|segment| !segment.is_empty())
+            .collect();
+        if segments.len() < 6
+            || segments[4].is_empty()
+            || segments[5..].iter().any(|s| s.is_empty())
+        {
+            return Err(
+                "ArchiaEmu release artifact URL must identify a specific release asset.".to_owned(),
+            );
         }
     }
     Ok(())
