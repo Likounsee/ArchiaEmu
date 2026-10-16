@@ -759,9 +759,12 @@ mod tests {
 
     #[test]
     fn empty_uninstall_is_a_no_op_even_with_unknown_legacy_installed_modules() {
-        let descriptors = vec![
-            descriptor("runtime", "Runtime", ModuleReadiness::Installable, &[]),
-        ];
+        let descriptors = vec![descriptor(
+            "runtime",
+            "Runtime",
+            ModuleReadiness::Installable,
+            &[],
+        )];
         let catalog = ModuleCatalog::new(&descriptors);
 
         let plan = catalog
@@ -773,9 +776,12 @@ mod tests {
 
     #[test]
     fn uninstall_fails_closed_when_an_installed_module_is_missing_from_catalogue() {
-        let descriptors = vec![
-            descriptor("runtime", "Runtime", ModuleReadiness::Installable, &[]),
-        ];
+        let descriptors = vec![descriptor(
+            "runtime",
+            "Runtime",
+            ModuleReadiness::Installable,
+            &[],
+        )];
         let catalog = ModuleCatalog::new(&descriptors);
 
         assert_eq!(
