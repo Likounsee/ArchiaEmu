@@ -1409,7 +1409,7 @@ mod tests {
         let library_entry = app.library().entries().next().unwrap();
         assert_eq!(
             library_entry.format_detection(),
-            &ContentFormatDetection::Detected("game-boy".to_owned())
+            &ContentFormatDetection::Detected("game-boy-color".to_owned())
         );
         assert_eq!(library_entry.validation(), &ContentValidation::Accepted);
 
