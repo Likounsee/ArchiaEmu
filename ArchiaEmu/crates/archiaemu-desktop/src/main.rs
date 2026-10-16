@@ -701,14 +701,15 @@ impl DesktopApp {
     fn session_action(&mut self, id: SessionId, action: SessionAction) {
         let is_active = self.controller.active_session() == Some(id);
         let release_error =
-            if is_active && matches!(action, SessionAction::Stop | SessionAction::Reset) {
+            if is_active && matches!(action, SessionAction::StopAndSave | SessionAction::Reset) {
                 self.release_game_inputs().err()
             } else {
                 None
             };
 
-        // A reset is only safe once held controls have been released. Stop, however, must
-        // remain available as a recovery action even if releasing input itself fails.
+        // A reset requires released inputs. Stop-and-save remains a recovery action if
+        // input release fails, but it must not stop if the snapshot itself cannot be saved.
+
         if matches!(action, SessionAction::Reset) {
             if let Some(error) = release_error.as_ref() {
                 self.message = format!(
@@ -719,10 +720,20 @@ impl DesktopApp {
             }
         }
 
+        if matches!(action, SessionAction::StopAndSave) {
+            if let Err(error) = self.save_state_for_session(id) {
+                self.message = format!(
+                    "Session {}: stop aborted because saving the state failed: {error}",
+                    id.get()
+                );
+                return;
+            }
+        }
+
         let command = match action {
             SessionAction::Pause => SessionCommand::Pause,
             SessionAction::Resume => SessionCommand::Resume,
-            SessionAction::Stop => SessionCommand::Stop,
+            SessionAction::StopAndSave => SessionCommand::Stop,
             SessionAction::Reset => SessionCommand::Reset,
         };
         let result = self
@@ -739,12 +750,12 @@ impl DesktopApp {
                     self.audio_output.resume();
                     self.last_tick = Instant::now();
                 }
-                SessionAction::Stop => {
+                SessionAction::StopAndSave => {
                     self.audio_output.clear();
                     self.frame_cadence.reset();
                     self.frame_texture = None;
                     self.video_size = None;
-                    self.media_status = "Active session stopped.".to_owned();
+                    self.media_status = "Active session stopped after saving its state.".to_owned();
                 }
                 SessionAction::Reset => {
                     self.audio_output.clear();
@@ -756,7 +767,7 @@ impl DesktopApp {
                 }
             }
         }
-        if result.is_ok() && matches!(action, SessionAction::Stop | SessionAction::Reset) {
+        if result.is_ok() && matches!(action, SessionAction::StopAndSave | SessionAction::Reset) {
             // A deliberate lifecycle transition supersedes an earlier execution/media tick error.
             clear_tick_error_for_session(&mut self.last_tick_errors, id);
         }
@@ -778,7 +789,7 @@ impl DesktopApp {
 enum SessionAction {
     Pause,
     Resume,
-    Stop,
+    StopAndSave,
     Reset,
 }
 
@@ -787,7 +798,7 @@ impl SessionAction {
         match self {
             Self::Pause => "pause",
             Self::Resume => "resume",
-            Self::Stop => "stop",
+            Self::StopAndSave => "stop and save",
             Self::Reset => "reset",
         }
     }
