@@ -322,7 +322,7 @@ impl Cpu {
 
     /// Encodes every mutable CPU execution field for a versioned core save state.
     pub(crate) fn encode_save_state(&self) -> [u8; 15] {
-        let [sp_high, sp_low] = self.registers.sp.to_le_bytes();
+        let [sp_low, sp_high] = self.registers.sp.to_le_bytes();
         let [pc_low, pc_high] = self.registers.pc.to_le_bytes();
         [
             self.registers.a,
@@ -367,7 +367,7 @@ impl Cpu {
         cpu.registers.e = bytes[5];
         cpu.registers.h = bytes[6];
         cpu.registers.l = bytes[7];
-        cpu.registers.sp = u16::from_le_bytes([bytes[9], bytes[8]]);
+        cpu.registers.sp = u16::from_le_bytes([bytes[8], bytes[9]]);
         cpu.registers.pc = u16::from_le_bytes([bytes[10], bytes[11]]);
         cpu.halted = bytes[12] == 1;
         cpu.ime = bytes[13] == 1;
