@@ -617,15 +617,15 @@ impl DesktopApp {
 
     fn save_state_for_session(&mut self, id: SessionId) -> Result<PathBuf, String> {
         let path = self.save_state_path(id)?;
-        let bytes = self
+        let envelope = self
             .controller
             .host_mut()
             .session_mut(id)
             .map_err(|error| error.to_string())?
             .save_state_envelope()
-            .map_err(|error| error.to_string())?
-            .encode();
-        save_states::write_state(&path, &bytes)
+            .map_err(|error| error.to_string())?;
+        archiaemu_core::save_state_store::SaveStateStore::new(path.clone())
+            .save(&envelope)
             .map_err(|error| format!("Could not write save state: {error}"))?;
         Ok(path)
     }
@@ -651,9 +651,11 @@ impl DesktopApp {
                 return;
             }
         };
-        let bytes = match save_states::read_state(&path) {
-            Ok(Some(bytes)) => bytes,
-            Ok(None) => {
+        let envelope = match archiaemu_core::save_state_store::SaveStateStore::new(path).load() {
+            Ok(envelope) => envelope,
+            Err(archiaemu_core::save_state_store::SaveStateStoreError::Io(error))
+                if error.kind() == std::io::ErrorKind::NotFound =>
+            {
                 self.message = if self.language == "fr" {
                     "Aucune sauvegarde d’état n’existe pour cette ROM.".to_owned()
                 } else {
@@ -661,13 +663,6 @@ impl DesktopApp {
                 };
                 return;
             }
-            Err(error) => {
-                self.message = format!("Load state failed: {error}");
-                return;
-            }
-        };
-        let envelope = match archiaemu_core::save_state::SaveStateEnvelope::decode(&bytes) {
-            Ok(envelope) => envelope,
             Err(error) => {
                 self.message = format!("Load state failed: {error}");
                 return;
