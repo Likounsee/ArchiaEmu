@@ -675,11 +675,11 @@ mod tests {
         assert_eq!(
             catalog.plan_uninstall(
                 &[id("runtime")],
-                &[id("runtime"), id("video"), id("player")]
+                &[id("runtime"), id("player"), id("video")]
             ),
             Err(PlanError::RequiredBy {
                 module: id("runtime"),
-                dependent: id("video"),
+                dependent: id("player"),
             })
         );
     }
