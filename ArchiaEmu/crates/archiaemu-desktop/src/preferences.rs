@@ -72,28 +72,57 @@ pub(crate) fn system_language() -> String {
 }
 
 pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPreferences>> {
-    let contents = match read_preferences_file(path) {
-        Ok(contents) => contents,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+    let backup = path.with_extension("conf.bak");
+    match read_preferences_file(path) {
+        Ok(contents) => match parse_preferences(&contents) {
+            Ok(preferences) => Ok(Some(preferences)),
+            Err(primary_error) if primary_error.kind() == std::io::ErrorKind::InvalidData => {
+                // A previous save can leave both files present if the active file
+                // is truncated or corrupted after the backup was created. Keep the
+                // damaged file for diagnosis, but use the last known-good backup.
+                match read_preferences_file(&backup) {
+                    Ok(contents) => parse_preferences(&contents).map(Some),
+                    Err(backup_error) if backup_error.kind() == std::io::ErrorKind::NotFound => {
+                        Err(primary_error)
+                    }
+                    Err(backup_error) => Err(backup_error),
+                }
+            }
+            Err(error) => Err(error),
+        },
+        Err(primary_error) if primary_error.kind() == std::io::ErrorKind::NotFound => {
             // A crash can occur after the previous config is moved aside but
-            // before the freshly written temporary file is promoted. Recover
-            // the last known-good backup instead of silently starting with defaults.
-            let backup = path.with_extension("conf.bak");
+            // before the freshly written temporary file is promoted.
             match read_preferences_file(&backup) {
                 Ok(contents) => {
+                    let preferences = parse_preferences(&contents)?;
                     // Best effort: keep the recovered values usable even if restoring
                     // the filename fails due to a read-only or unusual filesystem.
                     let _ = fs::rename(&backup, path);
-                    contents
+                    Ok(Some(preferences))
                 }
                 Err(backup_error) if backup_error.kind() == std::io::ErrorKind::NotFound => {
-                    return Ok(None);
+                    Ok(None)
                 }
-                Err(backup_error) => return Err(backup_error),
+                Err(backup_error) => Err(backup_error),
             }
         }
-        Err(error) => return Err(error),
-    };
+        Err(primary_error) if primary_error.kind() == std::io::ErrorKind::InvalidData => {
+            // Invalid UTF-8 or an oversized active file is treated like a corrupt
+            // config, but only a valid backup can recover startup safely.
+            match read_preferences_file(&backup) {
+                Ok(contents) => parse_preferences(&contents).map(Some),
+                Err(backup_error) if backup_error.kind() == std::io::ErrorKind::NotFound => {
+                    Err(primary_error)
+                }
+                Err(backup_error) => Err(backup_error),
+            }
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn parse_preferences(contents: &str) -> std::io::Result<SavedPreferences> {
     let mut dark_mode = true;
     let mut ui_scale = 1.0f32;
     let mut accent_rgb = [75, 115, 210];
@@ -142,13 +171,13 @@ pub(crate) fn load_preferences(path: &Path) -> std::io::Result<Option<SavedPrefe
             }
         }
     }
-    Ok(Some(SavedPreferences {
+    Ok(SavedPreferences {
         dark_mode,
         ui_scale,
         accent_rgb,
         paths,
         language,
-    }))
+    })
 }
 
 #[cfg(test)]
@@ -437,6 +466,31 @@ mod tests {
             "invalid value must preserve the last valid value"
         );
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn corrupt_active_preferences_recover_from_valid_backup() {
+        let path = temporary_config("corrupt-active-with-backup");
+        let backup = path.with_extension("conf.bak");
+        fs::write(&path, "version=99\ndark=true\n")
+            .expect("corrupt active preferences should be written");
+        fs::write(&backup, "version=3\ndark=false\nscale=1.2\n")
+            .expect("last known-good backup should be written");
+
+        let saved = load_preferences(&path)
+            .expect("valid backup should recover from a corrupt active config")
+            .expect("backup should provide preferences");
+
+        assert!(!saved.dark_mode);
+        assert!((saved.ui_scale - 1.2).abs() < f32::EPSILON);
+        assert_eq!(
+            fs::read_to_string(&path).expect("corrupt file should remain for diagnosis"),
+            "version=99\ndark=true\n"
+        );
+        assert!(backup.exists(), "backup should remain available until a successful save");
+
+        let _ = fs::remove_file(path);
+        let _ = fs::remove_file(backup);
     }
 
     #[test]
