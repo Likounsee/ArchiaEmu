@@ -357,8 +357,8 @@ pub(crate) fn unescape_config_value(value: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        load_preferences, unescape_config_value, write_preferences, write_preferences_with_language,
-        MAX_PREFERENCES_BYTES,
+        load_preferences, unescape_config_value, write_preferences,
+        write_preferences_with_language, MAX_PREFERENCES_BYTES,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -383,8 +383,7 @@ mod tests {
         let target = temporary_config("symlink-target");
         let path = temporary_config("symlink-active");
         let backup = path.with_extension("conf.bak");
-        fs::write(&target, "version=3\ndark=false\n")
-            .expect("external target should be written");
+        fs::write(&target, "version=3\ndark=false\n").expect("external target should be written");
         symlink(&target, &path).expect("active config symlink should be created");
 
         let error = load_preferences(&path).expect_err("symlink config must not be read");
@@ -558,7 +557,10 @@ mod tests {
             fs::read_to_string(&path).expect("corrupt file should remain for diagnosis"),
             "version=99\ndark=true\n"
         );
-        assert!(backup.exists(), "backup should remain available until a successful save");
+        assert!(
+            backup.exists(),
+            "backup should remain available until a successful save"
+        );
 
         let _ = fs::remove_file(path);
         let _ = fs::remove_file(backup);
