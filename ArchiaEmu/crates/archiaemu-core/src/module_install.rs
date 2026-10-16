@@ -339,6 +339,25 @@ mod tests {
     }
 
     #[test]
+    fn initial_journal_failure_prevents_all_backend_operations() {
+        let blocker = journal_path();
+        fs::write(&blocker, b"not a directory").unwrap();
+        let path = blocker.join("install.journal");
+        let mut backend = TestBackend::new(None);
+
+        let result = install_module(
+            &mut backend,
+            &path,
+            ModuleId::new("test-module").unwrap(),
+            "1.0.0",
+        );
+
+        assert!(matches!(result, Err(ModuleInstallError::Journal(_))));
+        assert!(backend.calls.is_empty());
+        let _ = fs::remove_file(blocker);
+    }
+
+    #[test]
     fn state_persistence_failure_keeps_activated_journal_for_recovery() {
         let path = journal_path();
         let mut backend = TestBackend::new(Some(InstallOperation::StatePersistence));
