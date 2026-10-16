@@ -264,3 +264,121 @@ pub fn read_install_phase(path: impl AsRef<Path>) -> Result<InstallPhase, Module
 pub fn journal_io_error(error: io::Error) -> ModuleInstallError {
     ModuleInstallError::Journal(InstallJournalError::Io(error))
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static TEST_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+    struct TestBackend {
+        fail_at: Option<InstallOperation>,
+        calls: Vec<InstallOperation>,
+    }
+
+    impl TestBackend {
+        fn new(fail_at: Option<InstallOperation>) -> Self {
+            Self { fail_at, calls: Vec::new() }
+        }
+
+        fn step(&mut self, operation: InstallOperation) -> Result<(), String> {
+            self.calls.push(operation);
+            if self.fail_at == Some(operation) {
+                Err(format!("injected {operation:?} failure"))
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    impl ModuleInstallBackend for TestBackend {
+        fn download_and_verify(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
+            self.step(InstallOperation::Download)
+        }
+
+        fn extract_to_staging(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
+            self.step(InstallOperation::Extraction)
+        }
+
+        fn activate_staged(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
+            self.step(InstallOperation::Activation)
+        }
+
+        fn persist_installed_state(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
+            self.step(InstallOperation::StatePersistence)
+        }
+
+        fn cleanup_uncommitted(&mut self, _: &ModuleId, _: &str) -> Result<(), String> {
+            self.step(InstallOperation::Cleanup)
+        }
+    }
+
+    fn journal_path() -> PathBuf {
+        let sequence = TEST_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        std::env::temp_dir().join(format!(
+            "archiaemu-install-test-{}-{sequence}.journal",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn state_persistence_failure_keeps_activated_journal_for_recovery() {
+        let path = journal_path();
+        let mut backend = TestBackend::new(Some(InstallOperation::StatePersistence));
+        let result = install_module(
+            &mut backend,
+            &path,
+            ModuleId::new("test-module").unwrap(),
+            "1.0.0",
+        );
+
+        assert!(matches!(
+            result,
+            Err(ModuleInstallError::RecoveryRequired {
+                operation: InstallOperation::StatePersistence,
+                ..
+            })
+        ));
+        assert_eq!(read_install_phase(&path).unwrap(), InstallPhase::Activated);
+        assert!(!backend.calls.contains(&InstallOperation::Cleanup));
+        assert_eq!(
+            backend.calls,
+            vec![
+                InstallOperation::Download,
+                InstallOperation::Extraction,
+                InstallOperation::Activation,
+                InstallOperation::StatePersistence,
+            ]
+        );
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn download_failure_marks_journal_failed_and_attempts_cleanup() {
+        let path = journal_path();
+        let mut backend = TestBackend::new(Some(InstallOperation::Download));
+        let result = install_module(
+            &mut backend,
+            &path,
+            ModuleId::new("test-module").unwrap(),
+            "1.0.0",
+        );
+
+        assert!(matches!(
+            result,
+            Err(ModuleInstallError::OperationFailed {
+                operation: InstallOperation::Download,
+                cleanup_error: None,
+                ..
+            })
+        ));
+        assert_eq!(read_install_phase(&path).unwrap(), InstallPhase::Failed);
+        assert!(backend.calls.contains(&InstallOperation::Cleanup));
+
+        let _ = fs::remove_file(path);
+    }
+}
