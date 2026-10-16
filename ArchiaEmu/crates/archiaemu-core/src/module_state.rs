@@ -296,6 +296,34 @@ mod tests {
     }
 
     #[test]
+    fn installed_batch_updates_existing_versions_and_appends_new_modules_in_order() {
+        let mut state = ModuleManagerState::new();
+        state.record_installed(id("game-boy"), "1.0.0").unwrap();
+        state.record_installed(id("nes"), "2.0.0").unwrap();
+
+        state
+            .record_installed_batch([
+                (id("nes"), "2.1.0".to_owned()),
+                (id("snes"), "3.0.0".to_owned()),
+                (id("game-boy"), "1.0.1".to_owned()),
+            ])
+            .unwrap();
+
+        assert_eq!(
+            state
+                .installed_modules()
+                .iter()
+                .map(|module| (module.id.as_str(), module.version.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("game-boy", "1.0.1"),
+                ("nes", "2.1.0"),
+                ("snes", "3.0.0"),
+            ]
+        );
+    }
+
+    #[test]
     fn uninstall_batch_removes_only_matching_records_and_returns_count() {
         let mut state = ModuleManagerState::new();
         state.record_installed(id("game-boy"), "1.0.0").unwrap();
