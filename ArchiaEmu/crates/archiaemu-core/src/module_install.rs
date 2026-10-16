@@ -275,6 +275,7 @@ mod tests {
 
     struct TestBackend {
         fail_at: Option<InstallOperation>,
+        fail_cleanup: bool,
         calls: Vec<InstallOperation>,
     }
 
@@ -282,13 +283,24 @@ mod tests {
         fn new(fail_at: Option<InstallOperation>) -> Self {
             Self {
                 fail_at,
+                fail_cleanup: false,
+                calls: Vec::new(),
+            }
+        }
+
+        fn failing_download_and_cleanup() -> Self {
+            Self {
+                fail_at: Some(InstallOperation::Download),
+                fail_cleanup: true,
                 calls: Vec::new(),
             }
         }
 
         fn step(&mut self, operation: InstallOperation) -> Result<(), String> {
             self.calls.push(operation);
-            if self.fail_at == Some(operation) {
+            if self.fail_at == Some(operation)
+                || (self.fail_cleanup && operation == InstallOperation::Cleanup)
+            {
                 Err(format!("injected {operation:?} failure"))
             } else {
                 Ok(())
@@ -379,6 +391,31 @@ mod tests {
         ));
         assert_eq!(read_install_phase(&path).unwrap(), InstallPhase::Failed);
         assert!(!backend.calls.contains(&InstallOperation::Cleanup));
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn cleanup_failure_is_reported_alongside_original_operation_failure() {
+        let path = journal_path();
+        let mut backend = TestBackend::failing_download_and_cleanup();
+        let result = install_module(
+            &mut backend,
+            &path,
+            ModuleId::new("test-module").unwrap(),
+            "1.0.0",
+        );
+
+        match result {
+            Err(ModuleInstallError::OperationFailed {
+                operation: InstallOperation::Download,
+                cleanup_error: Some(message),
+                ..
+            }) => assert!(message.contains("Cleanup failure")),
+            other => panic!("expected download failure with cleanup error, got {other:?}"),
+        }
+        assert_eq!(read_install_phase(&path).unwrap(), InstallPhase::Failed);
+        assert!(backend.calls.contains(&InstallOperation::Cleanup));
 
         let _ = fs::remove_file(path);
     }
