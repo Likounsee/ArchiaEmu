@@ -49,7 +49,7 @@ impl UpdateManifest {
             if !is_supported_platform_key(platform) {
                 return Err(format!("Unsupported update platform key: {platform}."));
             }
-            validate_download_url(&download.url)?;
+            validate_download_url_for_version(&download.url, &self.version)?;
             if download.size_bytes == 0 || download.size_bytes > MAX_DOWNLOAD_BYTES {
                 return Err(format!("Invalid download size for platform {platform}."));
             }
@@ -99,7 +99,7 @@ pub(crate) fn download_and_verify(
 ) -> Result<PathBuf, String> {
     parse_version(version)
         .ok_or_else(|| format!("Invalid application version for update staging: {version}"))?;
-    validate_download_url(&download.url)?;
+    validate_download_url_for_version(&download.url, version)?;
     if download.size_bytes == 0 || download.size_bytes > MAX_DOWNLOAD_BYTES {
         return Err("Update download size is outside the accepted limits.".to_owned());
     }
@@ -314,6 +314,29 @@ fn validate_download_url(url: &str) -> Result<(), String> {
         let segments: Vec<_> = path.split('/').filter(|segment| !segment.is_empty()).collect();
         if segments.len() < 6 || segments[4].is_empty() || segments[5..].iter().any(|s| s.is_empty()) {
             return Err("ArchiaEmu release artifact URL must identify a specific release asset.".to_owned());
+        }
+    }
+    Ok(())
+}
+
+/// Ensure a GitHub release asset is tagged with the same version as its manifest.
+fn validate_download_url_for_version(url: &str, version: &str) -> Result<(), String> {
+    validate_download_url(url)?;
+    let Some(rest) = url.strip_prefix("https://") else {
+        return Err("Update artifact URL must use HTTPS.".to_owned());
+    };
+    let authority = rest.split('/').next().unwrap_or_default();
+    if authority.eq_ignore_ascii_case("github.com") {
+        let path = rest
+            .split_once('/')
+            .map(|(_, path)| path)
+            .unwrap_or_default();
+        let segments: Vec<_> = path.split('/').collect();
+        let expected_tag = format!("v{version}");
+        if segments.get(4).copied() != Some(expected_tag.as_str()) {
+            return Err(format!(
+                "Update artifact release tag does not match manifest version {version}."
+            ));
         }
     }
     Ok(())
@@ -652,6 +675,14 @@ mod tests {
                 "invalid size or digest must be rejected"
             );
         }
+    }
+
+    #[test]
+    fn release_asset_tag_must_match_manifest_version() {
+        let valid = "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe";
+        assert!(super::validate_download_url_for_version(valid, "0.2.0").is_ok());
+        assert!(super::validate_download_url_for_version(valid, "0.2.1").is_err());
+        assert!(super::validate_download_url_for_version(valid, "1.0.0").is_err());
     }
 
     #[test]
