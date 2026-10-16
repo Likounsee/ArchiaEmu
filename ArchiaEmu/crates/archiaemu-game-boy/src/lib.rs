@@ -1086,7 +1086,7 @@ mod tests {
     fn mapper_zero_bus_reads_and_writes_external_cartridge_ram() {
         let mut image = valid_rom();
         image[0x147] = 0x09;
-        image[0x149] = 0x02;
+        image[0x149] = 0x01;
         image[0x14D] = header_checksum(&image);
 
         let mut core = super::GameBoyCore::new();
