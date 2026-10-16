@@ -345,3 +345,11 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
 Après toute modification, consulter les résultats de la CI du commit exact sur Linux, Windows et macOS. Une CI historique verte ne valide pas les commits ultérieurs et ne prouve pas l'émulation complète.
+
+
+## Architecture des modules console (règle de livraison)
+
+- [x] Le build desktop par défaut ne compile ni n’enregistre aucun cœur de console (`default = []`).
+- [x] Le module Game Boy Color est activé explicitement avec `--features game-boy-color-module`; il traite les cartouches Game Boy originales et Game Boy Color via un cœur commun et un identifiant stable `game-boy-color`.
+- [ ] Les modules console doivent être distribuables et installables indépendamment du binaire hôte. Le chargement dynamique sécurisé des modules tiers n’est pas encore implémenté; l’activation actuelle reste une option de compilation.
+- [ ] Implémenter les périphériques CGB/DMG et valider des ROM de test avant toute revendication de compatibilité de jeu.
