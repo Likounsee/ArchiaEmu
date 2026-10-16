@@ -266,6 +266,7 @@ pub struct GameBoyCore {
     interrupt_enable: u8,
     interrupt_request: u8,
     cartridge_ram: Vec<u8>,
+    cartridge_ram_dirty: bool,
 }
 
 impl GameBoyCore {
@@ -286,6 +287,7 @@ impl GameBoyCore {
             interrupt_enable: 0,
             interrupt_request: 0,
             cartridge_ram: Vec::new(),
+            cartridge_ram_dirty: false,
         }
     }
 
@@ -371,6 +373,7 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         self.image = Some(content.to_vec());
         self.header = Some(header);
         self.cartridge_ram = vec![0; cartridge_ram_len];
+        self.cartridge_ram_dirty = false;
         self.work_ram.fill(0);
         self.high_ram.fill(0);
         self.interrupt_enable = 0;
@@ -533,7 +536,11 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
         self.interrupt_enable = interrupt_enable;
         self.interrupt_request = interrupt_request;
         if state_version == 2 {
-            self.cartridge_ram.copy_from_slice(&state[STATE_BYTES..]);
+            let saved_ram = &state[STATE_BYTES..];
+            if self.cartridge_ram.as_slice() != saved_ram {
+                self.cartridge_ram_dirty = self.has_battery_backed_ram();
+            }
+            self.cartridge_ram.copy_from_slice(saved_ram);
         }
         Ok(())
     }
@@ -559,7 +566,16 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
             ));
         }
         self.cartridge_ram.copy_from_slice(data);
+        self.cartridge_ram_dirty = false;
         Ok(())
+    }
+
+    fn persistent_save_dirty(&self) -> bool {
+        self.has_battery_backed_ram() && self.cartridge_ram_dirty
+    }
+
+    fn clear_persistent_save_dirty(&mut self) {
+        self.cartridge_ram_dirty = false;
     }
 
     fn run_until_event(&mut self) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
@@ -595,6 +611,7 @@ impl archiaemu_core::EmulationCore for GameBoyCore {
             work_ram: &mut self.work_ram,
             high_ram: &mut self.high_ram,
             cartridge_ram: &mut self.cartridge_ram,
+            cartridge_ram_dirty: &mut self.cartridge_ram_dirty,
             interrupt_enable: &mut self.interrupt_enable,
             interrupt_request: &mut self.interrupt_request,
         };
@@ -621,6 +638,7 @@ struct GameBoyBus<'a> {
     work_ram: &'a mut [u8; 0x2000],
     high_ram: &'a mut [u8; 0x7F],
     cartridge_ram: &'a mut [u8],
+    cartridge_ram_dirty: &'a mut bool,
     interrupt_enable: &'a mut u8,
     interrupt_request: &'a mut u8,
 }
@@ -650,7 +668,10 @@ impl CpuBus for GameBoyBus<'_> {
         match address {
             0xA000..=0xBFFF if !self.cartridge_ram.is_empty() => {
                 let index = usize::from(address - 0xA000) % self.cartridge_ram.len();
-                self.cartridge_ram[index] = value;
+                if self.cartridge_ram[index] != value {
+                    self.cartridge_ram[index] = value;
+                    *self.cartridge_ram_dirty = true;
+                }
             }
             0xC000..=0xDFFF => self.work_ram[usize::from(address - 0xC000)] = value,
             0xE000..=0xFDFF => self.work_ram[usize::from(address - 0xE000)] = value,
