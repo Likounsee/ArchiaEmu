@@ -514,9 +514,11 @@ fn current_platform_key() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        ensure_real_staging_directory, is_newer_version, validate_content_length,
-        validate_download_url, verify_staged_file, write_test_file, UpdateManifest,
+        is_newer_version, validate_content_length, validate_download_url, verify_staged_file,
+        write_test_file, UpdateManifest,
     };
+    #[cfg(unix)]
+    use super::ensure_real_staging_directory;
     use sha2::{Digest, Sha256};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};

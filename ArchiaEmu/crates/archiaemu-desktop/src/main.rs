@@ -11,6 +11,7 @@ use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::{Duration, Instant};
 
 use archiaemu_app::controller::{ApplicationController, SessionCommand};
+#[cfg(feature = "game-boy-color-module")]
 use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
 use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent};
 use audio_output::AudioOutput;
@@ -298,9 +299,13 @@ impl DesktopPage {
 
 impl DesktopApp {
     fn new() -> Result<Self, Box<dyn Error>> {
-        let mut registry = CoreRegistry::new();
+        let registry = CoreRegistry::new();
         #[cfg(feature = "game-boy-color-module")]
-        register_game_boy_color(&mut registry)?;
+        let registry = {
+            let mut registry = registry;
+            register_game_boy_color(&mut registry)?;
+            registry
+        };
         let host = HostRuntime::new(HostRuntimeConfig::default())?;
         let mut controller = ApplicationController::new(host);
         let config_path = config_file_path();
@@ -736,6 +741,7 @@ impl DesktopApp {
         }
     }
 
+    #[cfg(feature = "game-boy-color-module")]
     fn load_game_data_for_session(&mut self, id: SessionId) -> Result<bool, String> {
         let summary = self
             .controller
