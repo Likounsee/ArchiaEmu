@@ -696,6 +696,34 @@ mod tests {
     use super::*;
     use archiaemu_app::library::ContentLibrary;
 
+    struct NoSaveStateCore;
+
+    impl archiaemu_core::EmulationCore for NoSaveStateCore {
+        fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
+            archiaemu_core::CoreDescriptor {
+                api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
+                system_id: archiaemu_core::SystemId::new("test-core").unwrap(),
+                display_name: "Test core",
+                core_version: "0.1.0",
+                capabilities: archiaemu_core::CoreCapabilities::default(),
+            }
+        }
+
+        fn load_content(&mut self, _: &[u8]) -> Result<(), archiaemu_core::CoreError> {
+            Err(archiaemu_core::CoreError::Unsupported("content loading"))
+        }
+
+        fn reset(&mut self) -> Result<(), archiaemu_core::CoreError> {
+            Ok(())
+        }
+
+        fn run_until_event(
+            &mut self,
+        ) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
+            Ok(archiaemu_core::CoreEvent::Yielded)
+        }
+    }
+
     fn registry() -> CoreRegistry {
         let mut registry = CoreRegistry::new();
         register_game_boy(&mut registry).unwrap();
@@ -840,9 +868,7 @@ mod tests {
             "no active session"
         );
 
-        let id = host
-            .create_session(Box::new(archiaemu_game_boy::GameBoyCore::new()))
-            .unwrap();
+        let id = host.create_session(Box::new(NoSaveStateCore)).unwrap();
         assert_eq!(
             inspect_inputs(&mut host, Some(id)).unwrap(),
             "input: unsupported by this core"
