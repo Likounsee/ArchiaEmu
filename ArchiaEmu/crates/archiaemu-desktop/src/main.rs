@@ -1658,6 +1658,8 @@ mod preference_tests {
             "Could not load preferences: invalid data",
             "Preferences unavailable: no config directory",
             "Input error: device disconnected",
+            "Game save failed: invalid RAM payload",
+            "Launched session 7, but its in-game save could not be loaded: checksum mismatch",
             "Session 7 failed: core stopped unexpectedly",
         ] {
             assert!(
