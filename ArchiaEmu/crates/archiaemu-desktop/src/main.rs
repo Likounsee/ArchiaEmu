@@ -1471,6 +1471,9 @@ impl eframe::App for DesktopApp {
 
 impl DesktopApp {
     fn advance_emulation(&mut self, context: &egui::Context) {
+        // Flush a previous tick's dirty battery RAM even if the next tick errors or
+        // the active session has since been deselected.
+        self.autosave_dirty_game_saves();
         let now = Instant::now();
         let elapsed = now.saturating_duration_since(self.last_tick);
         self.last_tick = now;
@@ -1606,7 +1609,6 @@ impl DesktopApp {
         } else {
             pipeline_status
         };
-        self.autosave_dirty_game_saves();
         if state == SessionState::Running {
             context.request_repaint_after(Duration::from_millis(16));
         }
