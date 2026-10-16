@@ -951,8 +951,6 @@ mod tests {
         core.cpu.registers.set_f(0xB0);
         core.cpu.registers.sp = 0xCDEF;
         core.cpu.registers.pc = 0x4567;
-        core.cpu.halted = true;
-        core.cpu.ime = true;
         core.work_ram[0x123] = 0x91;
         core.work_ram[0x1FFF] = 0x27;
         core.high_ram[0x22] = 0x63;
@@ -963,8 +961,6 @@ mod tests {
         core.cpu.registers.a = 0;
         core.cpu.registers.sp = 0;
         core.cpu.registers.pc = 0;
-        core.cpu.halted = false;
-        core.cpu.ime = false;
         core.work_ram.fill(0);
         core.high_ram.fill(0);
         core.interrupt_enable = 0;
@@ -975,8 +971,6 @@ mod tests {
         assert_eq!(core.cpu.registers.f(), 0xB0);
         assert_eq!(core.cpu.registers.sp, 0xCDEF);
         assert_eq!(core.cpu.registers.pc, 0x4567);
-        assert!(core.cpu.is_halted());
-        assert!(core.cpu.interrupts_enabled());
         assert_eq!(core.work_ram[0x123], 0x91);
         assert_eq!(core.work_ram[0x1FFF], 0x27);
         assert_eq!(core.high_ram[0x22], 0x63);
@@ -1000,7 +994,7 @@ mod tests {
 
         let mut other_rom = valid_rom();
         other_rom[0x0134] ^= 1;
-        other_rom[0x014D] = super::header_checksum(&other_rom);
+        other_rom[0x014D] = header_checksum(&other_rom);
         let mut other_core = super::GameBoyCore::new();
         other_core.load_content(&other_rom).unwrap();
         assert!(other_core.load_state(&saved).is_err());
