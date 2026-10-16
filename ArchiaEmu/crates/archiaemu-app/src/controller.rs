@@ -479,7 +479,7 @@ impl ApplicationController {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archiaemu_game_boy::GameBoyCore;
+    use archiaemu_game_boy::GameBoyColorCore;
     use std::collections::VecDeque;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
@@ -529,11 +529,11 @@ mod tests {
         let mut app = controller();
         let first = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         let second = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
 
         app.select_session(first).unwrap();
@@ -552,11 +552,11 @@ mod tests {
         let mut app = controller();
         let first = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         let second = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
 
         app.select_session(second).unwrap();
@@ -565,7 +565,7 @@ mod tests {
 
         let third = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         assert_ne!(third, first);
 
@@ -580,11 +580,11 @@ mod tests {
         let mut app = controller();
         let first = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         let second = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(first).unwrap();
 
@@ -601,11 +601,11 @@ mod tests {
         let mut app = controller();
         let first = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         let second = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(second).unwrap();
         assert_eq!(app.session_count(), 2);
@@ -626,11 +626,11 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         let stale = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(id).unwrap();
         app.close_session(stale).unwrap();
@@ -644,7 +644,7 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(id).unwrap();
 
@@ -664,7 +664,7 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(id).unwrap();
         app.close_session(id).unwrap();
@@ -682,7 +682,7 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(id).unwrap();
 
@@ -704,7 +704,7 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
 
         // An empty session cannot have held controls, so release is a safe no-op.
@@ -968,7 +968,7 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         let mut cadence = FrameCadence::new(60, 3).unwrap();
 
@@ -987,7 +987,7 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
 
         for (command, expected_operation) in [
@@ -1017,7 +1017,7 @@ mod tests {
         let mut app = controller();
         let id = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.release_inputs(id).unwrap();
         app.release_inputs(id).unwrap();
@@ -1066,7 +1066,7 @@ mod tests {
         app.import_content(&library_file, 1024).unwrap();
         let existing_session = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(existing_session).unwrap();
 
@@ -1112,7 +1112,7 @@ mod tests {
         let mut app = controller();
         let existing_session = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(existing_session).unwrap();
 
@@ -1210,7 +1210,7 @@ mod tests {
         let mut app = controller();
         let existing_session = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(existing_session).unwrap();
 
@@ -1253,7 +1253,7 @@ mod tests {
         let mut app = controller();
         let existing_session = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(existing_session).unwrap();
 
@@ -1308,10 +1308,10 @@ mod tests {
         registry
             .register(
                 archiaemu_core::SystemId::new(archiaemu_game_boy::SYSTEM_ID).unwrap(),
-                || Box::new(GameBoyCore::new()),
+                || Box::new(GameBoyColorCore::new()),
             )
             .unwrap();
-        let probe = archiaemu_game_boy::GameBoyCartridgeProbe;
+        let probe = archiaemu_game_boy::GameBoyColorCartridgeProbe;
 
         let mut app = controller();
         let canonical_rom = app
@@ -1321,7 +1321,7 @@ mod tests {
             .to_path_buf();
         let existing_session = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(existing_session).unwrap();
 
@@ -1359,7 +1359,7 @@ mod tests {
     #[test]
     fn successful_library_launch_loads_content_and_supports_session_lifecycle() {
         use archiaemu_core::content::ContentFormatProbe;
-        use archiaemu_game_boy::{register_game_boy, GameBoyCartridgeProbe};
+        use archiaemu_game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
         use std::time::{SystemTime, UNIX_EPOCH};
 
         let nonce = SystemTime::now()
@@ -1395,8 +1395,8 @@ mod tests {
         let mut app = controller();
         app.import_content(&rom_path, 0x10000).unwrap();
         let mut registry = CoreRegistry::new();
-        register_game_boy(&mut registry).unwrap();
-        let probe = GameBoyCartridgeProbe;
+        register_game_boy_color(&mut registry).unwrap();
+        let probe = GameBoyColorCartridgeProbe;
         let probes: [&dyn ContentFormatProbe; 1] = [&probe];
 
         let id = app
@@ -1451,7 +1451,7 @@ mod tests {
             .to_path_buf();
         let session = app
             .host_mut()
-            .create_session(Box::new(GameBoyCore::new()))
+            .create_session(Box::new(GameBoyColorCore::new()))
             .unwrap();
         app.select_session(session).unwrap();
 
