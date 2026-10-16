@@ -41,7 +41,22 @@ pub(crate) fn config_file_path() -> Option<PathBuf> {
     base.map(|directory| directory.join("ArchiaEmu").join("desktop.conf"))
 }
 
+fn ensure_regular_preferences_file(path: &Path) -> std::io::Result<()> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_file() => Ok(()),
+        Ok(_) => Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "preferences path must be a regular file, not a symbolic link or special file",
+        )),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
 fn read_preferences_file(path: &Path) -> std::io::Result<String> {
+    // Preferences and their recovery backup are user-controlled paths. Never follow
+    // a symlink to read an unrelated file as configuration.
+    ensure_regular_preferences_file(path)?;
     let file = fs::File::open(path)?;
     let mut bytes = Vec::new();
     file.take(MAX_PREFERENCES_BYTES as u64 + 1)
@@ -206,6 +221,10 @@ pub(crate) fn write_preferences_with_language(
         )
     })?;
     fs::create_dir_all(parent)?;
+    // Refuse to rotate or replace a redirected active config or backup. Checking
+    // both before writing prevents a symlink backup from becoming a recovery source.
+    ensure_regular_preferences_file(path)?;
+    ensure_regular_preferences_file(&path.with_extension("conf.bak"))?;
     // Keep the on-disk value inside the same range enforced by the loader.
     // A non-finite value must not silently reset the user's scale on next launch.
     let ui_scale = if ui_scale.is_finite() {
@@ -353,6 +372,44 @@ mod tests {
             "archiaemu-preferences-{name}-{}-{nonce}.conf",
             std::process::id()
         ))
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn preferences_loader_and_writer_reject_symbolic_link_config_and_backup() {
+        use std::os::unix::fs::symlink;
+
+        let target = temporary_config("symlink-target");
+        let path = temporary_config("symlink-active");
+        let backup = path.with_extension("conf.bak");
+        fs::write(&target, "version=3\\ndark=false\\n")
+            .expect("external target should be written");
+        symlink(&target, &path).expect("active config symlink should be created");
+
+        let error = load_preferences(&path).expect_err("symlink config must not be read");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        let error = write_preferences(&path, true, 1.0, [75, 115, 210], &[])
+            .expect_err("writer must not rotate a symlink config");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert_eq!(
+            fs::read_to_string(&target).expect("target should remain readable"),
+            "version=3\\ndark=false\\n"
+        );
+        fs::remove_file(&path).expect("active symlink should be removed");
+
+        symlink(&target, &backup).expect("backup symlink should be created");
+        let error = load_preferences(&path).expect_err("symlink backup must not be read");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        let error = write_preferences(&path, true, 1.0, [75, 115, 210], &[])
+            .expect_err("writer must not use a symlink backup");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert_eq!(
+            fs::read_to_string(&target).expect("target should remain unchanged"),
+            "version=3\\ndark=false\\n"
+        );
+
+        let _ = fs::remove_file(backup);
+        let _ = fs::remove_file(target);
     }
 
     #[test]
