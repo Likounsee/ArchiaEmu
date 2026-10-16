@@ -151,6 +151,32 @@ pub fn discover_install_journals(
         .collect()
 }
 
+/// Removes a journal only after its committed phase is durably recorded.
+///
+/// On Unix, synchronizes the containing directory after unlinking the journal.
+/// Non-committed journals are preserved and reported as an error so callers
+/// cannot accidentally erase recovery information for an incomplete install.
+pub fn remove_committed_install_journal(
+    path: impl AsRef<Path>,
+) -> Result<(), InstallJournalError> {
+    let path = path.as_ref();
+    let journal = InstallJournal::load(path)?;
+    if journal.entry().phase != InstallPhase::Committed {
+        return Err(InstallJournalError::NotCommitted(journal.entry().phase));
+    }
+
+    fs::remove_file(path)?;
+    #[cfg(unix)]
+    {
+        let parent = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
+        File::open(parent)?.sync_all()?;
+    }
+    Ok(())
+}
+
 /// A non-destructive startup recovery decision derived from a durable journal.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InstallRecoveryPlan {
@@ -430,6 +456,8 @@ pub enum InstallJournalError {
     },
     /// Destination path does not name a file.
     InvalidPath,
+    /// A journal cannot be removed as committed before reaching that phase.
+    NotCommitted(InstallPhase),
 }
 
 impl fmt::Display for InstallJournalError {
@@ -443,6 +471,7 @@ impl fmt::Display for InstallJournalError {
                 write!(f, "invalid install phase transition: {from:?} -> {to:?}")
             }
             Self::InvalidPath => f.write_str("installation journal path must name a file"),
+            Self::NotCommitted(phase) => write!(f, "cannot remove install journal in phase {phase:?} as committed"),
         }
     }
 }
@@ -486,6 +515,39 @@ mod tests {
                 "unexpected recovery action for durable phase {phase:?}"
             );
         }
+    }
+
+    #[test]
+    fn committed_journal_removal_refuses_incomplete_transaction() {
+        let directory = std::env::temp_dir().join(format!(
+            "archiaemu-committed-journal-{}-{}",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&directory).unwrap();
+        let path = directory.join("transaction.journal");
+        let journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
+        journal.save(&path).unwrap();
+
+        assert!(matches!(
+            remove_committed_install_journal(&path),
+            Err(InstallJournalError::NotCommitted(InstallPhase::Planned))
+        ));
+        assert!(path.exists());
+
+        let mut committed = InstallJournal::load(&path).unwrap();
+        committed.advance(InstallPhase::Downloading).unwrap();
+        committed.advance(InstallPhase::Verified).unwrap();
+        committed.advance(InstallPhase::Staged).unwrap();
+        committed.advance(InstallPhase::Activating).unwrap();
+        committed.advance(InstallPhase::Activated).unwrap();
+        committed.advance(InstallPhase::Committed).unwrap();
+        committed.save(&path).unwrap();
+
+        remove_committed_install_journal(&path).unwrap();
+        assert!(!path.exists());
+        fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]
