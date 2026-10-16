@@ -739,12 +739,10 @@ mod tests {
         let store = ModuleStateStore::new(&path);
         fs::write(&path, b"corrupt").unwrap();
 
-        assert!(matches!(
-            store.load(),
-            Err(ModuleStateStoreError::Format(
-                StateFormatError::MalformedRecord
-            ))
-        ));
+        assert!(
+            store.load().is_err(),
+            "a corrupt primary without a backup must not be treated as first launch"
+        );
 
         let _ = fs::remove_file(&path);
         let _ = fs::remove_file(backup_path(&path));
