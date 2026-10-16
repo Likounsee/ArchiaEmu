@@ -315,11 +315,7 @@ mod tests {
                 .iter()
                 .map(|module| (module.id.as_str(), module.version.as_str()))
                 .collect::<Vec<_>>(),
-            vec![
-                ("game-boy", "1.0.1"),
-                ("nes", "2.1.0"),
-                ("snes", "3.0.0"),
-            ]
+            vec![("game-boy", "1.0.1"), ("nes", "2.1.0"), ("snes", "3.0.0"),]
         );
     }
 
