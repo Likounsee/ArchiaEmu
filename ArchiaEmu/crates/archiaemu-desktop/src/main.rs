@@ -788,6 +788,7 @@ impl eframe::App for DesktopApp {
         let previous_dark_mode = self.dark_mode;
         let previous_ui_scale = self.ui_scale;
         let previous_accent_color = self.accent_color;
+        let previous_language = self.language.clone();
         context.set_visuals(if self.dark_mode {
             egui::Visuals::dark()
         } else {
@@ -1127,6 +1128,7 @@ impl eframe::App for DesktopApp {
         if self.dark_mode != previous_dark_mode
             || (self.ui_scale - previous_ui_scale).abs() > f32::EPSILON
             || self.accent_color != previous_accent_color
+            || self.language != previous_language
         {
             self.save_preferences();
         }
