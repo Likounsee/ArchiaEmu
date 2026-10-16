@@ -59,6 +59,13 @@ impl DesktopApp {
                     )
                     .clicked()
                 {
+                    let save_errors = self.flush_dirty_game_saves();
+                    if !save_errors.is_empty() {
+                        self.message = format!(
+                            "Close all cancelled; game saves could not be flushed: {}",
+                            save_errors.join("; ")
+                        );
+                    } else {
                     // Keyboard input is routed only to the active session. Release it before
                     // closing sessions so a held control cannot survive the lifecycle transition.
                     let release_error = self.release_game_inputs().err();
@@ -101,6 +108,7 @@ impl DesktopApp {
                             format!("Closed {count} {noun}.")
                         }
                     };
+                    }
                 }
             });
         });
