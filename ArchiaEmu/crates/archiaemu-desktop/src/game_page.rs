@@ -27,6 +27,7 @@ impl DesktopApp {
             let state = summary.state;
             let content_loaded = summary.content_loaded;
             let save_states = summary.save_states;
+            let persistent_saves = summary.persistent_saves;
             let system = summary.system_name;
             egui::Frame::group(ui.style())
                 .rounding(egui::Rounding::same(12.0))
@@ -79,6 +80,17 @@ impl DesktopApp {
                                     .clicked()
                                 {
                                     self.load_state_action(id);
+                                }
+                                if persistent_saves
+                                    && ui
+                                        .button(if self.language == "fr" {
+                                            "Sauvegarder la partie"
+                                        } else {
+                                            "Save game"
+                                        })
+                                        .clicked()
+                                {
+                                    self.save_game_data_action(id);
                                 }
                                 if ui
                                     .button(if self.language == "fr" {
