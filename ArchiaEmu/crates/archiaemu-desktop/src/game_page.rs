@@ -65,7 +65,7 @@ impl DesktopApp {
                                     .button(if self.language == "fr" {
                                         "Sauvegarder l’état"
                                     } else {
-                                        "Save state"
+                                        "Save"
                                     })
                                     .clicked()
                                 {
