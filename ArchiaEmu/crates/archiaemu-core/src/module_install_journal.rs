@@ -151,6 +151,45 @@ pub fn discover_install_journals(
         .collect()
 }
 
+/// A non-destructive startup recovery decision derived from a durable journal.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InstallRecoveryPlan {
+    /// Path of the journal that must be handled.
+    pub journal_path: PathBuf,
+    /// Stable module ID recorded by the transaction.
+    pub module: ModuleId,
+    /// Exact package version recorded by the transaction.
+    pub version: String,
+    /// Last durably recorded transaction phase.
+    pub phase: InstallPhase,
+    /// Recovery action appropriate for the recorded phase.
+    pub action: InstallRecovery,
+}
+
+/// Builds a deterministic recovery plan for every journal in a directory.
+///
+/// This function only reads and validates journals; it never deletes staging
+/// data, changes installed state, or removes journals. Callers must execute the
+/// returned actions through a trusted backend and preserve the activation safety
+/// boundary represented by each action.
+pub fn plan_install_recovery(
+    directory: impl AsRef<Path>,
+) -> Result<Vec<InstallRecoveryPlan>, InstallJournalError> {
+    discover_install_journals(directory)?
+        .into_iter()
+        .map(|(journal_path, journal)| {
+            let entry = journal.entry();
+            Ok(InstallRecoveryPlan {
+                journal_path,
+                module: entry.module.clone(),
+                version: entry.version.clone(),
+                phase: entry.phase,
+                action: journal.recovery_action(),
+            })
+        })
+        .collect()
+}
+
 /// A bounded, versioned installation journal for one package.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InstallJournal {
@@ -447,6 +486,36 @@ mod tests {
                 "unexpected recovery action for durable phase {phase:?}"
             );
         }
+    }
+
+    #[test]
+    fn recovery_plan_exposes_action_without_mutating_journals() {
+        let directory = std::env::temp_dir().join(format!(
+            "archiaemu-recovery-plan-{}-{}",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&directory).unwrap();
+        let path = directory.join("transaction.journal");
+        let mut journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.2.3").unwrap();
+        journal.advance(InstallPhase::Downloading).unwrap();
+        journal.advance(InstallPhase::Verified).unwrap();
+        journal.advance(InstallPhase::Staged).unwrap();
+        journal.advance(InstallPhase::Activating).unwrap();
+        journal.save(&path).unwrap();
+        let before = fs::read(&path).unwrap();
+
+        let plans = plan_install_recovery(&directory).unwrap();
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].journal_path, path);
+        assert_eq!(plans[0].module.as_str(), "test-module");
+        assert_eq!(plans[0].version, "1.2.3");
+        assert_eq!(plans[0].phase, InstallPhase::Activating);
+        assert_eq!(plans[0].action, InstallRecovery::ReconcileActivation);
+        assert_eq!(fs::read(&plans[0].journal_path).unwrap(), before);
+
+        fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]
