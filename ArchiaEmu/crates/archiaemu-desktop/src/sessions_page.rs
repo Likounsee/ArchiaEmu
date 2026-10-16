@@ -165,6 +165,10 @@ impl DesktopApp {
                             }
                         }
                         if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
+                            if let Err(error) = self.save_dirty_game_data_for_session(id) {
+                                self.message = format!("Close cancelled; game save could not be flushed: {error}");
+                                return;
+                            }
                             let was_active = self.controller.active_session() == Some(id);
                             if was_active {
                                 let _ = self.release_game_inputs();
@@ -220,6 +224,10 @@ impl DesktopApp {
                     ui.label(&system_name);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button(if self.language == "fr" { "Fermer" } else { "Close" }).clicked() {
+                            if let Err(error) = self.save_dirty_game_data_for_session(id) {
+                                self.message = format!("Close cancelled; game save could not be flushed: {error}");
+                                return;
+                            }
                             let was_active = self.controller.active_session() == Some(id);
                             let release_error = if was_active {
                                 self.release_game_inputs().err()
