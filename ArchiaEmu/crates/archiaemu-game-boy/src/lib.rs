@@ -27,11 +27,11 @@ const NINTENDO_LOGO: [u8; 48] = [
 /// the full header checksum, ROM length, mapper and execution support still
 /// require their dedicated validation paths.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct GameBoyCartridgeProbe;
+pub struct GameBoyColorCartridgeProbe;
 
-impl archiaemu_core::content::ContentFormatProbe for GameBoyCartridgeProbe {
+impl archiaemu_core::content::ContentFormatProbe for GameBoyColorCartridgeProbe {
     fn format_id(&self) -> &'static str {
-        "game-boy"
+        "game-boy-color"
     }
 
     fn probe(&self, prefix: &[u8]) -> archiaemu_core::content::FormatProbeResult {
@@ -257,7 +257,7 @@ pub const SYSTEM_ID: &str = "game-boy-color";
 /// a limited LR35902 instruction subset runs over a basic ROM/WRAM/HRAM bus.
 /// Video, audio, I/O devices, timers, interrupts, input, mapper banking, and most
 /// instructions remain unimplemented, so game compatibility is not claimed.
-pub struct GameBoyCore {
+pub struct GameBoyColorCore {
     image: Option<Vec<u8>>,
     header: Option<CartridgeHeader>,
     cpu: Cpu,
@@ -269,7 +269,7 @@ pub struct GameBoyCore {
     cartridge_ram_dirty: bool,
 }
 
-impl GameBoyCore {
+impl GameBoyColorCore {
     fn has_battery_backed_ram(&self) -> bool {
         self.header.as_ref().is_some_and(|header| {
             header.cartridge_type == 0x09
@@ -326,7 +326,7 @@ fn supports_execution(header: &CartridgeHeader) -> bool {
         && cartridge_ram_size(header).is_some()
 }
 
-impl Default for GameBoyCore {
+impl Default for GameBoyColorCore {
     fn default() -> Self {
         Self::new()
     }
@@ -348,7 +348,7 @@ fn game_boy_core_descriptor() -> archiaemu_core::CoreDescriptor {
     }
 }
 
-impl archiaemu_core::EmulationCore for GameBoyCore {
+impl archiaemu_core::EmulationCore for GameBoyColorCore {
     fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
         let mut descriptor = game_boy_core_descriptor();
         descriptor.capabilities.persistent_saves = self.has_battery_backed_ram();
@@ -698,14 +698,14 @@ fn rom_fingerprint(image: &[u8]) -> u64 {
 /// Registration makes the module discoverable, but does not imply that game
 /// execution is implemented. The descriptor deliberately reports no execution
 /// capabilities until the corresponding hardware components are complete.
-pub fn register_game_boy(
+pub fn register_game_boy_color(
     registry: &mut archiaemu_core::CoreRegistry,
 ) -> Result<(), archiaemu_core::RegistryError> {
     registry.register_with_descriptor(game_boy_core_descriptor(), create_game_boy_core)
 }
 
 fn create_game_boy_core() -> Box<dyn archiaemu_core::EmulationCore> {
-    Box::new(GameBoyCore::new())
+    Box::new(GameBoyColorCore::new())
 }
 
 #[cfg(test)]
@@ -714,7 +714,7 @@ mod tests {
     fn descriptor_advertises_cartridge_loading_without_claiming_media_or_input_support() {
         use archiaemu_core::EmulationCore;
 
-        let capabilities = super::GameBoyCore::new().descriptor().capabilities;
+        let capabilities = super::GameBoyColorCore::new().descriptor().capabilities;
         assert!(capabilities.content_loading);
         assert!(!capabilities.input);
         assert!(!capabilities.video_output);
@@ -728,16 +728,16 @@ mod tests {
         use archiaemu_core::content::ContentFormatProbe;
 
         let mut registry = archiaemu_core::CoreRegistry::new();
-        super::register_game_boy(&mut registry).unwrap();
+        super::register_game_boy_color(&mut registry).unwrap();
         let system_id = registry.system_ids().next().unwrap();
-        assert_eq!(super::GameBoyCartridgeProbe.format_id(), "game-boy-color");
+        assert_eq!(super::GameBoyColorCartridgeProbe.format_id(), "game-boy-color");
     }
 
     #[test]
     fn cartridge_probe_requires_the_logo_and_complete_header() {
         use archiaemu_core::content::{ContentFormatProbe, FormatProbeResult};
 
-        let probe = GameBoyCartridgeProbe;
+        let probe = GameBoyColorCartridgeProbe;
         assert_eq!(
             probe.probe(&[]),
             FormatProbeResult::NeedMoreData {
@@ -763,7 +763,7 @@ mod tests {
     fn cartridge_probe_match_does_not_bypass_header_validation() {
         use archiaemu_core::content::{ContentFormatProbe, FormatProbeResult};
 
-        let probe = GameBoyCartridgeProbe;
+        let probe = GameBoyColorCartridgeProbe;
         let mut image = vec![0; MINIMUM_HEADER_SIZE];
         image[0x0104..0x0134].copy_from_slice(&NINTENDO_LOGO);
 
@@ -780,14 +780,14 @@ mod tests {
     fn cartridge_probe_works_with_the_generic_detector() {
         use archiaemu_core::content::{detect_content_formats, ContentDetection};
 
-        let probe = GameBoyCartridgeProbe;
+        let probe = GameBoyColorCartridgeProbe;
         let probes: [&dyn archiaemu_core::content::ContentFormatProbe; 1] = [&probe];
         let mut image = vec![0; MINIMUM_HEADER_SIZE];
         image[0x0104..0x0134].copy_from_slice(&NINTENDO_LOGO);
         assert_eq!(
             detect_content_formats(&image, &probes),
             ContentDetection {
-                matches: vec!["game-boy"],
+                matches: vec!["game-boy-color"],
                 needs_more_data: vec![],
             }
         );
@@ -936,7 +936,7 @@ mod tests {
 
     #[test]
     fn truncated_special_size_rom_does_not_replace_loaded_cartridge() {
-        let mut core = GameBoyCore::new();
+        let mut core = GameBoyColorCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
         let before = *core.cartridge_header().unwrap();
 
@@ -958,7 +958,7 @@ mod tests {
 
     #[test]
     fn truncated_unsupported_mapper_does_not_replace_loaded_cartridge() {
-        let mut core = GameBoyCore::new();
+        let mut core = GameBoyColorCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
         let before = *core.cartridge_header().unwrap();
 
@@ -998,9 +998,9 @@ mod tests {
     }
 
     #[test]
-    fn game_boy_is_discoverable_through_the_shared_registry() {
+    fn game_boy_color_module_is_discoverable_through_the_shared_registry() {
         let mut registry = archiaemu_core::CoreRegistry::new();
-        register_game_boy(&mut registry).unwrap();
+        register_game_boy_color(&mut registry).unwrap();
 
         let id = archiaemu_core::SystemId::new(SYSTEM_ID).unwrap();
         assert!(registry.contains(id));
@@ -1009,9 +1009,9 @@ mod tests {
             Some(game_boy_core_descriptor())
         );
         assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-dmg").unwrap()));
-        assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-color").unwrap()));
+        assert!(!registry.contains(archiaemu_core::SystemId::new("game-boy-dmg").unwrap()));
         let core = registry.create(id).unwrap();
-        assert_eq!(core.descriptor().display_name, "Game Boy / Game Boy Color");
+        assert_eq!(core.descriptor().display_name, "Game Boy Color (backwards compatible with Game Boy)");
         assert_eq!(
             core.descriptor().capabilities,
             archiaemu_core::CoreCapabilities {
@@ -1024,7 +1024,7 @@ mod tests {
 
     #[test]
     fn module_validates_complete_rom_and_executes_the_first_instruction() {
-        let mut core = GameBoyCore::new();
+        let mut core = GameBoyColorCore::new();
         assert_eq!(
             archiaemu_core::EmulationCore::run_until_event(&mut core),
             Err(archiaemu_core::CoreError::NotInitialized)
@@ -1047,7 +1047,7 @@ mod tests {
     fn save_state_round_trip_restores_cpu_and_all_implemented_ram() {
         use archiaemu_core::EmulationCore;
 
-        let mut core = super::GameBoyCore::new();
+        let mut core = super::GameBoyColorCore::new();
         let image = valid_rom();
         core.load_content(&image).unwrap();
         core.cpu.registers.a = 0xA5;
@@ -1090,7 +1090,7 @@ mod tests {
         image[0x149] = 0x02; // 8 KiB external RAM.
         image[0x14D] = header_checksum(&image);
 
-        let mut core = super::GameBoyCore::new();
+        let mut core = super::GameBoyColorCore::new();
         core.load_content(&image).unwrap();
         assert!(core.descriptor().capabilities.persistent_saves);
         assert_eq!(core.cartridge_ram.len(), 0x2000);
@@ -1115,7 +1115,7 @@ mod tests {
         image[0x149] = 0x02;
         image[0x14D] = header_checksum(&image);
 
-        let mut core = super::GameBoyCore::new();
+        let mut core = super::GameBoyColorCore::new();
         core.load_content(&image).unwrap();
         assert!(!core.descriptor().capabilities.persistent_saves);
         assert_eq!(
@@ -1133,7 +1133,7 @@ mod tests {
         image[0x149] = 0x01;
         image[0x14D] = header_checksum(&image);
 
-        let mut core = super::GameBoyCore::new();
+        let mut core = super::GameBoyColorCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &image).unwrap();
         let mut bus = super::GameBoyBus {
             image: core.image.as_deref().unwrap(),
@@ -1167,7 +1167,7 @@ mod tests {
         image[0x149] = 0x02;
         image[0x14D] = header_checksum(&image);
 
-        let mut core = super::GameBoyCore::new();
+        let mut core = super::GameBoyColorCore::new();
         core.load_content(&image).unwrap();
         core.cartridge_ram[0] = 0x73;
 
@@ -1184,7 +1184,7 @@ mod tests {
         image[0x149] = 0x02;
         image[0x14D] = header_checksum(&image);
 
-        let mut core = super::GameBoyCore::new();
+        let mut core = super::GameBoyColorCore::new();
         core.load_content(&image).unwrap();
         core.cartridge_ram[0x432] = 0xD6;
         let state = core.save_state().unwrap();
@@ -1199,7 +1199,7 @@ mod tests {
     fn invalid_or_foreign_save_state_does_not_mutate_machine_state() {
         use archiaemu_core::EmulationCore;
 
-        let mut core = super::GameBoyCore::new();
+        let mut core = super::GameBoyColorCore::new();
         core.load_content(&valid_rom()).unwrap();
         core.work_ram[0] = 0x5A;
         let saved = core.save_state().unwrap();
@@ -1212,7 +1212,7 @@ mod tests {
         let mut other_rom = valid_rom();
         other_rom[0x0134] ^= 1;
         other_rom[0x014D] = header_checksum(&other_rom);
-        let mut other_core = super::GameBoyCore::new();
+        let mut other_core = super::GameBoyColorCore::new();
         other_core.load_content(&other_rom).unwrap();
         assert!(other_core.load_state(&saved).is_err());
         assert!(other_core.work_ram.iter().all(|byte| *byte == 0));
@@ -1220,7 +1220,7 @@ mod tests {
 
     #[test]
     fn execution_rejects_unimplemented_cartridge_mappers() {
-        let mut core = GameBoyCore::new();
+        let mut core = GameBoyColorCore::new();
         let mut image = valid_rom();
         image[0x147] = 0x01;
         image[0x14D] = header_checksum(&image);
@@ -1267,8 +1267,8 @@ mod tests {
     }
 
     #[test]
-    fn unified_core_selects_mode_without_changing_system_identity() {
-        let mut core = GameBoyCore::new();
+    fn color_core_selects_cgb_or_original_gb_mode_without_changing_system_identity() {
+        let mut core = GameBoyColorCore::new();
         assert_eq!(core.hardware_mode(), None);
 
         let color_compatible_image = valid_rom();
@@ -1276,7 +1276,7 @@ mod tests {
         assert_eq!(core.hardware_mode(), Some(HardwareMode::Cgb));
         assert_eq!(
             core.descriptor().system_id,
-            archiaemu_core::SystemId::new("game-boy").unwrap()
+            archiaemu_core::SystemId::new("game-boy-color").unwrap()
         );
 
         let mut monochrome_image = valid_rom();
@@ -1286,13 +1286,13 @@ mod tests {
         assert_eq!(core.hardware_mode(), Some(HardwareMode::Dmg));
         assert_eq!(
             core.descriptor().system_id,
-            archiaemu_core::SystemId::new("game-boy").unwrap()
+            archiaemu_core::SystemId::new("game-boy-color").unwrap()
         );
     }
 
     #[test]
     fn rejects_truncated_rom_before_replacing_loaded_cartridge() {
-        let mut core = GameBoyCore::new();
+        let mut core = GameBoyColorCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
         let before = *core.cartridge_header().unwrap();
 
@@ -1311,7 +1311,7 @@ mod tests {
 
     #[test]
     fn invalid_ram_size_replacement_preserves_loaded_cartridge() {
-        let mut core = GameBoyCore::new();
+        let mut core = GameBoyColorCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
         let before = *core.cartridge_header().unwrap();
 
@@ -1333,7 +1333,7 @@ mod tests {
 
     #[test]
     fn invalid_checksum_replacement_preserves_loaded_cartridge() {
-        let mut core = GameBoyCore::new();
+        let mut core = GameBoyColorCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
         let before = *core.cartridge_header().unwrap();
 
@@ -1354,7 +1354,7 @@ mod tests {
 
     #[test]
     fn invalid_logo_replacement_preserves_loaded_cartridge() {
-        let mut core = GameBoyCore::new();
+        let mut core = GameBoyColorCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
         let before = *core.cartridge_header().unwrap();
 
@@ -1375,7 +1375,7 @@ mod tests {
 
     #[test]
     fn invalid_replacement_rom_does_not_destroy_previous_metadata() {
-        let mut core = GameBoyCore::new();
+        let mut core = GameBoyColorCore::new();
         archiaemu_core::EmulationCore::load_content(&mut core, &valid_rom()).unwrap();
         let before = *core.cartridge_header().unwrap();
 
