@@ -1105,6 +1105,26 @@ mod tests {
     }
 
     #[test]
+    fn non_battery_ram_cartridge_does_not_advertise_persistent_saves() {
+        use archiaemu_core::EmulationCore;
+
+        let mut image = valid_rom();
+        image[0x147] = 0x08; // ROM + RAM, without battery.
+        image[0x149] = 0x02;
+        image[0x14D] = header_checksum(&image);
+
+        let mut core = super::GameBoyCore::new();
+        core.load_content(&image).unwrap();
+        assert!(!core.descriptor().capabilities.persistent_saves);
+        assert_eq!(
+            core.save_game_data(),
+            Err(archiaemu_core::CoreError::Unsupported(
+                "persistent saves require a supported battery-backed cartridge"
+            ))
+        );
+    }
+
+    #[test]
     fn mapper_zero_bus_reads_and_writes_external_cartridge_ram() {
         let mut image = valid_rom();
         image[0x147] = 0x09;
