@@ -177,6 +177,36 @@ pub fn remove_committed_install_journal(
     Ok(())
 }
 
+/// Removes a journal only when its phase proves activation never began.
+///
+/// The caller must first successfully clean the transaction's isolated staging
+/// files. Journals at or after the activation phase, including Failed, are
+/// rejected because activation may have changed the final installation.
+pub fn remove_discarded_install_journal(
+    path: impl AsRef<Path>,
+) -> Result<(), InstallJournalError> {
+    let path = path.as_ref();
+    let journal = InstallJournal::load(path)?;
+    match journal.entry().phase {
+        InstallPhase::Planned
+        | InstallPhase::Downloading
+        | InstallPhase::Verified
+        | InstallPhase::Staged => {}
+        phase => return Err(InstallJournalError::UnsafeDiscard(phase)),
+    }
+
+    fs::remove_file(path)?;
+    #[cfg(unix)]
+    {
+        let parent = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
+        File::open(parent)?.sync_all()?;
+    }
+    Ok(())
+}
+
 /// A non-destructive startup recovery decision derived from a durable journal.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InstallRecoveryPlan {
@@ -458,6 +488,8 @@ pub enum InstallJournalError {
     InvalidPath,
     /// A journal cannot be removed as committed before reaching that phase.
     NotCommitted(InstallPhase),
+    /// A journal cannot be discarded because activation may have started.
+    UnsafeDiscard(InstallPhase),
 }
 
 impl fmt::Display for InstallJournalError {
@@ -472,6 +504,7 @@ impl fmt::Display for InstallJournalError {
             }
             Self::InvalidPath => f.write_str("installation journal path must name a file"),
             Self::NotCommitted(phase) => write!(f, "cannot remove install journal in phase {phase:?} as committed"),
+            Self::UnsafeDiscard(phase) => write!(f, "cannot discard install journal in phase {phase:?}: activation may have started"),
         }
     }
 }
@@ -515,6 +548,42 @@ mod tests {
                 "unexpected recovery action for durable phase {phase:?}"
             );
         }
+    }
+
+    #[test]
+    fn discarded_journal_removal_refuses_activation_and_failed_phases() {
+        let directory = std::env::temp_dir().join(format!(
+            "archiaemu-discard-journal-{}-{}",
+            std::process::id(),
+            TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&directory).unwrap();
+        let path = directory.join("transaction.journal");
+        let mut journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
+        journal.advance(InstallPhase::Downloading).unwrap();
+        journal.advance(InstallPhase::Verified).unwrap();
+        journal.advance(InstallPhase::Staged).unwrap();
+        journal.save(&path).unwrap();
+
+        remove_discarded_install_journal(&path).unwrap();
+        assert!(!path.exists());
+
+        let mut journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
+        journal.advance(InstallPhase::Downloading).unwrap();
+        journal.advance(InstallPhase::Verified).unwrap();
+        journal.advance(InstallPhase::Staged).unwrap();
+        journal.advance(InstallPhase::Activating).unwrap();
+        journal.advance(InstallPhase::Failed).unwrap();
+        journal.save(&path).unwrap();
+
+        assert!(matches!(
+            remove_discarded_install_journal(&path),
+            Err(InstallJournalError::UnsafeDiscard(InstallPhase::Failed))
+        ));
+        assert!(path.exists());
+        fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]
