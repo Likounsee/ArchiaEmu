@@ -295,9 +295,10 @@ pub(crate) fn write_preferences_with_language(
         return Err(error);
     }
 
-    if had_previous && !backup_is_recovery_source {
+    if had_previous {
         // The new config is already in place; stale-backup cleanup must not
-        // turn a successful save into a reported failure.
+        // turn a successful save into a reported failure. If the previous active
+        // file was corrupt, the valid backup survived until this point.
         let _ = fs::remove_file(backup);
     }
     Ok(())
