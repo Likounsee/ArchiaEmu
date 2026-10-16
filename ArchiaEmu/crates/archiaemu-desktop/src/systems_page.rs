@@ -188,7 +188,7 @@ impl DesktopApp {
                             ),
                             (if french { "Entrées" } else { "Input" }, caps.input),
                             (if french { "Vidéo" } else { "Video" }, caps.video_output),
-                            (if french { "Audio" } else { "Audio" }, caps.audio_output),
+                            ("Audio", caps.audio_output),
                             (
                                 if french {
                                     "États de sauvegarde"
