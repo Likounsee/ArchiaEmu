@@ -8,9 +8,9 @@
 //! filesystem operation and reconcile the journal with installed state on startup.
 
 use core::fmt;
-use std::fs::{self, OpenOptions};
 #[cfg(unix)]
 use std::fs::File;
+use std::fs::{self, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -132,7 +132,10 @@ pub fn discover_install_journals(
     for entry in fs::read_dir(directory)? {
         let entry = entry?;
         let path = entry.path();
-        if path.extension().map_or(true, |extension| extension != "journal") {
+        if path
+            .extension()
+            .map_or(true, |extension| extension != "journal")
+        {
             continue;
         }
         let metadata = fs::symlink_metadata(&path)?;
@@ -165,9 +168,7 @@ fn ensure_regular_journal_file(path: &Path) -> Result<(), InstallJournalError> {
 /// On Unix, synchronizes the containing directory after unlinking the journal.
 /// Non-committed journals are preserved and reported as an error so callers
 /// cannot accidentally erase recovery information for an incomplete install.
-pub fn remove_committed_install_journal(
-    path: impl AsRef<Path>,
-) -> Result<(), InstallJournalError> {
+pub fn remove_committed_install_journal(path: impl AsRef<Path>) -> Result<(), InstallJournalError> {
     let path = path.as_ref();
     ensure_regular_journal_file(path)?;
     let journal = InstallJournal::load(path)?;
@@ -192,9 +193,7 @@ pub fn remove_committed_install_journal(
 /// The caller must first successfully clean the transaction's isolated staging
 /// files. Journals at or after the activation phase, including Failed, are
 /// rejected because activation may have changed the final installation.
-pub fn remove_discarded_install_journal(
-    path: impl AsRef<Path>,
-) -> Result<(), InstallJournalError> {
+pub fn remove_discarded_install_journal(path: impl AsRef<Path>) -> Result<(), InstallJournalError> {
     let path = path.as_ref();
     ensure_regular_journal_file(path)?;
     let journal = InstallJournal::load(path)?;
@@ -514,8 +513,14 @@ impl fmt::Display for InstallJournalError {
                 write!(f, "invalid install phase transition: {from:?} -> {to:?}")
             }
             Self::InvalidPath => f.write_str("installation journal path must name a file"),
-            Self::NotCommitted(phase) => write!(f, "cannot remove install journal in phase {phase:?} as committed"),
-            Self::UnsafeDiscard(phase) => write!(f, "cannot discard install journal in phase {phase:?}: activation may have started"),
+            Self::NotCommitted(phase) => write!(
+                f,
+                "cannot remove install journal in phase {phase:?} as committed"
+            ),
+            Self::UnsafeDiscard(phase) => write!(
+                f,
+                "cannot discard install journal in phase {phase:?}: activation may have started"
+            ),
         }
     }
 }
@@ -539,8 +544,14 @@ mod tests {
             (InstallPhase::Downloading, InstallRecovery::DiscardStaging),
             (InstallPhase::Verified, InstallRecovery::DiscardStaging),
             (InstallPhase::Staged, InstallRecovery::DiscardStaging),
-            (InstallPhase::Activating, InstallRecovery::ReconcileActivation),
-            (InstallPhase::Activated, InstallRecovery::ReconcileActivation),
+            (
+                InstallPhase::Activating,
+                InstallRecovery::ReconcileActivation,
+            ),
+            (
+                InstallPhase::Activated,
+                InstallRecovery::ReconcileActivation,
+            ),
             (InstallPhase::Committed, InstallRecovery::CleanupCommitted),
             (InstallPhase::Failed, InstallRecovery::InspectFailure),
         ];
@@ -640,8 +651,7 @@ mod tests {
         ));
         fs::create_dir(&directory).unwrap();
         let path = directory.join("transaction.journal");
-        let journal =
-            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
+        let journal = InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
         journal.save(&path).unwrap();
 
         assert!(matches!(
@@ -719,7 +729,10 @@ mod tests {
 
         let found = discover_install_journals(&directory).unwrap();
         assert_eq!(
-            found.iter().map(|(path, _)| path.clone()).collect::<Vec<_>>(),
+            found
+                .iter()
+                .map(|(path, _)| path.clone())
+                .collect::<Vec<_>>(),
             vec![first.clone(), second.clone()]
         );
         assert_eq!(found[0].1.entry().module.as_str(), "module-a");
@@ -879,11 +892,7 @@ mod tests {
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
-        fs::write(
-            &path,
-            vec![b'x'; MAX_INSTALL_JOURNAL_BYTES as usize + 1],
-        )
-        .unwrap();
+        fs::write(&path, vec![b'x'; MAX_INSTALL_JOURNAL_BYTES as usize + 1]).unwrap();
 
         assert!(matches!(
             InstallJournal::load(&path),
