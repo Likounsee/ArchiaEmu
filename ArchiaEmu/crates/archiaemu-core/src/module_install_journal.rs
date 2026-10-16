@@ -121,10 +121,10 @@ pub struct InstallJournalEntry {
 
 /// Discovers journal files in one transaction directory in deterministic path order.
 ////
-//// Only direct, regular files with the `.journal` extension are considered.
-//// Temporary files and symlinks are ignored. A malformed journal or filesystem
-//// error is returned to the caller so startup recovery cannot silently skip a
-//// transaction that may need attention.
+/// Only direct, regular files with the `.journal` extension are considered.
+/// Temporary files and symlinks are ignored. A malformed journal or filesystem
+/// error is returned to the caller so startup recovery cannot silently skip a
+/// transaction that may need attention.
 pub fn discover_install_journals(
     directory: impl AsRef<Path>,
 ) -> Result<Vec<(PathBuf, InstallJournal)>, InstallJournalError> {
@@ -132,7 +132,7 @@ pub fn discover_install_journals(
     for entry in fs::read_dir(directory)? {
         let entry = entry?;
         let path = entry.path();
-        if path.extension().is_none_or(|extension| extension != "journal") {
+        if path.extension().map_or(true, |extension| extension != "journal") {
             continue;
         }
         let metadata = fs::symlink_metadata(&path)?;
