@@ -1633,6 +1633,39 @@ mod tests {
     }
 
     #[test]
+    fn cpu_save_state_round_trip_preserves_registers_and_execution_latches() {
+        let mut cpu = Cpu::new();
+        cpu.registers.a = 0xA5;
+        cpu.registers.set_f(0xB0);
+        cpu.registers.b = 0x12;
+        cpu.registers.c = 0x34;
+        cpu.registers.d = 0x56;
+        cpu.registers.e = 0x78;
+        cpu.registers.h = 0x9A;
+        cpu.registers.l = 0xBC;
+        cpu.registers.sp = 0xCDEF;
+        cpu.registers.pc = 0x4567;
+        cpu.halted = true;
+        cpu.ime = true;
+
+        let encoded = cpu.encode_save_state();
+        assert_eq!(Cpu::decode_save_state(&encoded).unwrap(), cpu);
+    }
+
+    #[test]
+    fn cpu_save_state_rejects_invalid_flags_and_interrupt_latches() {
+        let cpu = Cpu::new();
+        let mut invalid_flags = cpu.encode_save_state();
+        invalid_flags[1] = 0x01;
+        assert!(Cpu::decode_save_state(&invalid_flags).is_err());
+
+        let mut invalid_delay = cpu.encode_save_state();
+        invalid_delay[13] = 1;
+        invalid_delay[14] = 1;
+        assert!(Cpu::decode_save_state(&invalid_delay).is_err());
+    }
+
+    #[test]
     fn subtract_a_sets_half_borrow_and_borrow() {
         let mut cpu = CpuRegisters {
             a: 0x10,
