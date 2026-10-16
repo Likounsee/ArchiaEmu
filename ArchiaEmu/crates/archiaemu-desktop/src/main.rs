@@ -99,6 +99,8 @@ fn message_indicates_error(message: &str) -> bool {
         "save state failed:",
         "load state failed:",
         "game save failed:",
+        "close cancelled;",
+        "close all cancelled;",
         "could not ",
         "preferences unavailable:",
         "input error:",
