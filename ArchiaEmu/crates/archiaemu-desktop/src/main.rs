@@ -98,6 +98,7 @@ fn message_indicates_error(message: &str) -> bool {
         "launch cancelled:",
         "save state failed:",
         "load state failed:",
+        "game save failed:",
         "could not ",
         "preferences unavailable:",
         "input error:",
@@ -105,6 +106,8 @@ fn message_indicates_error(message: &str) -> bool {
     .iter()
     .any(|prefix| message.starts_with(prefix))
         || (message.starts_with("session ") && message.contains(" failed:"))
+        || message.contains("in-game save could not be loaded")
+        || message.contains("mais la sauvegarde en jeu n’a pas pu être chargée")
 }
 
 /// Polls a background task and drops its receiver on success or disconnection.
