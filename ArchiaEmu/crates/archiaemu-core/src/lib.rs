@@ -281,6 +281,22 @@ pub trait EmulationCore {
         Err(CoreError::Unsupported("save states"))
     }
 
+    /// Returns the current battery-backed game data when persistent cartridge saves are supported.
+    ///
+    /// This is distinct from a full machine save state: it contains only the
+    /// data a real cartridge would retain when the console is powered off.
+    fn save_game_data(&self) -> Result<Vec<u8>, CoreError> {
+        Err(CoreError::Unsupported("persistent game saves"))
+    }
+
+    /// Restores battery-backed game data after validating its exact format and size.
+    ///
+    /// Implementations must validate the entire payload before changing
+    /// persistent memory. This operation must not restore CPU or peripheral state.
+    fn load_game_data(&mut self, _data: &[u8]) -> Result<(), CoreError> {
+        Err(CoreError::Unsupported("persistent game saves"))
+    }
+
     /// Sends a platform-neutral input transition to the emulated machine.
     ///
     /// Cores should map semantic controls to their own hardware and handle
