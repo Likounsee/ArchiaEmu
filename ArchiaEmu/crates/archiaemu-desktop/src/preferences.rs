@@ -382,7 +382,7 @@ mod tests {
         let target = temporary_config("symlink-target");
         let path = temporary_config("symlink-active");
         let backup = path.with_extension("conf.bak");
-        fs::write(&target, "version=3\\ndark=false\\n")
+        fs::write(&target, "version=3\ndark=false\n")
             .expect("external target should be written");
         symlink(&target, &path).expect("active config symlink should be created");
 
@@ -393,7 +393,7 @@ mod tests {
         assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
         assert_eq!(
             fs::read_to_string(&target).expect("target should remain readable"),
-            "version=3\\ndark=false\\n"
+            "version=3\ndark=false\n"
         );
         fs::remove_file(&path).expect("active symlink should be removed");
 
@@ -405,7 +405,7 @@ mod tests {
         assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
         assert_eq!(
             fs::read_to_string(&target).expect("target should remain unchanged"),
-            "version=3\\ndark=false\\n"
+            "version=3\ndark=false\n"
         );
 
         let _ = fs::remove_file(backup);
