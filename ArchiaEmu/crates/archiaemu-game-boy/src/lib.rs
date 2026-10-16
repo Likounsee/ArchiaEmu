@@ -271,9 +271,11 @@ pub struct GameBoyCore {
 
 impl GameBoyCore {
     fn has_battery_backed_ram(&self) -> bool {
-        self.header
-            .as_ref()
-            .is_some_and(|header| header.cartridge_type == 0x09 && !self.cartridge_ram.is_empty())
+        self.header.as_ref().is_some_and(|header| {
+            header.cartridge_type == 0x09
+                && supports_execution(header)
+                && !self.cartridge_ram.is_empty()
+        })
     }
 
     /// Creates an uninitialized unified Game Boy / Game Boy Color module instance.
