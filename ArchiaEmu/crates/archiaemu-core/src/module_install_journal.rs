@@ -388,6 +388,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn recovery_action_preserves_activation_safety_boundary() {
+        let module = ModuleId::new("test-module").unwrap();
+        let cases = [
+            (InstallPhase::Planned, InstallRecovery::DiscardStaging),
+            (InstallPhase::Downloading, InstallRecovery::DiscardStaging),
+            (InstallPhase::Verified, InstallRecovery::DiscardStaging),
+            (InstallPhase::Staged, InstallRecovery::DiscardStaging),
+            (InstallPhase::Activating, InstallRecovery::ReconcileActivation),
+            (InstallPhase::Activated, InstallRecovery::ReconcileActivation),
+            (InstallPhase::Committed, InstallRecovery::CleanupCommitted),
+            (InstallPhase::Failed, InstallRecovery::InspectFailure),
+        ];
+
+        for (phase, expected) in cases {
+            let journal = InstallJournal {
+                entry: InstallJournalEntry {
+                    module: module.clone(),
+                    version: "1.0.0".to_owned(),
+                    phase,
+                },
+            };
+            assert_eq!(
+                journal.recovery_action(),
+                expected,
+                "unexpected recovery action for durable phase {phase:?}"
+            );
+        }
+    }
+
+    #[test]
     fn journal_round_trips_module_version_and_phase() {
         let mut journal =
             InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.2.3+build.7").unwrap();
