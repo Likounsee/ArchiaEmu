@@ -232,13 +232,13 @@ impl DesktopApp {
                     });
                     if let Some((version, release_notes_url, download)) = update_info {
                         ui.horizontal_wrapped(|ui| {
-                            ui.label(format!("Manifest version: {version}"));
+                            ui.label(if self.language == "fr" { format!("Version du manifeste : {version}") } else { format!("Manifest version: {version}") });
                             ui.hyperlink_to(if self.language == "fr" { "Notes de version" } else { "Release notes" }, &release_notes_url);
                         });
                         let current = option_env!("CARGO_PKG_VERSION").unwrap_or("0.0.0");
                         let update_available = update::is_newer_version(&version, current);
                         if update_available {
-                            ui.label(format!("Update available: {current} to {version}"));
+                            ui.label(if self.language == "fr" { format!("Mise à jour disponible : {current} → {version}") } else { format!("Update available: {current} to {version}") });
                             if let Some(download) = download {
                                 let downloading = self.update_download_receiver.is_some();
                                 if ui
@@ -250,9 +250,11 @@ impl DesktopApp {
                                 {
                                     let (sender, receiver) = mpsc::channel();
                                     self.update_download_receiver = Some(receiver);
-                                    self.update_status = format!(
-                                        "Downloading version {version} to a temporary staging area…"
-                                    );
+                                    self.update_status = if self.language == "fr" {
+                                        format!("Téléchargement de la version {version} dans la zone temporaire…")
+                                    } else {
+                                        format!("Downloading version {version} to a temporary staging area…")
+                                    };
                                     std::thread::spawn(move || {
                                         let result = update::download_and_verify(&download, &version);
                                         let _ = sender.send(result);
@@ -263,15 +265,17 @@ impl DesktopApp {
                                 ui.small(if self.language == "fr" { "Aucun fichier de mise à jour installable n’est publié pour cette plateforme." } else { "No installable update artifact is currently published for this platform." });
                             }
                         } else if update::is_newer_version(current, &version) {
-                            ui.label(format!(
-                                "Installed version ({current}) is newer than the stable manifest ({version})."
-                            ));
+                            ui.label(if self.language == "fr" {
+                                format!("La version installée ({current}) est plus récente que le manifeste stable ({version}).")
+                            } else {
+                                format!("Installed version ({current}) is newer than the stable manifest ({version}).")
+                            });
                         } else {
-                            ui.label(format!("ArchiaEmu is up to date ({current})."));
+                            ui.label(if self.language == "fr" { format!("ArchiaEmu est à jour ({current}).") } else { format!("ArchiaEmu is up to date ({current}).") });
                         }
                     }
                     if let Some(path) = self.staged_update_path.as_ref() {
-                        ui.label(format!("Verified staged file: {}", path.display()));
+                        ui.label(if self.language == "fr" { format!("Fichier vérifié préparé : {}", path.display()) } else { format!("Verified staged file: {}", path.display()) });
                         ui.small(if self.language == "fr" { "Le fichier est vérifié, mais n’a pas été installé ni exécuté." } else { "The file is verified but has not been installed or executed." });
                     }
                     ui.small(if self.language == "fr" { "L’installation automatique et le retour arrière ne sont pas encore activés." } else { "Automatic installation and rollback are not enabled yet." });
