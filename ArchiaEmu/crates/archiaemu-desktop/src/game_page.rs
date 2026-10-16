@@ -81,17 +81,6 @@ impl DesktopApp {
                                 {
                                     self.load_state_action(id);
                                 }
-                                if persistent_saves
-                                    && ui
-                                        .button(if self.language == "fr" {
-                                            "Sauvegarder la partie"
-                                        } else {
-                                            "Save game"
-                                        })
-                                        .clicked()
-                                {
-                                    self.save_game_data_action(id);
-                                }
                                 if ui
                                     .button(if self.language == "fr" {
                                         "Arrêter et sauvegarder"
@@ -102,6 +91,17 @@ impl DesktopApp {
                                 {
                                     self.session_action(id, SessionAction::StopAndSave);
                                 }
+                            }
+                            if content_loaded && persistent_saves
+                                && ui
+                                    .button(if self.language == "fr" {
+                                        "Sauvegarder la partie"
+                                    } else {
+                                        "Save game"
+                                    })
+                                    .clicked()
+                            {
+                                self.save_game_data_action(id);
                             }
                             if state != SessionState::Empty
                                 && ui
