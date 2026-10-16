@@ -97,6 +97,14 @@ impl DesktopApp {
                             "Audio: unavailable"
                         });
                         ui.separator();
+                        ui.label(if summary.persistent_saves {
+                            if self.language == "fr" { "Sauvegardes en jeu : disponibles" } else { "In-game saves: available" }
+                        } else if self.language == "fr" {
+                            "Sauvegardes en jeu : non prises en charge"
+                        } else {
+                            "In-game saves: not supported by this core"
+                        });
+                        ui.separator();
                         ui.label(if self.language == "fr" {
                             "Entrée : clavier activé si pris en charge"
                         } else {
