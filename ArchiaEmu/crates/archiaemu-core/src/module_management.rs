@@ -570,6 +570,61 @@ mod tests {
     }
 
     #[test]
+    fn rejects_uninstallable_transitive_dependency() {
+        let descriptors = vec![
+            descriptor(
+                "unfinished-runtime",
+                "Unfinished runtime",
+                ModuleReadiness::InDevelopment,
+                &[],
+            ),
+            descriptor(
+                "game-boy",
+                "Game Boy",
+                ModuleReadiness::Installable,
+                &["unfinished-runtime"],
+            ),
+        ];
+        let catalog = ModuleCatalog::new(&descriptors);
+
+        assert_eq!(
+            catalog.plan_install(&[id("game-boy")], &[]),
+            Err(PlanError::NotInstallable {
+                module: id("unfinished-runtime"),
+                readiness: ModuleReadiness::InDevelopment,
+            })
+        );
+    }
+
+    #[test]
+    fn installed_unfinished_dependency_does_not_block_existing_module_plan() {
+        let descriptors = vec![
+            descriptor(
+                "unfinished-runtime",
+                "Unfinished runtime",
+                ModuleReadiness::InDevelopment,
+                &[],
+            ),
+            descriptor(
+                "game-boy",
+                "Game Boy",
+                ModuleReadiness::Installable,
+                &["unfinished-runtime"],
+            ),
+        ];
+        let catalog = ModuleCatalog::new(&descriptors);
+
+        let plan = catalog
+            .plan_install(
+                &[id("game-boy")],
+                &[id("unfinished-runtime"), id("game-boy")],
+            )
+            .unwrap();
+
+        assert!(plan.install_order.is_empty());
+    }
+
+    #[test]
     fn rejects_duplicate_ids_and_missing_dependencies() {
         let duplicate = vec![
             descriptor("shared-runtime", "A", ModuleReadiness::Installable, &[]),
