@@ -66,29 +66,29 @@ impl DesktopApp {
                             save_errors.join("; ")
                         );
                     } else {
-                    // Keyboard input is routed only to the active session. Release it before
-                    // closing sessions so a held control cannot survive the lifecycle transition.
-                    let release_error = self.release_game_inputs().err();
-                    let count = self.controller.close_all_sessions();
-                    self.audio_output.clear();
-                    self.frame_cadence.reset();
-                    self.frame_texture = None;
-                    self.video_size = None;
-                    self.last_tick = Instant::now();
-                    self.media_status = if french {
-                        "Aucune session active.".to_owned()
-                    } else {
-                        "No active session.".to_owned()
-                    };
-                    self.last_tick_errors.clear();
-                    self.session_content_paths.clear();
-                    self.message = match (french, release_error) {
-                        (true, Some(error)) => {
-                            let noun = if count == 1 {
-                                "session fermée"
-                            } else {
-                                "sessions fermées"
-                            };
+                        // Keyboard input is routed only to the active session. Release it before
+                        // closing sessions so a held control cannot survive the lifecycle transition.
+                        let release_error = self.release_game_inputs().err();
+                        let count = self.controller.close_all_sessions();
+                        self.audio_output.clear();
+                        self.frame_cadence.reset();
+                        self.frame_texture = None;
+                        self.video_size = None;
+                        self.last_tick = Instant::now();
+                        self.media_status = if french {
+                            "Aucune session active.".to_owned()
+                        } else {
+                            "No active session.".to_owned()
+                        };
+                        self.last_tick_errors.clear();
+                        self.session_content_paths.clear();
+                        self.message = match (french, release_error) {
+                            (true, Some(error)) => {
+                                let noun = if count == 1 {
+                                    "session fermée"
+                                } else {
+                                    "sessions fermées"
+                                };
                             format!("{error} ; {count} {noun}.")
                         }
                         (true, None) => {
