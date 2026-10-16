@@ -1293,12 +1293,29 @@ impl DesktopApp {
     }
 
     fn release_game_inputs(&mut self) -> Result<(), String> {
-        let Some(id) = self.controller.active_session() else {
-            return Ok(());
-        };
-        self.controller
-            .release_inputs(id)
-            .map_err(|error| format!("Could not release held inputs: {error}"))
+        // Multiple sessions may have received input before another session was
+        // selected. Release every session, not only the currently selected one,
+        // before closing the runtime or switching away from emulation.
+        let session_ids: Vec<_> = self
+            .controller
+            .session_summaries()
+            .into_iter()
+            .map(|session| session.id)
+            .collect();
+        let mut failures = Vec::new();
+        for id in session_ids {
+            if let Err(error) = self.controller.release_inputs(id) {
+                failures.push(format!("session {id}: {error}"));
+            }
+        }
+        if failures.is_empty() {
+            Ok(())
+        } else {
+            Err(format!(
+                "Could not release held inputs for {}",
+                failures.join("; ")
+            ))
+        }
     }
 }
 
