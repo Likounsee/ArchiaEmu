@@ -335,7 +335,7 @@ fn game_boy_core_descriptor() -> archiaemu_core::CoreDescriptor {
             .expect("the built-in Game Boy system ID is valid"),
         display_name: "Game Boy / Game Boy Color",
         core_version: env!("CARGO_PKG_VERSION"),
-        // Save states cover the complete mutable state of the currently implemented ROM-only machine.
+        // Save states cover all mutable machine state implemented by this core.
         capabilities: archiaemu_core::CoreCapabilities {
             content_loading: true,
             save_states: true,
@@ -1056,6 +1056,66 @@ mod tests {
         assert_eq!(core.high_ram[0x22], 0x63);
         assert_eq!(core.interrupt_enable, 0x12);
         assert_eq!(core.interrupt_request, 0x08);
+    }
+
+    #[test]
+    fn battery_backed_mapper_zero_ram_round_trips_as_an_in_game_save() {
+        use archiaemu_core::EmulationCore;
+
+        let mut image = valid_rom();
+        image[0x147] = 0x09; // ROM + RAM + battery, mapper 0.
+        image[0x149] = 0x02; // 8 KiB external RAM.
+        image[0x14D] = header_checksum(&image);
+
+        let mut core = super::GameBoyCore::new();
+        core.load_content(&image).unwrap();
+        assert!(core.descriptor().capabilities.persistent_saves);
+        assert_eq!(core.cartridge_ram.len(), 0x2000);
+
+        core.cartridge_ram[0x123] = 0x5A;
+        core.cartridge_ram[0x1FFF] = 0xA5;
+        let saved = core.save_game_data().unwrap();
+        core.cartridge_ram.fill(0);
+        core.load_game_data(&saved).unwrap();
+
+        assert_eq!(core.cartridge_ram[0x123], 0x5A);
+        assert_eq!(core.cartridge_ram[0x1FFF], 0xA5);
+    }
+
+    #[test]
+    fn persistent_save_rejects_wrong_sized_payload_without_mutating_ram() {
+        use archiaemu_core::EmulationCore;
+
+        let mut image = valid_rom();
+        image[0x147] = 0x09;
+        image[0x149] = 0x02;
+        image[0x14D] = header_checksum(&image);
+
+        let mut core = super::GameBoyCore::new();
+        core.load_content(&image).unwrap();
+        core.cartridge_ram[0] = 0x73;
+
+        assert!(core.load_game_data(&[0; 16]).is_err());
+        assert_eq!(core.cartridge_ram[0], 0x73);
+    }
+
+    #[test]
+    fn machine_save_state_includes_battery_backed_cartridge_ram() {
+        use archiaemu_core::EmulationCore;
+
+        let mut image = valid_rom();
+        image[0x147] = 0x09;
+        image[0x149] = 0x02;
+        image[0x14D] = header_checksum(&image);
+
+        let mut core = super::GameBoyCore::new();
+        core.load_content(&image).unwrap();
+        core.cartridge_ram[0x432] = 0xD6;
+        let state = core.save_state().unwrap();
+        core.cartridge_ram.fill(0);
+
+        core.load_state(&state).unwrap();
+        assert_eq!(core.cartridge_ram[0x432], 0xD6);
     }
 
     #[test]
