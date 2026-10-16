@@ -11,7 +11,10 @@ use std::path::{Path, PathBuf};
 /// Resolves the stable save-state slot for a ROM under the user's configuration directory.
 pub fn state_path(config_file: &Path, content_path: &Path) -> io::Result<PathBuf> {
     let config_dir = config_file.parent().ok_or_else(|| {
-        io::Error::new(io::ErrorKind::InvalidInput, "configuration path has no parent")
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "configuration path has no parent",
+        )
     })?;
     let canonical_content = std::fs::canonicalize(content_path)?;
     let fingerprint = stable_fingerprint(canonical_content.to_string_lossy().as_bytes());
@@ -55,7 +58,10 @@ mod tests {
         let second = state_path(&config, &root.join(".").join("game.gb")).unwrap();
         assert_eq!(first, second);
         assert!(first.starts_with(root.join("states")));
-        assert_eq!(first.extension().and_then(|value| value.to_str()), Some("archiasave"));
+        assert_eq!(
+            first.extension().and_then(|value| value.to_str()),
+            Some("archiasave")
+        );
 
         std::fs::remove_dir_all(root).unwrap();
     }
