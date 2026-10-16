@@ -1284,13 +1284,6 @@ fn format_size(bytes: u64) -> String {
     }
 }
 
-fn capability_label(enabled: bool) -> &'static str {
-    if enabled {
-        "Available"
-    } else {
-        "Not implemented"
-    }
-}
 
 #[cfg(test)]
 mod preference_tests {
