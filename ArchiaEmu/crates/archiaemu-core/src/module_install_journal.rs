@@ -350,7 +350,6 @@ impl From<io::Error> for InstallJournalError {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -358,8 +357,7 @@ mod tests {
     #[test]
     fn journal_round_trips_module_version_and_phase() {
         let mut journal =
-            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.2.3+build.7")
-                .unwrap();
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.2.3+build.7").unwrap();
         journal.advance(InstallPhase::Downloading).unwrap();
         journal.advance(InstallPhase::Verified).unwrap();
 
@@ -411,10 +409,7 @@ mod tests {
     fn recovery_action_tracks_activation_and_commit_boundaries() {
         let mut journal =
             InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
-        assert_eq!(
-            journal.recovery_action(),
-            InstallRecovery::DiscardStaging
-        );
+        assert_eq!(journal.recovery_action(), InstallRecovery::DiscardStaging);
 
         journal.advance(InstallPhase::Downloading).unwrap();
         journal.advance(InstallPhase::Verified).unwrap();
@@ -427,10 +422,7 @@ mod tests {
 
         journal.advance(InstallPhase::Activated).unwrap();
         journal.advance(InstallPhase::Committed).unwrap();
-        assert_eq!(
-            journal.recovery_action(),
-            InstallRecovery::CleanupCommitted
-        );
+        assert_eq!(journal.recovery_action(), InstallRecovery::CleanupCommitted);
     }
 
     #[test]
