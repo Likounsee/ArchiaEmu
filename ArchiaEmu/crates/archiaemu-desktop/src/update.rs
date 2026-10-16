@@ -514,7 +514,8 @@ fn current_platform_key() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        is_newer_version, validate_content_length, validate_download_url, verify_staged_file,
+        ensure_real_staging_directory, is_newer_version, validate_content_length,
+        validate_download_url, verify_staged_file,
         write_test_file, UpdateManifest,
     };
     use sha2::{Digest, Sha256};
