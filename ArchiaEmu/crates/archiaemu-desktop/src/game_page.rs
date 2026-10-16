@@ -25,6 +25,8 @@ impl DesktopApp {
         if let Some(summary) = session_summary {
             let id = summary.id;
             let state = summary.state;
+            let content_loaded = summary.content_loaded;
+            let save_states = summary.save_states;
             let system = summary.system_name;
             egui::Frame::group(ui.style())
                 .rounding(egui::Rounding::same(12.0))
@@ -57,16 +59,16 @@ impl DesktopApp {
                             {
                                 self.session_action(id, SessionAction::Resume);
                             }
-                            if state != SessionState::Empty
-                                && ui
-                                    .button(if self.language == "fr" {
-                                        "Arrêter"
-                                    } else {
-                                        "Stop"
-                                    })
-                                    .clicked()
-                            {
-                                self.session_action(id, SessionAction::Stop);
+                            if content_loaded && save_states {
+                                if ui.button(if self.language == "fr" { "Sauvegarder" } else { "Save" }).clicked() {
+                                    self.save_state_action(id);
+                                }
+                                if ui.button(if self.language == "fr" { "Charger l’état" } else { "Load state" }).clicked() {
+                                    self.load_state_action(id);
+                                }
+                                if ui.button(if self.language == "fr" { "Arrêter et sauvegarder" } else { "Stop and Save" }).clicked() {
+                                    self.session_action(id, SessionAction::StopAndSave);
+                                }
                             }
                             if state != SessionState::Empty
                                 && ui
