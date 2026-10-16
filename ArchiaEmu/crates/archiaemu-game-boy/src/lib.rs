@@ -1083,6 +1083,29 @@ mod tests {
     }
 
     #[test]
+    fn mapper_zero_bus_reads_and_writes_external_cartridge_ram() {
+        let mut image = valid_rom();
+        image[0x147] = 0x09;
+        image[0x149] = 0x02;
+        image[0x14D] = header_checksum(&image);
+
+        let mut core = super::GameBoyCore::new();
+        archiaemu_core::EmulationCore::load_content(&mut core, &image).unwrap();
+        let mut bus = super::GameBoyBus {
+            image: core.image.as_deref().unwrap(),
+            work_ram: &mut core.work_ram,
+            high_ram: &mut core.high_ram,
+            cartridge_ram: &mut core.cartridge_ram,
+            interrupt_enable: &mut core.interrupt_enable,
+            interrupt_request: &mut core.interrupt_request,
+        };
+
+        bus.write8(0xA123, 0x37);
+        assert_eq!(bus.read8(0xA123), 0x37);
+        assert_eq!(bus.read8(0xA923), 0x37, "2 KiB RAM is mirrored across the 8 KiB window");
+    }
+
+    #[test]
     fn persistent_save_rejects_wrong_sized_payload_without_mutating_ram() {
         use archiaemu_core::EmulationCore;
 
@@ -1151,7 +1174,7 @@ mod tests {
         assert_eq!(
             archiaemu_core::EmulationCore::reset(&mut core),
             Err(archiaemu_core::CoreError::Unsupported(
-                "execution currently supports ROM-only cartridges (mapper 0)"
+                "execution supports ROM-only and ROM+RAM cartridges with up to 8 KiB RAM (mapper 0)"
             ))
         );
     }
