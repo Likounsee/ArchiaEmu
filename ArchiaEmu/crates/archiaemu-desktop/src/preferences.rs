@@ -259,31 +259,43 @@ pub(crate) fn write_preferences_with_language(
         return Err(error);
     }
 
-    // Windows cannot rename over an existing destination. Move the current file
-    // aside first, but restore it if promoting the new file fails.
+    // Windows cannot rename over an existing destination. If the active file
+    // is corrupt and the backup is the only known-good copy, preserve that backup
+    // across promotion instead of rotating the corrupt file over it.
     let had_previous = path.exists();
+    let backup_is_recovery_source = had_previous
+        && backup.exists()
+        && read_preferences_file(path)
+            .and_then(|contents| parse_preferences(&contents).map(|_| ()))
+            .is_err();
+
     if had_previous {
-        if backup.exists() {
+        if backup.exists() && !backup_is_recovery_source {
             if let Err(error) = fs::remove_file(&backup) {
                 let _ = fs::remove_file(&temporary);
                 return Err(error);
             }
         }
-        if let Err(error) = fs::rename(path, &backup) {
+        let move_result = if backup_is_recovery_source {
+            fs::remove_file(path)
+        } else {
+            fs::rename(path, &backup)
+        };
+        if let Err(error) = move_result {
             let _ = fs::remove_file(&temporary);
             return Err(error);
         }
     }
 
     if let Err(error) = fs::rename(&temporary, path) {
-        if had_previous {
+        if had_previous && !backup_is_recovery_source {
             let _ = fs::rename(&backup, path);
         }
         let _ = fs::remove_file(&temporary);
         return Err(error);
     }
 
-    if had_previous {
+    if had_previous && !backup_is_recovery_source {
         // The new config is already in place; stale-backup cleanup must not
         // turn a successful save into a reported failure.
         let _ = fs::remove_file(backup);
@@ -488,6 +500,36 @@ mod tests {
             "version=99\ndark=true\n"
         );
         assert!(backup.exists(), "backup should remain available until a successful save");
+
+        let _ = fs::remove_file(path);
+        let _ = fs::remove_file(backup);
+    }
+
+    #[test]
+    fn saving_after_backup_recovery_preserves_good_backup_until_promotion() {
+        let path = temporary_config("save-after-corrupt-active");
+        let backup = path.with_extension("conf.bak");
+        fs::write(&path, "version=99\\ndark=true\\n")
+            .expect("corrupt active config should be written");
+        fs::write(&backup, "version=3\\ndark=false\\nscale=1.2\\n")
+            .expect("valid recovery backup should be written");
+
+        let recovered = load_preferences(&path)
+            .expect("valid backup should recover corrupt active config")
+            .expect("backup should provide preferences");
+        assert!(!recovered.dark_mode);
+
+        write_preferences(&path, true, 1.0, [75, 115, 210], &[])
+            .expect("save should succeed after recovering preferences");
+        let saved = load_preferences(&path)
+            .expect("new active config should load")
+            .expect("new config should exist");
+        assert!(saved.dark_mode);
+        assert!(path.exists(), "new active config should be present");
+        assert!(
+            !backup.exists(),
+            "recovery backup may be cleaned only after new config promotion"
+        );
 
         let _ = fs::remove_file(path);
         let _ = fs::remove_file(backup);
