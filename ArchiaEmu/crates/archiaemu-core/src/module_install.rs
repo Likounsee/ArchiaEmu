@@ -489,6 +489,138 @@ mod tests {
         ))
     }
 
+    struct RecoveryTestBackend {
+        fail_reconcile: bool,
+        calls: Vec<&'static str>,
+    }
+
+    impl ModuleInstallRecoveryBackend for RecoveryTestBackend {
+        fn cleanup_transaction_files(
+            &mut self,
+            _: &ModuleId,
+            _: &str,
+        ) -> Result<(), String> {
+            self.calls.push("cleanup");
+            Ok(())
+        }
+
+        fn reconcile_activated_state(
+            &mut self,
+            _: &ModuleId,
+            _: &str,
+        ) -> Result<(), String> {
+            self.calls.push("reconcile");
+            if self.fail_reconcile {
+                Err("ambiguous final state".to_owned())
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    fn recovery_directory() -> PathBuf {
+        let sequence = TEST_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "archiaemu-recovery-test-{}-{sequence}",
+            std::process::id()
+        ));
+        fs::create_dir(&path).unwrap();
+        path
+    }
+
+    fn save_journal_at(
+        directory: &Path,
+        name: &str,
+        phases: &[InstallPhase],
+    ) -> PathBuf {
+        let path = directory.join(name);
+        let mut journal =
+            InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
+        for phase in phases {
+            journal.advance(*phase).unwrap();
+        }
+        journal.save(&path).unwrap();
+        path
+    }
+
+    #[test]
+    fn startup_recovery_cleans_pre_activation_and_preserves_failed_journals() {
+        let directory = recovery_directory();
+        let discard_path = save_journal_at(
+            &directory,
+            "discard.journal",
+            &[InstallPhase::Downloading, InstallPhase::Verified, InstallPhase::Staged],
+        );
+        let failed_path = save_journal_at(
+            &directory,
+            "failed.journal",
+            &[
+                InstallPhase::Downloading,
+                InstallPhase::Verified,
+                InstallPhase::Staged,
+                InstallPhase::Activating,
+                InstallPhase::Failed,
+            ],
+        );
+        let mut backend = RecoveryTestBackend {
+            fail_reconcile: false,
+            calls: Vec::new(),
+        };
+
+        let result = recover_module_installs(&mut backend, &directory).unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert!(!discard_path.exists());
+        assert!(failed_path.exists());
+        assert!(result.iter().any(|item| matches!(
+            item,
+            InstallRecoveryResult::NeedsInspection {
+                phase: InstallPhase::Failed,
+                ..
+            }
+        )));
+        assert_eq!(backend.calls, vec!["cleanup"]);
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn startup_recovery_commits_only_after_backend_reconciliation_succeeds() {
+        let directory = recovery_directory();
+        let path = save_journal_at(
+            &directory,
+            "activating.journal",
+            &[
+                InstallPhase::Downloading,
+                InstallPhase::Verified,
+                InstallPhase::Staged,
+                InstallPhase::Activating,
+            ],
+        );
+        let mut failing_backend = RecoveryTestBackend {
+            fail_reconcile: true,
+            calls: Vec::new(),
+        };
+
+        let error = recover_module_installs(&mut failing_backend, &directory).unwrap_err();
+        assert_eq!(error.operation, "activation reconciliation");
+        assert!(path.exists());
+        assert_eq!(InstallJournal::load(&path).unwrap().entry().phase, InstallPhase::Activating);
+        assert_eq!(failing_backend.calls, vec!["reconcile"]);
+
+        let mut backend = RecoveryTestBackend {
+            fail_reconcile: false,
+            calls: Vec::new(),
+        };
+        let result = recover_module_installs(&mut backend, &directory).unwrap();
+        assert!(matches!(
+            result.as_slice(),
+            [InstallRecoveryResult::ReconciledCommitted { .. }]
+        ));
+        assert!(!path.exists());
+        assert_eq!(backend.calls, vec!["reconcile", "cleanup"]);
+        fs::remove_dir_all(directory).unwrap();
+    }
+
     #[test]
     fn successful_install_commits_journal_after_all_backend_steps() {
         let path = journal_path();
