@@ -265,7 +265,6 @@ pub fn journal_io_error(error: io::Error) -> ModuleInstallError {
     ModuleInstallError::Journal(InstallJournalError::Io(error))
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -281,7 +280,10 @@ mod tests {
 
     impl TestBackend {
         fn new(fail_at: Option<InstallOperation>) -> Self {
-            Self { fail_at, calls: Vec::new() }
+            Self {
+                fail_at,
+                calls: Vec::new(),
+            }
         }
 
         fn step(&mut self, operation: InstallOperation) -> Result<(), String> {
