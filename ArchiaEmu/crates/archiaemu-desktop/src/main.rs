@@ -1783,6 +1783,7 @@ mod preference_tests {
         assert!(receiver.is_none());
     }
 
+    #[cfg(feature = "game-boy-color-module")]
     #[test]
     fn clearing_one_session_tick_error_preserves_other_sessions() {
         let mut controller =
