@@ -124,6 +124,17 @@ fn recover_one_module_install<B: ModuleInstallRecoveryBackend>(
         operation,
         message,
     };
+    let current = InstallJournal::load(&plan.journal_path)
+        .map_err(|error| fail("journal validation", error.to_string()))?;
+    if current.entry().module != plan.module
+        || current.entry().version != plan.version
+        || current.entry().phase != plan.phase
+    {
+        return Err(fail(
+            "journal validation",
+            "journal contents changed after recovery planning".to_owned(),
+        ));
+    }
 
     match plan.action {
         InstallRecovery::DiscardStaging => {
@@ -142,6 +153,15 @@ fn recover_one_module_install<B: ModuleInstallRecoveryBackend>(
                 .map_err(|message| fail("activation reconciliation", message))?;
             let mut journal = InstallJournal::load(&plan.journal_path)
                 .map_err(|error| fail("journal reload", error.to_string()))?;
+            if journal.entry().module != plan.module
+                || journal.entry().version != plan.version
+                || journal.entry().phase != plan.phase
+            {
+                return Err(fail(
+                    "journal validation",
+                    "journal contents changed during activation reconciliation".to_owned(),
+                ));
+            }
             if journal.entry().phase == InstallPhase::Activating {
                 journal
                     .advance(InstallPhase::Activated)
