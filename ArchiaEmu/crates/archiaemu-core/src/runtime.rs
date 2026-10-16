@@ -426,6 +426,30 @@ impl EmulationSession {
         Ok(())
     }
 
+    /// Captures battery-backed cartridge data without serializing machine execution state.
+    pub fn save_game_data(&mut self) -> Result<Vec<u8>, SessionError> {
+        self.require_loaded("save game data")?;
+        if !self.core.descriptor().capabilities.persistent_saves {
+            return Err(SessionError::Core(CoreError::Unsupported(
+                "persistent game saves",
+            )));
+        }
+        let result = self.core.save_game_data();
+        self.record_core_result(result)
+    }
+
+    /// Restores battery-backed cartridge data without changing CPU or session lifecycle state.
+    pub fn load_game_data(&mut self, data: &[u8]) -> Result<(), SessionError> {
+        self.require_loaded("load game data")?;
+        if !self.core.descriptor().capabilities.persistent_saves {
+            return Err(SessionError::Core(CoreError::Unsupported(
+                "persistent game saves",
+            )));
+        }
+        let result = self.core.load_game_data(data);
+        self.record_core_result(result)
+    }
+
     /// Captures a save state wrapped with the active core's identity and version.
     ///
     /// The payload is opaque to the host. The envelope's size and metadata checks
