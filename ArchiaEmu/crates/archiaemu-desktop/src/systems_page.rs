@@ -235,14 +235,20 @@ impl DesktopApp {
             for selected_id in unavailable_selected {
                 let mut keep_selected = true;
                 ui.horizontal(|ui| {
-                    if ui.checkbox(&mut keep_selected, selected_id.as_str()).changed()
+                    if ui
+                        .checkbox(&mut keep_selected, selected_id.as_str())
+                        .changed()
                         && !keep_selected
                     {
                         deselected_unavailable.push(selected_id.clone());
                     }
                     ui.colored_label(
                         egui::Color32::GRAY,
-                        if french { "Cœur absent" } else { "Core not bundled" },
+                        if french {
+                            "Cœur absent"
+                        } else {
+                            "Core not bundled"
+                        },
                     );
                 });
             }
@@ -295,7 +301,11 @@ impl DesktopApp {
                         .iter()
                         .any(|system_id| system_id.as_str() == installed.id.as_str());
                     ui.label(if bundled {
-                        if french { "Cœur également intégré" } else { "Core also bundled" }
+                        if french {
+                            "Cœur également intégré"
+                        } else {
+                            "Core also bundled"
+                        }
                     } else if french {
                         "Paquet externe"
                     } else {
