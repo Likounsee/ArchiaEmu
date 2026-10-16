@@ -25,6 +25,7 @@ mod library_page;
 pub mod manifest_ed25519;
 mod preferences;
 mod sessions_page;
+mod save_states;
 pub mod worker_messages;
 pub mod worker_process;
 
@@ -595,6 +596,106 @@ impl DesktopApp {
             return false;
         }
         true
+    }
+
+    fn save_state_path(&self, id: SessionId) -> Result<PathBuf, String> {
+        let config_path = self
+            .config_path
+            .as_deref()
+            .ok_or_else(|| "Save states are unavailable because the configuration directory is missing.".to_owned())?;
+        let content_path = self
+            .session_content_paths
+            .iter()
+            .find(|(session_id, _)| *session_id == id)
+            .map(|(_, path)| path.as_path())
+            .ok_or_else(|| format!("Session {} has no known ROM path for its save slot.", id.get()))?;
+        save_states::state_path(config_path, content_path)
+            .map_err(|error| format!("Could not resolve save-state path: {error}"))
+    }
+
+    fn save_state_for_session(&mut self, id: SessionId) -> Result<PathBuf, String> {
+        let path = self.save_state_path(id)?;
+        let bytes = self
+            .controller
+            .host_mut()
+            .session_mut(id)
+            .map_err(|error| error.to_string())?
+            .save_state_envelope()
+            .map_err(|error| error.to_string())?
+            .encode();
+        save_states::write_state(&path, &bytes)
+            .map_err(|error| format!("Could not write save state: {error}"))?;
+        Ok(path)
+    }
+
+    fn save_state_action(&mut self, id: SessionId) {
+        match self.save_state_for_session(id) {
+            Ok(_) => {
+                self.message = if self.language == "fr" {
+                    format!("État de la session {} sauvegardé.", id.get())
+                } else {
+                    format!("Session {} state saved.", id.get())
+                };
+            }
+            Err(error) => self.message = format!("Save state failed: {error}"),
+        }
+    }
+
+    fn load_state_action(&mut self, id: SessionId) {
+        let path = match self.save_state_path(id) {
+            Ok(path) => path,
+            Err(error) => {
+                self.message = format!("Load state failed: {error}");
+                return;
+            }
+        };
+        let bytes = match save_states::read_state(&path) {
+            Ok(Some(bytes)) => bytes,
+            Ok(None) => {
+                self.message = if self.language == "fr" {
+                    "Aucune sauvegarde d’état n’existe pour cette ROM.".to_owned()
+                } else {
+                    "No save state exists for this ROM yet.".to_owned()
+                };
+                return;
+            }
+            Err(error) => {
+                self.message = format!("Load state failed: {error}");
+                return;
+            }
+        };
+        let result = self
+            .controller
+            .host_mut()
+            .session_mut(id)
+            .map_err(|error| error.to_string())
+            .and_then(|session| {
+                session
+                    .load_state_envelope(&bytes)
+                    .map_err(|error| error.to_string())
+            });
+        match result {
+            Ok(()) => {
+                if self.controller.active_session() == Some(id) {
+                    self.audio_output.clear();
+                    self.frame_cadence.reset();
+                    self.frame_texture = None;
+                    self.video_size = None;
+                    self.last_tick = Instant::now();
+                    self.media_status = if self.language == "fr" {
+                        "État restauré ; attente de la prochaine trame.".to_owned()
+                    } else {
+                        "State restored; waiting for the next frame.".to_owned()
+                    };
+                }
+                self.message = if self.language == "fr" {
+                    format!("État de la session {} restauré.", id.get())
+                } else {
+                    format!("Session {} state restored.", id.get())
+                };
+            }
+            Err(error) => self.message = format!("Load state failed: {error}"),
+        }
     }
 
     fn session_action(&mut self, id: SessionId, action: SessionAction) {
