@@ -63,7 +63,10 @@ mod tests {
         let second = save_path(&config, &root.join(".").join("game.gb")).unwrap();
         assert_eq!(first, second);
         assert!(first.starts_with(root.join("saves")));
-        assert_ne!(first, crate::save_states::state_path(&config, &rom).unwrap());
+        assert_ne!(
+            first,
+            crate::save_states::state_path(&config, &rom).unwrap()
+        );
 
         std::fs::remove_dir_all(root).unwrap();
     }

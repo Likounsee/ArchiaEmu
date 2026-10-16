@@ -92,7 +92,8 @@ impl DesktopApp {
                                     self.session_action(id, SessionAction::StopAndSave);
                                 }
                             }
-                            if content_loaded && persistent_saves
+                            if content_loaded
+                                && persistent_saves
                                 && ui
                                     .button(if self.language == "fr" {
                                         "Sauvegarder la partie"

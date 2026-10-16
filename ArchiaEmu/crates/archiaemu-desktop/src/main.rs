@@ -19,13 +19,13 @@ use preferences::{config_file_path, load_preferences, write_preferences_with_lan
 
 mod audio_output;
 mod game_page;
+mod game_saves;
 mod game_view;
 mod home_page;
 mod library_page;
 pub mod manifest_ed25519;
 mod preferences;
 mod save_states;
-mod game_saves;
 mod sessions_page;
 pub mod worker_messages;
 pub mod worker_process;
@@ -523,20 +523,26 @@ impl DesktopApp {
                     .retain(|(session_id, _)| *session_id != id);
                 self.session_content_paths.push((id, launched_path));
                 self.message = match self.load_game_data_for_session(id) {
-                    Ok(true) => if self.language == "fr" {
-                        format!("Session {} lancée ; sauvegarde en jeu restaurée.", id.get())
-                    } else {
-                        format!("Launched session {}; restored its in-game save.", id.get())
-                    },
-                    Ok(false) => if self.language == "fr" {
-                        format!("Session {} lancée.", id.get())
-                    } else {
-                        format!("Launched session {}.", id.get())
-                    },
-                    Err(error) => if self.language == "fr" {
-                        format!("Session {} lancée, mais la sauvegarde en jeu n’a pas pu être chargée : {error}", id.get())
-                    } else {
-                        format!("Launched session {}, but its in-game save could not be loaded: {error}", id.get())
+                    Ok(true) => {
+                        if self.language == "fr" {
+                            format!("Session {} lancée ; sauvegarde en jeu restaurée.", id.get())
+                        } else {
+                            format!("Launched session {}; restored its in-game save.", id.get())
+                        }
+                    }
+                    Ok(false) => {
+                        if self.language == "fr" {
+                            format!("Session {} lancée.", id.get())
+                        } else {
+                            format!("Launched session {}.", id.get())
+                        }
+                    }
+                    Err(error) => {
+                        if self.language == "fr" {
+                            format!("Session {} lancée, mais la sauvegarde en jeu n’a pas pu être chargée : {error}", id.get())
+                        } else {
+                            format!("Launched session {}, but its in-game save could not be loaded: {error}", id.get())
+                        }
                     },
                 };
                 self.frame_cadence.reset();
@@ -662,12 +668,9 @@ impl DesktopApp {
                 data,
             )
         };
-        let envelope = archiaemu_core::save_state::SaveStateEnvelope::new(
-            system_id,
-            core_version,
-            data,
-        )
-        .map_err(|error| format!("Could not encode game save: {error}"))?;
+        let envelope =
+            archiaemu_core::save_state::SaveStateEnvelope::new(system_id, core_version, data)
+                .map_err(|error| format!("Could not encode game save: {error}"))?;
         archiaemu_core::save_state_store::SaveStateStore::new(path.clone())
             .save(&envelope)
             .map_err(|error| format!("Could not write game save: {error}"))?;
