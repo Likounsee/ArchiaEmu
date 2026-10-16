@@ -343,7 +343,7 @@ impl DesktopApp {
         } else {
             message = "Preferences unavailable: no user config directory was found.".to_owned();
         }
-        Ok(Self {
+        let mut app = Self {
             controller,
             registry,
             #[cfg(feature = "game-boy-core")]
@@ -374,7 +374,27 @@ impl DesktopApp {
             staged_update_path: None,
             update_status: "Not checked yet.".to_owned(),
             fullscreen: false,
-        })
+        };
+        // Check the official stable manifest without blocking the first window render.
+        // The user can still trigger another check from Settings after this completes.
+        app.start_update_check();
+        Ok(app)
+    }
+
+    fn start_update_check(&mut self) {
+        if self.update_check_receiver.is_some() {
+            return;
+        }
+        let (sender, receiver) = mpsc::channel();
+        self.update_check_receiver = Some(receiver);
+        self.update_status = if self.language == "fr" {
+            "Vérification de la version stable officielle en arrière-plan…".to_owned()
+        } else {
+            "Checking the official stable version in the background…".to_owned()
+        };
+        std::thread::spawn(move || {
+            let _ = sender.send(update::fetch_manifest());
+        });
     }
 
     fn navigate_to(&mut self, page: DesktopPage) {
