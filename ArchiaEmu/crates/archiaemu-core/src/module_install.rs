@@ -470,6 +470,39 @@ mod tests {
     }
 
     #[test]
+    fn extraction_failure_marks_journal_failed_and_cleans_staging_without_activation() {
+        let path = journal_path();
+        let mut backend = TestBackend::new(Some(InstallOperation::Extraction));
+        let result = install_module(
+            &mut backend,
+            &path,
+            ModuleId::new("test-module").unwrap(),
+            "1.0.0",
+        );
+
+        assert!(matches!(
+            result,
+            Err(ModuleInstallError::OperationFailed {
+                operation: InstallOperation::Extraction,
+                cleanup_error: None,
+                ..
+            })
+        ));
+        assert_eq!(read_install_phase(&path).unwrap(), InstallPhase::Failed);
+        assert_eq!(
+            backend.calls,
+            vec![
+                InstallOperation::Download,
+                InstallOperation::Extraction,
+                InstallOperation::Cleanup,
+            ]
+        );
+        assert!(!backend.calls.contains(&InstallOperation::Activation));
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
     fn download_failure_marks_journal_failed_and_attempts_cleanup() {
         let path = journal_path();
         let mut backend = TestBackend::new(Some(InstallOperation::Download));
