@@ -2,7 +2,7 @@
 
 ## Current checks
 
-From `PeaceEmu/`:
+From `workspace/`:
 
 ```sh
 cargo fmt --all -- --check
