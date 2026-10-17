@@ -17,8 +17,8 @@ default = []
 game-boy-color-module = ["dep:archiaemu-game-boy"]
 
 [dependencies]
-archiaemu-core = { version = "0.1.0", path = "../peaceemu-core" }
-archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../peaceemu-game-boy", optional = true }
+archiaemu-core = { version = "0.1.0", path = "../core" }
+archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../game-boy", optional = true }
 
 [dev-dependencies]
-archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../peaceemu-game-boy" }
+archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../game-boy" }
