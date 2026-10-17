@@ -1,6 +1,6 @@
 # Legal and third-party components
 
-ArchiaEmu does not bundle commercial ROMs, BIOS images or firmware. Users are responsible for supplying content they are legally entitled to use where required.
+PeaceEmu does not bundle commercial ROMs, BIOS images or firmware. Users are responsible for supplying content they are legally entitled to use where required.
 
 ## Project license
 
