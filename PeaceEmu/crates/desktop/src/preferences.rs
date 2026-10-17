@@ -370,7 +370,7 @@ mod tests {
             .expect("system clock should be after UNIX epoch")
             .as_nanos();
         std::env::temp_dir().join(format!(
-            "archiaemu-preferences-{name}-{}-{nonce}.conf",
+            "desktop-preferences-{name}-{}-{nonce}.conf",
             std::process::id()
         ))
     }
