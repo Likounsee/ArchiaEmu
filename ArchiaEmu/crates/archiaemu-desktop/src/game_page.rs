@@ -36,7 +36,7 @@ impl DesktopApp {
                     ui.horizontal_wrapped(|ui| {
                         ui.vertical(|ui| {
                             ui.heading(format!("{system} · Session {}", id.get()));
-                            ui.label(format!("State: {state:?}"));
+                            ui.label(if self.language == "fr" { format!("État : {state:?}") } else { format!("State: {state:?}") });
                         });
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             if state == SessionState::Running
