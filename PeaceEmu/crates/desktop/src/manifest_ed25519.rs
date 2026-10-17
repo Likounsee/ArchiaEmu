@@ -7,8 +7,8 @@
 //! not decide which keys are trusted; callers must pin approved public keys in the
 //! application and must not accept keys fetched from the same untrusted catalogue.
 
-use archiaemu_core::module_manifest::ModuleManifest;
-use archiaemu_core::module_manifest_trust::{
+use emulation_core::module_manifest::ModuleManifest;
+use emulation_core::module_manifest_trust::{
     ManifestSignatureVerifier, ManifestTrustError, ManifestTrustPolicy, SignatureVerificationError,
     SignedManifestEnvelope,
 };
@@ -104,8 +104,8 @@ pub fn verify_signed_manifest_json(
 }
 
 fn parse_manifest_json(payload: &[u8]) -> Result<ModuleManifest, ()> {
-    use archiaemu_core::module_management::{ModuleId, ModuleReadiness};
-    use archiaemu_core::module_manifest::{
+    use emulation_core::module_management::{ModuleId, ModuleReadiness};
+    use emulation_core::module_manifest::{
         ManifestModule, ModuleTarget, PackageArtifact, ReleaseVersion, TargetArch, TargetOs,
     };
 
@@ -293,11 +293,11 @@ mod tests {
 
     #[test]
     fn production_adapter_uses_ed25519_before_accepting_manifest() {
-        use archiaemu_core::module_management::{ModuleId, ModuleReadiness};
-        use archiaemu_core::module_manifest::{
+        use emulation_core::module_management::{ModuleId, ModuleReadiness};
+        use emulation_core::module_manifest::{
             ManifestModule, ModuleTarget, PackageArtifact, ReleaseVersion, TargetArch, TargetOs,
         };
-        use archiaemu_core::module_manifest_trust::{
+        use emulation_core::module_manifest_trust::{
             ManifestTrustPolicy, SignedManifestEnvelope, TrustedManifestKey,
         };
 
