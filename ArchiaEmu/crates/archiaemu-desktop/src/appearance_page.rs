@@ -184,24 +184,6 @@ impl DesktopApp {
             ui,
             &palette,
             if french {
-                "Échelle de l’interface"
-            } else {
-                "Interface scale"
-            },
-            if french {
-                "Ajustable de 80 % à 140 %."
-            } else {
-                "Adjustable from 80% to 140%."
-            },
-            |ui| {
-                ui.add(egui::Slider::new(&mut self.ui_scale, 0.8..=1.4).suffix("x"));
-            },
-        );
-
-        theme::setting_row(
-            ui,
-            &palette,
-            if french {
                 "Langue de l’application"
             } else {
                 "Application language"
