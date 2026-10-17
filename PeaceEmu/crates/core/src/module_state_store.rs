@@ -595,6 +595,17 @@ mod tests {
     }
 
     #[test]
+    fn decoder_accepts_versioned_state_header_from_previous_identity() {
+        let mut state = ModuleManagerState::new();
+        state.mark_setup_completed();
+        let text = state.encode().replace(
+            "PEACEEMU-MODULE-STATE\\t1",
+            "PREVIOUS-MODULE-STATE\\t1",
+        );
+        assert_eq!(ModuleManagerState::decode(&text).unwrap(), state);
+    }
+
+    #[test]
     fn codec_round_trips_status_selection_and_control_characters_in_version() {
         let mut state = ModuleManagerState::new();
         state.set_selection([
