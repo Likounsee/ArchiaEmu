@@ -56,7 +56,7 @@ PeaceEmu uses one application, one session lifecycle and one host/core integrati
 
 ### CPU strategy is explicit, not inferred from a console label
 
-The shared planning contract lives in `emulation-core::execution_strategy`. It describes CPU architectures and can prefer one of three strategies:
+The shared planning contract lives in `emulation_core::execution_strategy`. It describes CPU architectures and can prefer one of three strategies:
 
 - **Native x86-64 with compatibility layer**: permitted only when both guest and host are x86-64 and host policy explicitly allows it. Native instructions are only one part of the work; a console module still needs ABI/calling-convention handling, virtual-memory mapping, executable/module loading, syscall/kernel and system-service compatibility, privilege boundaries and exception handling. A matching ISA does not mean an unmodified game can run.
 - **Interpreter**: portable reference path for guest instruction semantics. It is the baseline for architectures such as ARM, PowerPC, MIPS or a proprietary CPU and is valuable for debugging and differential tests.
