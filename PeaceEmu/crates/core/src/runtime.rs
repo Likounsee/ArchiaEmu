@@ -1047,7 +1047,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-launch-path-{}-{unique}.bin",
+            "host-app-launch-path-{}-{unique}.bin",
             std::process::id()
         ));
         std::fs::write(&path, b"GAME payload").unwrap();
@@ -1082,7 +1082,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-launch-oversized-{}-{unique}.bin",
+            "host-app-launch-oversized-{}-{unique}.bin",
             std::process::id()
         ));
         std::fs::write(&path, b"GAME").unwrap();
@@ -1241,7 +1241,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-launch-ambiguous-{}-{unique}.bin",
+            "host-app-launch-ambiguous-{}-{unique}.bin",
             std::process::id()
         ));
         std::fs::write(&path, b"GAME payload").unwrap();
@@ -1282,7 +1282,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-launch-rejected-{}-{unique}.bin",
+            "host-app-launch-rejected-{}-{unique}.bin",
             std::process::id()
         ));
         std::fs::write(&path, b"REJECT").unwrap();
@@ -1323,7 +1323,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-launch-truncated-{}-{unique}.bin",
+            "host-app-launch-truncated-{}-{unique}.bin",
             std::process::id()
         ));
 
@@ -1390,7 +1390,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let missing_path = std::env::temp_dir().join(format!(
-            "archiaemu-launch-missing-{}-{unique}.bin",
+            "host-app-launch-missing-{}-{unique}.bin",
             std::process::id()
         ));
         let path_result =
