@@ -29,8 +29,8 @@ From the workspace root:
 
 ```sh
 cargo run -p archiaemu-desktop
-cargo test --manifest-path crates/archiaemu-desktop/Cargo.toml
-cargo clippy --manifest-path crates/archiaemu-desktop/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path crates/peaceemu-desktop/Cargo.toml
+cargo clippy --manifest-path crates/peaceemu-desktop/Cargo.toml --all-targets -- -D warnings
 ```
 
 ## Validation
