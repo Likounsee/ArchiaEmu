@@ -215,29 +215,6 @@ impl LibrarySort {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UiStatus {
-    Loading,
-    Success,
-    Error,
-    ContentAbsent,
-    CapabilityUnavailable,
-    Information,
-}
-
-impl UiStatus {
-    fn label(self) -> &'static str {
-        match self {
-            Self::Loading => "Loading",
-            Self::Success => "Success",
-            Self::Error => "Error",
-            Self::ContentAbsent => "No content",
-            Self::CapabilityUnavailable => "Capability unavailable",
-            Self::Information => "Ready",
-        }
-    }
-}
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum DesktopPage {
     Home,
@@ -570,47 +547,6 @@ impl DesktopApp {
         } else {
             "The Game Boy Color module is not included in this build. Rebuild with --features game-boy-color-module to enable it.".to_owned()
         };
-    }
-
-    fn ui_status(&self) -> UiStatus {
-        if self.update_check_receiver.is_some() || self.update_download_receiver.is_some() {
-            return UiStatus::Loading;
-        }
-
-        if message_indicates_error(&self.message) {
-            return UiStatus::Error;
-        }
-
-        if (self.active_page == DesktopPage::Library && self.controller.library().is_empty())
-            || (self.active_page == DesktopPage::Sessions && self.controller.session_count() == 0)
-            || (self.active_page == DesktopPage::Game && self.controller.active_session().is_none())
-        {
-            return UiStatus::ContentAbsent;
-        }
-
-        if self.active_page == DesktopPage::Game
-            && (self.media_status.contains("does not currently advertise")
-                || self.media_status.contains("unavailable"))
-        {
-            return UiStatus::CapabilityUnavailable;
-        }
-
-        // Messages start with a capital letter ("Imported ...", "Launched ..."), so compare
-        // against the lowercased text; matching the raw message never reported success.
-        let message = self.message.to_lowercase();
-        if message.starts_with("imported ")
-            || message.starts_with("launched ")
-            || message.starts_with("closed ")
-            || message.starts_with("removed ")
-            || message.contains(" succeeded.")
-            || message.starts_with("settings saved")
-            || message.starts_with("diagnostics copied")
-            || (message.starts_with("session ") && message.contains(" lancée"))
-        {
-            return UiStatus::Success;
-        }
-
-        UiStatus::Information
     }
 
     fn save_preferences(&mut self) -> bool {
@@ -1142,12 +1078,6 @@ impl eframe::App for DesktopApp {
             .frame(
                 egui::Frame::none()
                     .fill(palette.panel)
-                    .rounding(egui::Rounding {
-                        nw: 32.0,
-                        ne: 0.0,
-                        sw: 0.0,
-                        se: 0.0,
-                    })
                     .inner_margin(egui::Margin {
                         left: 32.0,
                         right: 32.0,
