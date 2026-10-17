@@ -523,7 +523,7 @@ mod tests {
     fn journal_path() -> PathBuf {
         let sequence = TEST_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         std::env::temp_dir().join(format!(
-            "archiaemu-install-test-{}-{sequence}.journal",
+            "host-app-install-test-{}-{sequence}.journal",
             std::process::id()
         ))
     }
@@ -552,7 +552,7 @@ mod tests {
     fn recovery_directory() -> PathBuf {
         let sequence = TEST_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-recovery-test-{}-{sequence}",
+            "host-app-recovery-test-{}-{sequence}",
             std::process::id()
         ));
         fs::create_dir(&path).unwrap();
