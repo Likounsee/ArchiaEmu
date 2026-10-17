@@ -48,7 +48,7 @@ jobs:
             BIN="PeaceEmu/crates/desktop/target/debug/desktop-app"
           fi
           if [ ! -x "$BIN" ]; then
-            BIN="$(find target workspace -path '*/debug/desktop-app' -type f -executable -print -quit 2>/dev/null || true)"
+            BIN="$(find PeaceEmu -path '*/target/debug/desktop-app' -type f -executable -print -quit 2>/dev/null || true)"
           fi
           if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
             echo "Could not locate the compiled desktop binary." >&2
