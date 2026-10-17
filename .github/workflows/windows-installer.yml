@@ -5,10 +5,10 @@ on:
     branches: [PeaceEmu]
     tags: ["v*"]
     paths:
-      - "workspace/crates/**"
-      - "workspace/Cargo.toml"
-      - "workspace/Cargo.lock"
-      - "workspace/packaging/windows/**"
+      - "PeaceEmu/crates/**"
+      - "PeaceEmu/Cargo.toml"
+      - "PeaceEmu/Cargo.lock"
+      - "PeaceEmu/packaging/windows/**"
       - ".github/workflows/windows-installer.yml"
   workflow_dispatch:
 
@@ -31,29 +31,29 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            workspace/crates/desktop -> workspace/crates/desktop/target
+            PeaceEmu/crates/desktop -> PeaceEmu/crates/desktop/target
 
       - name: Resolve and record desktop dependency graph
-        run: cargo generate-lockfile --manifest-path workspace/crates/desktop/Cargo.toml
+        run: cargo generate-lockfile --manifest-path PeaceEmu/crates/desktop/Cargo.toml
 
       - name: Check desktop host without bundled console cores
-        run: cargo check --locked --no-default-features --manifest-path workspace/crates/desktop/Cargo.toml
+        run: cargo check --locked --no-default-features --manifest-path PeaceEmu/crates/desktop/Cargo.toml
 
       - name: Build desktop executable with static MSVC runtime
         env:
           RUSTFLAGS: -C target-feature=+crt-static
-        run: cargo build --locked --release --manifest-path workspace/crates/desktop/Cargo.toml
+        run: cargo build --locked --release --manifest-path PeaceEmu/crates/desktop/Cargo.toml
 
       - name: Stage application and determine version
         id: stage
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $manifest = Get-Content "workspace/crates/desktop/Cargo.toml" -Raw
+          $manifest = Get-Content "PeaceEmu/crates/desktop/Cargo.toml" -Raw
           $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"([^"]+)"')
           if (-not $match.Success) { throw "Could not read desktop package version from Cargo.toml" }
           $version = $match.Groups[1].Value
-          $exe = "workspace/crates/desktop/target/release/desktop-app.exe"
+          $exe = "PeaceEmu/crates/desktop/target/release/desktop-app.exe"
           if (!(Test-Path $exe)) {
             throw "Expected desktop executable was not produced: $exe"
           }
@@ -79,7 +79,7 @@ jobs:
           $stageDir = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE "stage"))
           $distDir = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE "dist"))
           New-Item -ItemType Directory -Force -Path $distDir | Out-Null
-          & $iscc "/DAppVersion=${{ steps.stage.outputs.version }}" "/DStageDir=$stageDir" "/O$distDir" "workspace/packaging/windows/PeaceEmu.iss"
+          & $iscc "/DAppVersion=${{ steps.stage.outputs.version }}" "/DStageDir=$stageDir" "/O$distDir" "PeaceEmu/packaging/windows/PeaceEmu.iss"
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
       - name: Verify installer output
@@ -107,7 +107,7 @@ jobs:
           $buildInfo | Set-Content "$env:GITHUB_WORKSPACE/dist/PeaceEmu-Build-Info.txt" -Encoding utf8
 
           # Keep the exact dependency graph used by this build available for auditing.
-          $lockfile = "workspace/crates/desktop/Cargo.lock"
+          $lockfile = "PeaceEmu/crates/desktop/Cargo.lock"
           if (!(Test-Path $lockfile)) { throw "Resolved desktop Cargo.lock is missing." }
           Copy-Item $lockfile "$($installer.FullName).Cargo.lock"
           $lockHash = (Get-FileHash $lockfile -Algorithm SHA256).Hash.ToLowerInvariant()
