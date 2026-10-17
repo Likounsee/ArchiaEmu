@@ -483,10 +483,11 @@ impl DesktopApp {
         // leave the previous session with logically held input and no safe recovery path.
         if let Some(previous_id) = self.controller.active_session() {
             if let Err(error) = self.controller.release_inputs(previous_id) {
-                self.message = format!(
-                    if self.language == "fr" { "Lancement annulé : impossible de libérer les entrées de la session {} : {error}" } else { "Launch cancelled: could not release inputs from session {}: {error}" },
-                    previous_id.get()
-                );
+                self.message = if self.language == "fr" {
+                    format!("Lancement annulé : impossible de libérer les entrées de la session {} : {error}", previous_id.get())
+                } else {
+                    format!("Launch cancelled: could not release inputs from session {}: {error}", previous_id.get())
+                };
                 return;
             }
         }
