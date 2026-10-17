@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: PeaceEmu
+        working-directory: workspace
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: PeaceEmu -> target
+          workspaces: workspace -> target
       - name: Install Linux desktop build dependencies
         if: runner.os == 'Linux'
         run: |
