@@ -4,10 +4,10 @@ on:
   push:
     branches: [PeaceEmu]
     paths:
-      - "PeaceEmu/crates/peaceemu-desktop/**"
-      - "PeaceEmu/crates/peaceemu-app/**"
-      - "PeaceEmu/crates/peaceemu-core/**"
-      - "PeaceEmu/crates/peaceemu-game-boy/**"
+      - "PeaceEmu/crates/desktop/**"
+      - "PeaceEmu/crates/app/**"
+      - "PeaceEmu/crates/core/**"
+      - "PeaceEmu/crates/game-boy/**"
       - "PeaceEmu/Cargo.toml"
       - "PeaceEmu/Cargo.lock"
       - "PeaceEmu/update/**"
@@ -17,10 +17,10 @@ on:
   pull_request:
     branches: [PeaceEmu]
     paths:
-      - "PeaceEmu/crates/peaceemu-desktop/**"
-      - "PeaceEmu/crates/peaceemu-app/**"
-      - "PeaceEmu/crates/peaceemu-core/**"
-      - "PeaceEmu/crates/peaceemu-game-boy/**"
+      - "PeaceEmu/crates/desktop/**"
+      - "PeaceEmu/crates/app/**"
+      - "PeaceEmu/crates/core/**"
+      - "PeaceEmu/crates/game-boy/**"
       - "PeaceEmu/Cargo.toml"
       - "PeaceEmu/Cargo.lock"
       - "PeaceEmu/update/**"
@@ -64,7 +64,7 @@ jobs:
         run: cargo fmt --manifest-path PeaceEmu/Cargo.toml --all -- --check
 
       - name: Check desktop formatting
-        run: cargo fmt --manifest-path PeaceEmu/crates/peaceemu-desktop/Cargo.toml -- --check
+        run: cargo fmt --manifest-path PeaceEmu/crates/desktop/Cargo.toml -- --check
 
       - name: Test shared workspace
         run: cargo test --manifest-path PeaceEmu/Cargo.toml --workspace --locked
@@ -73,10 +73,10 @@ jobs:
         run: cargo clippy --manifest-path PeaceEmu/Cargo.toml --workspace --all-targets --locked -- -D warnings
 
       - name: Test desktop and its dependencies
-        run: cargo test --manifest-path PeaceEmu/crates/peaceemu-desktop/Cargo.toml
+        run: cargo test --manifest-path PeaceEmu/crates/desktop/Cargo.toml
 
       - name: Lint desktop and its dependencies
-        run: cargo clippy --manifest-path PeaceEmu/crates/peaceemu-desktop/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path PeaceEmu/crates/desktop/Cargo.toml --all-targets -- -D warnings
 
       - name: Generate warning-free workspace documentation
         env:
