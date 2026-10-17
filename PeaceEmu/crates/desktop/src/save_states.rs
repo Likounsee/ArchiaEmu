@@ -40,7 +40,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-state-path-{}-{label}-{nonce}",
+            "desktop-state-path-{}-{label}-{nonce}",
             std::process::id()
         ));
         std::fs::create_dir_all(&path).expect("temporary directory should be created");
