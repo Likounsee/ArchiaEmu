@@ -6,8 +6,8 @@
 //! All colours come from the shared [`theme::Palette`].
 
 use super::*;
-use archiaemu_core::module_management::ModuleId;
-use archiaemu_core::module_state_store::{default_user_state_path, ModuleStateStore};
+use emulation_core::module_management::ModuleId;
+use emulation_core::module_state_store::{default_user_state_path, ModuleStateStore};
 
 /// A pill-shaped on/off switch. Returns `true` on the frame it is toggled.
 fn toggle_switch(ui: &mut egui::Ui, palette: &theme::Palette, on: &mut bool) -> bool {
