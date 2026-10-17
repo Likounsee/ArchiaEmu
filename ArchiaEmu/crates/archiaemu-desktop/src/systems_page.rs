@@ -87,7 +87,7 @@ impl DesktopApp {
             }
         };
         let store = ModuleStateStore::new(state_path);
-        let mut state = match store.load() {
+        let state = match store.load() {
             Ok(state) => archiaemu_app::view_state::ViewState::Ready(state),
             Err(error) => archiaemu_app::view_state::ViewState::Error(error.to_string()),
         };
