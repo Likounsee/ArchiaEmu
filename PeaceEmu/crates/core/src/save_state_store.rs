@@ -196,7 +196,7 @@ fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
 fn platform_rename(from: &Path, to: &Path) -> io::Result<()> {
     #[cfg(windows)]
     {
-        archiaemu_windows_durability::rename_write_through(from, to)
+        windows_durability::rename_write_through(from, to)
     }
 
     #[cfg(not(windows))]
