@@ -3,27 +3,27 @@
 version = 4
 
 [[package]]
-name = "archiaemu-app"
+name = "host-app"
 version = "0.1.0"
 dependencies = [
- "archiaemu-core",
- "archiaemu-game-boy-color",
+ "emulation-core",
+ "game-boy-color",
 ]
 
 [[package]]
-name = "archiaemu-core"
+name = "emulation-core"
 version = "0.1.0"
 dependencies = [
- "archiaemu-windows-durability",
+ "windows-durability",
 ]
 
 [[package]]
-name = "archiaemu-game-boy-color"
+name = "game-boy-color"
 version = "0.1.0"
 dependencies = [
- "archiaemu-core",
+ "emulation-core",
 ]
 
 [[package]]
-name = "archiaemu-windows-durability"
+name = "windows-durability"
 version = "0.1.0"
