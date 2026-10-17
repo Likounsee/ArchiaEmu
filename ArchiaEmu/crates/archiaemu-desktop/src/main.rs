@@ -3,7 +3,7 @@
     all(target_os = "windows", not(debug_assertions)),
     windows_subsystem = "windows"
 )]
-//! Experimental desktop frontend for the shared ArchiaEmu application controller.
+//! Experimental desktop frontend for the shared PeaceEmu application controller.
 
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ..Default::default()
     };
     eframe::run_native(
-        "ArchiaEmu",
+        "PeaceEmu",
         options,
         Box::new(move |_creation_context| Box::new(app)),
     )?;
@@ -80,9 +80,9 @@ fn parse_cli_arguments(arguments: &[String]) -> Result<Option<&'static str>, Str
 
 fn cli_message(argument: &str) -> Result<&'static str, String> {
     match argument {
-        "--version" | "-V" => Ok(concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION"))),
+        "--version" | "-V" => Ok(concat!("PeaceEmu ", env!("CARGO_PKG_VERSION"))),
         "--help" | "-h" => Ok(concat!(
-            "ArchiaEmu ",
+            "PeaceEmu ",
             env!("CARGO_PKG_VERSION"),
             "\n\nUsage: archiaemu-desktop [OPTIONS]\n\nOptions:\n  -h, --help     Print this help message\n  -V, --version  Print version information\n"
         )),
@@ -966,7 +966,7 @@ impl eframe::App for DesktopApp {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         // Flush dirty battery-backed RAM before tearing down sessions.
         for error in self.flush_dirty_game_saves() {
-            eprintln!("ArchiaEmu: could not flush persistent game save on exit: {error}");
+            eprintln!("PeaceEmu: could not flush persistent game save on exit: {error}");
         }
         // Release held controls before tearing down sessions so a core never exits
         // with inputs logically stuck in the pressed state.
@@ -1343,7 +1343,7 @@ mod preference_tests {
     fn command_line_help_and_version_are_available_without_starting_the_gui() {
         assert_eq!(
             cli_message("--version").unwrap(),
-            concat!("ArchiaEmu ", env!("CARGO_PKG_VERSION"))
+            concat!("PeaceEmu ", env!("CARGO_PKG_VERSION"))
         );
         assert!(cli_message("--help").unwrap().contains("--version"));
         assert!(cli_message("-h")
@@ -1370,7 +1370,7 @@ mod preference_tests {
         assert!(parse_cli_arguments(&["--version".to_owned()])
             .unwrap()
             .unwrap()
-            .starts_with("ArchiaEmu "));
+            .starts_with("PeaceEmu "));
     }
 
     #[test]
