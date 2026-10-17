@@ -77,11 +77,7 @@ impl DesktopApp {
             Err(error) => {
                 ui.colored_label(
                     egui::Color32::LIGHT_RED,
-                    if french {
-                        if french { format!("État des modules indisponible : {error}") } else { format!("Module state unavailable: {error}") }
-                    } else {
-                        format!("État des modules indisponible : {error}")
-                    },
+                    if french { format!("État des modules indisponible : {error}") } else { format!("Module state unavailable: {error}") },
                 );
                 return;
             }
@@ -96,11 +92,7 @@ impl DesktopApp {
             archiaemu_app::view_state::ViewState::Error(error) => {
                 ui.colored_label(
                     egui::Color32::LIGHT_RED,
-                    if french {
-                        format!("Impossible de lire l’état des modules : {error}")
-                    } else {
-                        if french { format!("Impossible de charger l’état des modules : {error}") } else { format!("Could not load module state: {error}") }
-                    },
+                    if french { format!("Impossible de lire l’état des modules : {error}") } else { format!("Could not load module state: {error}") },
                 );
                 ui.label(if french {
                     "Le fichier d’état est conservé pour permettre sa récupération ; aucune sélection n’a été écrasée."
@@ -287,11 +279,7 @@ impl DesktopApp {
                     };
                 }
                 Err(error) => {
-                    self.message = if french {
-                        format!("Échec de l’enregistrement de la sélection : {error}")
-                    } else {
-                        if french { format!("Impossible d’enregistrer la sélection des modules : {error}") } else { format!("Could not save module selection: {error}") }
-                    };
+                    self.message = if french { format!("Échec de l’enregistrement de la sélection : {error}") } else { format!("Could not save module selection: {error}") };
                 }
             }
         }
