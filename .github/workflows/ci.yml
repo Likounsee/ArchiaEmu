@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: archiaemu-ci-${{ github.ref }}
+  group: peaceemu-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: ArchiaEmu
+        working-directory: PeaceEmu
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: ArchiaEmu -> target
+          workspaces: PeaceEmu -> target
       - name: Install Linux desktop build dependencies
         if: runner.os == 'Linux'
         run: |
@@ -69,11 +69,11 @@ jobs:
         if: runner.os == 'Linux'
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          manifest-path: ArchiaEmu/Cargo.toml
+          manifest-path: PeaceEmu/Cargo.toml
           command: check
       - name: Audit desktop prototype dependencies and licenses
         if: runner.os == 'Linux'
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          manifest-path: ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+          manifest-path: PeaceEmu/crates/archiaemu-desktop/Cargo.toml
           command: check
