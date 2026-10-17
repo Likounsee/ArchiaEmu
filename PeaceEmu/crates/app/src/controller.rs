@@ -120,7 +120,7 @@ fn content_format_detection(
     }
 }
 
-/// Owns the state that every ArchiaEmu frontend must share.
+/// Owns the state that every host-app frontend must share.
 pub struct ApplicationController {
     host: HostRuntime,
     library: ContentLibrary,
@@ -1027,7 +1027,7 @@ mod tests {
     fn failed_path_launch_does_not_create_a_phantom_session() {
         let mut app = controller();
         let missing = std::env::temp_dir().join(format!(
-            "archiaemu-missing-launch-{}-never-created.gb",
+            "host-app-missing-launch-{}-never-created.gb",
             std::process::id()
         ));
         let _ = std::fs::remove_file(&missing);
@@ -1054,7 +1054,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-failed-launch-preserve-{}-{nonce}",
+            "host-app-failed-launch-preserve-{}-{nonce}",
             std::process::id()
         ));
         std::fs::create_dir(&root).unwrap();
@@ -1100,7 +1100,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-invalid-content-{}-{nonce}",
+            "host-app-invalid-content-{}-{nonce}",
             std::process::id()
         ));
         std::fs::create_dir(&root).unwrap();
@@ -1161,7 +1161,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-ambiguous-format-{}-{nonce}",
+            "host-app-ambiguous-format-{}-{nonce}",
             std::process::id()
         ));
         std::fs::create_dir(&root).unwrap();
@@ -1198,7 +1198,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-content-read-failure-{}-{nonce}",
+            "host-app-content-read-failure-{}-{nonce}",
             std::process::id()
         ));
         std::fs::create_dir(&root).unwrap();
@@ -1243,7 +1243,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-unknown-format-{}-{nonce}",
+            "host-app-unknown-format-{}-{nonce}",
             std::process::id()
         ));
         std::fs::create_dir(&root).unwrap();
@@ -1367,7 +1367,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-successful-launch-{}-{nonce}",
+            "host-app-successful-launch-{}-{nonce}",
             std::process::id()
         ));
         std::fs::create_dir(&root).unwrap();
@@ -1436,7 +1436,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-forget-controller-{}-{nonce}",
+            "host-app-forget-controller-{}-{nonce}",
             std::process::id()
         ));
         std::fs::create_dir(&root).unwrap();
