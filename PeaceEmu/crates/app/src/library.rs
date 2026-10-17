@@ -328,7 +328,7 @@ mod tests {
         fn new(name: &str, bytes: &[u8]) -> Self {
             let id = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
             let directory =
-                std::env::temp_dir().join(format!("archiaemu-library-{}-{id}", std::process::id()));
+                std::env::temp_dir().join(format!("host-app-library-{}-{id}", std::process::id()));
             fs::create_dir(&directory).unwrap();
             let path = directory.join(name);
             fs::write(&path, bytes).unwrap();
@@ -429,7 +429,7 @@ mod tests {
     #[test]
     fn import_rejects_missing_paths_without_mutating_catalog() {
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-library-missing-{}-{}",
+            "host-app-library-missing-{}-{}",
             std::process::id(),
             NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed)
         ));
@@ -621,7 +621,7 @@ mod tests {
     #[test]
     fn import_rejects_directories() {
         let directory = std::env::temp_dir().join(format!(
-            "archiaemu-library-dir-{}-{}",
+            "host-app-library-dir-{}-{}",
             std::process::id(),
             NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed)
         ));
