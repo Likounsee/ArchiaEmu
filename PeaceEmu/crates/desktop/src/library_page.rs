@@ -1,4 +1,4 @@
-//! library page for the ArchiaEmu desktop frontend.
+//! library page for the PeaceEmu desktop frontend.
 
 use super::*;
 use host_app::library::{ContentAvailability, ContentFormatDetection, ContentValidation};
@@ -620,7 +620,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         std::env::temp_dir().join(format!(
-            "archiaemu-library-{label}-{}-{nonce}",
+            "desktop-library-{label}-{}-{nonce}",
             std::process::id()
         ))
     }
