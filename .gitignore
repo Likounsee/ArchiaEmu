@@ -1,5 +1,5 @@
 # Rust build artifacts
-/ArchiaEmu/target/
+/PeaceEmu/target/
 **/target/
 
 # Editor and operating-system files
