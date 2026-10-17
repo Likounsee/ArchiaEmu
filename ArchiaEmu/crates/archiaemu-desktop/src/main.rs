@@ -444,17 +444,18 @@ impl DesktopApp {
                 self.content_path = path.display().to_string();
                 self.selected_content = Some(path);
             }
-            let import_message = if rejected == 0 {
+            let import_message = if self.language == "fr" {
+                if rejected == 0 {
+                    format!("{imported} ROM(s) importée(s) dans la bibliothèque.")
+                } else {
+                    let detail = if failures.is_empty() { String::new() } else { format!(" Détails : {}", failures.join("; ")) };
+                    format!("{imported} ROM(s) importée(s) ; {rejected} fichier(s) ignoré(s) ou refusé(s).{detail}")
+                }
+            } else if rejected == 0 {
                 format!("Imported {imported} ROM(s) into your library.")
             } else {
-                let detail = if failures.is_empty() {
-                    String::new()
-                } else {
-                    format!(" Details: {}", failures.join("; "))
-                };
-                format!(
-                    "Imported {imported} ROM(s); {rejected} file(s) skipped or rejected.{detail}"
-                )
+                let detail = if failures.is_empty() { String::new() } else { format!(" Details: {}", failures.join("; ")) };
+                format!("Imported {imported} ROM(s); {rejected} file(s) skipped or rejected.{detail}")
             };
             self.message = import_message.clone();
             if imported > 0 {
@@ -473,7 +474,7 @@ impl DesktopApp {
     fn launch_content(&mut self) {
         let path = self.content_path.trim();
         if path.is_empty() {
-            self.message = "Enter a content path first.".to_owned();
+            self.message = if self.language == "fr" { "Saisissez d’abord le chemin du contenu.".to_owned() } else { "Enter a content path first.".to_owned() };
             return;
         }
 
@@ -483,7 +484,7 @@ impl DesktopApp {
         if let Some(previous_id) = self.controller.active_session() {
             if let Err(error) = self.controller.release_inputs(previous_id) {
                 self.message = format!(
-                    "Launch cancelled: could not release inputs from session {}: {error}",
+                    if self.language == "fr" { "Lancement annulé : impossible de libérer les entrées de la session {} : {error}" } else { "Launch cancelled: could not release inputs from session {}: {error}" },
                     previous_id.get()
                 );
                 return;
