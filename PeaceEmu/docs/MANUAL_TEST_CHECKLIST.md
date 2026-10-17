@@ -1,11 +1,11 @@
-# ArchiaEmu — checklist de validation manuelle desktop
+# PeaceEmu — checklist de validation manuelle desktop
 
 Cette checklist valide les parcours génériques de l'application, pas la compatibilité d'un système. Le cœur Game Boy actuel est incomplet et ne doit pas être présenté comme un émulateur de jeux jouable.
 
 ## Préparation
 
 - [ ] Construire l'application depuis un checkout propre avec la version stable de Rust.
-- [ ] Démarrer ArchiaEmu sans fichier de préférences existant.
+- [ ] Démarrer PeaceEmu sans fichier de préférences existant.
 - [ ] Confirmer que la fenêtre s'ouvre, que les pages principales sont accessibles et que la fermeture ne panique pas.
 - [ ] Redimensionner la fenêtre jusqu'à sa taille minimale puis l'agrandir; vérifier navigation, formulaires et boutons sans débordement majeur.
 
@@ -57,7 +57,7 @@ Une case ne doit être cochée qu'après observation réelle. Cette checklist do
 - [ ] Vérifier le manifeste stable officiel et confirmer que l'absence d'artefact pour la plateforme est indiquée clairement, sans proposer un téléchargement inexistant.
 - [ ] Vérifier que la version publiée égale ou inférieure à la version locale n'est pas présentée comme une mise à jour disponible.
 - [ ] Avec un artefact de test publié, vérifier la progression et le résultat du téléchargement, puis confirmer que le fichier finalisé correspond à la taille et au SHA-256 annoncés.
-- [ ] Vérifier que les URL de téléchargement et de notes de version pointent vers les releases officielles d'ArchiaEmu; les manifestes invalides doivent échouer sans créer de fichier de staging.
+- [ ] Vérifier que les URL de téléchargement et de notes de version pointent vers les releases officielles d'PeaceEmu; les manifestes invalides doivent échouer sans créer de fichier de staging.
 - [ ] Vérifier qu'un échec réseau, une taille incorrecte, un SHA-256 incorrect ou une déconnexion du worker laisse l'interface récupérable et ne supprime aucun fichier préexistant.
 - [ ] Confirmer qu'un artefact seulement stagé n'est ni exécuté ni installé automatiquement.
 
