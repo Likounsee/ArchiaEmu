@@ -147,11 +147,11 @@ impl DesktopApp {
                 ui.monospace(format!("{} / {}", std::env::consts::OS, std::env::consts::ARCH));
             });
             ui.horizontal_wrapped(|ui| {
-                ui.label(format!("Library items: {}", self.controller.library().len()));
+                ui.label(if self.language == "fr" { format!("Éléments de la bibliothèque : {}", self.controller.library().len()) } else { format!("Library items: {}", self.controller.library().len()) });
                 ui.separator();
-                ui.label(format!("Open sessions: {}", self.controller.session_summaries().len()));
+                ui.label(if self.language == "fr" { format!("Sessions ouvertes : {}", self.controller.session_summaries().len()) } else { format!("Open sessions: {}", self.controller.session_summaries().len()) });
                 ui.separator();
-                ui.label(format!("Execution errors: {}", self.last_tick_errors.len()));
+                ui.label(if self.language == "fr" { format!("Erreurs d’exécution : {}", self.last_tick_errors.len()) } else { format!("Execution errors: {}", self.last_tick_errors.len()) });
             });
             ui.horizontal_wrapped(|ui| {
                 ui.label(if self.language == "fr" { "Session active :" } else { "Active session:" });
@@ -183,9 +183,9 @@ impl DesktopApp {
             ui.label(if self.language == "fr" { "Dernier message de l’application :" } else { "Latest application message:" });
             ui.label(&self.message);
             if !self.last_tick_errors.is_empty() {
-                ui.colored_label(egui::Color32::LIGHT_RED, "Recent session errors");
+                ui.colored_label(egui::Color32::LIGHT_RED, if self.language == "fr" { "Erreurs récentes des sessions" } else { "Recent session errors" });
                 for (session_id, error) in self.last_tick_errors.iter().take(5) {
-                    ui.label(format!("Session {}: {error}", session_id.get()));
+                    ui.label(if self.language == "fr" { format!("Session {} : {error}", session_id.get()) } else { format!("Session {}: {error}", session_id.get()) });
                 }
             }
             if ui.button(if self.language == "fr" { "Copier le diagnostic" } else { "Copy diagnostics to clipboard" }).clicked() {
