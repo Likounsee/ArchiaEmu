@@ -1,5 +1,5 @@
 # Rust build artifacts
-/PeaceEmu/target/
+/workspace/target/
 **/target/
 
 # Editor and operating-system files
