@@ -7,15 +7,15 @@ use std::error::Error;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
-use archiaemu_app::controller::ApplicationController;
-use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
-use archiaemu_core::core_io::{InputControl, InputEvent};
-use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
-use archiaemu_core::save_state_store::SaveStateStore;
-use archiaemu_core::CoreRegistry;
-use archiaemu_game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
+use host_app::controller::ApplicationController;
+use emulation_core::content::{ContentFormatProbe, ContentLimits};
+use emulation_core::core_io::{InputControl, InputEvent};
+use emulation_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
+use emulation_core::save_state_store::SaveStateStore;
+use emulation_core::CoreRegistry;
+use game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
 
-use archiaemu_app::library::ContentLibraryError;
+use host_app::library::ContentLibraryError;
 
 const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
@@ -414,7 +414,7 @@ fn command_loop(
 }
 
 fn library_entry_path(
-    library: &archiaemu_app::library::ContentLibrary,
+    library: &host_app::library::ContentLibrary,
     index: usize,
 ) -> Option<PathBuf> {
     if index == 0 {
@@ -694,33 +694,33 @@ fn validate_system_selection(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archiaemu_app::library::ContentLibrary;
+    use host_app::library::ContentLibrary;
 
     struct NoSaveStateCore;
 
-    impl archiaemu_core::EmulationCore for NoSaveStateCore {
-        fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
-            archiaemu_core::CoreDescriptor {
-                api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
-                system_id: archiaemu_core::SystemId::new("test-core").unwrap(),
+    impl emulation_core::EmulationCore for NoSaveStateCore {
+        fn descriptor(&self) -> emulation_core::CoreDescriptor {
+            emulation_core::CoreDescriptor {
+                api_version: emulation_core::CURRENT_CORE_API_VERSION,
+                system_id: emulation_core::SystemId::new("test-core").unwrap(),
                 display_name: "Test core",
                 core_version: "0.1.0",
-                capabilities: archiaemu_core::CoreCapabilities::default(),
+                capabilities: emulation_core::CoreCapabilities::default(),
             }
         }
 
-        fn load_content(&mut self, _: &[u8]) -> Result<(), archiaemu_core::CoreError> {
-            Err(archiaemu_core::CoreError::Unsupported("content loading"))
+        fn load_content(&mut self, _: &[u8]) -> Result<(), emulation_core::CoreError> {
+            Err(emulation_core::CoreError::Unsupported("content loading"))
         }
 
-        fn reset(&mut self) -> Result<(), archiaemu_core::CoreError> {
+        fn reset(&mut self) -> Result<(), emulation_core::CoreError> {
             Ok(())
         }
 
         fn run_until_event(
             &mut self,
-        ) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
-            Ok(archiaemu_core::CoreEvent::Yielded)
+        ) -> Result<emulation_core::CoreEvent, emulation_core::CoreError> {
+            Ok(emulation_core::CoreEvent::Yielded)
         }
     }
 
@@ -793,9 +793,9 @@ mod tests {
     fn close_all_sessions_clears_active_selection_and_releases_every_session() {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
         let first = host
-            .create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
+            .create_session(Box::new(game_boy::GameBoyColorCore::new()))
             .unwrap();
-        host.create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
+        host.create_session(Box::new(game_boy::GameBoyColorCore::new()))
             .unwrap();
         let mut active = Some(first);
 
@@ -807,7 +807,7 @@ mod tests {
     #[test]
     fn library_entry_selection_is_one_based_and_out_of_range_is_rejected() {
         let directory =
-            std::env::temp_dir().join(format!("archiaemu-app-library-{}", std::process::id()));
+            std::env::temp_dir().join(format!("host-app-library-{}", std::process::id()));
         std::fs::create_dir(&directory).unwrap();
         let first = directory.join("first.gb");
         let second = directory.join("second.gb");
@@ -869,7 +869,7 @@ mod tests {
         );
 
         let id = host
-            .create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
+            .create_session(Box::new(game_boy::GameBoyColorCore::new()))
             .unwrap();
         assert_eq!(
             inspect_inputs(&mut host, Some(id)).unwrap(),
@@ -881,7 +881,7 @@ mod tests {
     fn media_inspection_reports_unsupported_outputs_without_polling_the_core() {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
         let id = host
-            .create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
+            .create_session(Box::new(game_boy::GameBoyColorCore::new()))
             .unwrap();
 
         assert_eq!(
