@@ -55,7 +55,11 @@ fn load_logo_icon() -> Option<egui::IconData> {
     let x = ((256 - logo.width()) / 2) as i64;
     let y = ((256 - logo.height()) / 2) as i64;
     image::imageops::overlay(&mut canvas, &logo, x, y);
-    Some(egui::IconData { rgba: canvas.into_raw(), width: 256, height: 256 })
+    Some(egui::IconData {
+        rgba: canvas.into_raw(),
+        width: 256,
+        height: 256,
+    })
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
