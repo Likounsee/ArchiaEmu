@@ -31,29 +31,29 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            PeaceEmu/crates/archiaemu-desktop -> PeaceEmu/crates/archiaemu-desktop/target
+            PeaceEmu/crates/peaceemu-desktop -> PeaceEmu/crates/peaceemu-desktop/target
 
       - name: Resolve and record desktop dependency graph
-        run: cargo generate-lockfile --manifest-path PeaceEmu/crates/archiaemu-desktop/Cargo.toml
+        run: cargo generate-lockfile --manifest-path PeaceEmu/crates/peaceemu-desktop/Cargo.toml
 
       - name: Check desktop host without bundled console cores
-        run: cargo check --locked --no-default-features --manifest-path PeaceEmu/crates/archiaemu-desktop/Cargo.toml
+        run: cargo check --locked --no-default-features --manifest-path PeaceEmu/crates/peaceemu-desktop/Cargo.toml
 
       - name: Build desktop executable with static MSVC runtime
         env:
           RUSTFLAGS: -C target-feature=+crt-static
-        run: cargo build --locked --release --manifest-path PeaceEmu/crates/archiaemu-desktop/Cargo.toml
+        run: cargo build --locked --release --manifest-path PeaceEmu/crates/peaceemu-desktop/Cargo.toml
 
       - name: Stage application and determine version
         id: stage
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $manifest = Get-Content "PeaceEmu/crates/archiaemu-desktop/Cargo.toml" -Raw
+          $manifest = Get-Content "PeaceEmu/crates/peaceemu-desktop/Cargo.toml" -Raw
           $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"([^"]+)"')
           if (-not $match.Success) { throw "Could not read desktop package version from Cargo.toml" }
           $version = $match.Groups[1].Value
-          $exe = "PeaceEmu/crates/archiaemu-desktop/target/release/archiaemu-desktop.exe"
+          $exe = "PeaceEmu/crates/peaceemu-desktop/target/release/archiaemu-desktop.exe"
           if (!(Test-Path $exe)) {
             throw "Expected desktop executable was not produced: $exe"
           }
@@ -107,7 +107,7 @@ jobs:
           $buildInfo | Set-Content "$env:GITHUB_WORKSPACE/dist/PeaceEmu-Build-Info.txt" -Encoding utf8
 
           # Keep the exact dependency graph used by this build available for auditing.
-          $lockfile = "PeaceEmu/crates/archiaemu-desktop/Cargo.lock"
+          $lockfile = "PeaceEmu/crates/peaceemu-desktop/Cargo.lock"
           if (!(Test-Path $lockfile)) { throw "Resolved desktop Cargo.lock is missing." }
           Copy-Item $lockfile "$($installer.FullName).Cargo.lock"
           $lockHash = (Get-FileHash $lockfile -Algorithm SHA256).Hash.ToLowerInvariant()
