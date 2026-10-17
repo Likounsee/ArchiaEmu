@@ -351,7 +351,7 @@ mod tests {
 
         static NEXT_PATH: AtomicU64 = AtomicU64::new(0);
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-host-launch-{}-{}.rom",
+            "host-app-host-launch-{}-{}.rom",
             std::process::id(),
             NEXT_PATH.fetch_add(1, Ordering::Relaxed)
         ));
@@ -653,7 +653,7 @@ mod tests {
         // the supplied path does not exist. This keeps filesystem errors from
         // obscuring the actionable lifecycle error and avoids needless I/O.
         let missing_path = std::env::temp_dir().join(format!(
-            "archiaemu-must-not-read-{}-missing.rom",
+            "host-app-must-not-read-{}-missing.rom",
             std::process::id()
         ));
         let result = host.launch_content_path(
