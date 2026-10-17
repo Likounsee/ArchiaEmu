@@ -1,4 +1,4 @@
-//! game page for the ArchiaEmu desktop frontend.
+//! game page for the PeaceEmu desktop frontend.
 
 use super::*;
 
