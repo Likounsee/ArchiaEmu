@@ -599,8 +599,8 @@ mod tests {
         let mut state = ModuleManagerState::new();
         state.mark_setup_completed();
         let text = state.encode().replace(
-            "PEACEEMU-MODULE-STATE\\t1",
-            "PREVIOUS-MODULE-STATE\\t1",
+            "PEACEEMU-MODULE-STATE\t1",
+            "PREVIOUS-MODULE-STATE\t1",
         );
         assert_eq!(ModuleManagerState::decode(&text).unwrap(), state);
     }
