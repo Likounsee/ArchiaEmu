@@ -2,7 +2,7 @@
 
 ## Current state
 
-The repository contains a Rust workspace with the shared `archiaemu-core` contract, a Game Boy module, and a minimal terminal host application. The terminal host can list registered systems, load bounded content, and control a session lifecycle; it does not yet provide interactive input or audio/video presentation, and the Game Boy module is not a playable emulator. Contracts and successful CI checks are not proof of console compatibility.
+The repository contains a Rust workspace with a shared core contract, a native eframe/egui desktop application, and an experimental Game Boy module. The desktop provides library management, session controls, semantic keyboard input, preferences and a bounded video-frame presentation path. Audio playback is not yet integrated, and the Game Boy core is incomplete and not a playable emulator. Contracts and successful CI checks are not proof of console compatibility.
 
 ## Intended layers
 
