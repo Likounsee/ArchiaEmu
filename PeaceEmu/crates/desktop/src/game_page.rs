@@ -36,7 +36,11 @@ impl DesktopApp {
                     ui.horizontal_wrapped(|ui| {
                         ui.vertical(|ui| {
                             ui.heading(format!("{system} · Session {}", id.get()));
-                            ui.label(if self.language == "fr" { format!("État : {state:?}") } else { format!("State: {state:?}") });
+                            ui.label(if self.language == "fr" {
+                                format!("État : {state:?}")
+                            } else {
+                                format!("State: {state:?}")
+                            });
                         });
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             if state == SessionState::Running
@@ -120,15 +124,31 @@ impl DesktopApp {
                     ui.separator();
                     ui.horizontal_wrapped(|ui| {
                         ui.label(if summary.video_available {
-                            if self.language == "fr" { "Vidéo : disponible" } else { "Video: available" }
+                            if self.language == "fr" {
+                                "Vidéo : disponible"
+                            } else {
+                                "Video: available"
+                            }
                         } else {
-                            if self.language == "fr" { "Vidéo : non implémentée par ce cœur" } else { "Video: not implemented by this core" }
+                            if self.language == "fr" {
+                                "Vidéo : non implémentée par ce cœur"
+                            } else {
+                                "Video: not implemented by this core"
+                            }
                         });
                         ui.separator();
                         ui.label(if summary.audio_available {
-                            if self.language == "fr" { "Audio : sortie du cœur déclarée ; lecture intégrée" } else { "Audio: core output declared; host playback integrated" }
+                            if self.language == "fr" {
+                                "Audio : sortie du cœur déclarée ; lecture intégrée"
+                            } else {
+                                "Audio: core output declared; host playback integrated"
+                            }
                         } else {
-                            if self.language == "fr" { "Audio : indisponible" } else { "Audio: unavailable" }
+                            if self.language == "fr" {
+                                "Audio : indisponible"
+                            } else {
+                                "Audio: unavailable"
+                            }
                         });
                         ui.separator();
                         ui.label(if summary.persistent_saves {
