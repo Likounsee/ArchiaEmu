@@ -39,7 +39,7 @@ claiming reproducible release builds.
 ## Release acceptance checklist
 
 1. Run the workflow from a clean commit and confirm the build and installer compile succeed.
-2. Verify the produced version matches `crates/archiaemu-desktop/Cargo.toml` and validate its SHA-256.
+2. Verify the produced version matches `crates/peaceemu-desktop/Cargo.toml` and validate its SHA-256.
 3. Install without Rust, Git, source files, or a build directory present.
 4. Test Start Menu and optional desktop shortcuts, launch, preferences persistence, and restart.
 5. Test upgrade over an older version and uninstall with both choices for user data.
