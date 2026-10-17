@@ -138,7 +138,7 @@ impl ModuleManagerState {
     /// Decodes version-1 state, rejecting duplicate or ambiguous records.
     pub fn decode(input: &str) -> Result<Self, StateFormatError> {
         let mut lines = input.lines();
-        if !is_supported_header(lines.next(), HEADER, "MODULE-STATE\t1") {
+        if lines.next() != Some(HEADER) {
             return Err(StateFormatError::UnsupportedFormat);
         }
         let mut status = None;
@@ -208,24 +208,6 @@ impl ModuleManagerState {
         }
         Ok(state)
     }
-}
-
-// Accept version-1 headers across product identity changes without embedding
-// historical branding in executable code. The suffix identifies the format.
-fn is_supported_header(actual: Option<&str>, current: &str, suffix: &str) -> bool {
-    if actual == Some(current) {
-        return true;
-    }
-    let Some(prefix) = actual.and_then(|value| value.strip_suffix(suffix)) else {
-        return false;
-    };
-    let Some(token) = prefix.strip_suffix('-') else {
-        return false;
-    };
-    !token.is_empty()
-        && token
-            .bytes()
-            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'-')
 }
 
 fn nibble(byte: u8) -> Option<u8> {
@@ -592,16 +574,6 @@ mod tests {
     fn directory_sync_failure_is_reported() {
         let missing_directory = temp_path().with_extension("missing-directory");
         assert!(sync_parent_directory(&missing_directory).is_err());
-    }
-
-    #[test]
-    fn decoder_accepts_versioned_state_header_from_previous_identity() {
-        let mut state = ModuleManagerState::new();
-        state.mark_setup_completed();
-        let text = state
-            .encode()
-            .replace("PEACEEMU-MODULE-STATE\t1", "PREVIOUS-MODULE-STATE\t1");
-        assert_eq!(ModuleManagerState::decode(&text).unwrap(), state);
     }
 
     #[test]
