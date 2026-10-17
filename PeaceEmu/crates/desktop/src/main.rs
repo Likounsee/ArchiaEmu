@@ -1214,7 +1214,7 @@ impl DesktopApp {
                         texture.set(image, egui::TextureOptions::NEAREST);
                     } else {
                         self.frame_texture = Some(context.load_texture(
-                            "archiaemu-game-frame",
+                            "desktop-game-frame",
                             image,
                             egui::TextureOptions::NEAREST,
                         ));
@@ -1490,7 +1490,7 @@ mod preference_tests {
 
     #[test]
     fn preference_scale_is_clamped_and_invalid_values_are_ignored() {
-        let root = std::env::temp_dir().join(format!("archiaemu-prefs-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("desktop-prefs-{}", std::process::id()));
         let file = root.join("desktop.conf");
         write_preferences(
             &file,
@@ -1510,7 +1510,7 @@ mod preference_tests {
     #[test]
     fn replacing_preferences_keeps_only_the_new_complete_config() {
         let root =
-            std::env::temp_dir().join(format!("archiaemu-prefs-replace-{}", std::process::id()));
+            std::env::temp_dir().join(format!("desktop-prefs-replace-{}", std::process::id()));
         let file = root.join("desktop.conf");
         write_preferences(&file, true, 1.0, [75, 115, 210], &[PathBuf::from("old.gb")]).unwrap();
         write_preferences(
@@ -1534,7 +1534,7 @@ mod preference_tests {
     #[test]
     fn invalid_scale_lines_do_not_override_a_valid_scale() {
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-prefs-invalid-scale-{}",
+            "desktop-prefs-invalid-scale-{}",
             std::process::id()
         ));
         fs::create_dir_all(&root).unwrap();
@@ -1550,7 +1550,7 @@ mod preference_tests {
     #[test]
     fn unsupported_preferences_version_is_rejected() {
         let root =
-            std::env::temp_dir().join(format!("archiaemu-prefs-version-{}", std::process::id()));
+            std::env::temp_dir().join(format!("desktop-prefs-version-{}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         let file = root.join("desktop.conf");
         fs::write(&file, "version=99\ndark=false\n").unwrap();
