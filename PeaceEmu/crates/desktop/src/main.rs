@@ -10,10 +10,10 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::{Duration, Instant};
 
-use archiaemu_app::controller::{ApplicationController, SessionCommand};
+use host_app::controller::{ApplicationController, SessionCommand};
 #[cfg(feature = "game-boy-color-module")]
-use archiaemu_core::content::{ContentFormatProbe, ContentLimits};
-use archiaemu_core::core_io::{FrameCadence, InputControl, InputEvent};
+use emulation_core::content::{ContentFormatProbe, ContentLimits};
+use emulation_core::core_io::{FrameCadence, InputControl, InputEvent};
 use audio_output::AudioOutput;
 use game_view::{map_key_to_control, video_frame_to_image};
 use preferences::{config_file_path, load_preferences, write_preferences_with_language};
@@ -37,11 +37,11 @@ mod shell;
 mod systems_page;
 mod theme;
 mod update;
-use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
-use archiaemu_core::runtime::SessionState;
-use archiaemu_core::CoreRegistry;
+use emulation_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
+use emulation_core::runtime::SessionState;
+use emulation_core::CoreRegistry;
 #[cfg(feature = "game-boy-color-module")]
-use archiaemu_game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
+use game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
 use eframe::egui;
 
 const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
@@ -84,7 +84,7 @@ fn cli_message(argument: &str) -> Result<&'static str, String> {
         "--help" | "-h" => Ok(concat!(
             "PeaceEmu ",
             env!("CARGO_PKG_VERSION"),
-            "\n\nUsage: archiaemu-desktop [OPTIONS]\n\nOptions:\n  -h, --help     Print this help message\n  -V, --version  Print version information\n"
+            "\n\nUsage: desktop-app [OPTIONS]\n\nOptions:\n  -h, --help     Print this help message\n  -V, --version  Print version information\n"
         )),
         other => Err(format!("unknown argument: {other}; try --help")),
     }
@@ -621,9 +621,9 @@ impl DesktopApp {
             )
         };
         let envelope =
-            archiaemu_core::save_state::SaveStateEnvelope::new(system_id, core_version, data)
+            emulation_core::save_state::SaveStateEnvelope::new(system_id, core_version, data)
                 .map_err(|error| format!("Could not encode game save: {error}"))?;
-        archiaemu_core::save_state_store::SaveStateStore::new(path.clone())
+        emulation_core::save_state_store::SaveStateStore::new(path.clone())
             .save(&envelope)
             .map_err(|error| format!("Could not write game save: {error}"))?;
         self.controller
@@ -698,9 +698,9 @@ impl DesktopApp {
             return Ok(false);
         }
         let path = self.game_save_path(id)?;
-        let envelope = match archiaemu_core::save_state_store::SaveStateStore::new(path).load() {
+        let envelope = match emulation_core::save_state_store::SaveStateStore::new(path).load() {
             Ok(envelope) => envelope,
-            Err(archiaemu_core::save_state_store::SaveStateStoreError::Io(error))
+            Err(emulation_core::save_state_store::SaveStateStoreError::Io(error))
                 if error.kind() == std::io::ErrorKind::NotFound =>
             {
                 return Ok(false);
@@ -752,7 +752,7 @@ impl DesktopApp {
             .map_err(|error| error.to_string())?
             .save_state_envelope()
             .map_err(|error| error.to_string())?;
-        archiaemu_core::save_state_store::SaveStateStore::new(path.clone())
+        emulation_core::save_state_store::SaveStateStore::new(path.clone())
             .save(&envelope)
             .map_err(|error| format!("Could not write save state: {error}"))?;
         Ok(path)
@@ -779,9 +779,9 @@ impl DesktopApp {
                 return;
             }
         };
-        let envelope = match archiaemu_core::save_state_store::SaveStateStore::new(path).load() {
+        let envelope = match emulation_core::save_state_store::SaveStateStore::new(path).load() {
             Ok(envelope) => envelope,
-            Err(archiaemu_core::save_state_store::SaveStateStoreError::Io(error))
+            Err(emulation_core::save_state_store::SaveStateStoreError::Io(error))
                 if error.kind() == std::io::ErrorKind::NotFound =>
             {
                 self.message = if self.language == "fr" {
@@ -1348,7 +1348,7 @@ mod preference_tests {
         assert!(cli_message("--help").unwrap().contains("--version"));
         assert!(cli_message("-h")
             .unwrap()
-            .contains("Usage: archiaemu-desktop"));
+            .contains("Usage: desktop-app"));
         assert_eq!(
             cli_message("--unknown").unwrap_err(),
             "unknown argument: --unknown; try --help"
@@ -1442,11 +1442,11 @@ mod preference_tests {
             ApplicationController::new(HostRuntime::new(HostRuntimeConfig::default()).unwrap());
         let first = controller
             .host_mut()
-            .create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
+            .create_session(Box::new(game_boy::GameBoyColorCore::new()))
             .unwrap();
         let second = controller
             .host_mut()
-            .create_session(Box::new(archiaemu_game_boy::GameBoyColorCore::new()))
+            .create_session(Box::new(game_boy::GameBoyColorCore::new()))
             .unwrap();
         let mut errors = vec![
             (first, "first session failed".to_owned()),
