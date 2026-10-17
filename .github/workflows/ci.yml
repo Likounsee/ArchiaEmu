@@ -52,17 +52,17 @@ jobs:
       - name: Check package contents
         run: cargo package --workspace --locked --no-verify
       - name: Resolve desktop dependency graph once
-        run: cargo generate-lockfile --manifest-path crates/archiaemu-desktop/Cargo.toml
+        run: cargo generate-lockfile --manifest-path crates/peaceemu-desktop/Cargo.toml
       - name: Check desktop prototype formatting
-        run: cargo fmt --manifest-path crates/archiaemu-desktop/Cargo.toml -- --check
+        run: cargo fmt --manifest-path crates/peaceemu-desktop/Cargo.toml -- --check
       - name: Compile desktop prototype
-        run: cargo check --manifest-path crates/archiaemu-desktop/Cargo.toml --all-targets --locked
+        run: cargo check --manifest-path crates/peaceemu-desktop/Cargo.toml --all-targets --locked
       - name: Test desktop prototype
-        run: cargo test --manifest-path crates/archiaemu-desktop/Cargo.toml --all-targets --locked
+        run: cargo test --manifest-path crates/peaceemu-desktop/Cargo.toml --all-targets --locked
       - name: Run Clippy (desktop prototype)
-        run: cargo clippy --manifest-path crates/archiaemu-desktop/Cargo.toml --all-targets --locked -- -D warnings
+        run: cargo clippy --manifest-path crates/peaceemu-desktop/Cargo.toml --all-targets --locked -- -D warnings
       - name: Check desktop package contents
-        run: cargo package --manifest-path crates/archiaemu-desktop/Cargo.toml --list --allow-dirty --locked
+        run: cargo package --manifest-path crates/peaceemu-desktop/Cargo.toml --list --allow-dirty --locked
       - name: Run Clippy (workspace)
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Audit dependencies and licenses
@@ -75,5 +75,5 @@ jobs:
         if: runner.os == 'Linux'
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          manifest-path: PeaceEmu/crates/archiaemu-desktop/Cargo.toml
+          manifest-path: PeaceEmu/crates/peaceemu-desktop/Cargo.toml
           command: check
