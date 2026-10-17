@@ -10,12 +10,12 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::{Duration, Instant};
 
-use host_app::controller::{ApplicationController, SessionCommand};
+use audio_output::AudioOutput;
 #[cfg(feature = "game-boy-color-module")]
 use emulation_core::content::{ContentFormatProbe, ContentLimits};
 use emulation_core::core_io::{FrameCadence, InputControl, InputEvent};
-use audio_output::AudioOutput;
 use game_view::{map_key_to_control, video_frame_to_image};
+use host_app::controller::{ApplicationController, SessionCommand};
 use preferences::{config_file_path, load_preferences, write_preferences_with_language};
 
 mod appearance_page;
@@ -37,12 +37,12 @@ mod shell;
 mod systems_page;
 mod theme;
 mod update;
+use eframe::egui;
 use emulation_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use emulation_core::runtime::SessionState;
 use emulation_core::CoreRegistry;
 #[cfg(feature = "game-boy-color-module")]
 use game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
-use eframe::egui;
 
 const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
@@ -333,7 +333,14 @@ impl DesktopApp {
                     };
                 }
                 Ok(None) => {}
-                Err(error) => message = if sys_locale::get_locale().is_some_and(|locale| locale.starts_with("fr")) { format!("Impossible de charger les préférences : {error}") } else { format!("Could not load preferences: {error}") },
+                Err(error) => {
+                    message =
+                        if sys_locale::get_locale().is_some_and(|locale| locale.starts_with("fr")) {
+                            format!("Impossible de charger les préférences : {error}")
+                        } else {
+                            format!("Could not load preferences: {error}")
+                        }
+                }
             }
         } else {
             message = "Preferences unavailable: no user config directory was found.".to_owned();
@@ -449,14 +456,24 @@ impl DesktopApp {
                 if rejected == 0 {
                     format!("{imported} ROM(s) importée(s) dans la bibliothèque.")
                 } else {
-                    let detail = if failures.is_empty() { String::new() } else { format!(" Détails : {}", failures.join("; ")) };
+                    let detail = if failures.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" Détails : {}", failures.join("; "))
+                    };
                     format!("{imported} ROM(s) importée(s) ; {rejected} fichier(s) ignoré(s) ou refusé(s).{detail}")
                 }
             } else if rejected == 0 {
                 format!("Imported {imported} ROM(s) into your library.")
             } else {
-                let detail = if failures.is_empty() { String::new() } else { format!(" Details: {}", failures.join("; ")) };
-                format!("Imported {imported} ROM(s); {rejected} file(s) skipped or rejected.{detail}")
+                let detail = if failures.is_empty() {
+                    String::new()
+                } else {
+                    format!(" Details: {}", failures.join("; "))
+                };
+                format!(
+                    "Imported {imported} ROM(s); {rejected} file(s) skipped or rejected.{detail}"
+                )
             };
             self.message = import_message.clone();
             if imported > 0 {
@@ -475,7 +492,11 @@ impl DesktopApp {
     fn launch_content(&mut self) {
         let path = self.content_path.trim();
         if path.is_empty() {
-            self.message = if self.language == "fr" { "Saisissez d’abord le chemin du contenu.".to_owned() } else { "Enter a content path first.".to_owned() };
+            self.message = if self.language == "fr" {
+                "Saisissez d’abord le chemin du contenu.".to_owned()
+            } else {
+                "Enter a content path first.".to_owned()
+            };
             return;
         }
 
@@ -487,7 +508,10 @@ impl DesktopApp {
                 self.message = if self.language == "fr" {
                     format!("Lancement annulé : impossible de libérer les entrées de la session {} : {error}", previous_id.get())
                 } else {
-                    format!("Launch cancelled: could not release inputs from session {}: {error}", previous_id.get())
+                    format!(
+                        "Launch cancelled: could not release inputs from session {}: {error}",
+                        previous_id.get()
+                    )
                 };
                 return;
             }
@@ -539,7 +563,13 @@ impl DesktopApp {
                 self.last_tick = Instant::now();
                 self.active_page = DesktopPage::Game;
             }
-            Err(error) => self.message = if self.language == "fr" { format!("Échec du lancement : {error}") } else { format!("Launch failed: {error}") },
+            Err(error) => {
+                self.message = if self.language == "fr" {
+                    format!("Échec du lancement : {error}")
+                } else {
+                    format!("Launch failed: {error}")
+                }
+            }
         }
     }
 
@@ -577,7 +607,11 @@ impl DesktopApp {
             &self.language,
             &paths,
         ) {
-            self.message = if self.language == "fr" { format!("Impossible d’enregistrer les préférences : {error}") } else { format!("Could not save preferences: {error}") };
+            self.message = if self.language == "fr" {
+                format!("Impossible d’enregistrer les préférences : {error}")
+            } else {
+                format!("Could not save preferences: {error}")
+            };
             return false;
         }
         true
@@ -643,7 +677,13 @@ impl DesktopApp {
                     format!("Session {} in-game save written.", id.get())
                 };
             }
-            Err(error) => self.message = if self.language == "fr" { format!("Échec de la sauvegarde du jeu : {error}") } else { format!("Game save failed: {error}") },
+            Err(error) => {
+                self.message = if self.language == "fr" {
+                    format!("Échec de la sauvegarde du jeu : {error}")
+                } else {
+                    format!("Game save failed: {error}")
+                }
+            }
         }
     }
 
@@ -684,7 +724,11 @@ impl DesktopApp {
         let failures = self.flush_dirty_game_saves();
         self.last_game_save = Instant::now();
         if !failures.is_empty() {
-            self.message = if self.language == "fr" { format!("Échec de la sauvegarde du jeu : {}", failures.join("; ")) } else { format!("Game save failed: {}", failures.join("; ")) };
+            self.message = if self.language == "fr" {
+                format!("Échec de la sauvegarde du jeu : {}", failures.join("; "))
+            } else {
+                format!("Game save failed: {}", failures.join("; "))
+            };
         }
     }
 
@@ -767,7 +811,13 @@ impl DesktopApp {
                     format!("Session {} state saved.", id.get())
                 };
             }
-            Err(error) => self.message = if self.language == "fr" { format!("Échec de la sauvegarde de l’état : {error}") } else { format!("Save state failed: {error}") },
+            Err(error) => {
+                self.message = if self.language == "fr" {
+                    format!("Échec de la sauvegarde de l’état : {error}")
+                } else {
+                    format!("Save state failed: {error}")
+                }
+            }
         }
     }
 
@@ -775,7 +825,11 @@ impl DesktopApp {
         let path = match self.save_state_path(id) {
             Ok(path) => path,
             Err(error) => {
-                self.message = if self.language == "fr" { format!("Échec du chargement de l’état : {error}") } else { format!("Load state failed: {error}") };
+                self.message = if self.language == "fr" {
+                    format!("Échec du chargement de l’état : {error}")
+                } else {
+                    format!("Load state failed: {error}")
+                };
                 return;
             }
         };
@@ -826,7 +880,13 @@ impl DesktopApp {
                     format!("Session {} state restored.", id.get())
                 };
             }
-            Err(error) => self.message = if self.language == "fr" { format!("Échec du chargement de l’état : {error}") } else { format!("Load state failed: {error}") },
+            Err(error) => {
+                self.message = if self.language == "fr" {
+                    format!("Échec du chargement de l’état : {error}")
+                } else {
+                    format!("Load state failed: {error}")
+                }
+            }
         }
     }
 
@@ -922,19 +982,31 @@ impl DesktopApp {
                 if self.language == "fr" {
                     format!("Session {} : opération « {} » réussie, mais la libération des entrées a échoué : {error}", id.get(), action.label())
                 } else {
-                    format!("Session {}: {} succeeded, but input release failed: {error}", id.get(), action.label())
+                    format!(
+                        "Session {}: {} succeeded, but input release failed: {error}",
+                        id.get(),
+                        action.label()
+                    )
                 }
             }
             (Ok(()), None) => {
                 if self.language == "fr" {
-                    format!("Session {} : opération « {} » réussie.", id.get(), action.label())
+                    format!(
+                        "Session {} : opération « {} » réussie.",
+                        id.get(),
+                        action.label()
+                    )
                 } else {
                     format!("Session {}: {} succeeded.", id.get(), action.label())
                 }
             }
             (Err(error), _) => {
                 if self.language == "fr" {
-                    format!("Session {} : échec de l’opération « {} » : {error}", id.get(), action.label())
+                    format!(
+                        "Session {} : échec de l’opération « {} » : {error}",
+                        id.get(),
+                        action.label()
+                    )
                 } else {
                     format!("Session {}: {} failed: {error}", id.get(), action.label())
                 }
@@ -1279,7 +1351,11 @@ impl DesktopApp {
             .map_err(|error| error.to_string());
         if let Err(error) = result {
             if !error.contains("unsupported") && !error.contains("input") {
-                self.message = if self.language == "fr" { format!("Erreur de saisie : {error}") } else { format!("Input error: {error}") };
+                self.message = if self.language == "fr" {
+                    format!("Erreur de saisie : {error}")
+                } else {
+                    format!("Input error: {error}")
+                };
             }
         }
     }
@@ -1346,9 +1422,7 @@ mod preference_tests {
             concat!("PeaceEmu ", env!("CARGO_PKG_VERSION"))
         );
         assert!(cli_message("--help").unwrap().contains("--version"));
-        assert!(cli_message("-h")
-            .unwrap()
-            .contains("Usage: desktop-app"));
+        assert!(cli_message("-h").unwrap().contains("Usage: desktop-app"));
         assert_eq!(
             cli_message("--unknown").unwrap_err(),
             "unknown argument: --unknown; try --help"
