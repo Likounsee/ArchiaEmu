@@ -1,4 +1,4 @@
-//! sessions page for the ArchiaEmu desktop frontend.
+//! sessions page for the PeaceEmu desktop frontend.
 
 use super::*;
 
@@ -519,7 +519,7 @@ impl DesktopApp {
                             .as_deref()
                             .unwrap_or("none recorded");
                         let report = format!(
-                            "ArchiaEmu session diagnostics\nSession ID: {}\nActive: {}\nState: {:?}\nSystem: {}\nContent loaded: {}\nSource path: {}\nVideo capability: {}\nAudio capability: {}\nLast tick/media error: {}\nLast core error: {}",
+                            "PeaceEmu session diagnostics\nSession ID: {}\nActive: {}\nState: {:?}\nSystem: {}\nContent loaded: {}\nSource path: {}\nVideo capability: {}\nAudio capability: {}\nLast tick/media error: {}\nLast core error: {}",
                             id.get(),
                             self.controller.active_session() == Some(id),
                             state,
