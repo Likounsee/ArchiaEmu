@@ -326,7 +326,7 @@ impl InstallJournal {
             return Err(InstallJournalError::TooLarge);
         }
         let mut lines = input.lines();
-        if !is_supported_header(lines.next(), HEADER, "INSTALL-JOURNAL\t1") {
+        if lines.next() != Some(HEADER) {
             return Err(InstallJournalError::InvalidFormat);
         }
         let mut module = None;
@@ -441,34 +441,6 @@ fn sync_parent_directory(parent: &Path) -> io::Result<()> {
 #[cfg(not(unix))]
 fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
     Ok(())
-}
-
-// Accept the stable version-1 journal suffix across product identity changes
-// without keeping historical branding in executable code.
-fn is_supported_header(actual: Option<&str>, current: &str, suffix: &str) -> bool {
-    if actual == Some(current) {
-        return true;
-    }
-    let Some(prefix) = actual.and_then(|value| value.strip_suffix(suffix)) else {
-        return false;
-    };
-    let Some(token) = prefix.strip_suffix('-') else {
-        return false;
-    };
-    !token.is_empty()
-        && token
-            .bytes()
-            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'-')
-}
-
-fn encode_hex(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        output.push(HEX[(byte >> 4) as usize] as char);
-        output.push(HEX[(byte & 0x0f) as usize] as char);
-    }
-    output
 }
 
 fn decode_hex(value: &str) -> Result<Vec<u8>, InstallJournalError> {
@@ -774,15 +746,6 @@ mod tests {
             Err(InstallJournalError::InvalidFormat)
         ));
         fs::remove_dir_all(directory).unwrap();
-    }
-
-    #[test]
-    fn decoder_accepts_versioned_journal_header_from_previous_identity() {
-        let journal = InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
-        let text = journal
-            .encode()
-            .replace("PEACEEMU-INSTALL-JOURNAL\t1", "PREVIOUS-INSTALL-JOURNAL\t1");
-        assert_eq!(InstallJournal::decode(&text).unwrap(), journal);
     }
 
     #[test]
