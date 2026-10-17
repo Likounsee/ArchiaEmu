@@ -78,7 +78,7 @@ impl DesktopApp {
                 ui.colored_label(
                     egui::Color32::LIGHT_RED,
                     if french {
-                        format!("État des modules indisponible : {error}")
+                        if french { format!("État des modules indisponible : {error}") } else { format!("Module state unavailable: {error}") }
                     } else {
                         format!("État des modules indisponible : {error}")
                     },
@@ -99,7 +99,7 @@ impl DesktopApp {
                     if french {
                         format!("Impossible de lire l’état des modules : {error}")
                     } else {
-                        format!("Impossible de charger l’état des modules : {error}")
+                        if french { format!("Impossible de charger l’état des modules : {error}") } else { format!("Could not load module state: {error}") }
                     },
                 );
                 ui.label(if french {
@@ -290,7 +290,7 @@ impl DesktopApp {
                     self.message = if french {
                         format!("Échec de l’enregistrement de la sélection : {error}")
                     } else {
-                        format!("Impossible d’enregistrer la sélection des modules : {error}")
+                        if french { format!("Impossible d’enregistrer la sélection des modules : {error}") } else { format!("Could not save module selection: {error}") }
                     };
                 }
             }
