@@ -17,9 +17,7 @@ fn toggle_switch(ui: &mut egui::Ui, palette: &theme::Palette, on: &mut bool) -> 
         *on = !*on;
         toggled = true;
     }
-    let openness = ui
-        .ctx()
-        .animate_bool_with_time(response.id, *on, 0.12);
+    let openness = ui.ctx().animate_bool_with_time(response.id, *on, 0.12);
     let radius = rect.height() / 2.0;
     let off_track = if palette.dark {
         palette.border
@@ -60,7 +58,13 @@ fn module_tile(ui: &mut egui::Ui, palette: &theme::Palette, name: &str) {
 }
 
 /// A small summary card: label, big number, detail line.
-fn stat_card(ui: &mut egui::Ui, palette: &theme::Palette, label: &str, value: String, detail: &str) {
+fn stat_card(
+    ui: &mut egui::Ui,
+    palette: &theme::Palette,
+    label: &str,
+    value: String,
+    detail: &str,
+) {
     theme::card(ui, palette, |ui| {
         ui.set_width(ui.available_width());
         ui.label(
