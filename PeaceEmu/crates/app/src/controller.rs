@@ -9,11 +9,11 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use archiaemu_core::content::{detect_content_formats, ContentFormatProbe, ContentLimits};
-use archiaemu_core::core_io::{AudioBuffer, FrameCadence, InputEvent, VideoFrame};
-use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeError, SessionId};
-use archiaemu_core::runtime::{SessionError, SessionState};
-use archiaemu_core::CoreRegistry;
+use emulation_core::content::{detect_content_formats, ContentFormatProbe, ContentLimits};
+use emulation_core::core_io::{AudioBuffer, FrameCadence, InputEvent, VideoFrame};
+use emulation_core::host_runtime::{HostRuntime, HostRuntimeError, SessionId};
+use emulation_core::runtime::{SessionError, SessionState};
+use emulation_core::CoreRegistry;
 
 use crate::library::{
     ContentEntry, ContentFormatDetection, ContentLibrary, ContentLibraryError, ContentValidation,
@@ -101,7 +101,7 @@ pub struct SessionSummary {
 
 /// Converts probe results without claiming a definitive match while any probe is undecided.
 fn content_format_detection(
-    detection: archiaemu_core::content::ContentDetection,
+    detection: emulation_core::content::ContentDetection,
 ) -> ContentFormatDetection {
     if !detection.needs_more_data.is_empty() {
         ContentFormatDetection::NeedsMoreData
@@ -479,7 +479,7 @@ impl ApplicationController {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use archiaemu_game_boy::GameBoyColorCore;
+    use game_boy::GameBoyColorCore;
     use std::collections::VecDeque;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
@@ -490,7 +490,7 @@ mod tests {
 
     #[test]
     fn format_detection_stays_incomplete_when_a_probe_needs_more_data() {
-        let detection = archiaemu_core::content::ContentDetection {
+        let detection = emulation_core::content::ContentDetection {
             matches: vec!["known-format"],
             needs_more_data: vec![("possible-format", 8192)],
         };
@@ -503,7 +503,7 @@ mod tests {
 
     #[test]
     fn format_detection_reports_ambiguity_when_multiple_probes_match() {
-        let detection = archiaemu_core::content::ContentDetection {
+        let detection = emulation_core::content::ContentDetection {
             matches: vec!["format-a", "format-b"],
             needs_more_data: Vec::new(),
         };
@@ -516,7 +516,7 @@ mod tests {
 
     #[test]
     fn format_detection_reports_no_match_only_when_all_probes_decide() {
-        let detection = archiaemu_core::content::ContentDetection::default();
+        let detection = emulation_core::content::ContentDetection::default();
 
         assert_eq!(
             content_format_detection(detection),
@@ -727,24 +727,24 @@ mod tests {
         run_count: Arc<AtomicUsize>,
     }
 
-    impl archiaemu_core::EmulationCore for AudioQueueCore {
-        fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
-            archiaemu_core::CoreDescriptor {
-                api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
-                system_id: archiaemu_core::SystemId::new("audio-test").unwrap(),
+    impl emulation_core::EmulationCore for AudioQueueCore {
+        fn descriptor(&self) -> emulation_core::CoreDescriptor {
+            emulation_core::CoreDescriptor {
+                api_version: emulation_core::CURRENT_CORE_API_VERSION,
+                system_id: emulation_core::SystemId::new("audio-test").unwrap(),
                 display_name: "Audio test core",
                 core_version: "0.0.0-test",
-                capabilities: archiaemu_core::CoreCapabilities {
+                capabilities: emulation_core::CoreCapabilities {
                     content_loading: true,
                     audio_output: true,
-                    ..archiaemu_core::CoreCapabilities::default()
+                    ..emulation_core::CoreCapabilities::default()
                 },
             }
         }
 
-        fn load_content(&mut self, content: &[u8]) -> Result<(), archiaemu_core::CoreError> {
+        fn load_content(&mut self, content: &[u8]) -> Result<(), emulation_core::CoreError> {
             if content.is_empty() {
-                return Err(archiaemu_core::CoreError::InvalidContent(
+                return Err(emulation_core::CoreError::InvalidContent(
                     "empty test content",
                 ));
             }
@@ -752,22 +752,22 @@ mod tests {
             Ok(())
         }
 
-        fn reset(&mut self) -> Result<(), archiaemu_core::CoreError> {
+        fn reset(&mut self) -> Result<(), emulation_core::CoreError> {
             self.loaded = true;
             Ok(())
         }
 
         fn run_until_event(
             &mut self,
-        ) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
+        ) -> Result<emulation_core::CoreEvent, emulation_core::CoreError> {
             if !self.loaded {
-                return Err(archiaemu_core::CoreError::NotInitialized);
+                return Err(emulation_core::CoreError::NotInitialized);
             }
             self.run_count.fetch_add(1, Ordering::SeqCst);
-            Ok(archiaemu_core::CoreEvent::Yielded)
+            Ok(emulation_core::CoreEvent::Yielded)
         }
 
-        fn take_audio_buffer(&mut self) -> Result<Option<AudioBuffer>, archiaemu_core::CoreError> {
+        fn take_audio_buffer(&mut self) -> Result<Option<AudioBuffer>, emulation_core::CoreError> {
             Ok(self.pending_audio.pop_front())
         }
     }
@@ -776,25 +776,25 @@ mod tests {
         loaded: bool,
     }
 
-    impl archiaemu_core::EmulationCore for FailingMediaCore {
-        fn descriptor(&self) -> archiaemu_core::CoreDescriptor {
-            archiaemu_core::CoreDescriptor {
-                api_version: archiaemu_core::CURRENT_CORE_API_VERSION,
-                system_id: archiaemu_core::SystemId::new("failing-media-test").unwrap(),
+    impl emulation_core::EmulationCore for FailingMediaCore {
+        fn descriptor(&self) -> emulation_core::CoreDescriptor {
+            emulation_core::CoreDescriptor {
+                api_version: emulation_core::CURRENT_CORE_API_VERSION,
+                system_id: emulation_core::SystemId::new("failing-media-test").unwrap(),
                 display_name: "Failing media test core",
                 core_version: "0.0.0-test",
-                capabilities: archiaemu_core::CoreCapabilities {
+                capabilities: emulation_core::CoreCapabilities {
                     content_loading: true,
                     video_output: true,
                     audio_output: true,
-                    ..archiaemu_core::CoreCapabilities::default()
+                    ..emulation_core::CoreCapabilities::default()
                 },
             }
         }
 
-        fn load_content(&mut self, content: &[u8]) -> Result<(), archiaemu_core::CoreError> {
+        fn load_content(&mut self, content: &[u8]) -> Result<(), emulation_core::CoreError> {
             if content.is_empty() {
-                return Err(archiaemu_core::CoreError::InvalidContent(
+                return Err(emulation_core::CoreError::InvalidContent(
                     "empty test content",
                 ));
             }
@@ -802,30 +802,30 @@ mod tests {
             Ok(())
         }
 
-        fn reset(&mut self) -> Result<(), archiaemu_core::CoreError> {
+        fn reset(&mut self) -> Result<(), emulation_core::CoreError> {
             self.loaded = true;
             Ok(())
         }
 
         fn run_until_event(
             &mut self,
-        ) -> Result<archiaemu_core::CoreEvent, archiaemu_core::CoreError> {
+        ) -> Result<emulation_core::CoreEvent, emulation_core::CoreError> {
             if !self.loaded {
-                return Err(archiaemu_core::CoreError::NotInitialized);
+                return Err(emulation_core::CoreError::NotInitialized);
             }
-            Err(archiaemu_core::CoreError::Execution(
+            Err(emulation_core::CoreError::Execution(
                 "primary execution failure",
             ))
         }
 
-        fn take_video_frame(&mut self) -> Result<Option<VideoFrame>, archiaemu_core::CoreError> {
-            Err(archiaemu_core::CoreError::Execution(
+        fn take_video_frame(&mut self) -> Result<Option<VideoFrame>, emulation_core::CoreError> {
+            Err(emulation_core::CoreError::Execution(
                 "secondary video failure",
             ))
         }
 
-        fn take_audio_buffer(&mut self) -> Result<Option<AudioBuffer>, archiaemu_core::CoreError> {
-            Err(archiaemu_core::CoreError::Execution(
+        fn take_audio_buffer(&mut self) -> Result<Option<AudioBuffer>, emulation_core::CoreError> {
+            Err(emulation_core::CoreError::Execution(
                 "secondary audio failure",
             ))
         }
@@ -1141,7 +1141,7 @@ mod tests {
 
     #[test]
     fn ambiguous_format_rejection_does_not_create_a_session() {
-        use archiaemu_core::content::FormatProbeResult;
+        use emulation_core::content::FormatProbeResult;
         use std::time::{SystemTime, UNIX_EPOCH};
 
         struct AlwaysMatch(&'static str);
@@ -1286,7 +1286,7 @@ mod tests {
             .expect("system clock should be after the Unix epoch")
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "archiaemu-core-rejection-{}-{nonce}",
+            "emulation-core-rejection-{}-{nonce}",
             std::process::id()
         ));
         std::fs::create_dir(&root).unwrap();
@@ -1307,11 +1307,11 @@ mod tests {
         let mut registry = CoreRegistry::new();
         registry
             .register(
-                archiaemu_core::SystemId::new(archiaemu_game_boy::SYSTEM_ID).unwrap(),
+                emulation_core::SystemId::new(game_boy::SYSTEM_ID).unwrap(),
                 || Box::new(GameBoyColorCore::new()),
             )
             .unwrap();
-        let probe = archiaemu_game_boy::GameBoyColorCartridgeProbe;
+        let probe = game_boy::GameBoyColorCartridgeProbe;
 
         let mut app = controller();
         let canonical_rom = app
@@ -1358,8 +1358,8 @@ mod tests {
 
     #[test]
     fn successful_library_launch_loads_content_and_supports_session_lifecycle() {
-        use archiaemu_core::content::ContentFormatProbe;
-        use archiaemu_game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
+        use emulation_core::content::ContentFormatProbe;
+        use game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
         use std::time::{SystemTime, UNIX_EPOCH};
 
         let nonce = SystemTime::now()
