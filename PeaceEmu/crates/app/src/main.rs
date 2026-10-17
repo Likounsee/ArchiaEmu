@@ -7,13 +7,13 @@ use std::error::Error;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
-use host_app::controller::ApplicationController;
 use emulation_core::content::{ContentFormatProbe, ContentLimits};
 use emulation_core::core_io::{InputControl, InputEvent};
 use emulation_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use emulation_core::save_state_store::SaveStateStore;
 use emulation_core::CoreRegistry;
 use game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
+use host_app::controller::ApplicationController;
 
 use host_app::library::ContentLibraryError;
 
