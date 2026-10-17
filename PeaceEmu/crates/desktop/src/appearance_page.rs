@@ -86,9 +86,9 @@ impl DesktopApp {
         );
         ui.label(
             egui::RichText::new(if french {
-                "Modifiez l’aspect d’ArchiaEmu sur cet ordinateur. Vos choix sont enregistrés localement."
+                "Modifiez l’aspect d’PeaceEmu sur cet ordinateur. Vos choix sont enregistrés localement."
             } else {
-                "Change how ArchiaEmu looks on this computer. Your choices are saved locally."
+                "Change how PeaceEmu looks on this computer. Your choices are saved locally."
             })
             .color(palette.text_dim),
         );
