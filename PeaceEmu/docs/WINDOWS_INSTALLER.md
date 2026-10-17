@@ -1,13 +1,13 @@
 # Windows installer packaging
 
-ArchiaEmu uses **Inno Setup 6** for its initial Windows x64 installer. The script is
-`packaging/windows/ArchiaEmu.iss`; the CI workflow is
+PeaceEmu uses **Inno Setup 6** for its initial Windows x64 installer. The script is
+`packaging/windows/PeaceEmu.iss`; the CI workflow is
 `.github/workflows/windows-installer.yml` at the repository root.
 
 ## Build from a clean Windows runner
 
 The workflow builds the desktop crate in release mode, stages
-`archiaemu-desktop.exe`, compiles a versioned `ArchiaEmu-Setup-<version>.exe`,
+`archiaemu-desktop.exe`, compiles a versioned `PeaceEmu-Setup-<version>.exe`,
 runs a silent install/start/uninstall smoke test on the Windows runner, and emits a
 SHA-256 sidecar file. The smoke test checks the installed binary's exact version,
 documented help options, actionable rejection of unknown CLI options, Start Menu
@@ -28,7 +28,7 @@ claiming reproducible release builds.
 - Installation is per-user by default, with an option to elevate if the user chooses
   a machine-wide destination.
 - Application preferences remain in the Windows user configuration directory
-  (`%APPDATA%\ArchiaEmu\desktop.conf`), not in the installation directory.
+  (`%APPDATA%\PeaceEmu\desktop.conf`), not in the installation directory.
 - Uninstall removes installed program files and shortcuts. It asks whether known
   settings/log/cache locations should also be removed; ROMs and arbitrary user files
   must never be deleted by uninstall.
