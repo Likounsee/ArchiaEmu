@@ -38,7 +38,7 @@ pub(crate) fn config_file_path() -> Option<PathBuf> {
                 .filter(|value| !value.is_empty())
                 .map(|home| PathBuf::from(home).join(".config"))
         });
-    base.map(|directory| directory.join("ArchiaEmu").join("desktop.conf"))
+    base.map(|directory| directory.join("PeaceEmu").join("desktop.conf"))
 }
 
 fn ensure_regular_preferences_file(path: &Path) -> std::io::Result<()> {
