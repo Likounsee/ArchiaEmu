@@ -87,7 +87,7 @@ mod tests {
             .expect("system clock before epoch")
             .as_nanos();
         let directory = std::env::temp_dir().join(format!(
-            "archiaemu-write-through-{}-{nonce}",
+            "filesystem-write-through-{}-{nonce}",
             std::process::id()
         ));
         fs::create_dir_all(&directory).unwrap();
