@@ -201,30 +201,47 @@ impl DesktopApp {
                     .active_session()
                     .map(|id| id.get().to_string())
                     .unwrap_or_else(|| "none".to_owned());
-                let report = format!(
-                    "ArchiaEmu {}\nPlatform: {} / {}\nLibrary items: {}\nOpen sessions: {}\nActive session: {}\nExecution errors: {}\nConfiguration: {}\nMedia status: {}\nUpdate status: {}\nStaged update: {}\nLatest message: {}\nRecent errors:\n{}",
-                    option_env!("CARGO_PKG_VERSION").unwrap_or("unknown"),
-                    std::env::consts::OS,
-                    std::env::consts::ARCH,
-                    self.controller.library().len(),
-                    self.controller.session_summaries().len(),
-                    active_session,
-                    self.last_tick_errors.len(),
-                    self.config_path
-                        .as_deref()
-                        .map(|path| path.display().to_string())
-                        .unwrap_or_else(|| "unavailable".to_owned()),
-                    self.media_status,
-                    self.update_status,
-                    self.staged_update_path
-                        .as_deref()
-                        .map(|path| path.display().to_string())
-                        .unwrap_or_else(|| "none".to_owned()),
-                    self.message,
-                    recent_errors
-                );
+                let report = if self.language == "fr" {
+                    format!(
+                        "ArchiaEmu {}\nPlateforme : {} / {}\nÉléments de la bibliothèque : {}\nSessions ouvertes : {}\nSession active : {}\nErreurs d’exécution : {}\nConfiguration : {}\nÉtat des médias : {}\nÉtat des mises à jour : {}\nMise à jour préparée : {}\nDernier message : {}\nErreurs récentes :\n{}",
+                        option_env!("CARGO_PKG_VERSION").unwrap_or("inconnue"),
+                        std::env::consts::OS,
+                        std::env::consts::ARCH,
+                        self.controller.library().len(),
+                        self.controller.session_summaries().len(),
+                        active_session,
+                        self.last_tick_errors.len(),
+                        self.config_path.as_deref().map(|path| path.display().to_string()).unwrap_or_else(|| "indisponible".to_owned()),
+                        self.media_status,
+                        self.update_status,
+                        self.staged_update_path.as_deref().map(|path| path.display().to_string()).unwrap_or_else(|| "aucune".to_owned()),
+                        self.message,
+                        recent_errors
+                    )
+                } else {
+                    format!(
+                        "ArchiaEmu {}\nPlatform: {} / {}\nLibrary items: {}\nOpen sessions: {}\nActive session: {}\nExecution errors: {}\nConfiguration: {}\nMedia status: {}\nUpdate status: {}\nStaged update: {}\nLatest message: {}\nRecent errors:\n{}",
+                        option_env!("CARGO_PKG_VERSION").unwrap_or("unknown"),
+                        std::env::consts::OS,
+                        std::env::consts::ARCH,
+                        self.controller.library().len(),
+                        self.controller.session_summaries().len(),
+                        active_session,
+                        self.last_tick_errors.len(),
+                        self.config_path.as_deref().map(|path| path.display().to_string()).unwrap_or_else(|| "unavailable".to_owned()),
+                        self.media_status,
+                        self.update_status,
+                        self.staged_update_path.as_deref().map(|path| path.display().to_string()).unwrap_or_else(|| "none".to_owned()),
+                        self.message,
+                        recent_errors
+                    )
+                };
                 ui.output_mut(|output| output.copied_text = report);
-                self.message = "Diagnostics copied to clipboard.".to_owned();
+                self.message = if self.language == "fr" {
+                    "Diagnostic copié dans le presse-papiers.".to_owned()
+                } else {
+                    "Diagnostics copied to clipboard.".to_owned()
+                };
             }
         });
     }
