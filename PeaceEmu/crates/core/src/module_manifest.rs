@@ -197,9 +197,9 @@ pub struct ManifestModule {
     pub id: ModuleId,
     /// Package version.
     pub version: ReleaseVersion,
-    /// Minimum compatible ArchiaEmu version, inclusive.
+    /// Minimum compatible PeaceEmu version, inclusive.
     pub min_app_version: ReleaseVersion,
-    /// First incompatible ArchiaEmu version, exclusive.
+    /// First incompatible PeaceEmu version, exclusive.
     pub max_app_version_exclusive: Option<ReleaseVersion>,
     /// Explicitly supported operating-system and CPU combinations.
     pub targets: Vec<ModuleTarget>,
@@ -312,7 +312,7 @@ impl fmt::Display for ManifestError {
             Self::ModuleNotInstallable(id) => write!(f, "module {id} is not installable yet"),
             Self::IncompatibleApplicationVersion(id) => write!(
                 f,
-                "module '{id}' is incompatible with this ArchiaEmu version"
+                "module '{id}' is incompatible with this PeaceEmu version"
             ),
             Self::ArtifactSizeOverflow => {
                 f.write_str("total module download size exceeds the supported range")
