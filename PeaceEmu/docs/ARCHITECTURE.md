@@ -52,7 +52,7 @@ Future consoles should use the same integration shape without forcing their hard
 
 ## CPU execution and graphics translation strategies
 
-ArchiaEmu uses one application, one session lifecycle and one host/core integration contract. CPU execution strategy is selected inside the console-module boundary; it must not create a separate frontend or a second host runtime.
+PeaceEmu uses one application, one session lifecycle and one host/core integration contract. CPU execution strategy is selected inside the console-module boundary; it must not create a separate frontend or a second host runtime.
 
 ### CPU strategy is explicit, not inferred from a console label
 
