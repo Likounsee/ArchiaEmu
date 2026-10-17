@@ -7,12 +7,12 @@
 //! not decide which keys are trusted; callers must pin approved public keys in the
 //! application and must not accept keys fetched from the same untrusted catalogue.
 
+use ed25519_dalek::{Signature, VerifyingKey};
 use emulation_core::module_manifest::ModuleManifest;
 use emulation_core::module_manifest_trust::{
     ManifestSignatureVerifier, ManifestTrustError, ManifestTrustPolicy, SignatureVerificationError,
     SignedManifestEnvelope,
 };
-use ed25519_dalek::{Signature, VerifyingKey};
 use serde::Deserialize;
 
 /// Ed25519 signature verifier backed by the reviewed ed25519-dalek implementation.
