@@ -114,7 +114,7 @@ impl DesktopApp {
                     ui.label(if self.language == "fr" {
                         format!("La version installée ({current}) est plus récente que le manifeste stable ({version}).")
                     } else {
-                        format!("Installed version ({current}) is newer than the stable manifest ({version}).")
+                        format!("La version installée ({current}) est plus récente que le manifeste stable ({version}).")
                     });
                 } else {
                     ui.label(if self.language == "fr" { format!("ArchiaEmu est à jour ({current}).") } else { format!("ArchiaEmu is up to date ({current}).") });
@@ -185,7 +185,7 @@ impl DesktopApp {
             if !self.last_tick_errors.is_empty() {
                 ui.colored_label(egui::Color32::LIGHT_RED, if self.language == "fr" { "Erreurs récentes des sessions" } else { "Recent session errors" });
                 for (session_id, error) in self.last_tick_errors.iter().take(5) {
-                    ui.label(if self.language == "fr" { format!("Session {} : {error}", session_id.get()) } else { format!("Session {}: {error}", session_id.get()) });
+                    ui.label(if self.language == "fr" { format!("Session {} : {error}", session_id.get()) } else { format!("Session {} : {error}", session_id.get()) });
                 }
             }
             if ui.button(if self.language == "fr" { "Copier le diagnostic" } else { "Copy diagnostics to clipboard" }).clicked() {
