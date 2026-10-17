@@ -1,5 +1,5 @@
 [package]
-name = "archiaemu-windows-durability"
+name = "windows-durability"
 version = "0.1.0"
 description = "Write-through filesystem rename helper for PeaceEmu on Windows"
 edition.workspace = true
