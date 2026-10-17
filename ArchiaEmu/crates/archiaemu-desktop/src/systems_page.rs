@@ -77,7 +77,11 @@ impl DesktopApp {
             Err(error) => {
                 ui.colored_label(
                     egui::Color32::LIGHT_RED,
-                    if french { format!("État des modules indisponible : {error}") } else { format!("Module state unavailable: {error}") },
+                    if french {
+                        format!("État des modules indisponible : {error}")
+                    } else {
+                        format!("Module state unavailable: {error}")
+                    },
                 );
                 return;
             }
@@ -92,7 +96,11 @@ impl DesktopApp {
             archiaemu_app::view_state::ViewState::Error(error) => {
                 ui.colored_label(
                     egui::Color32::LIGHT_RED,
-                    if french { format!("Impossible de lire l’état des modules : {error}") } else { format!("Could not load module state: {error}") },
+                    if french {
+                        format!("Impossible de lire l’état des modules : {error}")
+                    } else {
+                        format!("Could not load module state: {error}")
+                    },
                 );
                 ui.label(if french {
                     "Le fichier d’état est conservé pour permettre sa récupération ; aucune sélection n’a été écrasée."
@@ -130,7 +138,11 @@ impl DesktopApp {
         }
 
         ui.add_space(8.0);
-        ui.heading(if french { "Modules disponibles" } else { "Available modules" });
+        ui.heading(if french {
+            "Modules disponibles"
+        } else {
+            "Available modules"
+        });
         ui.label(if french {
             "Activez uniquement les modules que vous souhaitez utiliser. Les modules absents de cette compilation restent désactivés."
         } else {
@@ -144,7 +156,11 @@ impl DesktopApp {
                     egui::Color32::LIGHT_RED,
                     format!(
                         "{}: {}",
-                        if french { "Identifiant non valide" } else { "Invalid module ID" },
+                        if french {
+                            "Identifiant non valide"
+                        } else {
+                            "Invalid module ID"
+                        },
                         id.as_str()
                     ),
                 );
@@ -179,7 +195,13 @@ impl DesktopApp {
                             });
                         });
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.checkbox(&mut is_selected, if french { "Activé" } else { "Enabled" }).changed() {
+                            if ui
+                                .checkbox(
+                                    &mut is_selected,
+                                    if french { "Activé" } else { "Enabled" },
+                                )
+                                .changed()
+                            {
                                 changed = true;
                                 if is_selected {
                                     if !selected.contains(&module_id) {
@@ -195,7 +217,11 @@ impl DesktopApp {
                         let caps = descriptor.capabilities;
                         ui.add_space(8.0);
                         ui.separator();
-                        ui.label(egui::RichText::new(if french { "CAPACITÉS" } else { "CAPABILITIES" }).small().strong());
+                        ui.label(
+                            egui::RichText::new(if french { "CAPACITÉS" } else { "CAPABILITIES" })
+                                .small()
+                                .strong(),
+                        );
                         ui.add_space(4.0);
                         ui.horizontal_wrapped(|ui| {
                             for (label, enabled) in [
