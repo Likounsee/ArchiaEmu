@@ -44,19 +44,6 @@ impl DesktopApp {
             )
             .show(context, |ui| {
                 ui.spacing_mut().item_spacing = egui::vec2(0.0, 8.0);
-                let (slot, _) =
-                    ui.allocate_exact_size(egui::vec2(44.0, 44.0), egui::Sense::hover());
-                let logo = egui::Rect::from_center_size(slot.center(), egui::vec2(40.0, 40.0));
-                ui.painter()
-                    .rect_filled(logo, egui::Rounding::same(10.0), palette.accent);
-                ui.painter().text(
-                    logo.center(),
-                    egui::Align2::CENTER_CENTER,
-                    "P",
-                    egui::FontId::proportional(22.0),
-                    palette.on_accent,
-                );
-                ui.add_space(12.0);
                 for page in [
                     DesktopPage::Home,
                     DesktopPage::Library,

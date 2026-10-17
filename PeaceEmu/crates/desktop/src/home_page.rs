@@ -5,20 +5,6 @@ use super::*;
 impl DesktopApp {
     pub(super) fn show_home(&mut self, ui: &mut egui::Ui) {
         let french = self.language == "fr";
-        if self.logo_texture.is_none() {
-            if let Ok(image) =
-                image::load_from_memory(include_bytes!("../assets/peaceemu-logo.png"))
-            {
-                let image = image.to_rgba8();
-                let size = [image.width() as usize, image.height() as usize];
-                self.logo_texture = Some(ui.ctx().load_texture(
-                    "peaceemu-logo",
-                    egui::ColorImage::from_rgba_unmultiplied(size, image.as_raw()),
-                    egui::TextureOptions::LINEAR,
-                ));
-            }
-        }
-        let logo_texture = self.logo_texture.as_ref().map(egui::TextureHandle::id);
         let accent = self.accent_color;
         let panel = ui.visuals().faint_bg_color;
         let border = ui.visuals().widgets.noninteractive.bg_stroke;
@@ -39,11 +25,6 @@ impl DesktopApp {
                 ui.set_min_height(172.0);
                 ui.columns(2, |columns| {
                     columns[0].vertical(|ui| {
-                        if let Some(logo_id) = logo_texture {
-                            ui.add_space(1.0);
-                            ui.add(egui::Image::new((logo_id, egui::vec2(180.0, 100.0))));
-                            ui.add_space(2.0);
-                        }
                         ui.label(
                             egui::RichText::new(if french {
                                 "VOTRE ESPACE D’ÉMULATION"
