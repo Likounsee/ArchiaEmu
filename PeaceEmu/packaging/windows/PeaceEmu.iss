@@ -65,7 +65,7 @@ begin
   if not UninstallSilent then
     RemoveUserSettings :=
       MsgBox(
-        'Do you also want to delete existing PeaceEmu/ArchiaEmu settings, logs and cache? ROMs and files outside the existing settings/log/cache folders will not be deleted.',
+        'Do you also want to delete legacy settings, logs and cache? ROMs and files outside the existing settings/log/cache folders will not be deleted.',
         mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
 end;
 
