@@ -1,8 +1,8 @@
-# ArchiaEmu — roadmap orientée application d'abord
+# PeaceEmu — roadmap orientée application d'abord
 
 ## Direction du projet
 
-**Ordre de priorité non négociable : rendre d'abord l'application ArchiaEmu réellement utilisable, puis développer et intégrer les modules de systèmes/console.** Pour la première étape, on travaille sur l'application générique, son interface, ses parcours utilisateur, son architecture frontend/backend, sa bibliothèque, ses sessions, ses paramètres, ses diagnostics, sa stabilité et sa distribution. On ne développe pas de fonctionnalités matérielles propres à une console pendant cette phase, sauf cœur factice ou adaptateur minimal nécessaire pour tester un contrat commun.
+**Ordre de priorité non négociable : rendre d'abord l'application PeaceEmu réellement utilisable, puis développer et intégrer les modules de systèmes/console.** Pour la première étape, on travaille sur l'application générique, son interface, ses parcours utilisateur, son architecture frontend/backend, sa bibliothèque, ses sessions, ses paramètres, ses diagnostics, sa stabilité et sa distribution. On ne développe pas de fonctionnalités matérielles propres à une console pendant cette phase, sauf cœur factice ou adaptateur minimal nécessaire pour tester un contrat commun.
 
 Les fondations du runtime et des modules déjà présentes sont conservées et corrigées si nécessaire, mais leur présence ne signifie pas qu'il faut continuer à enrichir le système de modules avant que l'application soit utilisable. Le terminal reste un outil de diagnostic; il ne remplace pas l'application desktop.
 
@@ -48,7 +48,7 @@ Le runtime commun, le cycle de vie des sessions, les capacités, le registre, le
 
 ### Suivi des demandes UI (en attente de validation)
 
-Les changements suivants ont été poussés sur `ArchiaEmu`, mais ne sont pas encore considérés comme validés tant que les quality gates et la CI du commit ne sont pas observés :
+Les changements suivants ont été poussés sur `PeaceEmu`, mais ne sont pas encore considérés comme validés tant que les quality gates et la CI du commit ne sont pas observés :
 
 - Suppression de la barre de statut inférieure du shell desktop.
 - Suppression du contrôle d’échelle de l’interface dans les paramètres d’apparence; le paramètre interne existant est conservé pour ne pas casser les préférences déjà enregistrées.
@@ -228,9 +228,9 @@ Cette étape est obligatoire avant de déclarer P1 terminé. La cible initiale d
 - [x] Limiter le nettoyage d'un téléchargement échoué aux fichiers de staging créés par cette tentative et finaliser le fichier vérifié via une création de lien atomique qui échoue si la destination existe, sans écrasement; tests ajoutés pour le conflit (fichier existant préservé) et le chemin nominal (contenu identique aux deux chemins), exécution à confirmer en CI.
 - [x] Refuser les versions d'application non canoniques avec zéros initiaux dans les composants numériques du manifeste et valider à nouveau la version avant toute création de staging; tests couvrant les versions invalides avant accès réseau, exécution à confirmer en CI.
 - [x] Rejeter les clés de plateforme inconnues dans le manifeste updater au lieu de les ignorer silencieusement; test de régression pour une clé erronée ajoutée, exécution à confirmer en CI.
-- [x] Restreindre aussi l'URL des notes de version au chemin des releases du dépôt officiel `Likounsee/ArchiaEmu`; tests couvrant domaines, dépôts, préfixes trompeurs, identifiants et ports non autorisés, exécution à confirmer en CI.
+- [x] Restreindre aussi l'URL des notes de version au chemin des releases du dépôt officiel `Likounsee/PeaceEmu`; tests couvrant domaines, dépôts, préfixes trompeurs, identifiants et ports non autorisés, exécution à confirmer en CI.
 - [x] Terminer proprement le suivi des tâches updater si un thread se déconnecte avant d'envoyer son résultat, plutôt que de laisser l'interface en état « en cours » avec des rafraîchissements indéfinis; tests unitaires ajoutés, exécution à confirmer en CI.
-- [x] Vérifier automatiquement les mises à jour d'ArchiaEmu au démarrage, séparément des modules, via le manifeste stable officiel GitHub et comparer la version locale à la version publiée; la vérification tourne en arrière-plan sans bloquer l'ouverture de la fenêtre, et reste relançable depuis Paramètres. La vérification automatique ne télécharge ni n'installe quoi que ce soit.
+- [x] Vérifier automatiquement les mises à jour de PeaceEmu au démarrage, séparément des modules, via le manifeste stable officiel GitHub et comparer la version locale à la version publiée; la vérification tourne en arrière-plan sans bloquer l'ouverture de la fenêtre, et reste relançable depuis Paramètres. La vérification automatique ne télécharge ni n'installe quoi que ce soit.
 - [ ] Pour l'updater de l'application, télécharger vers une zone temporaire, vérifier version, intégrité et provenance, préparer l'installation puis appliquer la mise à jour uniquement lorsque l'application est fermée et qu'aucune écriture n'est en cours; relancer l'application après succès et conserver une récupération/rollback en cas d'échec.
 - [ ] Permettre à l'utilisateur de choisir la fréquence de vérification, d'être informé de la version et des notes de version, et de différer une mise à jour; ne jamais remplacer les fichiers exécutables en cours d'utilisation.
 - [ ] Vérifier mise à niveau depuis une version précédente, échec/annulation d'installation et désinstallation sans supprimer les contenus personnels sans consentement explicite.
@@ -341,7 +341,7 @@ Le module Game Boy existant peut servir de première cible, mais son existence n
 3. Corriger d'abord les régressions du build, de la CI et des contrats partagés.
 4. Privilégier les fonctionnalités génériques réutilisables et les tests de parcours.
 5. Distinguer strictement code présent, tests écrits, tests exécutés, CI verte et compatibilité réellement démontrée.
-6. Tous les changements restent exclusivement sur la branche `ArchiaEmu`; ne jamais travailler sur `main`.
+6. Tous les changements restent exclusivement sur la branche `PeaceEmu`; ne jamais travailler sur `main`.
 
 ## Vérification CI
 
