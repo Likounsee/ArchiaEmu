@@ -2,13 +2,13 @@
 
 ## Goals
 
-ArchiaEmu is installed as a small, usable host application. Console emulation implementations are optional modules selected during first launch and managed later from Settings. The host must remain launchable when no console module is installed or when the network is unavailable.
+PeaceEmu is installed as a small, usable host application. Console emulation implementations are optional modules selected during first launch and managed later from Settings. The host must remain launchable when no console module is installed or when the network is unavailable.
 
 The core crate now provides a platform-neutral, deterministic dependency planner. It deliberately does not perform network requests, execute downloaded code, modify the host operating system, or claim that a console is emulated. Those responsibilities belong to a future application/installer layer.
 
 ## Package model
 
-1. **Base application** — UI, library, user settings, logging, module manager, update coordination and core interfaces. Installed with ArchiaEmu.
+1. **Base application** — UI, library, user settings, logging, module manager, update coordination and core interfaces. Installed with PeaceEmu.
 2. **Console module** — implementation for one exact system, with its own version and declared capabilities.
 3. **Shared runtime package** — reusable libraries or assets that can be dependencies of several console modules.
 4. **User-owned content** — game images, saves, firmware/BIOS and configuration. This is never removed as a side effect of removing an emulator module.
@@ -23,7 +23,7 @@ The first implementation uses owned, runtime-validated module IDs, typed descrip
 
 The core now also exposes `archiaemu-core::module_manifest_trust`: a pinned-key policy, signature-verifier interface, signature-before-parse ordering, structural validation and monotonically increasing revision check. This is a trust boundary, not a complete production signature stack: a reviewed cryptographic verifier and strict parser for the exact signed bytes still need to be integrated, and the accepted revision must be persisted across restarts. The test verifier is explicitly non-cryptographic. The next step is a strict serialized external manifest format and production cryptographic integration. The format should include:
 - schema version and catalogue revision;
-- package ID, package version and compatible ArchiaEmu version range;
+- package ID, package version and compatible PeaceEmu version range;
 - target OS and CPU architecture;
 - artifact URL, exact byte size and cryptographic digest;
 - signature/key identity and signing policy;
