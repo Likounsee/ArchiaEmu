@@ -7,7 +7,7 @@ PeaceEmu uses **Inno Setup 6** for its initial Windows x64 installer. The script
 ## Build from a clean Windows runner
 
 The workflow builds the desktop crate in release mode, stages
-`archiaemu-desktop.exe`, compiles a versioned `PeaceEmu-Setup-<version>.exe`,
+`desktop-app.exe`, compiles a versioned `PeaceEmu-Setup-<version>.exe`,
 runs a silent install/start/uninstall smoke test on the Windows runner, and emits a
 SHA-256 sidecar file. The smoke test checks the installed binary's exact version,
 documented help options, actionable rejection of unknown CLI options, Start Menu
