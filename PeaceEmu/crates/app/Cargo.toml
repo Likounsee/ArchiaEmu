@@ -1,5 +1,5 @@
 [package]
-name = "archiaemu-app"
+name = "host-app"
 version = "0.1.0"
 description = "Minimal terminal host application for PeaceEmu"
 edition.workspace = true
@@ -8,17 +8,17 @@ rust-version.workspace = true
 repository.workspace = true
 
 [[bin]]
-name = "archiaemu"
+name = "host-app"
 path = "src/main.rs"
 required-features = ["game-boy-color-module"]
 
 [features]
 default = []
-game-boy-color-module = ["dep:archiaemu-game-boy"]
+game-boy-color-module = ["dep:game-boy"]
 
 [dependencies]
-archiaemu-core = { version = "0.1.0", path = "../core" }
-archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../game-boy", optional = true }
+emulation-core = { version = "0.1.0", path = "../core" }
+game-boy = { package = "game-boy-color", version = "0.1.0", path = "../game-boy", optional = true }
 
 [dev-dependencies]
-archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../game-boy" }
+game-boy = { package = "game-boy-color", version = "0.1.0", path = "../game-boy" }
