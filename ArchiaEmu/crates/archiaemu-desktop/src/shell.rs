@@ -31,7 +31,6 @@ impl DesktopApp {
         let french = self.language == "fr";
         self.show_rail(context, &palette, french);
         self.show_context_sidebar(context, &palette, french);
-        self.show_status_bar(context, &palette, french);
     }
 
     fn show_rail(&mut self, context: &egui::Context, palette: &Palette, french: bool) {
@@ -253,62 +252,4 @@ impl DesktopApp {
         }
     }
 
-    fn show_status_bar(&self, context: &egui::Context, palette: &Palette, french: bool) {
-        let status = self.ui_status();
-        let color = match status {
-            UiStatus::Error => palette.danger,
-            UiStatus::Success => palette.success,
-            UiStatus::CapabilityUnavailable => palette.warning,
-            UiStatus::Loading | UiStatus::Information => palette.accent,
-            UiStatus::ContentAbsent => palette.text_dim,
-        };
-        let sessions = self.controller.session_count();
-        egui::TopBottomPanel::bottom("status_bar")
-            .resizable(false)
-            .exact_height(40.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(palette.panel)
-                    .inner_margin(egui::Margin::symmetric(24.0, 0.0)),
-            )
-            .show(context, |ui| {
-                let full = ui.max_rect().expand2(egui::vec2(24.0, 0.0));
-                ui.painter().hline(
-                    full.x_range(),
-                    full.top(),
-                    egui::Stroke::new(1.0_f32, palette.border),
-                );
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.label(
-                        egui::RichText::new(if french {
-                            format!("{sessions} session(s) ouverte(s)")
-                        } else {
-                            format!("{sessions} open session(s)")
-                        })
-                        .size(13.0)
-                        .color(palette.text_dim),
-                    );
-                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                        let (dot, _) =
-                            ui.allocate_exact_size(egui::vec2(10.0, 10.0), egui::Sense::hover());
-                        ui.painter().circle_filled(dot.center(), 4.0, color);
-                        ui.label(
-                            egui::RichText::new(status.label())
-                                .size(13.0)
-                                .strong()
-                                .color(color),
-                        );
-                        ui.add(
-                            egui::Label::new(
-                                egui::RichText::new(&self.message)
-                                    .size(13.0)
-                                    .color(palette.text_dim),
-                            )
-                            .truncate(true),
-                        )
-                        .on_hover_text(&self.message);
-                    });
-                });
-            });
-    }
 }
