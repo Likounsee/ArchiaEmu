@@ -251,7 +251,7 @@ pub enum HardwareMode {
 pub const SYSTEM_ID: &str = "game-boy-color";
 
 /// A module adapter that exposes Game Boy Color and backwards-compatible Game Boy cartridge inspection through the
-/// shared ArchiaEmu core contract.
+/// shared shared core contract.
 ///
 /// This is an early execution foundation, not a functioning game emulator yet:
 /// a limited LR35902 instruction subset runs over a basic ROM/WRAM/HRAM bus.
