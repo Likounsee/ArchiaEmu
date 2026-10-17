@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1280.0, 820.0])
             .with_min_inner_size([640.0, 480.0])
-            .with_icon(load_logo_icon()),
+            .with_icon(load_logo_icon().expect("embedded PeaceEmu logo must be valid PNG")),
         ..Default::default()
     };
     eframe::run_native(
