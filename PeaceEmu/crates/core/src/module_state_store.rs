@@ -18,7 +18,7 @@ pub const MAX_STATE_FILE_BYTES: u64 = 4 * 1024 * 1024;
 const HEADER: &str = "ARCHIAEMU-MODULE-STATE\t1";
 static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
-/// Resolves ArchiaEmu's default per-user state path without creating it.
+/// Resolves the legacy per-user state path without creating it.
 ///
 /// Applications may instead pass an explicit path to ModuleStateStore::new.
 /// This function only reads standard environment variables; it does not elevate
@@ -435,7 +435,7 @@ mod tests {
             .as_nanos();
         let sequence = TEST_PATH_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         std::env::temp_dir().join(format!(
-            "archiaemu-module-state-{}-{unique}-{sequence}.state",
+            "host-app-module-state-{}-{unique}-{sequence}.state",
             std::process::id()
         ))
     }
