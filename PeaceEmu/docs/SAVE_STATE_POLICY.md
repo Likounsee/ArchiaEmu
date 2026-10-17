@@ -1,6 +1,6 @@
 # State persistence policy
 
-ArchiaEmu distinguishes three different kinds of data. They must not share a format or be advertised as interchangeable.
+PeaceEmu distinguishes three different kinds of data. They must not share a format or be advertised as interchangeable.
 
 ## Emulator save states
 
