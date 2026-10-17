@@ -1,6 +1,6 @@
-# ArchiaEmu
+# PeaceEmu
 
-**ArchiaEmu is an in-development, modular multi-console emulation project.** Its long-term goal is to host independently testable emulation cores behind a shared application and tooling layer. The repository is at the foundation stage; no console is claimed as supported until a real core and reproducible tests demonstrate that support.
+**PeaceEmu is an in-development, modular multi-console emulation project.** Its long-term goal is to host independently testable emulation cores behind a shared application and tooling layer. The repository is at the foundation stage; no console is claimed as supported until a real core and reproducible tests demonstrate that support.
 
 
 ## Goals
@@ -37,7 +37,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
-GitHub Actions runs formatting, locked workspace tests, Clippy with warnings denied, desktop-crate tests and Clippy, and warning-free workspace documentation generation on Linux, macOS and Windows. It runs on relevant source/documentation changes pushed to `ArchiaEmu`, pull requests targeting that branch, or manual dispatch. The workflow configuration is checked in; the latest run must still be verified in GitHub Actions before these checks can be called green.
+GitHub Actions runs formatting, locked workspace tests, Clippy with warnings denied, desktop-crate tests and Clippy, and warning-free workspace documentation generation on Linux, macOS and Windows. It runs on relevant source/documentation changes pushed to `PeaceEmu`, pull requests targeting that branch, or manual dispatch. The workflow configuration is checked in; the latest run must still be verified in GitHub Actions before these checks can be called green.
 
 ## Roadmap
 
@@ -55,4 +55,4 @@ See [the detailed roadmap](ArchiaEmu/docs/ROADMAP.md) for current estimates, acc
 
 ## Development and legal policy
 
-Development changes belong on the `ArchiaEmu` branch; do not commit project changes to `main`. Do not distribute copyrighted game images, BIOS files or firmware without authorization. Third-party dependencies must be reviewed for license compatibility, redistribution terms, security, maintenance and platform support before integration.
+Development changes belong on the `PeaceEmu` branch; do not commit project changes to `main`. Do not distribute copyrighted game images, BIOS files or firmware without authorization. Third-party dependencies must be reviewed for license compatibility, redistribution terms, security, maintenance and platform support before integration.
