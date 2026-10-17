@@ -77,7 +77,7 @@ impl From<WorkerProtocolError> for WorkerProcessError {
     }
 }
 
-/// A child process connected to the bounded ArchiaEmu worker protocol.
+/// A child process connected to the bounded host worker protocol.
 pub struct WorkerProcess {
     child: Child,
     stdin: ChildStdin,
