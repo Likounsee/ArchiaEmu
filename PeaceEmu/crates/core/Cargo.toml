@@ -1,5 +1,5 @@
 [package]
-name = "archiaemu-core"
+name = "emulation-core"
 version = "0.1.0"
 description = "Shared contracts and metadata for PeaceEmu emulation cores"
 edition.workspace = true
@@ -10,4 +10,4 @@ repository.workspace = true
 [dependencies]
 
 [target.'cfg(windows)'.dependencies]
-archiaemu-windows-durability = { version = "0.1.0", path = "../windows-durability" }
+windows-durability = { version = "0.1.0", path = "../windows-durability" }
