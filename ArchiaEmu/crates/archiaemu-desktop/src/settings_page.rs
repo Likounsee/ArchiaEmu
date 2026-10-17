@@ -112,9 +112,9 @@ impl DesktopApp {
                     }
                 } else if update::is_newer_version(current, &version) {
                     ui.label(if self.language == "fr" {
-                        if self.language == "fr" { format!("La version installée ({current}) est plus récente que le manifeste stable ({version}).") } else { format!("Installed version ({current}) is newer than the stable manifest ({version}).") }
-                    } else {
                         format!("La version installée ({current}) est plus récente que le manifeste stable ({version}).")
+                    } else {
+                        format!("Installed version ({current}) is newer than the stable manifest ({version}).")
                     });
                 } else {
                     ui.label(if self.language == "fr" { format!("ArchiaEmu est à jour ({current}).") } else { format!("ArchiaEmu is up to date ({current}).") });
@@ -193,7 +193,13 @@ impl DesktopApp {
                     .last_tick_errors
                     .iter()
                     .take(5)
-                    .map(|(session_id, error)| format!("Session {}: {error}", session_id.get()))
+                    .map(|(session_id, error)| {
+                        if self.language == "fr" {
+                            format!("Session {} : {error}", session_id.get())
+                        } else {
+                            format!("Session {}: {error}", session_id.get())
+                        }
+                    })
                     .collect::<Vec<_>>()
                     .join("\n");
                 let active_session = self
