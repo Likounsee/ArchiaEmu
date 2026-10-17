@@ -2,17 +2,6 @@
 
 **ArchiaEmu is an in-development, modular multi-console emulation project.** Its long-term goal is to host independently testable emulation cores behind a shared application and tooling layer. The repository is at the foundation stage; no console is claimed as supported until a real core and reproducible tests demonstrate that support.
 
-## Desktop application
-For a short live presentation, see [the three-minute demo guide](ArchiaEmu/docs/DEMO.md), including a safe walkthrough and current limitations.
-
-
-Build and run the native desktop frontend from the repository root:
-
-```powershell
-cargo run --release --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
-```
-
-The executable supports `--help` and `--version`; both commands run without initializing the graphical interface and can be used to verify an installation quickly.
 
 ## Goals
 
