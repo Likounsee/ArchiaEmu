@@ -37,6 +37,7 @@ Cette checklist valide les parcours génériques de l'application, pas la compat
 - [ ] Modifier thème, échelle UI et couleur d'accent, enregistrer, fermer et redémarrer; vérifier la persistance.
 - [ ] Vérifier qu'une erreur d'écriture des préférences affiche un échec et non un succès.
 - [ ] Vérifier qu'un fichier de préférences ou de récupération dépassant 4 Mio est rejeté avec une erreur explicite au démarrage.
+- [ ] Simuler une préférence active absente ou corrompue avec un `desktop.conf.bak` valide; vérifier la récupération des valeurs, puis confirmer qu'une sauvegarde ultérieure ne détruit pas la dernière copie valide avant la promotion du nouveau fichier.
 - [ ] Supprimer/déplacer un fichier de bibliothèque importé, redémarrer et vérifier qu'il est signalé comme indisponible sans lancement possible.
 - [ ] Provoquer une erreur utilisateur récupérable; vérifier qu'un message exploitable est présenté et que l'application continue de fonctionner.
 - [ ] Vérifier l'écran de paramètres et les contrôles au clavier, y compris le focus après navigation.
