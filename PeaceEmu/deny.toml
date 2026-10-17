@@ -3,7 +3,7 @@
 yanked = "deny"
 # Temporary, narrowly scoped exceptions for the experimental desktop dependency graph.
 # ttf-parser is currently marked unmaintained with no safe upstream upgrade available.
-# webbrowser is pulled transitively by egui-winit; ArchiaEmu does not open external URLs.
+# webbrowser is pulled transitively by egui-winit; PeaceEmu does not open external URLs.
 # Revisit both exceptions when the pinned eframe/egui stack is upgraded.
 ignore = [
     { id = "RUSTSEC-2026-0192", reason = "Transitive epaint font parser; upstream reports no safe upgrade currently available." },
