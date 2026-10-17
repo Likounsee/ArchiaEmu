@@ -1,7 +1,7 @@
 //! library page for the ArchiaEmu desktop frontend.
 
 use super::*;
-use archiaemu_app::library::{ContentAvailability, ContentFormatDetection, ContentValidation};
+use host_app::library::{ContentAvailability, ContentFormatDetection, ContentValidation};
 
 fn content_path_status(path: &Path) -> &'static str {
     match std::fs::metadata(path) {
