@@ -779,10 +779,9 @@ mod tests {
     #[test]
     fn decoder_accepts_versioned_journal_header_from_previous_identity() {
         let journal = InstallJournal::new(ModuleId::new("test-module").unwrap(), "1.0.0").unwrap();
-        let text = journal.encode().replace(
-            "PEACEEMU-INSTALL-JOURNAL\t1",
-            "PREVIOUS-INSTALL-JOURNAL\t1",
-        );
+        let text = journal
+            .encode()
+            .replace("PEACEEMU-INSTALL-JOURNAL\t1", "PREVIOUS-INSTALL-JOURNAL\t1");
         assert_eq!(InstallJournal::decode(&text).unwrap(), journal);
     }
 
