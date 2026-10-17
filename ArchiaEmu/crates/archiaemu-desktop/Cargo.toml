@@ -1,11 +1,11 @@
 [package]
 name = "archiaemu-desktop"
 version = "0.1.0"
-description = "Experimental native desktop frontend for ArchiaEmu"
+description = "Experimental native desktop frontend for PeaceEmu"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 rust-version = "1.78"
-repository = "https://github.com/Likounsee/ArchiaEmu"
+repository = "https://github.com/Likounsee/PeaceEmu"
 
 [features]
 # Console cores are optional modules; a fresh desktop build contains no console by default.
