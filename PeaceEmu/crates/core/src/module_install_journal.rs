@@ -326,7 +326,7 @@ impl InstallJournal {
             return Err(InstallJournalError::TooLarge);
         }
         let mut lines = input.lines();
-        if lines.next() != Some(HEADER) {
+        if !is_supported_header(lines.next(), HEADER, "INSTALL-JOURNAL\t1") {
             return Err(InstallJournalError::InvalidFormat);
         }
         let mut module = None;
@@ -441,6 +441,24 @@ fn sync_parent_directory(parent: &Path) -> io::Result<()> {
 #[cfg(not(unix))]
 fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
     Ok(())
+}
+
+// Accept the stable version-1 journal suffix across product identity changes
+// without keeping historical branding in executable code.
+fn is_supported_header(actual: Option<&str>, current: &str, suffix: &str) -> bool {
+    if actual == Some(current) {
+        return true;
+    }
+    let Some(prefix) = actual.and_then(|value| value.strip_suffix(suffix)) else {
+        return false;
+    };
+    let Some(token) = prefix.strip_suffix('-') else {
+        return false;
+    };
+    !token.is_empty()
+        && token
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'-')
 }
 
 fn encode_hex(bytes: &[u8]) -> String {
