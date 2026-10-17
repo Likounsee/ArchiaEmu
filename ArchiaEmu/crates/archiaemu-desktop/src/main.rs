@@ -918,14 +918,26 @@ impl DesktopApp {
             clear_tick_error_for_session(&mut self.last_tick_errors, id);
         }
         self.message = match (result, release_error) {
-            (Ok(()), Some(error)) => format!(
-                "Session {}: {} succeeded, but input release failed: {error}",
-                id.get(),
-                action.label()
-            ),
-            (Ok(()), None) => format!("Session {}: {} succeeded.", id.get(), action.label()),
+            (Ok(()), Some(error)) => {
+                if self.language == "fr" {
+                    format!("Session {} : opération « {} » réussie, mais la libération des entrées a échoué : {error}", id.get(), action.label())
+                } else {
+                    format!("Session {}: {} succeeded, but input release failed: {error}", id.get(), action.label())
+                }
+            }
+            (Ok(()), None) => {
+                if self.language == "fr" {
+                    format!("Session {} : opération « {} » réussie.", id.get(), action.label())
+                } else {
+                    format!("Session {}: {} succeeded.", id.get(), action.label())
+                }
+            }
             (Err(error), _) => {
-                format!("Session {}: {} failed: {error}", id.get(), action.label())
+                if self.language == "fr" {
+                    format!("Session {} : échec de l’opération « {} » : {error}", id.get(), action.label())
+                } else {
+                    format!("Session {}: {} failed: {error}", id.get(), action.label())
+                }
             }
         };
     }
