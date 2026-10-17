@@ -156,7 +156,7 @@ fn backup_path(path: &Path) -> PathBuf {
 
 #[cfg(test)]
 fn crash_at_test_checkpoint(checkpoint: &str) {
-    if std::env::var("ARCHIAEMU_SAVE_CRASH_CHECKPOINT").as_deref() == Ok(checkpoint) {
+    if std::env::var("APP_SAVE_CRASH_CHECKPOINT").as_deref() == Ok(checkpoint) {
         std::process::abort();
     }
 }
@@ -217,14 +217,14 @@ mod tests {
             .unwrap()
             .as_nanos();
         std::env::temp_dir().join(format!(
-            "archiaemu-save-state-{}-{unique}.state",
+            "host-app-save-state-{}-{unique}.state",
             std::process::id()
         ))
     }
 
     #[test]
     fn crash_child_at_requested_save_checkpoint() {
-        let Ok(path) = std::env::var("ARCHIAEMU_SAVE_CRASH_PATH") else {
+        let Ok(path) = std::env::var("APP_SAVE_CRASH_PATH") else {
             return;
         };
         let envelope = SaveStateEnvelope::new("game-boy", "0.1.0", vec![9, 8, 7]).unwrap();
@@ -250,8 +250,8 @@ mod tests {
                 .arg("--exact")
                 .arg("save_state_store::tests::crash_child_at_requested_save_checkpoint")
                 .arg("--nocapture")
-                .env("ARCHIAEMU_SAVE_CRASH_PATH", &path)
-                .env("ARCHIAEMU_SAVE_CRASH_CHECKPOINT", checkpoint)
+                .env("APP_SAVE_CRASH_PATH", &path)
+                .env("APP_SAVE_CRASH_CHECKPOINT", checkpoint)
                 .output()
                 .unwrap();
 
