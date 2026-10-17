@@ -19,7 +19,7 @@ use crate::module_management::ModuleId;
 
 /// Maximum encoded journal size accepted from disk.
 pub const MAX_INSTALL_JOURNAL_BYTES: u64 = 1024 * 1024;
-const HEADER: &str = "ARCHIAEMU-INSTALL-JOURNAL\t1";
+const HEADER: &str = "PEACEEMU-INSTALL-JOURNAL\t1";
 static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 /// Durable milestone of one package installation transaction.
@@ -873,7 +873,7 @@ mod tests {
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
-        let bytes = b"ARCHIAEMU-INSTALL-JOURNAL\t1\n\xff";
+        let bytes = b"PEACEEMU-INSTALL-JOURNAL\t1\n\xff";
         fs::write(&path, bytes).unwrap();
 
         assert!(matches!(
