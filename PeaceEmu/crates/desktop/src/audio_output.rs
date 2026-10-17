@@ -1,6 +1,6 @@
 //! Best-effort native audio playback for core-provided signed 16-bit PCM.
 
-use archiaemu_core::core_io::AudioBuffer;
+use emulation_core::core_io::AudioBuffer;
 use rodio::{buffer::SamplesBuffer, OutputStream, Sink};
 
 const MAX_QUEUED_BUFFERS: usize = 8;
@@ -141,7 +141,7 @@ mod tests {
             status: "No audio output device".to_owned(),
             dropped_buffers: 0,
         };
-        let buffer = archiaemu_core::core_io::AudioBuffer::new(48_000, 2, vec![100, -100]).unwrap();
+        let buffer = emulation_core::core_io::AudioBuffer::new(48_000, 2, vec![100, -100]).unwrap();
 
         output.submit(&buffer);
 
