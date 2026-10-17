@@ -94,6 +94,7 @@ fn clear_tick_error_for_session(errors: &mut Vec<(SessionId, String)>, id: Sessi
     errors.retain(|(error_id, _)| *error_id != id);
 }
 
+#[cfg(test)]
 fn message_indicates_error(message: &str) -> bool {
     let message = message.to_ascii_lowercase();
     [
