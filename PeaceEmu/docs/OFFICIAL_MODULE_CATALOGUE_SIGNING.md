@@ -2,14 +2,14 @@
 
 ## Decision
 
-ArchiaEmu uses a publisher-controlled Ed25519 signing identity for its official module catalogue. The private signing key is a release secret and must never be committed to this repository, included in the desktop installer, or exposed in build logs. The application pins only the corresponding public key and a stable key identifier.
+PeaceEmu uses a publisher-controlled Ed25519 signing identity for its official module catalogue. The private signing key is a release secret and must never be committed to this repository, included in the desktop installer, or exposed in build logs. The application pins only the corresponding public key and a stable key identifier.
 
 ## Trust bootstrap
 
 1. Generate the Ed25519 key pair in a controlled release environment.
 2. Store the private key in a protected CI secret with access restricted to trusted release workflows.
 3. Review and pin the public key and key ID in the application source in a separately reviewed commit.
-4. Publish the catalogue and detached signature as release artifacts on the official ArchiaEmu repository.
+4. Publish the catalogue and detached signature as release artifacts on the official PeaceEmu repository.
 5. Require signature verification over the exact catalogue bytes before parsing or using catalogue fields.
 6. Persist the highest accepted catalogue revision durably and reject rollback.
 7. Document a key-rotation procedure before the first production catalogue is shipped.
@@ -30,7 +30,7 @@ A module package is accepted only when all checks pass:
 
 ## Runtime isolation
 
-Native Rust trait objects do not form a stable plugin ABI. ArchiaEmu must not load arbitrary third-party Rust DLLs directly into the desktop process. External cores should use a versioned, bounded IPC protocol in a worker process. A framing layer exists in `module_worker_protocol.rs` (fixed header, protocol version, message kinds, and a 16 MiB payload cap), and the desktop crate now has a process launcher with a bounded IPC reader queue, caller-specified receive timeouts that kill and reap unresponsive workers, executable SHA-256 verification, strict per-message payload schemas, fail-closed handling of invalid inbound payloads, bounded graceful shutdown, and child cleanup. The host must still connect the launcher to core lifecycle management, enforce OS-level CPU/memory restrictions, and treat worker crashes as recoverable failures. Process separation alone is not a complete OS sandbox; stronger Windows isolation must be implemented and tested before being advertised as a security guarantee.
+Native Rust trait objects do not form a stable plugin ABI. PeaceEmu must not load arbitrary third-party Rust DLLs directly into the desktop process. External cores should use a versioned, bounded IPC protocol in a worker process. A framing layer exists in `module_worker_protocol.rs` (fixed header, protocol version, message kinds, and a 16 MiB payload cap), and the desktop crate now has a process launcher with a bounded IPC reader queue, caller-specified receive timeouts that kill and reap unresponsive workers, executable SHA-256 verification, strict per-message payload schemas, fail-closed handling of invalid inbound payloads, bounded graceful shutdown, and child cleanup. The host must still connect the launcher to core lifecycle management, enforce OS-level CPU/memory restrictions, and treat worker crashes as recoverable failures. Process separation alone is not a complete OS sandbox; stronger Windows isolation must be implemented and tested before being advertised as a security guarantee.
 
 ## Release gate
 
