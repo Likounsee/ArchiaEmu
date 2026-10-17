@@ -158,7 +158,7 @@ impl DesktopApp {
                             ui.painter().circle_stroke(
                                 rect.center(),
                                 15.0,
-                                egui::Stroke::new(2.0, color),
+                                egui::Stroke::new(2.0_f32, color),
                             );
                         }
                         if response.clicked() {

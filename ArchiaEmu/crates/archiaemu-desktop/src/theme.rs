@@ -106,37 +106,37 @@ impl Palette {
             visuals.extreme_bg_color = self.rail;
             visuals.faint_bg_color = self.sidebar;
             visuals.hyperlink_color = self.accent;
-            visuals.window_stroke = Stroke::new(1.0, self.border);
+            visuals.window_stroke = Stroke::new(1.0_f32, self.border);
             visuals.window_rounding = Rounding::same(12.0);
             visuals.menu_rounding = Rounding::same(10.0);
             visuals.selection.bg_fill = self.accent_subtle;
-            visuals.selection.stroke = Stroke::new(1.0, self.accent);
+            visuals.selection.stroke = Stroke::new(1.0_f32, self.accent);
             let rounding = Rounding::same(8.0);
             let widgets = &mut visuals.widgets;
             widgets.noninteractive.bg_fill = self.panel;
             widgets.noninteractive.weak_bg_fill = self.panel;
-            widgets.noninteractive.bg_stroke = Stroke::new(1.0, self.border);
-            widgets.noninteractive.fg_stroke = Stroke::new(1.0, self.text);
+            widgets.noninteractive.bg_stroke = Stroke::new(1.0_f32, self.border);
+            widgets.noninteractive.fg_stroke = Stroke::new(1.0_f32, self.text);
             widgets.noninteractive.rounding = rounding;
             widgets.inactive.bg_fill = self.sidebar;
             widgets.inactive.weak_bg_fill = self.sidebar;
-            widgets.inactive.bg_stroke = Stroke::new(1.0, self.border);
-            widgets.inactive.fg_stroke = Stroke::new(1.0, self.text);
+            widgets.inactive.bg_stroke = Stroke::new(1.0_f32, self.border);
+            widgets.inactive.fg_stroke = Stroke::new(1.0_f32, self.text);
             widgets.inactive.rounding = rounding;
             widgets.hovered.bg_fill = self.border;
             widgets.hovered.weak_bg_fill = self.border;
-            widgets.hovered.bg_stroke = Stroke::new(1.0, self.accent);
-            widgets.hovered.fg_stroke = Stroke::new(1.0, self.text);
+            widgets.hovered.bg_stroke = Stroke::new(1.0_f32, self.accent);
+            widgets.hovered.fg_stroke = Stroke::new(1.0_f32, self.text);
             widgets.hovered.rounding = rounding;
             widgets.active.bg_fill = self.accent_subtle;
             widgets.active.weak_bg_fill = self.accent_subtle;
-            widgets.active.bg_stroke = Stroke::new(1.0, self.accent);
-            widgets.active.fg_stroke = Stroke::new(1.0, self.text);
+            widgets.active.bg_stroke = Stroke::new(1.0_f32, self.accent);
+            widgets.active.fg_stroke = Stroke::new(1.0_f32, self.text);
             widgets.active.rounding = rounding;
             widgets.open.bg_fill = self.border;
             widgets.open.weak_bg_fill = self.border;
-            widgets.open.bg_stroke = Stroke::new(1.0, self.border);
-            widgets.open.fg_stroke = Stroke::new(1.0, self.text);
+            widgets.open.bg_stroke = Stroke::new(1.0_f32, self.border);
+            widgets.open.fg_stroke = Stroke::new(1.0_f32, self.text);
             widgets.open.rounding = rounding;
         });
     }
@@ -150,7 +150,7 @@ pub fn card<R>(
 ) -> egui::InnerResponse<R> {
     egui::Frame::none()
         .fill(palette.sidebar)
-        .stroke(Stroke::new(1.0, palette.border))
+        .stroke(Stroke::new(1.0_f32, palette.border))
         .rounding(Rounding::same(12.0))
         .inner_margin(Margin::same(16.0))
         .show(ui, add_contents)
@@ -205,7 +205,7 @@ pub fn setting_row(
 /// Draws the round check mark shown on selected choice cards.
 pub fn paint_check_badge(painter: &egui::Painter, center: Pos2, palette: &Palette) {
     painter.circle_filled(center, 9.0, palette.accent);
-    let stroke = Stroke::new(2.0, palette.on_accent);
+    let stroke = Stroke::new(2.0_f32, palette.on_accent);
     painter.line_segment(
         [
             center + egui::vec2(-4.0, 0.5),
@@ -234,11 +234,11 @@ pub fn choice_card(
     let painter = ui.painter();
     paint_preview(painter, rect);
     let stroke = if selected {
-        Stroke::new(2.0, palette.accent)
+        Stroke::new(2.0_f32, palette.accent)
     } else if response.hovered() {
-        Stroke::new(1.0, palette.text_dim)
+        Stroke::new(1.0_f32, palette.text_dim)
     } else {
-        Stroke::new(1.0, palette.border)
+        Stroke::new(1.0_f32, palette.border)
     };
     painter.rect_stroke(rect, Rounding::same(10.0), stroke);
     if selected {
@@ -261,7 +261,7 @@ pub enum Icon {
 }
 
 pub fn paint_icon(painter: &egui::Painter, center: Pos2, size: f32, icon: Icon, color: Color32) {
-    let stroke = Stroke::new(1.7, color);
+    let stroke = Stroke::new(1.7_f32, color);
     let half = size / 2.0;
     let at = |x: f32, y: f32| center + egui::vec2(x * half, y * half);
     match icon {

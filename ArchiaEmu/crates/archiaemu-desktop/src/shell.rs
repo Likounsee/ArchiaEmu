@@ -276,7 +276,7 @@ impl DesktopApp {
                 ui.painter().hline(
                     full.x_range(),
                     full.top(),
-                    egui::Stroke::new(1.0, palette.border),
+                    egui::Stroke::new(1.0_f32, palette.border),
                 );
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.label(

@@ -346,9 +346,9 @@ impl DesktopApp {
                     rect,
                     egui::Rounding::same(12.0),
                     if selected {
-                        egui::Stroke::new(2.0, palette.accent)
+                        egui::Stroke::new(2.0_f32, palette.accent)
                     } else {
-                        egui::Stroke::new(1.0, palette.border)
+                        egui::Stroke::new(1.0_f32, palette.border)
                     },
                 );
                 if selected {
