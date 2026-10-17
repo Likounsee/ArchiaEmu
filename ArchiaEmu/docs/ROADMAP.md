@@ -46,6 +46,16 @@ Le runtime commun, le cycle de vie des sessions, les capacités, le registre, le
 
 ## P1 — rendre l'application utilisable (priorité actuelle)
 
+### Suivi des demandes UI (en attente de validation)
+
+Les changements suivants ont été poussés sur `ArchiaEmu`, mais ne sont pas encore considérés comme validés tant que les quality gates et la CI du commit ne sont pas observés :
+
+- Suppression de la barre de statut inférieure du shell desktop.
+- Suppression du contrôle d’échelle de l’interface dans les paramètres d’apparence; le paramètre interne existant est conservé pour ne pas casser les préférences déjà enregistrées.
+- Suppression de l’arrondi supérieur gauche du panneau principal.
+- Refonte de la page Systèmes/Modules en cartes avec statut et capacités lisibles; la sélection persistante et le caractère optionnel des modules sont conservés.
+- Poursuite de la traduction française/anglaise des pages Jeu, Sessions, Systèmes, Bibliothèque, Paramètres et des messages d’import/lancement. La traduction complète de tous les messages n’est pas encore vérifiée.
+
 ### P1.1 — architecture de l'application et séparation frontend/backend
 
 **Avancement estimé : ≈ 65 %.** Les principaux découpages sont en place; la validation visuelle, l'unification complète des états et les quality gates restent ouverts.
