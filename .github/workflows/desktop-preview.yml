@@ -5,13 +5,13 @@ on:
     branches:
       - PeaceEmu
     paths:
-      - "workspace/crates/desktop/**"
-      - "workspace/crates/app/**"
-      - "workspace/crates/core/**"
-      - "workspace/crates/game-boy/**"
-      - "workspace/crates/windows-durability/**"
-      - "workspace/Cargo.toml"
-      - "workspace/Cargo.lock"
+      - "PeaceEmu/crates/desktop/**"
+      - "PeaceEmu/crates/app/**"
+      - "PeaceEmu/crates/core/**"
+      - "PeaceEmu/crates/game-boy/**"
+      - "PeaceEmu/crates/windows-durability/**"
+      - "PeaceEmu/Cargo.toml"
+      - "PeaceEmu/Cargo.lock"
       - ".github/workflows/desktop-preview.yml"
   workflow_dispatch:
 
@@ -37,15 +37,15 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build desktop application
-        run: cargo build --manifest-path workspace/crates/desktop/Cargo.toml
+        run: cargo build --manifest-path PeaceEmu/crates/desktop/Cargo.toml
 
       - name: Smoke-test application startup
         shell: bash
         run: |
           set -euo pipefail
-          BIN="workspace/target/debug/desktop-app"
+          BIN="PeaceEmu/target/debug/desktop-app"
           if [ ! -x "$BIN" ]; then
-            BIN="workspace/crates/desktop/target/debug/desktop-app"
+            BIN="PeaceEmu/crates/desktop/target/debug/desktop-app"
           fi
           if [ ! -x "$BIN" ]; then
             BIN="$(find target workspace -path '*/debug/desktop-app' -type f -executable -print -quit 2>/dev/null || true)"
