@@ -4,29 +4,29 @@ on:
   push:
     branches: [PeaceEmu]
     paths:
-      - "PeaceEmu/crates/desktop/**"
-      - "PeaceEmu/crates/app/**"
-      - "PeaceEmu/crates/core/**"
-      - "PeaceEmu/crates/game-boy/**"
-      - "PeaceEmu/crates/windows-durability/**"
-      - "PeaceEmu/Cargo.toml"
-      - "PeaceEmu/Cargo.lock"
-      - "PeaceEmu/update/**"
-      - "PeaceEmu/docs/**"
+      - "workspace/crates/desktop/**"
+      - "workspace/crates/app/**"
+      - "workspace/crates/core/**"
+      - "workspace/crates/game-boy/**"
+      - "workspace/crates/windows-durability/**"
+      - "workspace/Cargo.toml"
+      - "workspace/Cargo.lock"
+      - "workspace/update/**"
+      - "workspace/docs/**"
       - "README.md"
       - ".github/workflows/desktop-ci.yml"
   pull_request:
     branches: [PeaceEmu]
     paths:
-      - "PeaceEmu/crates/desktop/**"
-      - "PeaceEmu/crates/app/**"
-      - "PeaceEmu/crates/core/**"
-      - "PeaceEmu/crates/game-boy/**"
-      - "PeaceEmu/crates/windows-durability/**"
-      - "PeaceEmu/Cargo.toml"
-      - "PeaceEmu/Cargo.lock"
-      - "PeaceEmu/update/**"
-      - "PeaceEmu/docs/**"
+      - "workspace/crates/desktop/**"
+      - "workspace/crates/app/**"
+      - "workspace/crates/core/**"
+      - "workspace/crates/game-boy/**"
+      - "workspace/crates/windows-durability/**"
+      - "workspace/Cargo.toml"
+      - "workspace/Cargo.lock"
+      - "workspace/update/**"
+      - "workspace/docs/**"
       - "README.md"
       - ".github/workflows/desktop-ci.yml"
   workflow_dispatch:
@@ -63,24 +63,24 @@ jobs:
           components: rustfmt, clippy
 
       - name: Check workspace formatting
-        run: cargo fmt --manifest-path PeaceEmu/Cargo.toml --all -- --check
+        run: cargo fmt --manifest-path workspace/Cargo.toml --all -- --check
 
       - name: Check desktop formatting
-        run: cargo fmt --manifest-path PeaceEmu/crates/desktop/Cargo.toml -- --check
+        run: cargo fmt --manifest-path workspace/crates/desktop/Cargo.toml -- --check
 
       - name: Test shared workspace
-        run: cargo test --manifest-path PeaceEmu/Cargo.toml --workspace --locked
+        run: cargo test --manifest-path workspace/Cargo.toml --workspace --locked
 
       - name: Lint shared workspace
-        run: cargo clippy --manifest-path PeaceEmu/Cargo.toml --workspace --all-targets --locked -- -D warnings
+        run: cargo clippy --manifest-path workspace/Cargo.toml --workspace --all-targets --locked -- -D warnings
 
       - name: Test desktop and its dependencies
-        run: cargo test --manifest-path PeaceEmu/crates/desktop/Cargo.toml
+        run: cargo test --manifest-path workspace/crates/desktop/Cargo.toml
 
       - name: Lint desktop and its dependencies
-        run: cargo clippy --manifest-path PeaceEmu/crates/desktop/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path workspace/crates/desktop/Cargo.toml --all-targets -- -D warnings
 
       - name: Generate warning-free workspace documentation
         env:
           RUSTDOCFLAGS: -D warnings
-        run: cargo doc --manifest-path PeaceEmu/Cargo.toml --workspace --no-deps --locked
+        run: cargo doc --manifest-path workspace/Cargo.toml --workspace --no-deps --locked
