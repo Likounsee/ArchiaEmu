@@ -152,7 +152,7 @@ impl DesktopApp {
                     ui.set_min_width(170.0);
                     ui.set_max_width(220.0);
                     ui.vertical(|ui| {
-                        ui.strong(format!("{} {}", if french { "Session" } else { "Session" }, id.get()));
+                        ui.strong(format!("Session {}", id.get()));
                         ui.label(&system_name);
                         ui.small(if self.language == "fr" { "En pause" } else { "Paused" });
                         if ui.button(if self.language == "fr" { "Reprendre" } else { "Resume" }).clicked() {
