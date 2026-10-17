@@ -1,4 +1,4 @@
-#define AppName "ArchiaEmu"
+#define AppName "PeaceEmu"
 #ifndef AppVersion
   #define AppVersion "0.1.0"
 #endif
@@ -17,10 +17,10 @@ AppId={{D9DDF20D-9F91-4D31-A7C0-8E0F4C1E32D7}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
-DefaultDirName={autopf}\ArchiaEmu
-DefaultGroupName=ArchiaEmu
+DefaultDirName={autopf}\PeaceEmu
+DefaultGroupName=PeaceEmu
 DisableProgramGroupPage=yes
-OutputBaseFilename=ArchiaEmu-Setup-{#AppVersion}
+OutputBaseFilename=PeaceEmu-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -48,11 +48,11 @@ Source: "{#StageDir}\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist; Excludes: "{#AppExeName},*.pdb,*.ilk"
 
 [Icons]
-Name: "{group}\ArchiaEmu"; Filename: "{app}\{#AppExeName}"
-Name: "{autodesktop}\ArchiaEmu"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+Name: "{group}\PeaceEmu"; Filename: "{app}\{#AppExeName}"
+Name: "{autodesktop}\PeaceEmu"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#AppExeName}"; Description: "Launch ArchiaEmu"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\{#AppExeName}"; Description: "Launch PeaceEmu"; Flags: postinstall nowait skipifsilent
 
 [Code]
 var
@@ -65,7 +65,7 @@ begin
   if not UninstallSilent then
     RemoveUserSettings :=
       MsgBox(
-        'Do you also want to delete ArchiaEmu settings, logs and cache? ROMs and files outside the ArchiaEmu settings/log/cache folders will not be deleted.',
+        'Do you also want to delete existing PeaceEmu/ArchiaEmu settings, logs and cache? ROMs and files outside the existing settings/log/cache folders will not be deleted.',
         mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
 end;
 
