@@ -80,7 +80,7 @@ impl DesktopApp {
                     if french {
                         format!("État des modules indisponible : {error}")
                     } else {
-                        format!("Module state unavailable: {error}")
+                        format!("État des modules indisponible : {error}")
                     },
                 );
                 return;
@@ -99,7 +99,7 @@ impl DesktopApp {
                     if french {
                         format!("Impossible de lire l’état des modules : {error}")
                     } else {
-                        format!("Could not load module state: {error}")
+                        format!("Impossible de charger l’état des modules : {error}")
                     },
                 );
                 ui.label(if french {
@@ -290,7 +290,7 @@ impl DesktopApp {
                     self.message = if french {
                         format!("Échec de l’enregistrement de la sélection : {error}")
                     } else {
-                        format!("Could not save module selection: {error}")
+                        format!("Impossible d’enregistrer la sélection des modules : {error}")
                     };
                 }
             }
@@ -313,7 +313,7 @@ impl DesktopApp {
             for installed in state.installed_modules() {
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new(installed.id.as_str()).strong());
-                    ui.label("Version");
+                    ui.label(if french { "Version" } else { "Version" });
                     ui.monospace(&installed.version);
                     let bundled = system_ids
                         .iter()
