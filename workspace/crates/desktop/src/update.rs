@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub(crate) const MANIFEST_URL: &str =
-    "https://raw.githubusercontent.com/Likounsee/PeaceEmu/PeaceEmu/PeaceEmu/update/stable.json";
+    "https://raw.githubusercontent.com/Likounsee/PeaceEmu/PeaceEmu/workspace/update/stable.json";
 const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
 const MAX_DOWNLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
