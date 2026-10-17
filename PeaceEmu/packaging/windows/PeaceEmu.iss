@@ -3,7 +3,7 @@
   #define AppVersion "0.1.0"
 #endif
 #define AppPublisher "Likounsee"
-#define AppExeName "archiaemu-desktop.exe"
+#define AppExeName "desktop-app.exe"
 
 #ifndef StageDir
   #error "StageDir must point to the directory containing the staged application executable."
