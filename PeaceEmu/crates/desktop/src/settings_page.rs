@@ -109,7 +109,11 @@ impl DesktopApp {
                         theme::badge(ui, &format!("v{current}"), palette.text_dim);
                         theme::badge(
                             ui,
-                            if french { "Expérimental" } else { "Experimental" },
+                            if french {
+                                "Expérimental"
+                            } else {
+                                "Experimental"
+                            },
                             palette.warning,
                         );
                     });
@@ -204,7 +208,11 @@ impl DesktopApp {
                 match update_state {
                     UpdateState::Checking => theme::badge(
                         ui,
-                        if french { "Vérification…" } else { "Checking…" },
+                        if french {
+                            "Vérification…"
+                        } else {
+                            "Checking…"
+                        },
                         palette.accent,
                     ),
                     UpdateState::Available => theme::badge(
@@ -232,7 +240,11 @@ impl DesktopApp {
                     ),
                     UpdateState::Unknown => theme::badge(
                         ui,
-                        if french { "Non vérifié" } else { "Not checked" },
+                        if french {
+                            "Non vérifié"
+                        } else {
+                            "Not checked"
+                        },
                         palette.text_dim,
                     ),
                 }
@@ -423,7 +435,11 @@ impl DesktopApp {
             },
         );
         let none_text = if french { "aucune" } else { "none" };
-        let unavailable_text = if french { "indisponible" } else { "unavailable" };
+        let unavailable_text = if french {
+            "indisponible"
+        } else {
+            "unavailable"
+        };
         let platform = format!("{} / {}", std::env::consts::OS, std::env::consts::ARCH);
         let library_items = self.controller.library().len().to_string();
         let open_sessions = self.controller.session_summaries().len().to_string();
