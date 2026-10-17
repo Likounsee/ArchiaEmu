@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/archiaemu-core",
-    "crates/archiaemu-app",
-    "crates/archiaemu-game-boy",
-    "crates/archiaemu-windows-durability",
+    "crates/peaceemu-core",
+    "crates/peaceemu-app",
+    "crates/peaceemu-game-boy",
+    "crates/peaceemu-windows-durability",
 ]
-exclude = ["crates/archiaemu-desktop"]
+exclude = ["crates/peaceemu-desktop"]
 
 [workspace.package]
 edition = "2021"
