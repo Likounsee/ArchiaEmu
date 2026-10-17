@@ -3,14 +3,14 @@ name: Desktop smoke test
 on:
   push:
     branches:
-      - ArchiaEmu
+      - PeaceEmu
     paths:
-      - "ArchiaEmu/crates/archiaemu-desktop/**"
-      - "ArchiaEmu/crates/archiaemu-app/**"
-      - "ArchiaEmu/crates/archiaemu-core/**"
-      - "ArchiaEmu/crates/archiaemu-game-boy/**"
-      - "ArchiaEmu/Cargo.toml"
-      - "ArchiaEmu/Cargo.lock"
+      - "PeaceEmu/crates/archiaemu-desktop/**"
+      - "PeaceEmu/crates/archiaemu-app/**"
+      - "PeaceEmu/crates/archiaemu-core/**"
+      - "PeaceEmu/crates/archiaemu-game-boy/**"
+      - "PeaceEmu/Cargo.toml"
+      - "PeaceEmu/Cargo.lock"
       - ".github/workflows/desktop-preview.yml"
   workflow_dispatch:
 
@@ -22,10 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout ArchiaEmu branch
+      - name: Checkout PeaceEmu branch
         uses: actions/checkout@v4
         with:
-          ref: ArchiaEmu
+          ref: PeaceEmu
 
       - name: Install Linux desktop dependencies
         run: |
@@ -36,18 +36,18 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build desktop application
-        run: cargo build --manifest-path ArchiaEmu/crates/archiaemu-desktop/Cargo.toml
+        run: cargo build --manifest-path PeaceEmu/crates/archiaemu-desktop/Cargo.toml
 
       - name: Smoke-test application startup
         shell: bash
         run: |
           set -euo pipefail
-          BIN="ArchiaEmu/target/debug/archiaemu-desktop"
+          BIN="PeaceEmu/target/debug/archiaemu-desktop"
           if [ ! -x "$BIN" ]; then
-            BIN="ArchiaEmu/crates/archiaemu-desktop/target/debug/archiaemu-desktop"
+            BIN="PeaceEmu/crates/archiaemu-desktop/target/debug/archiaemu-desktop"
           fi
           if [ ! -x "$BIN" ]; then
-            BIN="$(find target ArchiaEmu -path '*/debug/archiaemu-desktop' -type f -executable -print -quit 2>/dev/null || true)"
+            BIN="$(find target PeaceEmu -path '*/debug/archiaemu-desktop' -type f -executable -print -quit 2>/dev/null || true)"
           fi
           if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
             echo "Could not locate the compiled desktop binary." >&2
