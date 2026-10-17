@@ -28,7 +28,7 @@ Importing a file does not prove that it is valid or playable. The current Game B
 From the workspace root:
 
 ```sh
-cargo run -p desktop-app
+cargo run --manifest-path crates/desktop/Cargo.toml
 cargo test --manifest-path crates/desktop/Cargo.toml
 cargo clippy --manifest-path crates/desktop/Cargo.toml --all-targets -- -D warnings
 ```
