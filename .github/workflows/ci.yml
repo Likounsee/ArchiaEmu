@@ -69,11 +69,11 @@ jobs:
         if: runner.os == 'Linux'
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          manifest-path: workspace/Cargo.toml
+          manifest-path: PeaceEmu/Cargo.toml
           command: check
       - name: Audit desktop prototype dependencies and licenses
         if: runner.os == 'Linux'
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          manifest-path: workspace/crates/desktop/Cargo.toml
+          manifest-path: PeaceEmu/crates/desktop/Cargo.toml
           command: check
