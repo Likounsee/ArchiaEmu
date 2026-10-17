@@ -528,10 +528,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("clock should be valid")
             .as_nanos();
-        std::env::temp_dir().join(format!(
-            "desktop-update-{}-{nonce}.bin",
-            std::process::id()
-        ))
+        std::env::temp_dir().join(format!("desktop-update-{}-{nonce}.bin", std::process::id()))
     }
 
     #[test]
@@ -748,10 +745,10 @@ mod tests {
             "https://github.com/other/project/releases/download/v0.2.0/app.exe"
         )
         .is_err());
-        assert!(validate_download_url(
-            "https://github.com/Likounsee/PeaceEmu/releases/tag/v0.2.0"
-        )
-        .is_err());
+        assert!(
+            validate_download_url("https://github.com/Likounsee/PeaceEmu/releases/tag/v0.2.0")
+                .is_err()
+        );
         for traversal in [
             "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/../other.exe",
             "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/%2e%2e/other.exe",
