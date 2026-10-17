@@ -8,7 +8,7 @@
 //! Worker messages are bounded by the shared framing protocol.
 
 use crate::worker_messages::{validate_worker_message, WorkerPayloadError};
-use archiaemu_core::module_worker_protocol::{
+use emulation_core::module_worker_protocol::{
     read_message, write_message, WorkerMessage, WorkerMessageKind, WorkerProtocolError,
 };
 use sha2::{Digest, Sha256};
