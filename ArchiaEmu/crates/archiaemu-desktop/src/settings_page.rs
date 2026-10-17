@@ -34,7 +34,7 @@ impl DesktopApp {
             ui.label(if self.language == "fr" { "Le cœur Game Boy Color est expérimental ; le lancement d’une ROM ne garantit pas sa compatibilité." } else { "The Game Boy Color core is experimental; launching a ROM does not imply compatibility." });
             ui.label(if self.language == "fr" { "Les chemins de la bibliothèque et les préférences visuelles sont enregistrés dans votre configuration utilisateur." } else { "Imported library paths and appearance preferences are saved in your user configuration." });
             if ui.button(if self.language == "fr" { "Enregistrer les paramètres" } else { "Save settings now" }).clicked() && self.save_preferences() {
-                self.message = "Settings saved.".to_owned();
+                self.message = if self.language == "fr" { "Paramètres enregistrés.".to_owned() } else { "Settings saved.".to_owned() };
             }
         });
 
