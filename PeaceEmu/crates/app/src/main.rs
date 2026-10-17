@@ -170,7 +170,7 @@ fn command_loop(
     let stdin = io::stdin();
     let mut lines = stdin.lock().lines();
     loop {
-        print!("archiaemu> ");
+        print!("host-app> ");
         io::stdout().flush()?;
         let Some(line) = lines.next() else {
             host.close_all_sessions();
@@ -659,13 +659,13 @@ fn apply_session_command(
 }
 
 fn print_usage() {
-    println!("ArchiaEmu — minimal terminal host");
+    println!("host-app — minimal terminal host");
     println!("Usage:");
-    println!("  archiaemu --list-systems");
-    println!("  archiaemu <content-path>");
-    println!("  archiaemu --system <system-id> <content-path>");
-    println!("  archiaemu [--system <system-id>] [--max-sessions <count>] <content-path>");
-    println!("  archiaemu --help");
+    println!("  host-app --list-systems");
+    println!("  host-app <content-path>");
+    println!("  host-app --system <system-id> <content-path>");
+    println!("  host-app [--system <system-id>] [--max-sessions <count>] <content-path>");
+    println!("  host-app --help");
     println!("REPL library: import <path>, library, play <index>, forget <path>. Importing adds metadata; launch still performs format validation.");
     println!("Interactive input: input <up|down|left|right|action1|action2|action3|action4|start|select> <press|release>");
     println!("                  release-inputs releases all held controls.");
@@ -913,7 +913,7 @@ mod tests {
         let mut host = HostRuntime::new(HostRuntimeConfig::default()).unwrap();
         let id = host.create_session(Box::new(NoSaveStateCore)).unwrap();
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-unsupported-state-{}.bin",
+            "host-app-unsupported-state-{}.bin",
             std::process::id()
         ));
         let path_text = path.to_string_lossy();
