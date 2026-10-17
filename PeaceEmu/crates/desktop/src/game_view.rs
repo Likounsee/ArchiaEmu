@@ -3,7 +3,7 @@
 //! This module adapts the shared runtime contracts to egui. It deliberately does not
 //! own sessions, schedule execution, or assume that any particular core emits media.
 
-use archiaemu_core::core_io::{InputControl, PixelFormat, VideoFrame};
+use emulation_core::core_io::{InputControl, PixelFormat, VideoFrame};
 use eframe::egui;
 
 /// Converts a host keyboard key into a semantic runtime input control.
