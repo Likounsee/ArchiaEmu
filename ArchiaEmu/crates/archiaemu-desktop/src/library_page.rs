@@ -479,7 +479,7 @@ impl DesktopApp {
                         if self.selected_content.as_ref() == Some(&path) {
                             self.selected_content = None;
                         }
-                        let removal_message = format!("Removed '{}' from the library.", title);
+                        let removal_message = if french { format!("« {} » a été retiré de la bibliothèque.", title) } else { format!("Removed '{}' from the library.", title) };
                         self.message = removal_message.clone();
                         if !self.save_preferences() {
                             let save_error = std::mem::take(&mut self.message);
@@ -488,7 +488,7 @@ impl DesktopApp {
                             );
                         }
                     }
-                    Err(error) => self.message = format!("Could not forget content: {error}"),
+                    Err(error) => self.message = if french { format!("Impossible d’oublier ce contenu : {error}") } else { format!("Could not forget content: {error}") },
                 }
             }
 
