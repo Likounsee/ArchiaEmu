@@ -88,8 +88,12 @@ impl DesktopApp {
         };
         let store = ModuleStateStore::new(state_path);
         let mut state = match store.load() {
-            Ok(state) => state,
-            Err(error) => {
+            Ok(state) => archiaemu_app::view_state::ViewState::Ready(state),
+            Err(error) => archiaemu_app::view_state::ViewState::Error(error.to_string()),
+        };
+        let mut state = match state {
+            archiaemu_app::view_state::ViewState::Ready(state) => state,
+            archiaemu_app::view_state::ViewState::Error(error) => {
                 ui.colored_label(
                     egui::Color32::LIGHT_RED,
                     if french {
@@ -104,6 +108,11 @@ impl DesktopApp {
                     "The state file was preserved for recovery; no selection was overwritten."
                 });
                 return;
+            }
+            archiaemu_app::view_state::ViewState::Loading
+            | archiaemu_app::view_state::ViewState::Empty
+            | archiaemu_app::view_state::ViewState::Unavailable(_) => {
+                unreachable!("loading a module state file is synchronous and either returns data or an error")
             }
         };
 
