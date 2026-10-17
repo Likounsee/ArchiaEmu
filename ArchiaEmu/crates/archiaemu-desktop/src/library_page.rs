@@ -148,15 +148,14 @@ impl DesktopApp {
             egui::ComboBox::from_id_source("library_sort")
                 .selected_text(self.library_sort.label())
                 .show_ui(ui, |ui| {
-                    for sort in [
-                        LibrarySort::Name,
-                        LibrarySort::Largest,
-                        LibrarySort::Path,
-                    ] {
+                    for sort in [LibrarySort::Name, LibrarySort::Largest, LibrarySort::Path] {
                         ui.selectable_value(&mut self.library_sort, sort, sort.label());
                     }
                 });
-            if ui.button(if french { "Effacer" } else { "Clear" }).clicked() {
+            if ui
+                .button(if french { "Effacer" } else { "Clear" })
+                .clicked()
+            {
                 self.library_filter.clear();
                 self.library_format = LibraryFormat::All;
             }
@@ -602,12 +601,7 @@ impl DesktopApp {
                             detail
                         ),
                     };
-                    detail_row(
-                        ui,
-                        palette,
-                        "Validation",
-                        &validation_text,
-                    );
+                    detail_row(ui, palette, "Validation", &validation_text);
                 }
             });
         });

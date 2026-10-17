@@ -214,7 +214,10 @@ pub fn paint_check_badge(painter: &egui::Painter, center: Pos2, palette: &Palett
         stroke,
     );
     painter.line_segment(
-        [center + egui::vec2(-1.0, 3.5), center + egui::vec2(4.5, -3.0)],
+        [
+            center + egui::vec2(-1.0, 3.5),
+            center + egui::vec2(4.5, -3.0),
+        ],
         stroke,
     );
 }
@@ -302,12 +305,7 @@ pub fn paint_icon(painter: &egui::Painter, center: Pos2, size: f32, icon: Icon, 
         }
         Icon::Systems => {
             painter.add(egui::Shape::closed_line(
-                vec![
-                    at(0.0, -0.9),
-                    at(0.95, -0.4),
-                    at(0.0, 0.1),
-                    at(-0.95, -0.4),
-                ],
+                vec![at(0.0, -0.9), at(0.95, -0.4), at(0.0, 0.1), at(-0.95, -0.4)],
                 stroke,
             ));
             painter.add(egui::Shape::line(

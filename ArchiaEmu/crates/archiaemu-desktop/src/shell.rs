@@ -103,9 +103,8 @@ impl DesktopApp {
                     .clicked()
                     {
                         self.fullscreen = !self.fullscreen;
-                        context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(
-                            self.fullscreen,
-                        ));
+                        context
+                            .send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
                     }
                     if self.active_page.has_sidebar()
                         && theme::rail_button(
