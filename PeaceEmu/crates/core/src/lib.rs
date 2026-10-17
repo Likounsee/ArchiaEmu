@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-//! Platform-neutral contracts shared by ArchiaEmu and its emulation cores.
+//! Platform-neutral contracts shared by PeaceEmu and its emulation cores.
 //!
 //! This crate deliberately contains no console implementation. A system is not
 //! supported merely because it can be represented by these types.
