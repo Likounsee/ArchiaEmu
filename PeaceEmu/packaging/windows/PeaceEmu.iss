@@ -94,8 +94,8 @@ var
 begin
   if (CurUninstallStep = usPostUninstall) and RemoveUserSettings then
   begin
-    RoamingDir := ExpandConstant('{userappdata}\ArchiaEmu');
-    LocalDir := ExpandConstant('{localappdata}\ArchiaEmu');
+    RoamingDir := ExpandConstant('{userappdata}\PeaceEmu');
+    LocalDir := ExpandConstant('{localappdata}\PeaceEmu');
 
     { Delete only the known preferences file and known log/cache folders.
       Never recursively remove the user's entire application-data directory. }
