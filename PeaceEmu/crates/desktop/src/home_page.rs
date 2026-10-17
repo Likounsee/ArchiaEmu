@@ -6,7 +6,9 @@ impl DesktopApp {
     pub(super) fn show_home(&mut self, ui: &mut egui::Ui) {
         let french = self.language == "fr";
         if self.logo_texture.is_none() {
-            if let Ok(image) = image::load_from_memory(include_bytes!("../assets/peaceemu-logo.png")) {
+            if let Ok(image) =
+                image::load_from_memory(include_bytes!("../assets/peaceemu-logo.png"))
+            {
                 let image = image.to_rgba8();
                 let size = [image.width() as usize, image.height() as usize];
                 self.logo_texture = Some(ui.ctx().load_texture(
