@@ -576,7 +576,7 @@ mod tests {
     #[test]
     fn journal_cleanup_rejects_symbolic_links() {
         let directory = std::env::temp_dir().join(format!(
-            "archiaemu-journal-symlink-{}-{}",
+            "host-app-journal-symlink-{}-{}",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
@@ -609,7 +609,7 @@ mod tests {
     #[test]
     fn discarded_journal_removal_refuses_activation_and_failed_phases() {
         let directory = std::env::temp_dir().join(format!(
-            "archiaemu-discard-journal-{}-{}",
+            "host-app-discard-journal-{}-{}",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
@@ -645,7 +645,7 @@ mod tests {
     #[test]
     fn committed_journal_removal_refuses_incomplete_transaction() {
         let directory = std::env::temp_dir().join(format!(
-            "archiaemu-committed-journal-{}-{}",
+            "host-app-committed-journal-{}-{}",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
@@ -677,7 +677,7 @@ mod tests {
     #[test]
     fn recovery_plan_exposes_action_without_mutating_journals() {
         let directory = std::env::temp_dir().join(format!(
-            "archiaemu-recovery-plan-{}-{}",
+            "host-app-recovery-plan-{}-{}",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
@@ -707,7 +707,7 @@ mod tests {
     #[test]
     fn discovery_returns_only_journals_in_deterministic_order() {
         let directory = std::env::temp_dir().join(format!(
-            "archiaemu-journal-discovery-{}-{}",
+            "host-app-journal-discovery-{}-{}",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
@@ -744,7 +744,7 @@ mod tests {
     #[test]
     fn discovery_fails_closed_on_malformed_journal() {
         let directory = std::env::temp_dir().join(format!(
-            "archiaemu-journal-malformed-{}-{}",
+            "host-app-journal-malformed-{}-{}",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
@@ -832,7 +832,7 @@ mod tests {
     #[test]
     fn save_replaces_existing_journal_and_loads_latest_phase() {
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-install-journal-{}-{}.journal",
+            "host-app-install-journal-{}-{}.journal",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
@@ -852,7 +852,7 @@ mod tests {
     #[test]
     fn load_rejects_malformed_journal_without_repairing_it() {
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-install-journal-invalid-{}-{}.journal",
+            "host-app-install-journal-invalid-{}-{}.journal",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
@@ -869,7 +869,7 @@ mod tests {
     #[test]
     fn load_reports_invalid_utf8_as_malformed_journal_without_modifying_file() {
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-install-journal-utf8-{}-{}.journal",
+            "host-app-install-journal-utf8-{}-{}.journal",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
@@ -888,7 +888,7 @@ mod tests {
     #[test]
     fn load_rejects_oversized_journal_before_decoding() {
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-install-journal-large-{}-{}.journal",
+            "host-app-install-journal-large-{}-{}.journal",
             std::process::id(),
             TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
