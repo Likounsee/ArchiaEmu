@@ -131,8 +131,8 @@ pub(crate) fn download_and_verify(
             }
         })
         .collect();
-    let partial_path = directory.join(format!("archiaemu-{safe_version}-{nonce}.part"));
-    let verified_path = directory.join(format!("archiaemu-{safe_version}-{nonce}.verified"));
+    let partial_path = directory.join(format!("desktop-{safe_version}-{nonce}.part"));
+    let verified_path = directory.join(format!("desktop-{safe_version}-{nonce}.verified"));
 
     // Only clean up paths that this invocation successfully created. A collision on
     // either create_new() or rename() must never cause us to delete a pre-existing file.
@@ -529,7 +529,7 @@ mod tests {
             .expect("clock should be valid")
             .as_nanos();
         std::env::temp_dir().join(format!(
-            "archiaemu-update-{}-{nonce}.bin",
+            "desktop-update-{}-{nonce}.bin",
             std::process::id()
         ))
     }
