@@ -152,7 +152,7 @@ impl DesktopApp {
                     ui.set_min_width(170.0);
                     ui.set_max_width(220.0);
                     ui.vertical(|ui| {
-                        ui.strong(format!("Session {}", id.get()));
+                        ui.strong(format!("{} {}", if french { "Session" } else { "Session" }, id.get()));
                         ui.label(&system_name);
                         ui.small(if self.language == "fr" { "En pause" } else { "Paused" });
                         if ui.button(if self.language == "fr" { "Reprendre" } else { "Resume" }).clicked() {
@@ -177,7 +177,7 @@ impl DesktopApp {
                                 self.message = if french {
                                     format!("Fermeture annulée ; sauvegarde en jeu impossible : {error}")
                                 } else {
-                                    format!("Close cancelled; game save could not be flushed: {error}")
+                                    if french { format!("Fermeture annulée : impossible d’écrire la sauvegarde : {error}") } else { format!("Close cancelled; game save could not be flushed: {error}") }
                                 };
                                 return;
                             }
@@ -190,7 +190,7 @@ impl DesktopApp {
                                     self.message = if french {
                                         format!("Session {} fermée.", id.get())
                                     } else {
-                                        format!("Closed session {}.", id.get())
+                                        if french { format!("Session {} fermée.", id.get()) } else { format!("Closed session {}.", id.get()) }
                                     };
                                     if was_active {
                                         self.audio_output.clear();
@@ -260,7 +260,7 @@ impl DesktopApp {
                                             format!("Session {} fermée.", id.get())
                                         }
                                         (false, Some(error)) => {
-                                            format!("Session {} closed, but {error}", id.get())
+                                            if french { format!("Session {} fermée, mais {error}", id.get()) } else { format!("Session {} closed, but {error}", id.get()) }
                                         }
                                         (false, None) => {
                                             format!("Closed session {}.", id.get())
@@ -293,7 +293,7 @@ impl DesktopApp {
                     .iter()
                     .find(|(session_id, _)| *session_id == id)
                 {
-                    ui.label(format!("Source: {}", content_path.display()));
+                    ui.label(if french { format!("Source : {}", content_path.display()) } else { format!("Source: {}", content_path.display()) });
                 } else if content_loaded {
                     ui.label(if french {
                         "Source : chemin indisponible pour cette session"
@@ -479,7 +479,7 @@ impl DesktopApp {
                         if let Some(error) = &tick_error {
                             ui.colored_label(
                                 egui::Color32::LIGHT_RED,
-                                format!("Most recent tick/media failure: {error}"),
+                                if french { format!("Dernière erreur d’exécution/média : {error}") } else { format!("Most recent tick/media failure: {error}") },
                             );
                         } else {
                             ui.label(if self.language == "fr" { "Dernière erreur d’exécution/média : aucune" } else { "Most recent tick/media failure: none recorded" });
