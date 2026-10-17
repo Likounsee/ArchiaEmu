@@ -9,6 +9,7 @@ on:
       - "PeaceEmu/crates/app/**"
       - "PeaceEmu/crates/core/**"
       - "PeaceEmu/crates/game-boy/**"
+      - "PeaceEmu/crates/windows-durability/**"
       - "PeaceEmu/Cargo.toml"
       - "PeaceEmu/Cargo.lock"
       - ".github/workflows/desktop-preview.yml"
