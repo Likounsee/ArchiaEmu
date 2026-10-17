@@ -105,7 +105,7 @@ impl DesktopApp {
                 );
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new("ArchiaEmu").size(20.0).strong());
+                        ui.label(egui::RichText::new("PeaceEmu").size(20.0).strong());
                         theme::badge(ui, &format!("v{current}"), palette.text_dim);
                         theme::badge(
                             ui,
@@ -115,9 +115,9 @@ impl DesktopApp {
                     });
                     ui.label(
                         egui::RichText::new(if french {
-                            "ArchiaEmu est en cours de développement."
+                            "PeaceEmu est en cours de développement."
                         } else {
-                            "ArchiaEmu is under active development."
+                            "PeaceEmu is under active development."
                         })
                         .color(palette.text_dim),
                     );
@@ -635,7 +635,7 @@ impl DesktopApp {
         let version = option_env!("CARGO_PKG_VERSION");
         if french {
             format!(
-                "ArchiaEmu {}\nPlateforme : {} / {}\nÉléments de la bibliothèque : {}\nSessions ouvertes : {}\nSession active : {}\nErreurs d’exécution : {}\nConfiguration : {}\nÉtat des médias : {}\nÉtat des mises à jour : {}\nMise à jour préparée : {}\nDernier message : {}\nErreurs récentes :\n{}",
+                "PeaceEmu {}\nPlateforme : {} / {}\nÉléments de la bibliothèque : {}\nSessions ouvertes : {}\nSession active : {}\nErreurs d’exécution : {}\nConfiguration : {}\nÉtat des médias : {}\nÉtat des mises à jour : {}\nMise à jour préparée : {}\nDernier message : {}\nErreurs récentes :\n{}",
                 version.unwrap_or("inconnue"),
                 std::env::consts::OS,
                 std::env::consts::ARCH,
@@ -652,7 +652,7 @@ impl DesktopApp {
             )
         } else {
             format!(
-                "ArchiaEmu {}\nPlatform: {} / {}\nLibrary items: {}\nOpen sessions: {}\nActive session: {}\nExecution errors: {}\nConfiguration: {}\nMedia status: {}\nUpdate status: {}\nStaged update: {}\nLatest message: {}\nRecent errors:\n{}",
+                "PeaceEmu {}\nPlatform: {} / {}\nLibrary items: {}\nOpen sessions: {}\nActive session: {}\nExecution errors: {}\nConfiguration: {}\nMedia status: {}\nUpdate status: {}\nStaged update: {}\nLatest message: {}\nRecent errors:\n{}",
                 version.unwrap_or("unknown"),
                 std::env::consts::OS,
                 std::env::consts::ARCH,
