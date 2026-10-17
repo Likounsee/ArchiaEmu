@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub(crate) const MANIFEST_URL: &str =
-    "https://raw.githubusercontent.com/Likounsee/ArchiaEmu/ArchiaEmu/ArchiaEmu/update/stable.json";
+    "https://raw.githubusercontent.com/Likounsee/PeaceEmu/PeaceEmu/ArchiaEmu/update/stable.json";
 const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
 const MAX_DOWNLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
@@ -108,7 +108,7 @@ pub(crate) fn download_and_verify(
         return Err("Update download has a malformed SHA-256 digest.".to_owned());
     }
 
-    let application_directory = std::env::temp_dir().join("ArchiaEmu");
+    let application_directory = std::env::temp_dir().join("PeaceEmu");
     fs::create_dir_all(&application_directory)
         .map_err(|error| format!("Could not create update application directory: {error}"))?;
     ensure_real_staging_directory(&application_directory)?;
@@ -263,11 +263,11 @@ fn validate_release_notes_url(url: &str) -> Result<(), String> {
     if !authority.eq_ignore_ascii_case("github.com")
         || authority.contains('@')
         || authority.contains(':')
-        || !(path == "/Likounsee/ArchiaEmu/releases"
-            || path.starts_with("/Likounsee/ArchiaEmu/releases/"))
+        || !(path == "/Likounsee/PeaceEmu/releases"
+            || path.starts_with("/Likounsee/PeaceEmu/releases/"))
     {
         return Err(
-            "Release notes must point to the official ArchiaEmu GitHub releases page.".to_owned(),
+            "Release notes must point to the official PeaceEmu GitHub releases page.".to_owned(),
         );
     }
     // Keep the path canonical so encoded separators or dot-segments cannot
@@ -321,15 +321,15 @@ fn validate_download_url(url: &str) -> Result<(), String> {
             .strip_prefix("https://")
             .and_then(|rest| rest.split_once('/').map(|(_, path)| format!("/{path}")))
             .unwrap_or_default();
-        if !path.starts_with("/Likounsee/ArchiaEmu/releases/download/") {
-            return Err("Update artifacts must come from an ArchiaEmu GitHub release.".to_owned());
+        if !path.starts_with("/Likounsee/PeaceEmu/releases/download/") {
+            return Err("Update artifacts must come from an PeaceEmu GitHub release.".to_owned());
         }
         // Manifest artifact URLs are stable release-asset paths, not signed
         // redirect URLs. Reject query/fragment tricks and dot-segments rather
         // than letting URL/server path normalization change the requested asset.
         if path.contains('?') || path.contains('#') {
             return Err(
-                "ArchiaEmu release artifact URLs must not contain a query or fragment.".to_owned(),
+                "PeaceEmu release artifact URLs must not contain a query or fragment.".to_owned(),
             );
         }
         let lower_path = path.to_ascii_lowercase();
@@ -345,7 +345,7 @@ fn validate_download_url(url: &str) -> Result<(), String> {
                 .split('/')
                 .any(|segment| segment == "." || segment == "..")
         {
-            return Err("ArchiaEmu release artifact URLs must not contain encoded separators, control characters, or path traversal segments.".to_owned());
+            return Err("PeaceEmu release artifact URLs must not contain encoded separators, control characters, or path traversal segments.".to_owned());
         }
         let segments: Vec<_> = path
             .split('/')
@@ -356,7 +356,7 @@ fn validate_download_url(url: &str) -> Result<(), String> {
             || segments[5..].iter().any(|s| s.is_empty())
         {
             return Err(
-                "ArchiaEmu release artifact URL must identify a specific release asset.".to_owned(),
+                "PeaceEmu release artifact URL must identify a specific release asset.".to_owned(),
             );
         }
     }
@@ -582,7 +582,7 @@ mod tests {
     #[test]
     fn validates_a_manifest_without_publishing_unavailable_downloads() {
         let manifest: UpdateManifest = serde_json::from_str(
-            r#"{"schema_version":1,"version":"0.1.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{}}"#,
+            r#"{"schema_version":1,"version":"0.1.0","release_notes_url":"https://github.com/Likounsee/PeaceEmu/releases","downloads":{}}"#,
         )
         .expect("manifest JSON should parse");
         manifest.validate().expect("empty release channel is valid");
@@ -600,10 +600,10 @@ mod tests {
             let manifest: UpdateManifest = serde_json::from_value(serde_json::json!({
                 "schema_version": 1,
                 "version": "0.2.0",
-                "release_notes_url": "https://github.com/Likounsee/ArchiaEmu/releases",
+                "release_notes_url": "https://github.com/Likounsee/PeaceEmu/releases",
                 "downloads": {
                     (platform): {
-                        "url": "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app",
+                        "url": "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/app",
                         "size_bytes": 1,
                         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                     }
@@ -619,7 +619,7 @@ mod tests {
     #[test]
     fn rejects_unknown_update_platform_keys_instead_of_silently_ignoring_them() {
         let manifest: UpdateManifest = serde_json::from_str(
-            r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{"linux-x64":{"url":"https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app","size_bytes":1,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}"#,
+            r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/PeaceEmu/releases","downloads":{"linux-x64":{"url":"https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/app","size_bytes":1,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}"#,
         )
         .expect("manifest JSON should parse");
         assert!(manifest.validate().is_err());
@@ -628,12 +628,12 @@ mod tests {
     #[test]
     fn rejects_unknown_manifest_and_download_fields() {
         let unknown_manifest_field = serde_json::from_str::<UpdateManifest>(
-            r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{},"unexpected":true}"#,
+            r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/PeaceEmu/releases","downloads":{},"unexpected":true}"#,
         );
         assert!(unknown_manifest_field.is_err());
 
         let unknown_download_field = serde_json::from_str::<UpdateManifest>(
-            r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{"linux-x86_64":{"url":"https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app","size_bytes":1,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","signature":"ignored-by-old-clients"}}}"#,
+            r#"{"schema_version":1,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/PeaceEmu/releases","downloads":{"linux-x86_64":{"url":"https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/app","size_bytes":1,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","signature":"ignored-by-old-clients"}}}"#,
         );
         assert!(unknown_download_field.is_err());
     }
@@ -643,15 +643,15 @@ mod tests {
         for url in [
             "https://example.com/releases",
             "https://github.com/another/project/releases",
-            "https://github.com/Likounsee/ArchiaEmu/releases-evil",
-            "https://attacker@github.com/Likounsee/ArchiaEmu/releases",
-            "https://github.com:8443/Likounsee/ArchiaEmu/releases",
-            "https://github.com/Likounsee/ArchiaEmu/releases?redirect=example.com",
-            "https://github.com/Likounsee/ArchiaEmu/releases#other-project",
-            "https://github.com/Likounsee/ArchiaEmu/releases/../../another-project",
-            "https://github.com/Likounsee/ArchiaEmu/releases/%2e%2e/another-project",
-            "https://github.com/Likounsee/ArchiaEmu/releases%2f..%2fanother-project",
-            "https://github.com/Likounsee/ArchiaEmu/releases\\\\..\\\\another-project",
+            "https://github.com/Likounsee/PeaceEmu/releases-evil",
+            "https://attacker@github.com/Likounsee/PeaceEmu/releases",
+            "https://github.com:8443/Likounsee/PeaceEmu/releases",
+            "https://github.com/Likounsee/PeaceEmu/releases?redirect=example.com",
+            "https://github.com/Likounsee/PeaceEmu/releases#other-project",
+            "https://github.com/Likounsee/PeaceEmu/releases/../../another-project",
+            "https://github.com/Likounsee/PeaceEmu/releases/%2e%2e/another-project",
+            "https://github.com/Likounsee/PeaceEmu/releases%2f..%2fanother-project",
+            "https://github.com/Likounsee/PeaceEmu/releases\\\\..\\\\another-project",
         ] {
             assert!(
                 super::validate_release_notes_url(url).is_err(),
@@ -659,11 +659,11 @@ mod tests {
             );
         }
         assert!(super::validate_release_notes_url(
-            "https://github.com/Likounsee/ArchiaEmu/releases"
+            "https://github.com/Likounsee/PeaceEmu/releases"
         )
         .is_ok());
         assert!(super::validate_release_notes_url(
-            "https://github.com/Likounsee/ArchiaEmu/releases/tag/v0.2.0"
+            "https://github.com/Likounsee/PeaceEmu/releases/tag/v0.2.0"
         )
         .is_ok());
     }
@@ -676,7 +676,7 @@ mod tests {
         .expect("manifest JSON should parse");
         assert!(manifest.validate().is_err());
         let leading_zero_version: UpdateManifest = serde_json::from_str(
-            r#"{"schema_version":1,"version":"01.2.3","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{}}"#,
+            r#"{"schema_version":1,"version":"01.2.3","release_notes_url":"https://github.com/Likounsee/PeaceEmu/releases","downloads":{}}"#,
         )
         .expect("manifest JSON should parse");
         assert!(leading_zero_version.validate().is_err());
@@ -698,12 +698,12 @@ mod tests {
     #[test]
     fn rejects_unsupported_manifest_schema_and_invalid_download_metadata() {
         let unsupported: UpdateManifest = serde_json::from_str(
-            r#"{"schema_version":2,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/ArchiaEmu/releases","downloads":{}}"#,
+            r#"{"schema_version":2,"version":"0.2.0","release_notes_url":"https://github.com/Likounsee/PeaceEmu/releases","downloads":{}}"#,
         )
         .expect("manifest JSON should parse");
         assert!(unsupported.validate().is_err());
 
-        let valid_url = "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe";
+        let valid_url = "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/app.exe";
         for (size, digest) in [
             (0, "a".repeat(64)),
             (1, "not-a-sha256-digest".to_owned()),
@@ -712,7 +712,7 @@ mod tests {
             let manifest: UpdateManifest = serde_json::from_value(serde_json::json!({
                 "schema_version": 1,
                 "version": "0.2.0",
-                "release_notes_url": "https://github.com/Likounsee/ArchiaEmu/releases",
+                "release_notes_url": "https://github.com/Likounsee/PeaceEmu/releases",
                 "downloads": {
                     "windows-x86_64": {
                         "url": valid_url,
@@ -731,7 +731,7 @@ mod tests {
 
     #[test]
     fn release_asset_tag_must_match_manifest_version() {
-        let valid = "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe";
+        let valid = "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/app.exe";
         assert!(super::validate_download_url_for_version(valid, "0.2.0").is_ok());
         assert!(super::validate_download_url_for_version(valid, "0.2.1").is_err());
         assert!(super::validate_download_url_for_version(valid, "1.0.0").is_err());
@@ -740,7 +740,7 @@ mod tests {
     #[test]
     fn rejects_untrusted_update_download_hosts() {
         assert!(validate_download_url(
-            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe"
+            "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/app.exe"
         )
         .is_ok());
         assert!(validate_download_url("https://example.com/app.exe").is_err());
@@ -749,17 +749,17 @@ mod tests {
         )
         .is_err());
         assert!(validate_download_url(
-            "https://github.com/Likounsee/ArchiaEmu/releases/tag/v0.2.0"
+            "https://github.com/Likounsee/PeaceEmu/releases/tag/v0.2.0"
         )
         .is_err());
         for traversal in [
-            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/../other.exe",
-            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/%2e%2e/other.exe",
-            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/folder%2fapp.exe",
-            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/folder%5capp.exe",
-            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/folder\\\\app.exe",
-            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe?redirect=example.com",
-            "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe#other",
+            "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/../other.exe",
+            "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/%2e%2e/other.exe",
+            "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/folder%2fapp.exe",
+            "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/folder%5capp.exe",
+            "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/folder\\\\app.exe",
+            "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/app.exe?redirect=example.com",
+            "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/app.exe#other",
         ] {
             assert!(
                 validate_download_url(traversal).is_err(),
@@ -821,7 +821,7 @@ mod tests {
     #[test]
     fn update_staging_rejects_noncanonical_versions_before_network_access() {
         let download = super::UpdateDownload {
-            url: "https://github.com/Likounsee/ArchiaEmu/releases/download/v0.2.0/app.exe"
+            url: "https://github.com/Likounsee/PeaceEmu/releases/download/v0.2.0/app.exe"
                 .to_owned(),
             size_bytes: 1,
             sha256: "a".repeat(64),
