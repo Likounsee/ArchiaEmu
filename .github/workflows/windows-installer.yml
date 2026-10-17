@@ -53,13 +53,13 @@ jobs:
           $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"([^"]+)"')
           if (-not $match.Success) { throw "Could not read desktop package version from Cargo.toml" }
           $version = $match.Groups[1].Value
-          $exe = "PeaceEmu/crates/desktop/target/release/archiaemu-desktop.exe"
+          $exe = "PeaceEmu/crates/desktop/target/release/desktop-app.exe"
           if (!(Test-Path $exe)) {
             throw "Expected desktop executable was not produced: $exe"
           }
           $stageDir = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE "stage"))
           New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
-          Copy-Item $exe (Join-Path $stageDir "archiaemu-desktop.exe")
+          Copy-Item $exe (Join-Path $stageDir "desktop-app.exe")
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Install Inno Setup
@@ -138,7 +138,7 @@ jobs:
           $installDir = Join-Path $env:RUNNER_TEMP "PeaceEmu Installer Smoke"
           $install = Start-Process -FilePath $installer.FullName -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/DIR=`"$installDir`"") -Wait -PassThru
           if ($install.ExitCode -ne 0) { throw "Silent install failed with exit code $($install.ExitCode)." }
-          $installedExe = Join-Path $installDir "archiaemu-desktop.exe"
+          $installedExe = Join-Path $installDir "desktop-app.exe"
           if (!(Test-Path $installedExe)) {
             Get-ChildItem -Force $installDir -ErrorAction SilentlyContinue | Format-List FullName, Length
             throw "Installed desktop executable is missing at expected path: $installedExe"
@@ -175,16 +175,16 @@ jobs:
           }
 
           # Exercise the installed binary without requiring a display or OpenGL context.
-          $versionResult = Invoke-CapturedExecutable -Name "archiaemu-version" -Arguments @("--version")
+          $versionResult = Invoke-CapturedExecutable -Name "host-app-version" -Arguments @("--version")
           if ($versionResult.ExitCode -ne 0) { throw "Installed executable --version failed with exit code $($versionResult.ExitCode): $($versionResult.Text)" }
           $versionText = $versionResult.StdOut.Trim()
           if ($versionText -ne "PeaceEmu ${{ steps.stage.outputs.version }}") {
             throw "Installed executable reported unexpected version: $versionText"
           }
 
-          $helpResult = Invoke-CapturedExecutable -Name "archiaemu-help" -Arguments @("--help")
+          $helpResult = Invoke-CapturedExecutable -Name "host-app-help" -Arguments @("--help")
           $helpText = $helpResult.Text
-          if ($helpResult.ExitCode -ne 0 -or $helpText -notmatch "Usage:" -or $helpText -notmatch "archiaemu-desktop") {
+          if ($helpResult.ExitCode -ne 0 -or $helpText -notmatch "Usage:" -or $helpText -notmatch "desktop-app") {
             Write-Host "Installed executable --help output (exit=$($helpResult.ExitCode)):"
             Write-Host $helpText
             throw "Installed executable --help smoke test failed."
@@ -194,7 +194,7 @@ jobs:
           }
 
           # Invalid CLI arguments must fail clearly rather than opening the GUI or exiting successfully.
-          $unknownResult = Invoke-CapturedExecutable -Name "archiaemu-invalid-option" -Arguments @("--archiaemu-smoke-invalid-option")
+          $unknownResult = Invoke-CapturedExecutable -Name "host-app-invalid-option" -Arguments @("--host-app-smoke-invalid-option")
           if ($unknownResult.ExitCode -eq 0) {
             throw "Installed executable unexpectedly accepted an unknown command-line option."
           }
