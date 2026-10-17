@@ -7,7 +7,7 @@ impl DesktopApp {
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.heading(if self.language == "fr" { "Moniteur de session" } else { "Session monitor" });
-                ui.label("Inspect session lifecycle and media capabilities. This build does not yet provide playable Game Boy emulation.");
+                ui.label(if self.language == "fr" { "Consultez le cycle de vie des sessions et les capacités multimédias. Cette version ne permet pas encore de jouer aux jeux Game Boy." } else { "Inspect session lifecycle and media capabilities. This build does not yet provide playable Game Boy emulation." });
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button(if self.language == "fr" { "Gérer les sessions" } else { "Manage sessions" }).clicked() {
@@ -120,15 +120,15 @@ impl DesktopApp {
                     ui.separator();
                     ui.horizontal_wrapped(|ui| {
                         ui.label(if summary.video_available {
-                            "Video: available"
+                            if self.language == "fr" { "Vidéo : disponible" } else { "Video: available" }
                         } else {
-                            "Video: not implemented by this core"
+                            if self.language == "fr" { "Vidéo : non implémentée par ce cœur" } else { "Video: not implemented by this core" }
                         });
                         ui.separator();
                         ui.label(if summary.audio_available {
-                            "Audio: core output declared; host playback integrated"
+                            if self.language == "fr" { "Audio : sortie du cœur déclarée ; lecture intégrée" } else { "Audio: core output declared; host playback integrated" }
                         } else {
-                            "Audio: unavailable"
+                            if self.language == "fr" { "Audio : indisponible" } else { "Audio: unavailable" }
                         });
                         ui.separator();
                         ui.label(if summary.persistent_saves {
@@ -310,6 +310,6 @@ impl DesktopApp {
             });
             ui.label(&self.media_status);
         });
-        ui.small("Keyboard controls are forwarded as semantic input transitions only when the core declares input support. Audio plays when the core emits PCM and a host output device is available.");
+        ui.small(if self.language == "fr" { "Les commandes clavier sont transmises sous forme de transitions sémantiques uniquement si le cœur prend en charge les entrées. Le son est lu lorsque le cœur émet du PCM et qu’un périphérique audio est disponible." } else { "Keyboard controls are forwarded as semantic input transitions only when the core declares input support. Audio plays when the core emits PCM and a host output device is available." });
     }
 }
