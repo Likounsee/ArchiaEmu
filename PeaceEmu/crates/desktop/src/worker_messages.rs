@@ -7,8 +7,8 @@
 //! Frame output uses a compact binary RGBA8 envelope. This validates shape and
 //! size only; it does not make an untrusted worker safe to execute.
 
-use archiaemu_core::module_manifest::ReleaseVersion;
-use archiaemu_core::module_worker_protocol::{
+use emulation_core::module_manifest::ReleaseVersion;
+use emulation_core::module_worker_protocol::{
     WorkerMessage, WorkerMessageKind, MAX_WORKER_MESSAGE_BYTES,
 };
 use serde::Deserialize;
