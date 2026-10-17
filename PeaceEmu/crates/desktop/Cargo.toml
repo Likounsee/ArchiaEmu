@@ -13,9 +13,9 @@ default = []
 game-boy-color-module = ["dep:archiaemu-game-boy"]
 
 [dependencies]
-archiaemu-app = { version = "0.1.0", path = "../peaceemu-app" }
-archiaemu-core = { version = "0.1.0", path = "../peaceemu-core" }
-archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../peaceemu-game-boy", optional = true }
+archiaemu-app = { version = "0.1.0", path = "../app" }
+archiaemu-core = { version = "0.1.0", path = "../core" }
+archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../game-boy", optional = true }
 eframe = { version = "=0.27.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 ed25519-dalek = "=2.1.1"
 rfd = "=0.14.1"
