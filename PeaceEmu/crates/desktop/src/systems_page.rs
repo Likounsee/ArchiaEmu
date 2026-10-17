@@ -1,4 +1,4 @@
-//! Systems and module management page for the ArchiaEmu desktop frontend.
+//! Systems and module management page for the PeaceEmu desktop frontend.
 //!
 //! Layout: header with a systems counter, three summary cards, one card per
 //! registered core (tile, status badge, on/off switch, capability badges),
