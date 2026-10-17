@@ -198,7 +198,7 @@ fn validate_metadata(metadata: &SaveStateMetadata) -> Result<(), SaveStateError>
 pub enum SaveStateError {
     /// The envelope is shorter than its fixed header or declared content.
     Truncated,
-    /// The envelope magic does not identify an ArchiaEmu save state.
+    /// The envelope format is product-neutral.
     InvalidMagic,
     /// The envelope uses a format version not supported by this implementation.
     UnsupportedFormat(u16),
