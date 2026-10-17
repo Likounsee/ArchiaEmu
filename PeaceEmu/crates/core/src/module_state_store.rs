@@ -15,7 +15,7 @@ use crate::module_state::{FirstLaunchStatus, InstalledModule, ModuleManagerState
 
 /// Maximum accepted state-file size (4 MiB).
 pub const MAX_STATE_FILE_BYTES: u64 = 4 * 1024 * 1024;
-const HEADER: &str = "ARCHIAEMU-MODULE-STATE\t1";
+const HEADER: &str = "PEACEEMU-MODULE-STATE\t1";
 static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 /// Resolves the legacy per-user state path without creating it.
@@ -45,7 +45,7 @@ pub fn default_user_state_path() -> io::Result<PathBuf> {
             .join(".config"),
     };
 
-    Ok(root.join("ArchiaEmu").join("module-state.v1"))
+    Ok(root.join("PeaceEmu").join("module-state.v1"))
 }
 
 /// A malformed or unsupported persisted state.
@@ -593,16 +593,16 @@ mod tests {
     #[test]
     fn codec_rejects_unknown_version_malformed_and_duplicate_records() {
         assert_eq!(
-            ModuleManagerState::decode("ARCHIAEMU-MODULE-STATE\t2\nstatus\tnot-started\n"),
+            ModuleManagerState::decode("PEACEEMU-MODULE-STATE\t2\nstatus\tnot-started\n"),
             Err(StateFormatError::UnsupportedFormat)
         );
         assert_eq!(
-            ModuleManagerState::decode("ARCHIAEMU-MODULE-STATE\t1\nselected\tgb\n"),
+            ModuleManagerState::decode("PEACEEMU-MODULE-STATE\t1\nselected\tgb\n"),
             Err(StateFormatError::MalformedRecord)
         );
         assert_eq!(
             ModuleManagerState::decode(
-                "ARCHIAEMU-MODULE-STATE\t1\nstatus\tnot-started\nselected\tgb\nselected\tgb\n"
+                "PEACEEMU-MODULE-STATE\t1\nstatus\tnot-started\nselected\tgb\nselected\tgb\n"
             ),
             Err(StateFormatError::DuplicateModule)
         );
