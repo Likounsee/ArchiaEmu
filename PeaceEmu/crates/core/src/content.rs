@@ -397,7 +397,7 @@ mod tests {
     #[test]
     fn reads_a_file_with_the_same_size_limit() {
         let path =
-            std::env::temp_dir().join(format!("archiaemu-content-test-{}.bin", std::process::id()));
+            std::env::temp_dir().join(format!("host-app-content-test-{}.bin", std::process::id()));
         std::fs::write(&path, b"file bytes").unwrap();
         let result = ContentImage::read_path(&path, ContentLimits::new(10));
         let _ = std::fs::remove_file(&path);
@@ -411,7 +411,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-content-oversized-{}-{unique}.bin",
+            "host-app-content-oversized-{}-{unique}.bin",
             std::process::id()
         ));
         std::fs::write(&path, b"abcd").unwrap();
@@ -430,7 +430,7 @@ mod tests {
     #[test]
     fn reports_file_open_errors() {
         let path = std::env::temp_dir().join(format!(
-            "archiaemu-content-missing-{}.bin",
+            "host-app-content-missing-{}.bin",
             std::process::id()
         ));
         let _ = std::fs::remove_file(&path);
