@@ -15,9 +15,9 @@
 
 ## Repository layout
 
-- `ArchiaEmu/` — Cargo workspace, source crates and technical documentation.
+- `PeaceEmu/` — Cargo workspace, source crates and technical documentation.
 - `.github/workflows/` — GitHub Actions quality gates.
-- `ArchiaEmu/docs/` — architecture, interface, roadmap, testing, security and legal notes.
+- `PeaceEmu/docs/` — architecture, interface, roadmap, testing, security and legal notes.
 
 ## Current implementation
 
@@ -30,7 +30,7 @@ The Game Boy module is one unified `game-boy` target with cartridge-header class
 Run from the project directory:
 
 ```sh
-cd ArchiaEmu
+cd PeaceEmu
 cargo fmt --all -- --check
 cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
@@ -51,7 +51,7 @@ Development priority is the **global emulator framework**, not expanding one con
 6. **P4 — Expand systems:** add independently tested cores only after shared interfaces are stable. Game Boy remains a validation target, not the focus of the global roadmap.
 7. **P5 — UI and release:** content library, optional presentation enhancements, legal review, and reproducible packages.
 
-See [the detailed roadmap](ArchiaEmu/docs/ROADMAP.md) for current estimates, acceptance criteria and remaining work. Progress is measured against checked-in implementation and verified tests—not planned features or directory names.
+See [the detailed roadmap](PeaceEmu/docs/ROADMAP.md) for current estimates, acceptance criteria and remaining work. Progress is measured against checked-in implementation and verified tests—not planned features or directory names.
 
 ## Development and legal policy
 
