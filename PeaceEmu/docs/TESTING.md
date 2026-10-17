@@ -2,7 +2,7 @@
 
 ## Current checks
 
-From `ArchiaEmu/`:
+From `PeaceEmu/`:
 
 ```sh
 cargo fmt --all -- --check
@@ -12,7 +12,7 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 cargo package --workspace --locked --no-verify
 ```
 
-The CI workflow runs formatting, locked tests, warning-free documentation generation and package-content checks on Linux, Windows and macOS for pushes and pull requests targeting `ArchiaEmu`. It also checks dependency advisories, licenses and source provenance with cargo-deny; Clippy runs on Linux. CI runs are not cancelled merely because another commit is pushed, so each revision can report its own result. A green build proves only that the checked-in code passes these checks on the listed runners; it does not prove console compatibility or native builds for every target architecture. The stable toolchain is declared in `rust-toolchain.toml`.
+The CI workflow runs formatting, locked tests, warning-free documentation generation and package-content checks on Linux, Windows and macOS for pushes and pull requests targeting `PeaceEmu`. It also checks dependency advisories, licenses and source provenance with cargo-deny; Clippy runs on Linux. CI runs are not cancelled merely because another commit is pushed, so each revision can report its own result. A green build proves only that the checked-in code passes these checks on the listed runners; it does not prove console compatibility or native builds for every target architecture. The stable toolchain is declared in `rust-toolchain.toml`.
 
 ## Current test coverage
 
