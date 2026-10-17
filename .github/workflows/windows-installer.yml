@@ -210,7 +210,7 @@ jobs:
           if (!(Test-Path $uninstaller)) { throw "Uninstaller executable is missing." }
 
           # Silent uninstall must preserve per-user settings; deleting them requires explicit consent.
-          $userDataDir = Join-Path $env:APPDATA "ArchiaEmu"
+          $userDataDir = Join-Path $env:APPDATA "PeaceEmu"
           New-Item -ItemType Directory -Force -Path $userDataDir | Out-Null
           $userSettings = Join-Path $userDataDir "desktop.conf"
           $settingsSentinel = "installer-smoke-test-user-data"
