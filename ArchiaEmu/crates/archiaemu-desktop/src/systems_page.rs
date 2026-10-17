@@ -137,89 +137,98 @@ impl DesktopApp {
             });
         }
 
+        ui.add_space(8.0);
+        ui.heading(if french { "Modules disponibles" } else { "Available modules" });
+        ui.label(if french {
+            "Activez uniquement les modules que vous souhaitez utiliser. Les modules absents de cette compilation restent désactivés."
+        } else {
+            "Enable only the modules you want to use. Modules not bundled in this build remain unavailable."
+        });
+        ui.add_space(4.0);
+
         for id in &system_ids {
             let Ok(module_id) = ModuleId::new(id.as_str().to_owned()) else {
                 ui.colored_label(
                     egui::Color32::LIGHT_RED,
                     format!(
                         "{}: {}",
-                        if french {
-                            "Identifiant non valide"
-                        } else {
-                            "Invalid module ID"
-                        },
+                        if french { "Identifiant non valide" } else { "Invalid module ID" },
                         id.as_str()
                     ),
                 );
                 continue;
             };
             let available = self.registry.registered_descriptor(*id);
+            let installed_version = state.installed_version(&module_id).map(str::to_owned);
             let mut is_selected = selected.contains(&module_id);
-            ui.horizontal(|ui| {
-                if ui.checkbox(&mut is_selected, id.as_str()).changed() {
-                    changed = true;
-                    if is_selected {
-                        if !selected.contains(&module_id) {
-                            selected.push(module_id.clone());
-                        }
-                    } else {
-                        selected.retain(|selected_id| selected_id != &module_id);
-                    }
-                }
-                if let Some(version) = state.installed_version(&module_id) {
-                    ui.label(if french {
-                        format!("Installé · version {version}")
-                    } else {
-                        format!("Installed · version {version}")
-                    });
-                } else {
-                    ui.label(if available.is_some() {
-                        if french {
-                            "Disponible dans cette compilation"
-                        } else {
-                            "Available in this build"
-                        }
-                    } else if french {
-                        "Non disponible"
-                    } else {
-                        "Unavailable"
-                    });
-                }
-            });
-            if let Some(descriptor) = available {
-                let caps = descriptor.capabilities;
-                ui.indent(id.as_str(), |ui| {
+            egui::Frame::group(ui.style())
+                .rounding(egui::Rounding::same(10.0))
+                .inner_margin(egui::Margin::same(12.0))
+                .show(ui, |ui| {
                     ui.horizontal_wrapped(|ui| {
-                        for (label, enabled) in [
-                            (
-                                if french { "Contenu" } else { "Content" },
-                                caps.content_loading,
-                            ),
-                            (if french { "Entrées" } else { "Input" }, caps.input),
-                            (if french { "Vidéo" } else { "Video" }, caps.video_output),
-                            ("Audio", caps.audio_output),
-                            (
+                        ui.vertical(|ui| {
+                            ui.heading(egui::RichText::new(id.as_str()).strong());
+                            ui.label(if let Some(version) = installed_version.as_deref() {
                                 if french {
-                                    "États de sauvegarde"
+                                    format!("Installé · version {version}")
                                 } else {
-                                    "Save states"
-                                },
-                                caps.save_states,
-                            ),
-                            (
+                                    format!("Installed · version {version}")
+                                }
+                            } else if available.is_some() {
                                 if french {
-                                    "Sauvegardes persistantes"
+                                    "Disponible dans cette compilation".to_owned()
                                 } else {
-                                    "Persistent saves"
-                                },
-                                caps.persistent_saves,
-                            ),
-                        ] {
-                            ui.label(format!("{label}: {}", capability_label(enabled)));
-                        }
+                                    "Available in this build".to_owned()
+                                }
+                            } else if french {
+                                "Non disponible".to_owned()
+                            } else {
+                                "Unavailable".to_owned()
+                            });
+                        });
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.checkbox(&mut is_selected, if french { "Activé" } else { "Enabled" }).changed() {
+                                changed = true;
+                                if is_selected {
+                                    if !selected.contains(&module_id) {
+                                        selected.push(module_id.clone());
+                                    }
+                                } else {
+                                    selected.retain(|selected_id| selected_id != &module_id);
+                                }
+                            }
+                        });
                     });
+                    if let Some(descriptor) = available {
+                        let caps = descriptor.capabilities;
+                        ui.add_space(8.0);
+                        ui.separator();
+                        ui.label(egui::RichText::new(if french { "CAPACITÉS" } else { "CAPABILITIES" }).small().strong());
+                        ui.add_space(4.0);
+                        ui.horizontal_wrapped(|ui| {
+                            for (label, enabled) in [
+                                (if french { "Contenu" } else { "Content" }, caps.content_loading),
+                                (if french { "Entrées" } else { "Input" }, caps.input),
+                                (if french { "Vidéo" } else { "Video" }, caps.video_output),
+                                ("Audio", caps.audio_output),
+                                (if french { "États de sauvegarde" } else { "Save states" }, caps.save_states),
+                                (if french { "Sauvegardes persistantes" } else { "Persistent saves" }, caps.persistent_saves),
+                            ] {
+                                let color = if enabled { egui::Color32::from_rgb(23, 178, 106) } else { ui.visuals().weak_text_color() };
+                                egui::Frame::none()
+                                    .fill(ui.visuals().faint_bg_color)
+                                    .rounding(egui::Rounding::same(6.0))
+                                    .inner_margin(egui::Margin::symmetric(8.0, 4.0))
+                                    .show(ui, |ui| {
+                                        ui.horizontal(|ui| {
+                                            ui.label(egui::RichText::new(if enabled { "●" } else { "○" }).color(color));
+                                            ui.label(format!("{label}: {}", capability_label(enabled)));
+                                        });
+                                    });
+                            }
+                        });
+                    }
                 });
-            }
         }
 
         // Keep persisted selections visible even when this build does not ship
