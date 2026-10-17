@@ -177,7 +177,7 @@ impl DesktopApp {
                                 self.message = if french {
                                     format!("Fermeture annulée ; sauvegarde en jeu impossible : {error}")
                                 } else {
-                                    if french { format!("Fermeture annulée : impossible d’écrire la sauvegarde : {error}") } else { format!("Close cancelled; game save could not be flushed: {error}") }
+                                    format!("Close cancelled; game save could not be flushed: {error}")
                                 };
                                 return;
                             }
@@ -190,7 +190,7 @@ impl DesktopApp {
                                     self.message = if french {
                                         format!("Session {} fermée.", id.get())
                                     } else {
-                                        if french { format!("Session {} fermée.", id.get()) } else { format!("Closed session {}.", id.get()) }
+                                        format!("Closed session {}.", id.get())
                                     };
                                     if was_active {
                                         self.audio_output.clear();
