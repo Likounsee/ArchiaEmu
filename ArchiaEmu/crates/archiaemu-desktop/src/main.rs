@@ -18,6 +18,7 @@ use audio_output::AudioOutput;
 use game_view::{map_key_to_control, video_frame_to_image};
 use preferences::{config_file_path, load_preferences, write_preferences_with_language};
 
+mod appearance_page;
 mod audio_output;
 mod game_page;
 mod game_saves;
@@ -32,7 +33,9 @@ pub mod worker_messages;
 pub mod worker_process;
 
 mod settings_page;
+mod shell;
 mod systems_page;
+mod theme;
 mod update;
 use archiaemu_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use archiaemu_core::runtime::SessionState;
@@ -162,6 +165,8 @@ struct DesktopApp {
     staged_update_path: Option<PathBuf>,
     update_status: String,
     fullscreen: bool,
+    sidebar_open: bool,
+    settings_section: SettingsSection,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -231,17 +236,6 @@ impl UiStatus {
             Self::Information => "Ready",
         }
     }
-
-    fn color(self) -> egui::Color32 {
-        match self {
-            Self::Loading => egui::Color32::LIGHT_BLUE,
-            Self::Success => egui::Color32::from_rgb(95, 190, 140),
-            Self::Error => egui::Color32::LIGHT_RED,
-            Self::ContentAbsent => egui::Color32::GRAY,
-            Self::CapabilityUnavailable => egui::Color32::from_rgb(220, 160, 70),
-            Self::Information => egui::Color32::from_rgb(130, 160, 190),
-        }
-    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -252,6 +246,13 @@ enum DesktopPage {
     Game,
     Systems,
     Settings,
+}
+
+/// Sub-sections of the settings page, selected from the contextual sidebar.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SettingsSection {
+    Appearance,
+    Application,
 }
 
 impl DesktopPage {
@@ -312,7 +313,7 @@ impl DesktopApp {
         let mut dark_mode = true;
         let mut language = preferences::system_language();
         let mut ui_scale = 1.0;
-        let mut accent_color = egui::Color32::from_rgb(75, 115, 210);
+        let mut accent_color = theme::DEFAULT_ACCENT;
         let mut message = String::from("Ready. Select a content path to import or launch.");
         if let Some(path) = config_path.as_deref() {
             match load_preferences(path) {
@@ -391,6 +392,8 @@ impl DesktopApp {
             staged_update_path: None,
             update_status: "Not checked yet.".to_owned(),
             fullscreen: false,
+            sidebar_open: true,
+            settings_section: SettingsSection::Appearance,
         };
         // Check the official stable manifest without blocking the first window render.
         // The user can still trigger another check from Settings after this completes.
@@ -592,12 +595,17 @@ impl DesktopApp {
             return UiStatus::CapabilityUnavailable;
         }
 
-        if self.message.starts_with("imported ")
-            || self.message.starts_with("launched ")
-            || self.message.starts_with("closed ")
-            || self.message.starts_with("removed ")
-            || self.message.contains(" succeeded.")
-            || self.message.starts_with("settings saved")
+        // Messages start with a capital letter ("Imported ...", "Launched ..."), so compare
+        // against the lowercased text; matching the raw message never reported success.
+        let message = self.message.to_lowercase();
+        if message.starts_with("imported ")
+            || message.starts_with("launched ")
+            || message.starts_with("closed ")
+            || message.starts_with("removed ")
+            || message.contains(" succeeded.")
+            || message.starts_with("settings saved")
+            || message.starts_with("diagnostics copied")
+            || (message.starts_with("session ") && message.contains(" lancée"))
         {
             return UiStatus::Success;
         }
@@ -1003,33 +1011,6 @@ impl SessionAction {
     }
 }
 
-fn navigation_items(french: bool) -> [(DesktopPage, &'static str); 6] {
-    [
-        (
-            DesktopPage::Home,
-            if french { "Accueil" } else { "Overview" },
-        ),
-        (
-            DesktopPage::Library,
-            if french {
-                "Bibliothèque"
-            } else {
-                "Game library"
-            },
-        ),
-        (DesktopPage::Sessions, "Sessions"),
-        (DesktopPage::Game, if french { "Jeu" } else { "Game" }),
-        (
-            DesktopPage::Systems,
-            if french { "Systèmes" } else { "Systems" },
-        ),
-        (
-            DesktopPage::Settings,
-            if french { "Paramètres" } else { "Settings" },
-        ),
-    ]
-}
-
 impl eframe::App for DesktopApp {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         // Flush dirty battery-backed RAM before tearing down sessions.
@@ -1135,60 +1116,9 @@ impl eframe::App for DesktopApp {
         let previous_ui_scale = self.ui_scale;
         let previous_accent_color = self.accent_color;
         let previous_language = self.language.clone();
-        context.set_visuals(if self.dark_mode {
-            egui::Visuals::dark()
-        } else {
-            egui::Visuals::light()
-        });
+        let palette = theme::Palette::new(self.dark_mode, self.accent_color);
+        palette.apply(context);
         context.set_zoom_factor(self.ui_scale);
-        context.style_mut(|style| {
-            style.spacing.item_spacing = egui::vec2(12.0, 12.0);
-            style.spacing.button_padding = egui::vec2(14.0, 9.0);
-            style.spacing.window_margin = egui::Margin::same(18.0);
-            style.spacing.menu_margin = egui::Margin::same(8.0);
-            style.spacing.indent = 18.0;
-            let accent = self.accent_color;
-            style.visuals.panel_fill = if self.dark_mode {
-                egui::Color32::from_rgb(17, 20, 28)
-            } else {
-                egui::Color32::from_rgb(246, 247, 250)
-            };
-            style.visuals.window_fill = if self.dark_mode {
-                egui::Color32::from_rgb(23, 27, 37)
-            } else {
-                egui::Color32::from_rgb(255, 255, 255)
-            };
-            style.visuals.extreme_bg_color = if self.dark_mode {
-                egui::Color32::from_rgb(13, 16, 22)
-            } else {
-                egui::Color32::from_rgb(242, 244, 248)
-            };
-            style.visuals.selection.bg_fill = accent.gamma_multiply(0.38);
-            style.visuals.selection.stroke = egui::Stroke::new(1.0_f32, accent);
-            style.visuals.widgets.inactive.bg_fill = if self.dark_mode {
-                egui::Color32::from_rgb(32, 37, 49)
-            } else {
-                egui::Color32::from_rgb(246, 247, 250)
-            };
-            style.visuals.widgets.inactive.bg_stroke = egui::Stroke::new(
-                1.0_f32,
-                if self.dark_mode {
-                    egui::Color32::from_rgb(52, 59, 75)
-                } else {
-                    egui::Color32::from_rgb(222, 226, 235)
-                },
-            );
-            style.visuals.widgets.hovered.bg_fill = accent.gamma_multiply(0.18);
-            style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0_f32, accent);
-            style.visuals.widgets.active.bg_fill = accent.gamma_multiply(0.32);
-            style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0_f32, accent);
-            style.visuals.widgets.inactive.rounding = egui::Rounding::same(8.0);
-            style.visuals.widgets.hovered.rounding = egui::Rounding::same(8.0);
-            style.visuals.widgets.active.rounding = egui::Rounding::same(8.0);
-            style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(8.0);
-            style.visuals.window_rounding = egui::Rounding::same(12.0);
-            style.visuals.menu_rounding = egui::Rounding::same(10.0);
-        });
 
         // Keep the toggle synchronized with native window-manager changes and support F11.
         let native_fullscreen =
@@ -1205,271 +1135,39 @@ impl eframe::App for DesktopApp {
             context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.fullscreen));
         }
 
-        let compact_navigation = context.input(|input| input.screen_rect().width() < 980.0);
+        // Icon rail, contextual sidebar and status bar (see shell.rs).
+        self.show_shell(context);
 
-        if !compact_navigation {
-            egui::SidePanel::left("navigation")
-                .resizable(false)
-                .exact_width(232.0)
-                .frame(
-                    egui::Frame::none()
-                        .fill(if self.dark_mode {
-                            egui::Color32::from_rgb(19, 23, 33)
-                        } else {
-                            egui::Color32::from_rgb(255, 255, 255)
-                        })
-                        .inner_margin(egui::Margin {
-                            left: 16.0,
-                            right: 16.0,
-                            top: 18.0,
-                            bottom: 14.0,
-                        }),
-                )
-                .show(context, |ui| {
-                    let accent = self.accent_color;
-                    let french = self.language == "fr";
-                    ui.horizontal(|ui| {
-                        let (logo_rect, _) =
-                            ui.allocate_exact_size(egui::vec2(38.0, 38.0), egui::Sense::hover());
-                        ui.painter()
-                            .rect_filled(logo_rect, egui::Rounding::same(11.0), accent);
-                        ui.painter().text(
-                            logo_rect.center(),
-                            egui::Align2::CENTER_CENTER,
-                            "A",
-                            egui::FontId::proportional(23.0),
-                            egui::Color32::WHITE,
-                        );
-                        ui.add_space(9.0);
-                        ui.vertical(|ui| {
-                            ui.label(egui::RichText::new("ArchiaEmu").size(18.0).strong());
-                            ui.label(
-                                egui::RichText::new(if french {
-                                    "STUDIO D’ÉMULATION"
-                                } else {
-                                    "EMULATION STUDIO"
-                                })
-                                .size(9.0)
-                                .strong()
-                                .color(ui.visuals().weak_text_color()),
-                            );
-                        });
-                    });
-                    ui.add_space(28.0);
-                    ui.label(
-                        egui::RichText::new(if french {
-                            "ESPACE DE TRAVAIL"
-                        } else {
-                            "WORKSPACE"
-                        })
-                        .size(10.0)
-                        .strong()
-                        .color(ui.visuals().weak_text_color()),
-                    );
-                    ui.add_space(9.0);
-                    for (page, label) in navigation_items(french) {
-                        let selected = self.active_page == page;
-                        let fill = if selected {
-                            accent.gamma_multiply(if self.dark_mode { 0.22 } else { 0.13 })
-                        } else {
-                            egui::Color32::TRANSPARENT
-                        };
-                        egui::Frame::none()
-                            .fill(fill)
-                            .rounding(egui::Rounding::same(9.0))
-                            .inner_margin(egui::Margin::symmetric(10.0, 10.0))
-                            .show(ui, |ui| {
-                                if ui
-                                    .selectable_label(
-                                        selected,
-                                        egui::RichText::new(label).size(13.0).color(if selected {
-                                            accent
-                                        } else {
-                                            ui.visuals().text_color()
-                                        }),
-                                    )
-                                    .clicked()
-                                {
-                                    self.navigate_to(page);
-                                }
-                            });
-                        ui.add_space(3.0);
-                    }
-                    ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
-                        egui::Frame::group(ui.style())
-                            .fill(if self.dark_mode {
-                                egui::Color32::from_rgb(27, 32, 44)
-                            } else {
-                                egui::Color32::from_rgb(247, 248, 251)
-                            })
-                            .rounding(egui::Rounding::same(10.0))
-                            .inner_margin(egui::Margin::same(12.0))
-                            .show(ui, |ui| {
-                                ui.label(
-                                    egui::RichText::new(if french {
-                                        "Développement actif"
-                                    } else {
-                                        "Active development"
-                                    })
-                                    .strong()
-                                    .size(12.0),
-                                );
-                                ui.add_space(4.0);
-                                ui.label(
-                                    egui::RichText::new(if french {
-                                        "Les cœurs et la compatibilité restent expérimentaux."
-                                    } else {
-                                        "Core support and compatibility are experimental."
-                                    })
-                                    .size(10.0)
-                                    .color(ui.visuals().weak_text_color()),
-                                );
-                                ui.add_space(8.0);
-                                ui.separator();
-                                ui.label(if self.dark_mode {
-                                    if french {
-                                        "Thème sombre"
-                                    } else {
-                                        "Dark appearance"
-                                    }
-                                } else if french {
-                                    "Thème clair"
-                                } else {
-                                    "Light appearance"
-                                });
-                            });
-                    });
-                });
-        } else {
-            egui::TopBottomPanel::top("compact_navigation")
-                .frame(egui::Frame::none().inner_margin(egui::Margin::symmetric(12.0, 8.0)))
-                .show(context, |ui| {
-                    egui::ScrollArea::horizontal().show(ui, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.strong("ArchiaEmu");
-                            ui.separator();
-                            for (page, label) in navigation_items(self.language == "fr") {
-                                if ui
-                                    .selectable_label(self.active_page == page, label)
-                                    .clicked()
-                                {
-                                    self.navigate_to(page);
-                                }
-                            }
-                        });
-                    });
-                });
-        }
-
-        egui::TopBottomPanel::top("app_header")
-            .frame(egui::Frame::none().inner_margin(egui::Margin {
-                left: 24.0,
-                right: 24.0,
-                top: 17.0,
-                bottom: 14.0,
-            }))
+        egui::CentralPanel::default()
+            .frame(
+                egui::Frame::none()
+                    .fill(palette.panel)
+                    .rounding(egui::Rounding {
+                        nw: 32.0,
+                        ne: 0.0,
+                        sw: 0.0,
+                        se: 0.0,
+                    })
+                    .inner_margin(egui::Margin {
+                        left: 32.0,
+                        right: 32.0,
+                        top: 28.0,
+                        bottom: 12.0,
+                    }),
+            )
             .show(context, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.label(
-                            egui::RichText::new(if self.language == "fr" {
-                                "ESPACE DE TRAVAIL"
-                            } else {
-                                "WORKSPACE"
-                            })
-                            .size(10.0)
-                            .strong()
-                            .color(self.accent_color),
-                        );
-                        ui.label(
-                            egui::RichText::new(" / ")
-                                .size(10.0)
-                                .color(ui.visuals().weak_text_color()),
-                        );
-                        ui.label(
-                            egui::RichText::new(self.active_page.title(self.language == "fr"))
-                                .size(11.0)
-                                .strong()
-                                .color(ui.visuals().text_color()),
-                        );
-                    });
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui
-                            .button(if self.fullscreen {
-                                if self.language == "fr" {
-                                    "Quitter le plein écran"
-                                } else {
-                                    "Exit fullscreen"
-                                }
-                            } else if self.language == "fr" {
-                                "Plein écran"
-                            } else {
-                                "Fullscreen"
-                            })
-                            .on_hover_text(if self.language == "fr" {
-                                "Raccourci : F11 ou Alt+Entrée"
-                            } else {
-                                "Shortcut: F11 or Alt+Enter"
-                            })
-                            .clicked()
-                        {
-                            self.fullscreen = !self.fullscreen;
-                            context.send_viewport_cmd(egui::ViewportCommand::Fullscreen(
-                                self.fullscreen,
-                            ));
-                        }
-                        egui::Frame::group(ui.style())
-                            .fill(if self.dark_mode {
-                                egui::Color32::from_rgb(28, 34, 46)
-                            } else {
-                                egui::Color32::from_rgb(255, 255, 255)
-                            })
-                            .rounding(egui::Rounding::same(9.0))
-                            .inner_margin(egui::Margin::symmetric(10.0, 7.0))
-                            .show(ui, |ui| {
-                                ui.label(format!(
-                                    "{} {}",
-                                    self.controller.session_count(),
-                                    "session(s)"
-                                ));
-                            });
-                        ui.label(if self.dark_mode {
-                            if self.language == "fr" {
-                                "Thème sombre"
-                            } else {
-                                "Dark theme"
-                            }
-                        } else if self.language == "fr" {
-                            "Thème clair"
-                        } else {
-                            "Light theme"
-                        });
-                    });
-                });
-            });
-
-        egui::CentralPanel::default().show(context, |ui| {
-            // Keep long pages usable on short displays and when the window is resized.
-            egui::ScrollArea::vertical()
-                .auto_shrink([false, false])
-                .show(ui, |ui| {
-                    match self.active_page {
+                // Keep long pages usable on short displays and when the window is resized.
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| match self.active_page {
                         DesktopPage::Home => self.show_home(ui),
                         DesktopPage::Library => self.show_library(ui),
                         DesktopPage::Sessions => self.show_sessions(ui),
                         DesktopPage::Game => self.show_game(ui),
                         DesktopPage::Systems => self.show_systems(ui),
                         DesktopPage::Settings => self.show_settings(ui, context),
-                    }
-                    ui.add_space(12.0);
-                    ui.separator();
-                    ui.horizontal_wrapped(|ui| {
-                        let status = self.ui_status();
-                        ui.colored_label(status.color(), status.label());
-                        ui.label(&self.message);
                     });
-                });
-        });
+            });
 
         if self.dark_mode != previous_dark_mode
             || (self.ui_scale - previous_ui_scale).abs() > f32::EPSILON

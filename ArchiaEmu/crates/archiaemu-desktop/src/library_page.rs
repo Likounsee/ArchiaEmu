@@ -14,125 +14,153 @@ fn content_path_status(path: &Path) -> &'static str {
     }
 }
 
+/// Flat cover colour derived from the title, so each game keeps a stable tile.
+fn cover_color(title: &str) -> egui::Color32 {
+    const COVERS: [(u8, u8, u8); 6] = [
+        (46, 42, 99),
+        (31, 75, 69),
+        (90, 46, 62),
+        (55, 65, 110),
+        (98, 70, 30),
+        (60, 60, 70),
+    ];
+    let hash = title.bytes().fold(0usize, |acc, byte| {
+        acc.wrapping_mul(31).wrapping_add(usize::from(byte))
+    });
+    let (r, g, b) = COVERS[hash % COVERS.len()];
+    egui::Color32::from_rgb(r, g, b)
+}
+
+fn initials(title: &str) -> String {
+    let letters: String = title
+        .split_whitespace()
+        .filter_map(|word| word.chars().next())
+        .take(2)
+        .collect::<String>()
+        .to_uppercase();
+    if letters.is_empty() {
+        "?".to_owned()
+    } else {
+        letters
+    }
+}
+
+fn shorten(text: &str, max_chars: usize) -> String {
+    if text.chars().count() <= max_chars {
+        return text.to_owned();
+    }
+    let mut shortened: String = text.chars().take(max_chars.saturating_sub(1)).collect();
+    shortened.push('…');
+    shortened
+}
+
+fn availability_label(availability: ContentAvailability, french: bool) -> &'static str {
+    match (availability, french) {
+        (ContentAvailability::Available, true) => "Prête à lancer",
+        (ContentAvailability::Available, false) => "Ready to launch",
+        (ContentAvailability::Missing, true) => "Introuvable · à réimporter",
+        (ContentAvailability::Missing, false) => "Missing · re-import required",
+        (ContentAvailability::NotRegularFile, true) => "Indisponible · ce n’est pas un fichier",
+        (ContentAvailability::NotRegularFile, false) => "Unavailable · not a regular file",
+        (ContentAvailability::Unavailable, true) => "Indisponible · lecture impossible",
+        (ContentAvailability::Unavailable, false) => "Unavailable · cannot inspect file",
+    }
+}
+
+fn detail_row(ui: &mut egui::Ui, palette: &theme::Palette, label: &str, value: &str) {
+    ui.label(
+        egui::RichText::new(label)
+            .size(12.0)
+            .color(palette.text_dim),
+    );
+    ui.label(egui::RichText::new(value).size(13.0));
+}
+
 impl DesktopApp {
     pub(super) fn show_library(&mut self, ui: &mut egui::Ui) {
+        let palette = theme::Palette::new(self.dark_mode, self.accent_color);
+        let french = self.language == "fr";
         let total = self.controller.library().len();
-        ui.horizontal_wrapped(|ui| {
+        let total_size: u64 = self
+            .controller
+            .library()
+            .entries()
+            .map(|entry| entry.size_bytes())
+            .sum();
+
+        ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.label(
-                    egui::RichText::new(if self.language == "fr" {
-                        "VOTRE COLLECTION"
-                    } else {
-                        "YOUR COLLECTION"
-                    })
-                    .size(10.0)
-                    .strong()
-                    .color(self.accent_color),
+                    egui::RichText::new(if french { "Bibliothèque" } else { "Library" })
+                        .size(30.0)
+                        .strong(),
                 );
-                ui.add_space(3.0);
-                ui.heading(if self.language == "fr" {
-                    "Vos jeux"
-                } else {
-                    "Your games"
-                });
-                ui.label(if self.language == "fr" {
-                    format!("{total} élément(s) importé(s)")
-                } else {
-                    format!("{total} imported item(s)")
-                });
+                ui.label(
+                    egui::RichText::new(if french {
+                        format!("{total} jeu(x) · {}", format_size(total_size))
+                    } else {
+                        format!("{total} game(s) · {}", format_size(total_size))
+                    })
+                    .color(palette.text_dim),
+                );
             });
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
                 if ui
-                    .add(
-                        egui::Button::new(
-                            egui::RichText::new(if self.language == "fr" {
-                                "Importer des ROM"
-                            } else {
-                                "Import ROMs…"
-                            })
-                            .strong(),
-                        )
-                        .fill(self.accent_color)
-                        .min_size(egui::vec2(150.0, 38.0)),
-                    )
+                    .add(theme::primary_button(
+                        &palette,
+                        if french {
+                            "Importer des ROM"
+                        } else {
+                            "Import ROMs…"
+                        },
+                    ))
                     .clicked()
                 {
                     self.choose_content_file();
                 }
             });
         });
+        ui.add_space(6.0);
+        ui.separator();
+        ui.add_space(6.0);
 
-        ui.add_space(8.0);
-        egui::Frame::group(ui.style())
-            .rounding(egui::Rounding::same(12.0))
-            .inner_margin(egui::Margin::same(14.0))
-            .show(ui, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.label(if self.language == "fr" {
-                        "Rechercher :"
+        ui.horizontal_wrapped(|ui| {
+            ui.add(
+                egui::TextEdit::singleline(&mut self.library_filter)
+                    .hint_text(if french {
+                        "Rechercher un titre ou un chemin..."
                     } else {
-                        "Search:"
-                    });
-                    ui.add(
-                        egui::TextEdit::singleline(&mut self.library_filter)
-                            .hint_text(if self.language == "fr" {
-                                "Rechercher un titre ou un chemin..."
-                            } else {
-                                "Search titles and file paths..."
-                            })
-                            .desired_width(ui.available_width().min(260.0)),
-                    );
-                    egui::ComboBox::from_id_source("library_format_filter")
-                        .selected_text(self.library_format.label())
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(
-                                &mut self.library_format,
-                                LibraryFormat::All,
-                                "All formats",
-                            );
-                            ui.selectable_value(
-                                &mut self.library_format,
-                                LibraryFormat::GameBoy,
-                                "Game Boy (.gb)",
-                            );
-                            ui.selectable_value(
-                                &mut self.library_format,
-                                LibraryFormat::GameBoyColor,
-                                "Game Boy Color (.gbc)",
-                            );
-                        });
-                    egui::ComboBox::from_id_source("library_sort")
-                        .selected_text(self.library_sort.label())
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(
-                                &mut self.library_sort,
-                                LibrarySort::Name,
-                                "Title (A–Z)",
-                            );
-                            ui.selectable_value(
-                                &mut self.library_sort,
-                                LibrarySort::Largest,
-                                "Largest first",
-                            );
-                            ui.selectable_value(
-                                &mut self.library_sort,
-                                LibrarySort::Path,
-                                "File path",
-                            );
-                        });
-                    if ui
-                        .button(if self.language == "fr" {
-                            "Effacer"
-                        } else {
-                            "Clear"
-                        })
-                        .clicked()
-                    {
-                        self.library_filter.clear();
-                        self.library_format = LibraryFormat::All;
+                        "Search titles and file paths..."
+                    })
+                    .desired_width(ui.available_width().min(260.0)),
+            );
+            egui::ComboBox::from_id_source("library_format_filter")
+                .selected_text(self.library_format.label())
+                .show_ui(ui, |ui| {
+                    for format in [
+                        LibraryFormat::All,
+                        LibraryFormat::GameBoy,
+                        LibraryFormat::GameBoyColor,
+                    ] {
+                        ui.selectable_value(&mut self.library_format, format, format.label());
                     }
                 });
-            });
+            egui::ComboBox::from_id_source("library_sort")
+                .selected_text(self.library_sort.label())
+                .show_ui(ui, |ui| {
+                    for sort in [
+                        LibrarySort::Name,
+                        LibrarySort::Largest,
+                        LibrarySort::Path,
+                    ] {
+                        ui.selectable_value(&mut self.library_sort, sort, sort.label());
+                    }
+                });
+            if ui.button(if french { "Effacer" } else { "Clear" }).clicked() {
+                self.library_filter.clear();
+                self.library_format = LibraryFormat::All;
+            }
+        });
 
         let query = self.library_filter.trim().to_lowercase();
         let mut entries: Vec<_> = self
@@ -166,314 +194,423 @@ impl DesktopApp {
             LibrarySort::Path => entries.sort_by(|a, b| a.1.cmp(&b.1)),
         }
 
-        ui.add_space(8.0);
-        let total_size: u64 = self
-            .controller
-            .library()
-            .entries()
-            .map(|entry| entry.size_bytes())
-            .sum();
-        egui::Frame::group(ui.style())
-            .rounding(egui::Rounding::same(9.0))
-            .inner_margin(egui::Margin::symmetric(12.0, 8.0))
-            .show(ui, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.label(
-                        egui::RichText::new(format!(
-                            "{} {}",
-                            entries.len(),
-                            if self.language == "fr" {
-                                "résultat(s)"
-                            } else {
-                                "result(s)"
-                            }
-                        ))
-                        .strong()
-                        .color(self.accent_color),
-                    );
-                    ui.separator();
-                    ui.label(if self.language == "fr" {
-                        format!("{total} élément(s) au total")
-                    } else {
-                        format!("{total} item(s) in library")
-                    });
-                    ui.separator();
-                    ui.label(if self.language == "fr" {
-                        format!("Taille : {}", format_size(total_size))
-                    } else {
-                        format!("Size: {}", format_size(total_size))
-                    });
-                });
+        ui.add_space(10.0);
+        let show_detail = !entries.is_empty();
+        let wide = show_detail && ui.available_width() >= 760.0;
+        let detail_width = 300.0;
+        let grid_width = if wide {
+            ui.available_width() - detail_width - 28.0
+        } else {
+            ui.available_width()
+        };
+        ui.horizontal_top(|ui| {
+            ui.vertical(|ui| {
+                ui.set_width(grid_width);
+                self.show_library_grid(ui, &palette, &entries, total, french);
             });
-        ui.add_space(6.0);
+            if wide {
+                ui.add_space(18.0);
+                ui.vertical(|ui| {
+                    ui.set_width(detail_width);
+                    self.show_library_detail(ui, &palette, french);
+                });
+            }
+        });
+        if show_detail && !wide {
+            ui.add_space(12.0);
+            self.show_library_detail(ui, &palette, french);
+        }
+    }
 
+    fn show_library_grid(
+        &mut self,
+        ui: &mut egui::Ui,
+        palette: &theme::Palette,
+        entries: &[(String, PathBuf, u64)],
+        total: usize,
+        french: bool,
+    ) {
         if entries.is_empty() {
-            egui::Frame::group(ui.style())
-                .rounding(egui::Rounding::same(12.0))
-                .inner_margin(egui::Margin::same(14.0))
-                .show(ui, |ui| {
-                    ui.add_space(8.0);
-                    ui.heading(if total == 0 {
-                        "Your library is empty"
-                    } else if query.is_empty() && self.library_format != LibraryFormat::All {
-                        "No games in this format"
-                    } else {
-                        "No matching games"
-                    });
-                    ui.label(if total == 0 {
-                        "Import one or more .gb or .gbc files to build your collection."
-                    } else {
-                        "Try another search, change the format filter, or clear the search."
-                    });
-                    if total == 0
-                        && ui
-                            .button(if self.language == "fr" {
+            let (heading, hint) = match (total == 0, french) {
+                (true, true) => (
+                    "Votre bibliothèque est vide",
+                    "Importez un ou plusieurs fichiers .gb ou .gbc pour constituer votre collection.",
+                ),
+                (true, false) => (
+                    "Your library is empty",
+                    "Import one or more .gb or .gbc files to build your collection.",
+                ),
+                (false, true) => (
+                    "Aucun jeu ne correspond",
+                    "Essayez une autre recherche, changez le filtre de format ou effacez la recherche.",
+                ),
+                (false, false) => (
+                    "No matching games",
+                    "Try another search, change the format filter, or clear the search.",
+                ),
+            };
+            theme::card(ui, palette, |ui| {
+                ui.label(egui::RichText::new(heading).size(18.0).strong());
+                ui.label(egui::RichText::new(hint).color(palette.text_dim));
+                if total == 0
+                    && ui
+                        .add(theme::primary_button(
+                            palette,
+                            if french {
                                 "Parcourir les ROM"
                             } else {
                                 "Browse for ROMs…"
-                            })
-                            .clicked()
-                    {
-                        self.choose_content_file();
-                    }
-                });
-        } else {
-            egui::ScrollArea::vertical()
-                .auto_shrink([false, false])
-                .show(ui, |ui| {
-                    for (title, path, size) in entries {
-                        let selected = self.selected_content.as_ref() == Some(&path);
-                        egui::Frame::group(ui.style())
-                .rounding(egui::Rounding::same(12.0))
-                .inner_margin(egui::Margin::same(14.0))
-                .show(ui, |ui| {
-                            ui.horizontal(|ui| {
-                                ui.vertical(|ui| {
-                                    ui.label(if selected {
-                                        "Selected"
-                                    } else {
-                                        "Game Boy ROM"
-                                    });
-                                    ui.heading(&title);
-                                    let extension = path
-                                        .extension()
-                                        .and_then(|value| value.to_str())
-                                        .unwrap_or("unknown")
-                                        .to_ascii_uppercase();
-                                    ui.small(format!(
-                                        "{extension} · {} · {}",
-                                        format_size(size),
-                                        path.display()
-                                    ));
-                                    let entry_metadata = self
-                                        .controller
-                                        .library()
-                                        .get(&path)
-                                        .map(|entry| {
-                                            (
-                                                entry.format_hint().map(str::to_owned),
-                                                entry.compatible_system_hint().map(str::to_owned),
-                                                entry.format_detection().clone(),
-                                                entry.validation().clone(),
-                                                entry.availability(),
-                                            )
-                                        });
-                                    if let Some((
-                                        format_hint,
-                                        system_hint,
-                                        detection_state,
-                                        validation_state,
-                                        availability_state,
-                                    )) = entry_metadata
-                                    {
-                                        ui.small(format!(
-                                            "Extension hint: {} · compatibility hint: {}",
-                                            format_hint.as_deref().unwrap_or("unknown extension"),
-                                            system_hint.as_deref().unwrap_or("undetermined")
-                                        ));
-                                        let detected = match &detection_state {
-                                            ContentFormatDetection::Pending => {
-                                                "Detected format: not probed yet"
-                                            }
-                                            ContentFormatDetection::NoMatch => {
-                                                "Detected format: no registered probe matched"
-                                            }
-                                            ContentFormatDetection::Detected(format) => {
-                                                ui.label(format!("Detected format: {format}"));
-                                                ""
-                                            }
-                                            ContentFormatDetection::Ambiguous(formats) => {
-                                                ui.colored_label(
-                                                    egui::Color32::from_rgb(210, 115, 45),
-                                                    format!(
-                                                        "Ambiguous format probes: {}",
-                                                        formats.join(", ")
-                                                    ),
-                                                );
-                                                ""
-                                            }
-                                            ContentFormatDetection::NeedsMoreData => {
-                                                "Detected format: probe needs more data"
-                                            }
-                                        };
-                                        if !detected.is_empty() {
-                                            ui.small(detected);
-                                        }
-                                        let validation = match &validation_state {
-                                            ContentValidation::Pending => {
-                                                "Validation: pending until launch"
-                                            }
-                                            ContentValidation::Accepted => {
-                                                "Validation: last launch accepted"
-                                            }
-                                            ContentValidation::Rejected(_) => {
-                                                "Validation: last launch rejected"
-                                            }
-                                        };
-                                        ui.small(validation);
-                                        if let ContentValidation::Rejected(detail) =
-                                            &validation_state
-                                        {
-                                            ui.colored_label(egui::Color32::LIGHT_RED, detail);
-                                        }
-                                        let availability = match availability_state {
-                                            ContentAvailability::Available => {
-                                                "Available · ready for launch validation"
-                                            }
-                                            ContentAvailability::Missing => {
-                                                "Missing · re-import required"
-                                            }
-                                            ContentAvailability::NotRegularFile => {
-                                                "Unavailable · not a regular file"
-                                            }
-                                            ContentAvailability::Unavailable => {
-                                                "Unavailable · cannot inspect file"
-                                            }
-                                        };
-                                        ui.colored_label(
-                                            if availability_state == ContentAvailability::Available
-                                            {
-                                                ui.visuals().weak_text_color()
-                                            } else {
-                                                egui::Color32::from_rgb(210, 115, 45)
-                                            },
-                                            availability,
-                                        );
-                                    } else {
-                                        let path_status = content_path_status(&path);
-                                        ui.colored_label(
-                                            egui::Color32::from_rgb(210, 115, 45),
-                                            path_status,
-                                        );
-                                    }
-                                });
-                                ui.with_layout(
-                                    egui::Layout::right_to_left(egui::Align::Center),
-                                    |ui| {
-                                        if ui.button(if self.language == "fr" { "Retirer" } else { "Forget" }).clicked() {
-                                            match self.controller.forget_content(&path) {
-                                                Ok(_) => {
-                                                    if self.selected_content.as_ref() == Some(&path)
-                                                    {
-                                                        self.selected_content = None;
-                                                    }
-                                                    let removal_message = format!(
-                                                        "Removed '{}' from the library.",
-                                                        title
-                                                    );
-                                                    self.message = removal_message.clone();
-                                                    if !self.save_preferences() {
-                                                        let save_error = std::mem::take(&mut self.message);
-                                                        self.message = format!(
-                                                            "{removal_message} The item is removed for this session, but the library change was not saved. {save_error}"
-                                                        );
-                                                    }
-                                                }
-                                                Err(error) => {
-                                                    self.message =
-                                                        format!("Could not forget content: {error}")
-                                                }
-                                            }
-                                        }
-                                        if ui
-                                            .add_enabled(
-                                                path.is_file(),
-                                                egui::Button::new(if self.language == "fr" { "Lancer" } else { "Launch" }),
-                                            )
-                                            .clicked()
-                                        {
-                                            self.selected_content = Some(path.clone());
-                                            self.content_path = path.display().to_string();
-                                            self.launch_content();
-                                        }
-                                        if ui.button(if self.language == "fr" { "Utiliser ce chemin" } else { "Use path" }).clicked() {
-                                            self.selected_content = Some(path.clone());
-                                            self.content_path = path.display().to_string();
-                                            self.message =
-                                                format!("Selected '{}' for launch.", title);
-                                        }
-                                        if ui
-                                            .button(if selected { "Selected" } else { "Select" })
-                                            .clicked()
-                                        {
-                                            self.selected_content = Some(path.clone());
-                                            self.content_path = path.display().to_string();
-                                        }
-                                    },
-                                );
-                            });
-                        });
-                    }
-                });
+                            },
+                        ))
+                        .clicked()
+                {
+                    self.choose_content_file();
+                }
+            });
+            return;
         }
 
-        let selected_details = self.selected_content.clone().and_then(|path| {
+        let spacing = 12.0;
+        let available = ui.available_width();
+        let columns = (((available + spacing) / (156.0 + spacing)).floor() as usize).max(1);
+        let card_width = ((available - spacing * (columns as f32 - 1.0)) / columns as f32 - 0.5)
+            .floor()
+            .max(110.0);
+        ui.spacing_mut().item_spacing = egui::vec2(spacing, spacing);
+        ui.horizontal_wrapped(|ui| {
+            for (title, path, size) in entries {
+                let selected = self.selected_content.as_ref() == Some(path);
+                let file_available = self.controller.library().get(path).map_or_else(
+                    || path.is_file(),
+                    |entry| entry.availability() == ContentAvailability::Available,
+                );
+                let (rect, response) =
+                    ui.allocate_exact_size(egui::vec2(card_width, 170.0), egui::Sense::click());
+                let painter = ui.painter();
+                painter.rect_filled(
+                    rect,
+                    egui::Rounding::same(12.0),
+                    if selected {
+                        palette.accent_subtle
+                    } else {
+                        palette.sidebar
+                    },
+                );
+                let cover = egui::Rect::from_min_size(rect.min, egui::vec2(rect.width(), 98.0));
+                painter.rect_filled(
+                    cover,
+                    egui::Rounding {
+                        nw: 12.0,
+                        ne: 12.0,
+                        sw: 0.0,
+                        se: 0.0,
+                    },
+                    cover_color(title),
+                );
+                painter.text(
+                    cover.center(),
+                    egui::Align2::CENTER_CENTER,
+                    initials(title),
+                    egui::FontId::proportional(28.0),
+                    egui::Color32::WHITE,
+                );
+                let max_chars = ((card_width - 24.0) / 7.2) as usize;
+                painter.text(
+                    rect.min + egui::vec2(12.0, 110.0),
+                    egui::Align2::LEFT_TOP,
+                    shorten(title, max_chars),
+                    egui::FontId::proportional(14.0),
+                    palette.text,
+                );
+                let extension = path
+                    .extension()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or("?")
+                    .to_ascii_uppercase();
+                painter.text(
+                    rect.min + egui::vec2(12.0, 132.0),
+                    egui::Align2::LEFT_TOP,
+                    format!("{extension} · {}", format_size(*size)),
+                    egui::FontId::proportional(12.0),
+                    palette.text_dim,
+                );
+                if !file_available {
+                    painter.text(
+                        rect.min + egui::vec2(12.0, 150.0),
+                        egui::Align2::LEFT_TOP,
+                        if french { "Introuvable" } else { "Missing" },
+                        egui::FontId::proportional(11.0),
+                        palette.warning,
+                    );
+                }
+                painter.rect_stroke(
+                    rect,
+                    egui::Rounding::same(12.0),
+                    if selected {
+                        egui::Stroke::new(2.0, palette.accent)
+                    } else {
+                        egui::Stroke::new(1.0, palette.border)
+                    },
+                );
+                if selected {
+                    theme::paint_check_badge(
+                        painter,
+                        rect.right_top() + egui::vec2(-16.0, 16.0),
+                        palette,
+                    );
+                }
+                let response = response
+                    .on_hover_text(path.display().to_string())
+                    .on_hover_cursor(egui::CursorIcon::PointingHand);
+                if response.clicked() || response.double_clicked() {
+                    self.selected_content = Some(path.clone());
+                    self.content_path = path.display().to_string();
+                }
+                if response.double_clicked() && file_available {
+                    self.launch_content();
+                }
+            }
+        });
+    }
+
+    fn show_library_detail(&mut self, ui: &mut egui::Ui, palette: &theme::Palette, french: bool) {
+        let selected = self.selected_content.clone().and_then(|path| {
             self.controller
                 .library()
                 .entries()
                 .find(|entry| entry.path() == path)
                 .map(|entry| (path, entry.title().to_owned(), entry.size_bytes()))
         });
-        if let Some((path, title, size)) = selected_details {
-            ui.add_space(8.0);
-            egui::Frame::group(ui.style())
-                .rounding(egui::Rounding::same(12.0))
-                .inner_margin(egui::Margin::same(14.0))
-                .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.vertical(|ui| {
-                            ui.heading(if self.language == "fr" {
-                                "Contenu sélectionné"
+        let Some((path, title, size)) = selected else {
+            theme::card(ui, palette, |ui| {
+                ui.label(
+                    egui::RichText::new(if french {
+                        "Aucun jeu sélectionné"
+                    } else {
+                        "No game selected"
+                    })
+                    .size(16.0)
+                    .strong(),
+                );
+                ui.label(
+                    egui::RichText::new(if french {
+                        "Cliquez sur un jeu pour voir ses détails. Double-cliquez pour le lancer."
+                    } else {
+                        "Click a game to see its details. Double-click to launch it."
+                    })
+                    .color(palette.text_dim),
+                );
+            });
+            return;
+        };
+
+        let metadata = self.controller.library().get(&path).map(|entry| {
+            (
+                entry.format_hint().map(str::to_owned),
+                entry.compatible_system_hint().map(str::to_owned),
+                entry.format_detection().clone(),
+                entry.validation().clone(),
+                entry.availability(),
+            )
+        });
+        let file_available = metadata.as_ref().map_or_else(
+            || path.is_file(),
+            |meta| meta.4 == ContentAvailability::Available,
+        );
+
+        theme::card(ui, palette, |ui| {
+            let width = ui.available_width();
+            let (cover, _) = ui.allocate_exact_size(egui::vec2(width, 110.0), egui::Sense::hover());
+            ui.painter()
+                .rect_filled(cover, egui::Rounding::same(10.0), cover_color(&title));
+            ui.painter().text(
+                cover.center(),
+                egui::Align2::CENTER_CENTER,
+                initials(&title),
+                egui::FontId::proportional(32.0),
+                egui::Color32::WHITE,
+            );
+            ui.label(egui::RichText::new(&title).size(18.0).strong());
+            let extension = path
+                .extension()
+                .and_then(|value| value.to_str())
+                .unwrap_or("?")
+                .to_ascii_uppercase();
+            ui.label(
+                egui::RichText::new(format!("{extension} · {}", format_size(size)))
+                    .color(palette.text_dim),
+            );
+            match &metadata {
+                Some((_, _, _, _, availability)) => theme::badge(
+                    ui,
+                    availability_label(*availability, french),
+                    if *availability == ContentAvailability::Available {
+                        palette.success
+                    } else {
+                        palette.warning
+                    },
+                ),
+                None => theme::badge(ui, content_path_status(&path), palette.warning),
+            }
+            ui.add_space(4.0);
+
+            let launch = ui
+                .add_enabled_ui(file_available, |ui| {
+                    ui.add_sized(
+                        egui::vec2(ui.available_width(), 36.0),
+                        theme::primary_button(palette, if french { "Lancer" } else { "Launch" }),
+                    )
+                })
+                .inner;
+            if launch.clicked() {
+                self.content_path = path.display().to_string();
+                self.launch_content();
+            }
+            let forget = ui.add_sized(
+                egui::vec2(ui.available_width(), 36.0),
+                egui::Button::new(if french {
+                    "Retirer de la bibliothèque"
+                } else {
+                    "Remove from library"
+                }),
+            );
+            if forget.clicked() {
+                match self.controller.forget_content(&path) {
+                    Ok(_) => {
+                        if self.selected_content.as_ref() == Some(&path) {
+                            self.selected_content = None;
+                        }
+                        let removal_message = format!("Removed '{}' from the library.", title);
+                        self.message = removal_message.clone();
+                        if !self.save_preferences() {
+                            let save_error = std::mem::take(&mut self.message);
+                            self.message = format!(
+                                "{removal_message} The item is removed for this session, but the library change was not saved. {save_error}"
+                            );
+                        }
+                    }
+                    Err(error) => self.message = format!("Could not forget content: {error}"),
+                }
+            }
+
+            ui.add_space(4.0);
+            egui::CollapsingHeader::new(
+                egui::RichText::new(if french {
+                    "Infos techniques"
+                } else {
+                    "Technical details"
+                })
+                .strong(),
+            )
+            .default_open(false)
+            .show(ui, |ui| {
+                detail_row(
+                    ui,
+                    palette,
+                    if french { "Chemin" } else { "Path" },
+                    &path.display().to_string(),
+                );
+                if let Some((format_hint, system_hint, detection, validation, _)) = &metadata {
+                    detail_row(
+                        ui,
+                        palette,
+                        if french {
+                            "Extension reconnue"
+                        } else {
+                            "Extension hint"
+                        },
+                        format_hint.as_deref().unwrap_or(if french {
+                            "extension inconnue"
+                        } else {
+                            "unknown extension"
+                        }),
+                    );
+                    detail_row(
+                        ui,
+                        palette,
+                        if french {
+                            "Système compatible"
+                        } else {
+                            "Compatibility hint"
+                        },
+                        system_hint.as_deref().unwrap_or(if french {
+                            "indéterminé"
+                        } else {
+                            "undetermined"
+                        }),
+                    );
+                    let detected = match detection {
+                        ContentFormatDetection::Pending => (if french {
+                            "Pas encore analysé"
+                        } else {
+                            "Not probed yet"
+                        })
+                        .to_owned(),
+                        ContentFormatDetection::NoMatch => (if french {
+                            "Aucune sonde enregistrée ne correspond"
+                        } else {
+                            "No registered probe matched"
+                        })
+                        .to_owned(),
+                        ContentFormatDetection::Detected(format) => format.to_string(),
+                        ContentFormatDetection::Ambiguous(formats) => format!(
+                            "{} {}",
+                            if french {
+                                "Sondes ambiguës :"
                             } else {
-                                "Selected content"
-                            });
-                            ui.label(&title);
-                            ui.small(path.display().to_string());
-                            ui.small(format!(
-                                "{} · {}",
-                                format_size(size),
-                                content_path_status(&path)
-                            ));
-                        });
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui
-                                .add_enabled(
-                                    path.is_file(),
-                                    egui::Button::new(if self.language == "fr" {
-                                        "Lancer la sélection"
-                                    } else {
-                                        "Launch selected"
-                                    }),
-                                )
-                                .clicked()
-                            {
-                                self.content_path = path.display().to_string();
-                                self.launch_content();
-                            }
-                        });
-                    });
-                });
-        }
+                                "Ambiguous probes:"
+                            },
+                            formats.join(", ")
+                        ),
+                        ContentFormatDetection::NeedsMoreData => (if french {
+                            "La sonde a besoin de plus de données"
+                        } else {
+                            "Probe needs more data"
+                        })
+                        .to_owned(),
+                    };
+                    detail_row(
+                        ui,
+                        palette,
+                        if french {
+                            "Format détecté"
+                        } else {
+                            "Detected format"
+                        },
+                        &detected,
+                    );
+                    let validation_text = match validation {
+                        ContentValidation::Pending => (if french {
+                            "En attente jusqu’au lancement"
+                        } else {
+                            "Pending until launch"
+                        })
+                        .to_owned(),
+                        ContentValidation::Accepted => (if french {
+                            "Acceptée au dernier lancement"
+                        } else {
+                            "Accepted at last launch"
+                        })
+                        .to_owned(),
+                        ContentValidation::Rejected(detail) => format!(
+                            "{} {}",
+                            if french {
+                                "Refusée au dernier lancement :"
+                            } else {
+                                "Rejected at last launch:"
+                            },
+                            detail
+                        ),
+                    };
+                    detail_row(
+                        ui,
+                        palette,
+                        "Validation",
+                        &validation_text,
+                    );
+                }
+            });
+        });
     }
 }
 
