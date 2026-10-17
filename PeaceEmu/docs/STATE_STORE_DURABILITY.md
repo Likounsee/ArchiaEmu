@@ -24,8 +24,3 @@ La suite de tests injecte les échecs de renommage et de synchronisation, vérif
 
 La tâche P0 reste ouverte tant qu'une stratégie explicite de synchronisation/récupération Windows et sa validation dans la matrice CI n'ont pas été décidées. Ne pas remplacer la synchronisation non prise en charge par un succès silencieux tout en affirmant une durabilité complète.
 
-## Migration after the application directory rename
-
-On Windows, an existing installation may still keep user data in `%APPDATA%\ArchiaEmu` or `%LOCALAPPDATA%\ArchiaEmu`. Close the application first. Copy (do not move) `desktop.conf`, `desktop.conf.bak` if present, `module-state.v1`, and any installation journal files into the corresponding location under `%APPDATA%\PeaceEmu` or `%LOCALAPPDATA%\PeaceEmu`, matching the location used by the previous installation. Keep the original directory as a backup until the new build has loaded the preferences and module state successfully.
-
-The version-1 module-state and installation-journal readers accept the stable format suffix across product identity changes, so those files do not need manual editing. Do not copy temporary files (`*.tmp-*`) while a previous process may still be running. This is a manual migration; the application does not scan unrelated user-data directories automatically.
