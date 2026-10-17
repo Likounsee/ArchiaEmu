@@ -251,5 +251,4 @@ impl DesktopApp {
             }
         }
     }
-
 }
