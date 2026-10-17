@@ -1,6 +1,7 @@
 name: Desktop quality gates
 
 on:
+  # Internal source paths stay project-name-neutral under workspace/.
   push:
     branches: [PeaceEmu]
     paths:
