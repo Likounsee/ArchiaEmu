@@ -199,22 +199,53 @@ impl DesktopApp {
                         ui.add_space(4.0);
                         ui.horizontal_wrapped(|ui| {
                             for (label, enabled) in [
-                                (if french { "Contenu" } else { "Content" }, caps.content_loading),
+                                (
+                                    if french { "Contenu" } else { "Content" },
+                                    caps.content_loading,
+                                ),
                                 (if french { "Entrées" } else { "Input" }, caps.input),
                                 (if french { "Vidéo" } else { "Video" }, caps.video_output),
                                 ("Audio", caps.audio_output),
-                                (if french { "États de sauvegarde" } else { "Save states" }, caps.save_states),
-                                (if french { "Sauvegardes persistantes" } else { "Persistent saves" }, caps.persistent_saves),
+                                (
+                                    if french {
+                                        "États de sauvegarde"
+                                    } else {
+                                        "Save states"
+                                    },
+                                    caps.save_states,
+                                ),
+                                (
+                                    if french {
+                                        "Sauvegardes persistantes"
+                                    } else {
+                                        "Persistent saves"
+                                    },
+                                    caps.persistent_saves,
+                                ),
                             ] {
-                                let color = if enabled { egui::Color32::from_rgb(23, 178, 106) } else { ui.visuals().weak_text_color() };
+                                let color = if enabled {
+                                    egui::Color32::from_rgb(23, 178, 106)
+                                } else {
+                                    ui.visuals().weak_text_color()
+                                };
                                 egui::Frame::none()
                                     .fill(ui.visuals().faint_bg_color)
                                     .rounding(egui::Rounding::same(6.0))
                                     .inner_margin(egui::Margin::symmetric(8.0, 4.0))
                                     .show(ui, |ui| {
                                         ui.horizontal(|ui| {
-                                            ui.label(egui::RichText::new(if enabled { "●" } else { "○" }).color(color));
-                                            ui.label(format!("{label}: {}", capability_label(enabled)));
+                                            ui.label(
+                                                egui::RichText::new(if enabled {
+                                                    "●"
+                                                } else {
+                                                    "○"
+                                                })
+                                                .color(color),
+                                            );
+                                            ui.label(format!(
+                                                "{label}: {}",
+                                                capability_label(enabled)
+                                            ));
                                         });
                                     });
                             }
@@ -279,7 +310,11 @@ impl DesktopApp {
                     };
                 }
                 Err(error) => {
-                    self.message = if french { format!("Échec de l’enregistrement de la sélection : {error}") } else { format!("Could not save module selection: {error}") };
+                    self.message = if french {
+                        format!("Échec de l’enregistrement de la sélection : {error}")
+                    } else {
+                        format!("Could not save module selection: {error}")
+                    };
                 }
             }
         }
