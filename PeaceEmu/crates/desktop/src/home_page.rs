@@ -1,4 +1,4 @@
-//! Polished overview dashboard for the ArchiaEmu desktop frontend.
+//! Polished overview dashboard for the PeaceEmu desktop frontend.
 
 use super::*;
 
