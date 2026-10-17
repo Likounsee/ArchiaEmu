@@ -5,10 +5,10 @@ on:
     branches:
       - PeaceEmu
     paths:
-      - "PeaceEmu/crates/peaceemu-desktop/**"
-      - "PeaceEmu/crates/peaceemu-app/**"
-      - "PeaceEmu/crates/peaceemu-core/**"
-      - "PeaceEmu/crates/peaceemu-game-boy/**"
+      - "PeaceEmu/crates/desktop/**"
+      - "PeaceEmu/crates/app/**"
+      - "PeaceEmu/crates/core/**"
+      - "PeaceEmu/crates/game-boy/**"
       - "PeaceEmu/Cargo.toml"
       - "PeaceEmu/Cargo.lock"
       - ".github/workflows/desktop-preview.yml"
@@ -36,7 +36,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build desktop application
-        run: cargo build --manifest-path PeaceEmu/crates/peaceemu-desktop/Cargo.toml
+        run: cargo build --manifest-path PeaceEmu/crates/desktop/Cargo.toml
 
       - name: Smoke-test application startup
         shell: bash
@@ -44,7 +44,7 @@ jobs:
           set -euo pipefail
           BIN="PeaceEmu/target/debug/archiaemu-desktop"
           if [ ! -x "$BIN" ]; then
-            BIN="PeaceEmu/crates/peaceemu-desktop/target/debug/archiaemu-desktop"
+            BIN="PeaceEmu/crates/desktop/target/debug/archiaemu-desktop"
           fi
           if [ ! -x "$BIN" ]; then
             BIN="$(find target PeaceEmu -path '*/debug/archiaemu-desktop' -type f -executable -print -quit 2>/dev/null || true)"
