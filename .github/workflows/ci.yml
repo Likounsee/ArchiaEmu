@@ -1,10 +1,10 @@
-name: ArchiaEmu CI
+name: PeaceEmu CI
 
 on:
   push:
-    branches: [ArchiaEmu]
+    branches: [PeaceEmu]
   pull_request:
-    branches: [ArchiaEmu]
+    branches: [PeaceEmu]
   workflow_dispatch:
 
 permissions:
