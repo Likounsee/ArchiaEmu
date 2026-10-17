@@ -422,7 +422,7 @@ impl InstallJournal {
 fn platform_rename(from: &Path, to: &Path) -> io::Result<()> {
     #[cfg(windows)]
     {
-        archiaemu_windows_durability::rename_write_through(from, to)
+        windows_durability::rename_write_through(from, to)
     }
 
     #[cfg(not(windows))]
