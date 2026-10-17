@@ -46,6 +46,18 @@ use game_boy::{register_game_boy_color, GameBoyColorCartridgeProbe};
 
 const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
 
+fn load_logo_icon() -> Option<egui::IconData> {
+    let logo = image::load_from_memory(include_bytes!("../assets/peaceemu-logo.png"))
+        .ok()?
+        .thumbnail(232, 232)
+        .to_rgba8();
+    let mut canvas = image::RgbaImage::from_pixel(256, 256, image::Rgba([0, 0, 0, 0]));
+    let x = ((256 - logo.width()) / 2) as i64;
+    let y = ((256 - logo.height()) / 2) as i64;
+    image::imageops::overlay(&mut canvas, &logo, x, y);
+    Some(egui::IconData { rgba: canvas.into_raw(), width: 256, height: 256 })
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     if let Some(message) = parse_cli_arguments(&arguments)? {
@@ -57,7 +69,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1280.0, 820.0])
-            .with_min_inner_size([640.0, 480.0]),
+            .with_min_inner_size([640.0, 480.0])
+            .with_icon(load_logo_icon()),
         ..Default::default()
     };
     eframe::run_native(
@@ -155,6 +168,7 @@ struct DesktopApp {
     last_game_save: Instant,
     frame_cadence: FrameCadence,
     frame_texture: Option<egui::TextureHandle>,
+    logo_texture: Option<egui::TextureHandle>,
     video_size: Option<[u32; 2]>,
     media_status: String,
     audio_output: AudioOutput,
@@ -366,6 +380,7 @@ impl DesktopApp {
             last_game_save: Instant::now(),
             frame_cadence: FrameCadence::new(60, 3)?,
             frame_texture: None,
+            logo_texture: None,
             video_size: None,
             media_status: "No active session.".to_owned(),
             audio_output: AudioOutput::new(),

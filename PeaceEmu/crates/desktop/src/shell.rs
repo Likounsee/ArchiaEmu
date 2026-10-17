@@ -52,7 +52,7 @@ impl DesktopApp {
                 ui.painter().text(
                     logo.center(),
                     egui::Align2::CENTER_CENTER,
-                    "A",
+                    "P",
                     egui::FontId::proportional(22.0),
                     palette.on_accent,
                 );

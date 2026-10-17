@@ -9,6 +9,7 @@ on:
       - "PeaceEmu/Cargo.toml"
       - "PeaceEmu/Cargo.lock"
       - "PeaceEmu/packaging/windows/**"
+      - "PeaceEmu/crates/desktop/assets/**"
       - ".github/workflows/windows-installer.yml"
   workflow_dispatch:
 
@@ -60,11 +61,49 @@ jobs:
           $stageDir = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE "stage"))
           New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
           Copy-Item $exe (Join-Path $stageDir "desktop-app.exe")
+          Copy-Item "PeaceEmu/crates/desktop/assets/peaceemu-logo.png" (Join-Path $stageDir "peaceemu-logo.png")
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Install Inno Setup
         run: choco install innosetup --yes --no-progress
 
+      - name: Generate Windows icon from the project logo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Add-Type -AssemblyName System.Drawing
+          $source = [System.Drawing.Image]::FromFile((Join-Path $env:GITHUB_WORKSPACE "PeaceEmu/crates/desktop/assets/peaceemu-logo.png"))
+          $bitmap = New-Object System.Drawing.Bitmap(256, 256, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+          try {
+            $graphics.Clear([System.Drawing.Color]::Transparent)
+            $scale = [Math]::Min(232.0 / $source.Width, 232.0 / $source.Height)
+            $width = [int][Math]::Round($source.Width * $scale)
+            $height = [int][Math]::Round($source.Height * $scale)
+            $x = [int][Math]::Floor((256 - $width) / 2)
+            $y = [int][Math]::Floor((256 - $height) / 2)
+            $graphics.DrawImage($source, $x, $y, $width, $height)
+            $stream = New-Object System.IO.MemoryStream
+            try {
+              $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+              $png = $stream.ToArray()
+            } finally { $stream.Dispose() }
+          } finally {
+            $graphics.Dispose()
+            $bitmap.Dispose()
+            $source.Dispose()
+          }
+          $iconPath = Join-Path $env:GITHUB_WORKSPACE "stage/PeaceEmu.ico"
+          $header = [byte[]](0,0,1,0,1,0,0,0,0,0,1,0,32,0)
+          $sizeBytes = [BitConverter]::GetBytes([uint32]$png.Length)
+          $offsetBytes = [BitConverter]::GetBytes([uint32]22)
+          $icon = New-Object byte[] (22 + $png.Length)
+          [Array]::Copy($header, 0, $icon, 0, 14)
+          [Array]::Copy($sizeBytes, 0, $icon, 14, 4)
+          [Array]::Copy($offsetBytes, 0, $icon, 18, 4)
+          [Array]::Copy($png, 0, $icon, 22, $png.Length)
+          [System.IO.File]::WriteAllBytes($iconPath, $icon)
+          Write-Host "Generated PeaceEmu.ico from the committed logo."
       - name: Compile Windows installer
         shell: pwsh
         run: |
@@ -79,7 +118,9 @@ jobs:
           $stageDir = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE "stage"))
           $distDir = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE "dist"))
           New-Item -ItemType Directory -Force -Path $distDir | Out-Null
-          & $iscc "/DAppVersion=${{ steps.stage.outputs.version }}" "/DStageDir=$stageDir" "/O$distDir" "PeaceEmu/packaging/windows/PeaceEmu.iss"
+          if (!(Test-Path (Join-Path $stageDir "PeaceEmu.ico"))) { throw "Generated application icon is missing." }
+          Copy-Item (Join-Path $stageDir "PeaceEmu.ico") (Join-Path $distDir "PeaceEmu.ico") -Force
+          & $iscc "/DAppVersion=${{ steps.stage.outputs.version }}" "/DStageDir=$stageDir" "/DIconFile=$(Join-Path $distDir 'PeaceEmu.ico')" "/O$distDir" "PeaceEmu/packaging/windows/PeaceEmu.iss"
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
       - name: Verify installer output

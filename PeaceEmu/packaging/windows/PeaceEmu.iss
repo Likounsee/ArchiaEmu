@@ -5,6 +5,10 @@
 #define AppPublisher "Likounsee"
 #define AppExeName "desktop-app.exe"
 
+#ifndef IconFile
+  #error "IconFile must point to the generated PeaceEmu.ico."
+#endif
+
 #ifndef StageDir
   #error "StageDir must point to the directory containing the staged application executable."
 #endif
@@ -26,7 +30,8 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-UninstallDisplayIcon={app}\{#AppExeName}
+SetupIconFile={#IconFile}
+UninstallDisplayIcon={app}\PeaceEmu.ico
 CloseApplications=yes
 RestartApplications=no
 ArchitecturesInstallIn64BitMode=x64
@@ -48,8 +53,8 @@ Source: "{#StageDir}\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist; Excludes: "{#AppExeName},*.pdb,*.ilk"
 
 [Icons]
-Name: "{group}\PeaceEmu"; Filename: "{app}\{#AppExeName}"
-Name: "{autodesktop}\PeaceEmu"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+Name: "{group}\PeaceEmu"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\PeaceEmu.ico"
+Name: "{autodesktop}\PeaceEmu"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\PeaceEmu.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "Launch PeaceEmu"; Flags: postinstall nowait skipifsilent
