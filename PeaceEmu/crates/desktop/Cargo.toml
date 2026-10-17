@@ -1,5 +1,5 @@
 [package]
-name = "archiaemu-desktop"
+name = "desktop-app"
 version = "0.1.0"
 description = "Experimental native desktop frontend for PeaceEmu"
 edition = "2021"
@@ -10,12 +10,12 @@ repository = "https://github.com/Likounsee/PeaceEmu"
 [features]
 # Console cores are optional modules; a fresh desktop build contains no console by default.
 default = []
-game-boy-color-module = ["dep:archiaemu-game-boy"]
+game-boy-color-module = ["dep:game-boy"]
 
 [dependencies]
-archiaemu-app = { version = "0.1.0", path = "../app" }
-archiaemu-core = { version = "0.1.0", path = "../core" }
-archiaemu-game-boy = { package = "archiaemu-game-boy-color", version = "0.1.0", path = "../game-boy", optional = true }
+host-app = { version = "0.1.0", path = "../app" }
+emulation-core = { version = "0.1.0", path = "../core" }
+game-boy = { package = "game-boy-color", version = "0.1.0", path = "../game-boy", optional = true }
 eframe = { version = "=0.27.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 ed25519-dalek = "=2.1.1"
 rfd = "=0.14.1"
