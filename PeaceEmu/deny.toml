@@ -8,6 +8,9 @@ yanked = "deny"
 ignore = [
     { id = "RUSTSEC-2026-0192", reason = "Transitive epaint font parser; upstream reports no safe upgrade currently available." },
     { id = "RUSTSEC-2026-0257", reason = "Transitive egui-winit browser helper; the desktop prototype does not invoke URL launching." },
+    { id = "RUSTSEC-2026-0370", reason = "Transitive zvariant dependency from rfd 0.14.1 via ashpd/zbus 4; advisory reports no safe upgrade until the upstream stack migrates to zbus 6." },
+    { id = "RUSTSEC-2026-0371", reason = "Transitive zbus_names dependency from rfd 0.14.1 via ashpd/zbus 4; advisory reports no safe upgrade until the upstream stack migrates to zbus 6." },
+    { id = "RUSTSEC-2026-0372", reason = "Transitive zvariant_derive dependency from rfd 0.14.1 via ashpd/zbus 4; advisory reports no safe upgrade until the upstream stack migrates to zbus 6." },
 ]
 
 [licenses]
