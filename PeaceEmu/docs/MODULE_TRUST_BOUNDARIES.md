@@ -18,4 +18,4 @@ Process separation alone is not a complete sandbox. OS-level identity/permission
 
 ## Current scope
 
-ArchiaEmu currently validates module metadata and plans activation; this document does not claim that it sandboxes modules or verifies artifact signatures in every installation path. Until a sandboxed loader exists, module execution should be limited to trusted code. Keep trust decisions separate from schema validation and capability planning.
+PeaceEmu currently validates module metadata and plans activation; this document does not claim that it sandboxes modules or verifies artifact signatures in every installation path. Until a sandboxed loader exists, module execution should be limited to trusted code. Keep trust decisions separate from schema validation and capability planning.
